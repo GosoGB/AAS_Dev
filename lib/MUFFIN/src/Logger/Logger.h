@@ -26,64 +26,64 @@
 
 
 
-#define LOG_ERROR(_logger, fmt, ...)    \
-    if (_logger != nullptr)             \
-    {                                   \
-        (_logger)->Log(                 \
-            muffin::LOG_LEVEL_ERROR,    \
-            __COUNTER__,                \
-            __FILE__,                   \
-            __FUNCTION__,               \
-            __LINE__, fmt,              \
-            ##__VA_ARGS__);             \
+#define LOG_ERROR(_logger, fmt, ...)                \
+    if (_logger != nullptr)                         \
+    {                                               \
+        (_logger)->Log(                             \
+            muffin::log_level_e::LOG_LEVEL_ERROR,   \
+            __COUNTER__,                            \
+            __FILE__,                               \
+            __FUNCTION__,                           \
+            __LINE__, fmt,                          \
+            ##__VA_ARGS__);                         \
     }
 
-#define LOG_WARNING(_logger, fmt, ...)  \
-    if (_logger != nullptr)             \
-    {                                   \
-        (_logger)->Log(                 \
-            muffin::LOG_LEVEL_WARNING,  \
-            __COUNTER__,                \
-            __FILE__,                   \
-            __FUNCTION__,               \
-            __LINE__, fmt,              \
-            ##__VA_ARGS__);             \
+#define LOG_WARNING(_logger, fmt, ...)              \
+    if (_logger != nullptr)                         \
+    {                                               \
+        (_logger)->Log(                             \
+            muffin::log_level_e::LOG_LEVEL_WARNING, \
+            __COUNTER__,                            \
+            __FILE__,                               \
+            __FUNCTION__,                           \
+            __LINE__, fmt,                          \
+            ##__VA_ARGS__);                         \
     }
 
-#define LOG_INFO(_logger, fmt, ...)     \
-    if (_logger != nullptr)             \
-    {                                   \
-        (_logger)->Log(                 \
-            muffin::LOG_LEVEL_INFO,     \
-            __COUNTER__,                \
-            __FILE__,                   \
-            __FUNCTION__,               \
-            __LINE__, fmt,              \
-            ##__VA_ARGS__);             \
+#define LOG_INFO(_logger, fmt, ...)                 \
+    if (_logger != nullptr)                         \
+    {                                               \
+        (_logger)->Log(                             \
+            muffin::log_level_e::LOG_LEVEL_INFO,    \
+            __COUNTER__,                            \
+            __FILE__,                               \
+            __FUNCTION__,                           \
+            __LINE__, fmt,                          \
+            ##__VA_ARGS__);                         \
     }
 
-#define LOG_DEBUG(_logger, fmt, ...)    \
-    if (_logger != nullptr)             \
-    {                                   \
-        (_logger)->Log(                 \
-            muffin::LOG_LEVEL_DEBUG,    \
-            __COUNTER__,                \
-            __FILE__,                   \
-            __FUNCTION__,               \
-            __LINE__, fmt,              \
-            ##__VA_ARGS__);             \
+#define LOG_DEBUG(_logger, fmt, ...)                \
+    if (_logger != nullptr)                         \
+    {                                               \
+        (_logger)->Log(                             \
+            muffin::log_level_e::LOG_LEVEL_DEBUG,   \
+            __COUNTER__,                            \
+            __FILE__,                               \
+            __FUNCTION__,                           \
+            __LINE__, fmt,                          \
+            ##__VA_ARGS__);                         \
     }
 
-#define LOG_VERBOSE(_logger, fmt, ...)  \
-    if (_logger != nullptr)             \
-    {                                   \
-        (_logger)->Log(                 \
-            muffin::LOG_LEVEL_VERBOSE,  \
-            __COUNTER__,                \
-            __FILE__,                   \
-            __FUNCTION__,               \
-            __LINE__, fmt,              \
-            ##__VA_ARGS__);             \
+#define LOG_VERBOSE(_logger, fmt, ...)              \
+    if (_logger != nullptr)                         \
+    {                                               \
+        (_logger)->Log(                             \
+            muffin::log_level_e::LOG_LEVEL_VERBOSE, \
+            __COUNTER__,                            \
+            __FILE__,                               \
+            __FUNCTION__,                           \
+            __LINE__, fmt,                          \
+            ##__VA_ARGS__);                         \
     }
 
 
@@ -91,6 +91,7 @@
 namespace muffin {
 
     typedef enum class MuffinLogLevelEnum
+        : uint8_t
     {
         LOG_LEVEL_ERROR     = 0,
         LOG_LEVEL_WARNING   = 1,
@@ -100,6 +101,7 @@ namespace muffin {
     } log_level_e;
 
     typedef enum class MuffinLogSinkEnum
+        : uint8_t
     {
         LOG_TO_SERIAL_MONITOR,
     #if defined(ESP32)
@@ -120,17 +122,22 @@ namespace muffin {
         explicit Logger(const log_level_e level);
         virtual ~Logger();
     public:
+        bool GetFilePathVerbosity() const;
+        void SetFilePathVerbosity(const bool isFilePathVerbose);
+    public:
         log_level_e GetLevel() const;
         void SetLevel(const log_level_e& level);
     public:
-        std::set<log_sink_e> GetSinkSet() const;
+        std::set<log_sink_e> GetSink() const;
         void SetSink(const std::set<log_sink_e>& sinkSet);
+        void AddSinkElement(const log_sink_e sink);
         void RemoveSinkElement(const log_sink_e sink);
     public:
         void Log(const log_level_e level, const size_t counter, const char* file, const char* func, const size_t line, const char* fmt, ...);
 
     private:
         static const uint32_t mBaudRate = 115200;
+        bool mIsFilePathVerbose = false;
     #if defined(DEBUG)
         log_level_e mLevel = log_level_e::LOG_LEVEL_VERBOSE;
     #else

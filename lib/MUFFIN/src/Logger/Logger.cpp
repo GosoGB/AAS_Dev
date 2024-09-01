@@ -16,9 +16,9 @@
 #include <sstream>
 #include <HardwareSerial.h>
 
+#include "Common/Time/TimeUtils.h"
 #include "GreetingMessage.h"
 #include "Logger.h"
-#include "Time/TimeUtils.h"
 
 
 
@@ -34,7 +34,6 @@ namespace muffin {
 		}
 	}
 
-
 	Logger::Logger(const log_level_e level)
 		: mLevel(level)
 	{
@@ -46,30 +45,35 @@ namespace muffin {
 		}
 	}
 
-
 	Logger::~Logger()
 	{
 		LOG_DEBUG(logger, "Destroyed at address: %p", this);
 	}
 
+	bool Logger::GetFilePathVerbosity() const
+	{
+		return mIsFilePathVerbose;
+	}
+
+	void Logger::SetFilePathVerbosity(const bool isFilePathVerbose)
+	{
+		mIsFilePathVerbose = isFilePathVerbose;
+	}
 
     log_level_e Logger::GetLevel() const
     {
         return mLevel;
     }
 
-
 	void Logger::SetLevel(const log_level_e& level)
 	{
 		mLevel = level;
 	}
 
-
-    std::set Logger::GetSinkSet() const
+    std::set<log_sink_e> Logger::GetSink() const
     {
         return mSinkSet;
     }
-
 
 	void Logger::SetSink(const std::set<log_sink_e>& sinkSet)
 	{
@@ -77,12 +81,15 @@ namespace muffin {
 		mSinkSet = sinkSet;
 	}
 
+	void Logger::AddSinkElement(const log_sink_e sink)
+	{
+		mSinkSet.insert(sink);
+	}
 
     void Logger::RemoveSinkElement(const log_sink_e sink)
     {
         mSinkSet.erase(sink);
     }
-
 
 	void Logger::Log(const log_level_e level, const size_t counter, const char* file, const char* func, const size_t line, const char* fmt, ...)
 	{
@@ -90,6 +97,14 @@ namespace muffin {
     	{
         	return ;
     	}
+
+		std::string filePath(file);
+		if (mIsFilePathVerbose == false)
+		{
+			filePath = filePath.find_last_of('/') == -1 ? 
+				filePath.c_str() : 
+				filePath.substr(filePath.find_last_of('/') + 1).c_str();
+		}
 
 		// send the log message to sink set
 		for (const auto& sink : mSinkSet)
@@ -107,11 +122,11 @@ namespace muffin {
 		
 				// generate a metadata string for the log
 				std::stringstream metadata;
-				metadata <<  mColorString[level]     <<
-					"["  <<  mLevelString[level]     << "]"
-					"["  <<  GetDatetime()   	     << "]"
-					"["  <<  file << ":" << line 	 << "]"
-					"["  <<  func << ":" << counter  << "] ";
+				metadata <<  mColorString[static_cast<uint8_t>(level)]  <<
+					"["  <<  mLevelString[static_cast<uint8_t>(level)]  << "]"
+					"["  <<  GetDatetime()   	     					<< "]"
+					"["  <<  filePath << ":" << line 	 				<< "]"
+					"["  <<  func     << ":" << counter  				<< "] ";
 
 				// combine the log message with metadata
 				const char* log = metadata.str().append(message).c_str();
@@ -123,7 +138,6 @@ namespace muffin {
 			}
 		}
 	}
-
 
 	Logger* logger = nullptr;
 }
