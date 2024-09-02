@@ -23,11 +23,11 @@
 
 namespace muffin {
 
-    class ScopeTimer
+    class ScopedTimer
     {
     public:
-        ScopeTimer(const std::string& file, const std::string& function);
-        ~ScopeTimer();
+        ScopedTimer(const std::string& file, const std::string& function);
+        virtual ~ScopedTimer();
     private:
         const std::string mFileName;
         const std::string mFunctionName;

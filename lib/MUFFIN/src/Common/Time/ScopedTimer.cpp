@@ -20,17 +20,19 @@
 
 namespace muffin {
 
-    ScopeTimer::ScopeTimer(const std::string& file, const std::string& function)
+    ScopedTimer::ScopedTimer(const std::string& file, const std::string& function)
         : mFileName(file)
         , mFunctionName(function)
         , mStartMillis(GetTimestampInMillis())
     {
     }
     
-    ScopeTimer::~ScopeTimer()
+    ScopedTimer::~ScopedTimer()
     {
-        LOG_DEBUG(logger, "[%s][%s] Processing Time: %llu ms", 
-            mFileName.c_str(),
+        LOG_DEBUG(logger, "File: %s, Function: %s, Processing Time: %llu ms", 
+            mFileName.find_last_of('/') == -1 ? 
+				mFileName.c_str() : 
+				mFileName.substr(mFileName.find_last_of('/') + 1).c_str(),
             mFunctionName.c_str(),
             GetTimestampInMillis() - mStartMillis
         );
