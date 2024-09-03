@@ -1,0 +1,35 @@
+/**
+ * @file Base.cpp
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
+ * @brief JARVIS 모듈의 여러 설정 정보 클래스에 대한 추상화 클래스를 정의합니다.
+ * 
+ * @date 2024-09-02
+ * @version 0.0.1
+ * 
+ * @copyright Copyright Edgecross Inc. (c) 2024
+ */
+
+
+
+
+#include "Base.h"
+
+
+
+namespace muffin { namespace jarvis { namespace config {
+
+    Base::Base(const std::string& category)
+        : mCategory(category)
+    {
+    }
+    
+    Base::~Base()
+    {
+    }
+
+    std::string Base::GetCategory() const
+    {
+        return mCategory;
+    }
+}}}
