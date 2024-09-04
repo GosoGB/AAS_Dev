@@ -4,7 +4,7 @@
  * 
  * @brief Ethernet 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-09-03
+ * @date 2024-09-04
  * @version 0.0.1
  * 
  * @todo Network 모듈 단에서 Ethernet 인터페이스의 MAC 주소를 어떻게 읽어가는
@@ -24,8 +24,6 @@
 
 #pragma once
 
-#include <ETH.h>
-
 #include "Network/INetwork.h"
 #include "Jarvis/Config/Network/Ethernet.h"
 #include "Logger/Logger.h"
@@ -38,7 +36,7 @@ namespace muffin {
     {
     public:
         Ethernet();
-        virtual ~Ethernet();
+        virtual ~Ethernet() override;
     private:
         eth_phy_type_t mPhyChipsetType = ETH_PHY_LAN8720;
         eth_clock_mode_t mPhyClockMode = ETH_CLOCK_GPIO0_IN;
@@ -54,7 +52,6 @@ namespace muffin {
         typedef enum class EthernetFiniteStateMachineEnum
             : int8_t
         {
-            FAILED_TO_SET_STATIC_IP      = -3,
             FAILED_TO_START_PHY          = -2,
             FAILED_TO_CONFIGURE          = -1,
             NOT_INITIALIZED_YET          =  0,

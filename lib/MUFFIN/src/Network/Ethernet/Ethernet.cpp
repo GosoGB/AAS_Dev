@@ -4,7 +4,7 @@
  * 
  * @brief Ethernet 통신을 사용하는데 필요한 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-09-03
+ * @date 2024-09-04
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -61,6 +61,7 @@ namespace muffin {
 
     Status Ethernet::Config(jarvis::config::Base* config)
     {
+        assert(config != nullptr);
         assert(config->GetCategory() == "ethernet");
         assert(mState != state_e::NOT_INITIALIZED_YET);
 
@@ -81,7 +82,7 @@ namespace muffin {
 
         mConfig = *static_cast<jarvis::config::Ethernet*>(config);
         mState = state_e::SUCCEDDED_TO_CONFIGURE;
-        return Status(Status::Code::GOOD);
+        return Status(Status::Code::GOOD_ENTRY_REPLACED);
     }
 
     Status Ethernet::Connect()
@@ -92,7 +93,7 @@ namespace muffin {
         {
             mState = state_e::FAILED_TO_START_PHY;
             LOG_ERROR(logger, "FAILED TO START ETHERNET PHY");
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return Status(Status::Code::UNCERTAIN);
         }
         mState = state_e::SUCCEDDED_TO_START_PHY;
 
