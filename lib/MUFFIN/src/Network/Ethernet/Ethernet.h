@@ -26,7 +26,7 @@
 
 #include "Network/INetwork.h"
 #include "Jarvis/Config/Network/Ethernet.h"
-#include "Logger/Logger.h"
+#include "Common/Logger/Logger.h"
 
 
 
