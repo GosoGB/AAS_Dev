@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <ETH.h>
+
 #include "Network/INetwork.h"
 #include "Jarvis/Config/Network/Ethernet.h"
 #include "Common/Logger/Logger.h"

@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include <ETH.h>
 #include <IPAddress.h>
 
 #include "Common/Status.h"
