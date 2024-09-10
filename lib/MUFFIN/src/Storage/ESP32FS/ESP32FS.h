@@ -7,7 +7,7 @@
  * @date 2024-09-05
  * @version 0.0.1
  * 
- * @note Arduino 프레임워크의 제약으로 인해 End() 실행 결과를 확인할 수 있는 방법이 없음 
+ * @note Arduino 프레임워크의 제약으로 인해 End() 실행 결과를 확인할 수 있는 방법이 없음
  * @todo ESP-IDF 프레임워크로 이전 시 파티션 unregister, unmount 결과 값에 따라 실행 결과를 리턴하게 수정해야 함
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
