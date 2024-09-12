@@ -77,6 +77,7 @@ namespace muffin {
     public:
         Status Write(const std::string& command);
         int16_t Read();
+        std::string ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd);
         size_t GetAvailableBytes();
     private:
         void stopUrcHandleTask();

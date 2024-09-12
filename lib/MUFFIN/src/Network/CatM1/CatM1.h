@@ -9,10 +9,12 @@
  * @date 2024-09-08
  * @version 0.0.1
  * 
- * @todo Connect 함수에서 PDP context 초기화하는 작업이 필요합니다.
  * @todo NTP 서버로부터 시간 정보를 가져오는 것이 필요합니다.
  * @todo 추후 버전 개발 시 FSM 수정 및 재적용이 필요함
  * @todo IPv6만 할당되고 있기 떄문에 인터페이스 수정이 필요함
+ * @todo timeout 에러 발생 이후 RxD가 들어온다면 그건 또 어떻게 처리할지 결정해야 합니다.
+ *       아마 버리는 게 합리적일 것 같은데 언제, 얼마나 timeout 이후에 들어올지 알 수 없기
+ *       때문에 실제 처리는 조금 어렵지 않을까 생각합니다.
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -91,6 +93,7 @@ namespace muffin {
         Status Execute(const std::string& command);
         size_t GetAvailableBytes();
         int16_t Read();
+        std::string ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd);
     private:
         Status isModemAvailable();
         Status checkOperator();

@@ -17,7 +17,7 @@
 #include <HardwareSerial.h>
 
 #include "Common/Time/TimeUtils.h"
-#include "GreetingMessage.h"
+#include "WelcomeMessage.h"
 #include "Logger.h"
 
 
@@ -30,6 +30,7 @@ namespace muffin {
 		{
 			Serial.begin(mBaudRate);
 			vTaskDelay(10 / portTICK_PERIOD_MS);
+			Serial.println("\033[0m");
 			Serial.println(F(welcomAsciiArt));
 		}
 	}
@@ -41,6 +42,7 @@ namespace muffin {
 		{
 			Serial.begin(mBaudRate);
 			vTaskDelay(10 / portTICK_PERIOD_MS);
+			Serial.println("\033[0m");
 			Serial.println(F(welcomAsciiArt));
 		}
 	}

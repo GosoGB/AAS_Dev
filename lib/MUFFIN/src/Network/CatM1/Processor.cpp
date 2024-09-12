@@ -16,10 +16,6 @@
 #include "Common/Logger/Logger.h"
 #include "Processor.h"
 
-#if defined(DEBUG)
-    #include "Common/Time/TimeUtils.h"
-#endif
-
 
 
 namespace muffin {
@@ -218,7 +214,7 @@ namespace muffin {
 
     size_t Processor::GetAvailableBytes()
     {
-        return mSerial.available();
+        return mRxBuffer.GetAvailableBytes();
     }
 
     int16_t Processor::Read()
@@ -231,9 +227,22 @@ namespace muffin {
         // parseQMTRECV(&rxd);
         // parseQMTSTAT(&rxd);
 
-        uint8_t value = mSerial.read();
+        int16_t value = mRxBuffer.Read();
         xSemaphoreGive(xSemaphore);
         return value;
+    }
+
+    std::string Processor::ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd)
+    {
+        if (xSemaphoreTake(xSemaphore, 100)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER.");
+            return "";
+        }
+
+        const std::vector<uint8_t> rxd= mRxBuffer.ReadBetweenPatterns(patternBegin, patternEnd);
+        xSemaphoreGive(xSemaphore);
+        return std::string(rxd.begin(), rxd.end());
     }
 
     void Processor::stopUrcHandleTask()
@@ -257,7 +266,7 @@ namespace muffin {
         {
             if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
             {
-                LOG_WARNING(logger, "THE MODULE IS NUSY. TRY LATER");
+                LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
                 continue;
             }
 

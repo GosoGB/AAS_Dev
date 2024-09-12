@@ -144,7 +144,7 @@ namespace muffin {
         }
         mConnFlags.set(conn_flags_e::GOT_REGISTERED);
 
-        mState == state_e::SUCCEDDED_TO_GET_IP;
+        mState = state_e::SUCCEDDED_TO_GET_IP;
         return Status(Status::Code::GOOD);
     }
 
@@ -236,6 +236,11 @@ namespace muffin {
         return mProcessor.Read();
     }
 
+    std::string CatM1::ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd)
+    {
+        return mProcessor.ReadBetweenPatterns(patternBegin, patternEnd);
+    }
+
     Status CatM1::isModemAvailable()
     {
         const std::string command = "AT";
@@ -274,6 +279,10 @@ namespace muffin {
     /**
      * @todo lexing, tokenizing 적용하여 판단하도록 로직 및 로거를 변경해야 함
      *       이를 위해 해외향지의 오퍼레이터 정보를 확인하는 것이 필요함
+     * @todo LTE 모뎀 통신이 안된다는 내용의 접수를 받을 때가 있습니다. 현재 발견한
+     *       원인 중의 하나로 설정된 OPERATOR가 없는 경우가 있습니다. 설정이 안 된건지
+     *       아니면 AUTOMATIC 설정이 실패한 것인지는 아직 알지 못하지만 이러한 경우에는 
+     *       수동으로 OPERATOR를 설정하면 정상적으로 동작하는 것을 확인한 적이 있습니다.
      */
     Status CatM1::checkOperator()
     {
@@ -299,7 +308,8 @@ namespace muffin {
             
             if (rxd.find(expected) != std::string::npos)
             {
-                if (rxd.find("+COPS: 0,0,\"SKTelecom\",8") != std::string::npos)
+                if (rxd.find("+COPS: 0,0,\"SKTelecom\",8") != std::string::npos ||
+                    rxd.find("+COPS: 1,0,\"SKTelecom\",8") != std::string::npos)
                 {
                     LOG_INFO(logger, "Status: available, Operator: SKTeleco(45012), Access: LTE Cat.M1");
                     return Status(Status::Code::GOOD);
@@ -405,7 +415,7 @@ namespace muffin {
             
             if (rxd.find(expected) != std::string::npos)
             {
-                LOG_INFO(logger, "ID: 1, Type: IPv4 %s", rxd.c_str());
+                LOG_INFO(logger, "ID: 1, Type: IPv4/IPv6 %s", rxd.c_str());
                 return Status(Status::Code::GOOD);
             }
             else if (rxd.find("ERROR") != std::string::npos)
@@ -574,6 +584,7 @@ namespace muffin {
     void CatM1::onEventRDY()
     {
         LOG_INFO(logger, "Callback: LTE Cat.M1 modem is being initialized");
+        mConnFlags.set(conn_flags_e::STATUS_PIN_GOOD);
         mInitFlags.set(init_flags_e::MODEM_BBP);
         mInitFlags.reset(init_flags_e::FUNCTIONS);
         mInitFlags.reset(init_flags_e::USIM_PIN);

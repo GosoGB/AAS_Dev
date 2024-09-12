@@ -135,7 +135,7 @@ namespace muffin {
             {
                 return std::vector<uint8_t>();
             }
-            auto endOfFirstIt = firstIt + firstPattern.size();
+            auto endOfFirstIt = firstIt + patternBegin.size();
 
             auto lastIt = std::search(endOfFirstIt, mBuffer.end(), lastPattern.begin(), lastPattern.end());
             if (lastIt == mBuffer.end())

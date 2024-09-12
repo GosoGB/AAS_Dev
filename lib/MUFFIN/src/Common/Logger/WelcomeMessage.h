@@ -1,5 +1,5 @@
 /**
- * @file GreetingMessage.h
+ * @file WelcomeMessage.h
  * @author Moon, Sun-hwa (woowsnu@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
