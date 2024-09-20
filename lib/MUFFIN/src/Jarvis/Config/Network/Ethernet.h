@@ -18,7 +18,7 @@
 #include <IPAddress.h>
 
 #include "Common/Status.h"
-#include "Jarvis/Config/Base.h"
+#include "Jarvis/Include/Base.h"
 
 
 
@@ -30,7 +30,7 @@ namespace muffin { namespace jarvis { namespace config {
         Ethernet();
         virtual ~Ethernet() override;
     public:
-        void operator=(const Ethernet& obj);
+        Ethernet& operator=(const Ethernet& obj);
         bool operator==(const Ethernet& obj) const;
         bool operator!=(const Ethernet& obj) const;
     public:

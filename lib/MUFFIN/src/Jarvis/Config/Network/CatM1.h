@@ -16,7 +16,7 @@
 #pragma once
 
 #include "Common/Status.h"
-#include "Jarvis/Config/Base.h"
+#include "Jarvis/Include/Base.h"
 
 
 
@@ -28,7 +28,7 @@ namespace muffin { namespace jarvis { namespace config {
         CatM1();
         virtual ~CatM1() override;
     public:
-        void operator=(const CatM1& obj);
+        CatM1& operator=(const CatM1& obj);
         bool operator==(const CatM1& obj) const;
         bool operator!=(const CatM1& obj) const;
     public:

@@ -31,10 +31,15 @@ namespace muffin { namespace jarvis { namespace config {
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
     }
 
-    void CatM1::operator=(const CatM1& obj)
+    CatM1& CatM1::operator=(const CatM1& obj)
     {
-        mModel   = obj.mModel;
-        mCountry = obj.mCountry;
+        if (this != &obj)
+        {
+            mModel   = obj.mModel;
+            mCountry = obj.mCountry;
+        }
+        
+        return *this;
     }
 
     bool CatM1::operator==(const CatM1& obj) const

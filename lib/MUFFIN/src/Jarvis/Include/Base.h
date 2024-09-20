@@ -7,6 +7,8 @@
  * @date 2024-09-02
  * @version 0.0.1
  * 
+ * @todo 생성자 매개변수를 std::string에서 enum class로 변경해야 합니다.
+ * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
 

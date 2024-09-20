@@ -31,39 +31,50 @@ namespace muffin { namespace jarvis { namespace config {
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
     }
 
-    void WiFi4::operator=(const WiFi4& obj)
+    WiFi4& WiFi4::operator=(const WiFi4& obj)
     {
-        mEnableDHCP   = obj.mEnableDHCP;
-        mStaticIPv4   = obj.mStaticIPv4;
-        mSubnetmask   = obj.mSubnetmask;
-        mGateway      = obj.mGateway;
-        mDNS1         = obj.mDNS1;
-        mDNS2         = obj.mDNS2;
-        mSSID         = obj.mSSID;
-        mPSK          = obj.mPSK;
-        mAuthMode     = obj.mAuthMode;
-        mEnableEAP    = obj.mEnableEAP;
-        mEapID        = obj.mEapID;
-        mEapUserName  = obj.mEapUserName;
-        mEapPassword  = obj.mEapPassword;
+        if (this != &obj)
+        {
+            mEnableDHCP             = obj.mEnableDHCP;
+            mStaticIPv4             = obj.mStaticIPv4;
+            mSubnetmask             = obj.mSubnetmask;
+            mGateway                = obj.mGateway;
+            mDNS1                   = obj.mDNS1;
+            mDNS2                   = obj.mDNS2;
+            mSSID                   = obj.mSSID;
+            mPSK                    = obj.mPSK;
+            mAuthMode               = obj.mAuthMode;
+            mEnableEAP              = obj.mEnableEAP;
+            mEapID                  = obj.mEapID;
+            mEapUserName            = obj.mEapUserName;
+            mEapPassword            = obj.mEapPassword;
+            mEapCaCertificate       = obj.mEapCaCertificate;
+            mEapClientCertificate   = obj.mEapClientCertificate;
+            mEapClientKey           = obj.mEapClientKey;
+        }
+        
+        return *this;
     }
 
     bool WiFi4::operator==(const WiFi4& obj) const
     {
         return (
-            mEnableDHCP   == obj.mEnableDHCP  &&
-            mStaticIPv4   == obj.mStaticIPv4  &&
-            mSubnetmask   == obj.mSubnetmask  &&
-            mGateway      == obj.mGateway     &&
-            mDNS1         == obj.mDNS1        &&
-            mDNS2         == obj.mDNS2        &&
-            mSSID         == obj.mSSID        &&
-            mPSK          == obj.mPSK         &&
-            mAuthMode     == obj.mAuthMode    &&
-            mEnableEAP    == obj.mEnableEAP   &&
-            mEapID        == obj.mEapID       &&
-            mEapUserName  == obj.mEapUserName &&
-            mEapPassword  == obj.mEapPassword
+            mEnableDHCP             == obj.mEnableDHCP              &&
+            mStaticIPv4             == obj.mStaticIPv4              &&
+            mSubnetmask             == obj.mSubnetmask              &&
+            mGateway                == obj.mGateway                 &&
+            mDNS1                   == obj.mDNS1                    &&
+            mDNS2                   == obj.mDNS2                    &&
+            mSSID                   == obj.mSSID                    &&
+            mPSK                    == obj.mPSK                     &&
+            mAuthMode               == obj.mAuthMode                &&
+            mEnableEAP              == obj.mEnableEAP               &&
+            mEapID                  == obj.mEapID                   &&
+            mEapUserName            == obj.mEapUserName             &&
+            mEapPassword            == obj.mEapPassword             &&
+            mEapCaCertificate       == obj.mEapCaCertificate        &&
+            mEapClientCertificate   == obj.mEapClientCertificate    &&
+            mEapClientKey           == obj.mEapClientKey
         );
     }
 
@@ -264,6 +275,45 @@ namespace muffin { namespace jarvis { namespace config {
         }
     }
 
+    Status WiFi4::SetEapCaCertificate(const std::string& eapCaCert)
+    {
+        mEapCaCertificate = eapCaCert;
+        if (mEapCaCertificate == eapCaCert)
+        {
+            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+    }
+
+    Status WiFi4::SetEapClientCertificate(const std::string& eapClientCert)
+    {
+        mEapClientCertificate = eapClientCert;
+        if (mEapClientCertificate == eapClientCert)
+        {
+            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+    }
+
+    Status WiFi4::SetEapClientKey(const std::string& eapClientKey)
+    {
+        mEapClientKey = eapClientKey;
+        if (mEapClientKey == eapClientKey)
+        {
+            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+    }
+
     bool WiFi4::GetDHCP() const
     {
         return mEnableDHCP;
@@ -328,4 +378,20 @@ namespace muffin { namespace jarvis { namespace config {
     {
         return mEapPassword;
     }
+
+    const std::string& WiFi4::GetEapCaCertificate() const
+    {
+        return mEapCaCertificate;
+    }
+
+    const std::string& WiFi4::GetEapClientCertificate() const
+    {
+        return mEapClientCertificate;
+    }
+
+    const std::string& WiFi4::GetEapClientKey() const
+    {
+        return mEapClientKey;
+    }
+
 }}}

@@ -31,14 +31,19 @@ namespace muffin { namespace jarvis { namespace config {
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
     }
 
-    void Ethernet::operator=(const Ethernet& obj)
+    Ethernet& Ethernet::operator=(const Ethernet& obj)
     {
-        mEnableDHCP = obj.mEnableDHCP;
-        mStaticIPv4 = obj.mStaticIPv4;
-        mSubnetmask = obj.mSubnetmask;
-        mGateway    = obj.mGateway;
-        mDNS1       = obj.mDNS1;
-        mDNS2       = obj.mDNS2;
+        if (this != &obj)
+        {
+            mEnableDHCP = obj.mEnableDHCP;
+            mStaticIPv4 = obj.mStaticIPv4;
+            mSubnetmask = obj.mSubnetmask;
+            mGateway    = obj.mGateway;
+            mDNS1       = obj.mDNS1;
+            mDNS2       = obj.mDNS2;
+        }
+
+        return *this;
     }
 
     bool Ethernet::operator==(const Ethernet& obj) const

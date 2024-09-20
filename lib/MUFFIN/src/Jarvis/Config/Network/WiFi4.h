@@ -24,7 +24,7 @@
 #include <IPAddress.h>
 
 #include "Common/Status.h"
-#include "Jarvis/Config/Base.h"
+#include "Jarvis/Include/Base.h"
 
 
 
@@ -36,7 +36,7 @@ namespace muffin { namespace jarvis { namespace config {
         WiFi4();
         virtual ~WiFi4() override;
     public:
-        void operator=(const WiFi4& obj);
+        WiFi4& operator=(const WiFi4& obj);
         bool operator==(const WiFi4& obj) const;
         bool operator!=(const WiFi4& obj) const;
     public:
@@ -53,6 +53,10 @@ namespace muffin { namespace jarvis { namespace config {
         Status SetEapID(const std::string& eapID);
         Status SetEapUserName(const std::string& eapUserName);
         Status SetEapPassword(const std::string& eapPassword);
+        Status SetEapCaCertificate(const std::string& eapCaCert);
+        Status SetEapClientCertificate(const std::string& eapClientCert);
+        Status SetEapClientKey(const std::string& eapClientKey);
+
     public:
         bool GetDHCP() const;
         const IPAddress& GetStaticIPv4() const;
@@ -67,6 +71,9 @@ namespace muffin { namespace jarvis { namespace config {
         const std::string& GetEapID() const;
         const std::string& GetEapUserName() const;
         const std::string& GetEapPassword() const;
+        const std::string& GetEapCaCertificate() const;
+        const std::string& GetEapClientCertificate() const;
+        const std::string& GetEapClientKey() const;
     private:
         bool mEnableDHCP = true;
         IPAddress mStaticIPv4;
@@ -81,5 +88,8 @@ namespace muffin { namespace jarvis { namespace config {
         std::string mEapID;
         std::string mEapUserName;
         std::string mEapPassword;
+        std::string mEapCaCertificate;
+        std::string mEapClientCertificate;
+        std::string mEapClientKey;
     };    
 }}}
