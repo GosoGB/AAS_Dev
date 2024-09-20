@@ -7,6 +7,8 @@
  * @date 2024-09-02
  * @version 0.0.1
  * 
+ * @todo 생성자 매개변수를 std::string에서 enum class로 변경해야 합니다.
+ * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
@@ -15,7 +17,7 @@
 
 #pragma once
 
-#include <string>
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
@@ -24,11 +26,11 @@ namespace muffin { namespace jarvis { namespace config {
     class Base
     {
     public:
-        explicit Base(const std::string& category);
+        explicit Base(const cfg_key_e category);
         virtual ~Base();
     public:
-        std::string GetCategory() const;
+        cfg_key_e GetCategory() const;
     private:
-        const std::string mCategory;
+        const cfg_key_e mCategory;
     };
 }}}

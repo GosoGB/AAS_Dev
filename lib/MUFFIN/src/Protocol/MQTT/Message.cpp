@@ -102,11 +102,6 @@ namespace muffin { namespace mqtt {
     #endif
     }
 
-    void Message::operator=(const Message& obj)
-    {
-        *this = std::move(obj);
-    }
-
     socket_e Message::GetSocketID() const
     {
         return mSocketID;

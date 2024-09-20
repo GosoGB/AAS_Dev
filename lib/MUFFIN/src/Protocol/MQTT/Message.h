@@ -34,8 +34,6 @@ namespace muffin { namespace mqtt {
         Message(Message&& obj) noexcept;
         virtual ~Message();
     public:
-        void operator=(const Message& obj);
-    public:
         socket_e GetSocketID() const;
         uint16_t GetMessageID() const;
         qos_e GetQoS() const;
