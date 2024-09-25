@@ -19,18 +19,26 @@
 #include "include/TypeDefinitions.h"
 
 
-namespace muffin { namespace im { 
+namespace muffin { namespace im {
 
     class Base
     {
     public:
         explicit Base(const NodeID& nodeID);
-        ~Base();
+        virtual ~Base();
     public:
         ;
-    private:
+    protected:
         const NodeID mNodeID;
         class_type_e mClassType;
-        qualified_name_t mQualifiedName;
+        qualified_name_t mBrowseName;
+        local_txt_t mDisplayName;
+        // local_txt_t mDescription;
+        // uint32_t mWriteMask;
+        uint8_t mReferenceSize;
+        ref_kind_t* mReferences;
+        // void* mContext;
+        // bool mIsConstructed;
+        // UA_MonitoredItem* monitoredItems;
     };
 }}

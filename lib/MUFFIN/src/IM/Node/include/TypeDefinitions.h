@@ -66,4 +66,38 @@ namespace muffin { namespace im {
         uint16_t NamespaceIndex;
         string_t Name;
     } qualified_name_t;
+
+    typedef struct LocalizedTextType{
+        string_t Local;
+        string_t Text;
+    } local_txt_t;
+
+    class NodeID;
+    class Base;
+
+    typedef union NodePointerUnion
+    {
+        uint32_t Immediate;
+        const NodeID* ID;
+        const Base* Node;
+    } node_ptr_u;
+
+    typedef struct NodeReferenceTargetType
+    {
+        node_ptr_u TargetID;
+        uint32_t TargetNameHash;
+    } ref_target_t;
+
+    /**
+     * @todo Reference target 개수가 많아진다면 현재 사용 중인 
+     *       array 자료구조 보다는 tree 자료구조가 우월합니다.
+     *       대략 TargetSize > 8 을 기준으로 보면 됩니다.
+     */
+    typedef union NodeReferenceKind
+    {
+        ref_target_t* Targets;
+        size_t TargetSize;
+        uint8_t ReferenceTypeIndex;
+        bool IsInverse;
+    } ref_kind_t;
 }}
