@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include <IM/Node/include/NodeID.h>
+#include <IM/Node/Include/NodeID.h>
+#include <IM/Node/Include/Helper.h>
 #include <IM/Node/Base.h>
 #include <Network/Ethernet/Ethernet.h>
 #include <Network/WiFi4/WiFi4.h>
@@ -10,16 +11,28 @@
 
 void setup()
 {
-    Serial.begin(115200);
-
     using namespace muffin;
+    logger = new Logger();
 
-    std::string message = "Hello, World! I am a Node #02!! Nice to meet you!";
+
+/*
+    std::string strbrowseName = "Node #01";
+    im::string_t strBrowseName;
+
+    Status ret = im::ConvertString(strbrowseName, &strBrowseName);
+    if (ret != Status::Code::GOOD)
+    {
+        LOG_ERROR(logger, "%s", ret.c_str());
+    }
+    LOG_INFO(logger, "[%s] Converted: %s", ret.c_str(), ConvertString(strBrowseName).c_str());
+
     im::NodeID node01(0, 123123);
-    im::NodeID node02(0, message);
+    im::qualified_name_t browseName01;
+    browseName01.Name = strBrowseName;
+    browseName01.NamespaceIndex = node01.GetNamespaceIndex();
 
-    im::Base base01(node01);
-    im::Base base02(node02);
+    im::Base base01(node01, im::class_type_e::VARIABLE, browseName01);
+*/
 }
 
 void loop()

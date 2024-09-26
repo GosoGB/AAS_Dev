@@ -21,8 +21,8 @@
 
 namespace muffin { namespace im {
 
-    Variable::Variable()
-        : Base()
+    Variable::Variable(const NodeID& nodeID, const qualified_name_t& browseName)
+        : Base(nodeID, class_type_e::VARIABLE, browseName)
     {
         LOG_DEBUG(logger, "mNodeID: %s", mNodeID.GetID().String.Data);
     }

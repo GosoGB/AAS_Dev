@@ -22,8 +22,12 @@
 
 
 
-namespace muffin { namespace im { 
+namespace muffin { namespace im {
 
+
+
+
+/* For future MUFFIN code base
     typedef struct MuffinStringType
     {
         size_t Length;
@@ -72,9 +76,6 @@ namespace muffin { namespace im {
         string_t Text;
     } local_txt_t;
 
-    class NodeID;
-    class Base;
-
     typedef union NodePointerUnion
     {
         uint32_t Immediate;
@@ -88,11 +89,11 @@ namespace muffin { namespace im {
         uint32_t TargetNameHash;
     } ref_target_t;
 
-    /**
+    /
      * @todo Reference target 개수가 많아진다면 현재 사용 중인 
      *       array 자료구조 보다는 tree 자료구조가 우월합니다.
      *       대략 TargetSize > 8 을 기준으로 보면 됩니다.
-     */
+     /
     typedef union NodeReferenceKind
     {
         ref_target_t* Targets;
@@ -100,4 +101,5 @@ namespace muffin { namespace im {
         uint8_t ReferenceTypeIndex;
         bool IsInverse;
     } ref_kind_t;
+*/
 }}
