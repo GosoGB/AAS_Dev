@@ -13,6 +13,7 @@
 
 
 
+/* For future MUFFIN code base
 #pragma once
 
 #include "TypeDefinitions.h"
@@ -21,25 +22,6 @@
 
 namespace muffin { namespace im {
 
-    class NodeID
-    {
-    public:
-        NodeID(const std::string& );
-        ~NodeID();
-    private:
-        /* data */
-    };
-
-
-
-
-
-
-
-
-    
-
-/* For future MUFFIN code base
     class NodeID
     {
     public:
@@ -57,5 +39,5 @@ namespace muffin { namespace im {
         const node_id_type_e mIdentifierType;
         node_id_u mIdentifier;
     };
-*/
 }}
+*/

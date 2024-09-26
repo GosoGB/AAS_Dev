@@ -13,6 +13,8 @@
 
 
 
+
+/* For future MUFFIN code base
 #pragma once
 
 #include "Common/Status.h"
@@ -22,18 +24,6 @@
 
 
 namespace muffin { namespace im {
-
-    class Base
-    {
-    public:
-        Base();
-        ~Base();
-    private:
-        ;
-    };
-    
-
-/* For future MUFFIN code base
     class Base
     {
     protected:
@@ -69,5 +59,5 @@ namespace muffin { namespace im {
         static constexpr uint8_t NODE_POINTER_TAG_NODE_ID          = 0x01;
         static constexpr uint8_t NODE_POINTER_TAG_NODE             = 0x02;
     };
-*/
 }}
+*/

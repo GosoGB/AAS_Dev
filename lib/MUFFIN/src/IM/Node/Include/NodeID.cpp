@@ -13,6 +13,7 @@
 
 
 
+/* For future MUFFIN code base
 #include <string.h>
 
 #include "Common/Assert.h"
@@ -23,26 +24,6 @@
 
 namespace muffin { namespace im {
 
-    NodeID::NodeID()
-    {
-    }
-    
-    NodeID::~NodeID()
-    {
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-/* For future MUFFIN code base
     NodeID::NodeID(const uint16_t namespaceIndex, const uint32_t id)
         : mNamespaceIndex(namespaceIndex)
         , mIdentifierType(node_id_type_e::NUMERIC)
@@ -111,5 +92,5 @@ namespace muffin { namespace im {
     {
         return mIdentifier;
     }
-*/
 }}
+*/

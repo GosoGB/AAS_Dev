@@ -2,7 +2,7 @@
  * @file Variable.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief 변수형 데이터를 표현하는 Variable Node 클래스를 정의합니다.
+ * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
  * @date 2024-09-25
  * @version 0.0.1
@@ -21,13 +21,40 @@
 
 namespace muffin { namespace im {
 
-    Variable::Variable(const NodeID& nodeID, const qualified_name_t& browseName)
-        : Base(nodeID, class_type_e::VARIABLE, browseName)
+    uint32_t Variable::mSamplingIntervalInMillis = 1000;
+
+
+    Variable::Variable(const data_type_e dataType)
+        : mDataType(dataType)
     {
-        LOG_DEBUG(logger, "mNodeID: %s", mNodeID.GetID().String.Data);
+    #if defined(DEBUG)
+        LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
-    
+
     Variable::~Variable()
     {
+    #if defined(DEBUG)
+        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
+    }
+
+    Status Variable::UpdateData(const var_data_t& data)
+    {
+        if (mDataBuffer.size() == mMaxHistorySize)
+        {
+            mDataBuffer.pop_front();
+        }
+        
+        if (mDataType != data_type_e::STRING)
+        {
+            mDataBuffer.push_back(data);
+        }
+        else
+        {
+            ;
+        }
+
+        return Status(Status::Code::BAD);
     }
 }}

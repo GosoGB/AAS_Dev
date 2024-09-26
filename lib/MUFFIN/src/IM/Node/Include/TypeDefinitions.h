@@ -20,20 +20,63 @@
 #include <string>
 #include <sys/_stdint.h>
 
+#include "Common/Status.h"
+
 
 
 namespace muffin { namespace im {
 
+    constexpr const uint8_t NUM_OF_DATA_TYPE = 12;
+    typedef enum class MuffinDataTypeEnum
+        : uint8_t
+    {
+        BOOLEAN  =  0,
+        INT8     =  1,
+        UINT8    =  2,
+        INT16    =  3,
+        UINT16   =  4,
+        INT32    =  5,
+        UINT32   =  6,
+        INT64    =  7,
+        UINT64   =  8,
+        FLOAT32  =  9,
+        FLOAT64  = 10,
+        STRING   = 11
+    } data_type_e;
 
-
-
-/* For future MUFFIN code base
     typedef struct MuffinStringType
     {
         size_t Length;
-        uint8_t* Data;
+        char* Data;
     } string_t;
 
+    typedef union VariableDataValueUnion
+    {
+        bool Boolean;
+        int8_t Int8;
+        uint8_t UInt8;
+        int16_t Int16;
+        uint16_t UInt16;
+        int32_t Int32;
+        uint32_t UInt32;
+        int64_t Int64;
+        float Float32;
+        double Float64;
+        uint64_t UInt64;
+        string_t String;
+    } var_value_u;
+
+    typedef struct VariableDataType
+    {
+        Status::Code StatusCode;
+        time_t Timestamp;
+        var_value_u Value;
+        bool HasValue     : 1;
+        bool HasStatus    : 1;
+        bool HasTimestamp : 1;
+    } var_data_t;
+
+/* For future MUFFIN code base
     typedef enum class NodeIdTypeEnum
         : uint8_t
     {

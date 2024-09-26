@@ -12,7 +12,7 @@
 
 
 
-
+/*
 #pragma once
 
 #include "Common/Status.h"
@@ -27,3 +27,4 @@ namespace muffin { namespace im {
     std::string ConvertString(const string_t& string);
     const char* ConvertClassTypeEnum(const class_type_e type);
 }}
+*/

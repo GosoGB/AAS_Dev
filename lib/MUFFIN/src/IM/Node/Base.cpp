@@ -13,6 +13,7 @@
 
 
 
+/* For future MUFFIN code base
 #include "Base.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
@@ -21,17 +22,7 @@
 
 
 namespace muffin { namespace im { 
-    
-    Base::Base()
-    {
-    }
-    
-    Base::~Base()
-    {
-    }
 
-
-/* For future MUFFIN code base
     Base::Base(const NodeID& nodeID, const class_type_e& classType, const qualified_name_t& browseName)
         : mNodeID(std::move(nodeID))
         , mClassType(classType)
@@ -157,5 +148,5 @@ namespace muffin { namespace im {
             break;
         }
     }
-*/
 }}
+*/
