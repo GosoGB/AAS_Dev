@@ -20,6 +20,7 @@
 #pragma once
 
 #include <deque>
+#include <vector>
 
 #include "Common/Status.h"
 #include "Include/TypeDefinitions.h"
@@ -31,10 +32,13 @@ namespace muffin { namespace im {
     class Variable
     {
     public:
+        /* @todo jarvis config 인스턴스로 대체해야 함 */
         Variable(const data_type_e dataType);
         virtual ~Variable();
     public:
         Status UpdateData(const var_data_t& data);
+        var_data_t RetrieveData() const;
+        std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
     private:
         const data_type_e mDataType;
         std::deque<var_data_t> mDataBuffer;

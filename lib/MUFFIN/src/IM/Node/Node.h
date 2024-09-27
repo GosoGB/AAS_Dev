@@ -26,6 +26,7 @@ namespace muffin { namespace im {
     class Node
     {
     public:
+        /* @todo jarvis config 인스턴스로 대체해야 함 */
         Node(const std::string& nodeID, const std::string& uid, const std::string& pid, const data_type_e dataType);
         virtual ~Node();
     private:
