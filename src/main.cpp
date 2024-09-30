@@ -8,6 +8,7 @@
 #include <map>
 
 #include <Protocol/Modbus/ModbusRTU.h>
+#include <Protocol/Modbus/Include/TypeDefinitions.h>
 #include <IM/Node/Include/NumericAddressRange.h>
 
 
@@ -23,21 +24,25 @@ void setup()
 
     node1.VariableNode.SetAddress(0);
     node1.VariableNode.SetQuantity(1);
+    node1.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
     node2.VariableNode.SetAddress(1);
     node2.VariableNode.SetQuantity(3);
+    node2.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
     node3.VariableNode.SetAddress(5);
     node3.VariableNode.SetQuantity(3);
+    node3.VariableNode.SetModbusArea(muffin::modbus::area_e::HOLDING_REGISTER);
 
     node4.VariableNode.SetAddress(8);
     node4.VariableNode.SetQuantity(3);
+    node4.VariableNode.SetModbusArea(muffin::modbus::area_e::HOLDING_REGISTER);
 
     muffin::ModbusRTU mbRTU;
-    mbRTU.AddNodeReference(&node1);
-    mbRTU.AddNodeReference(&node2);
-    mbRTU.AddNodeReference(&node3);
-    mbRTU.AddNodeReference(&node4);
+    mbRTU.AddNodeReference(1, node1);
+    mbRTU.AddNodeReference(1, node2);
+    mbRTU.AddNodeReference(1, node3);
+    mbRTU.AddNodeReference(1, node4);
 
     // mbRTU.RemoveReferece(node3.GetNodeID());
     // mbRTU.RemoveReferece(node2.GetNodeID());

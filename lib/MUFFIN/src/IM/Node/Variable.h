@@ -24,6 +24,7 @@
 
 #include "Common/Status.h"
 #include "Include/TypeDefinitions.h"
+#include "Protocol/Modbus/Include/TypeDefinitions.h"
 
 
 
@@ -45,8 +46,11 @@ namespace muffin { namespace im {
          */
         void SetAddress(const uint16_t address) { mAddress = address; }
         void SetQuantity(const uint16_t quantity) { mQuantity = quantity; }
+        void SetModbusArea(const modbus::area_e area) { mModbusArea = area; }
+    public:
         uint16_t GetAddress() const { return mAddress; }
         uint16_t GetQuantity() const { return mQuantity; }
+        modbus::area_e GetModbusArea() const { return mModbusArea; }
     private:
         /**
          * @todo node cin 을 이동 생성자로 가지고 오는 게 좋습니다.
@@ -54,6 +58,7 @@ namespace muffin { namespace im {
         uint16_t mAddress;
         uint16_t mQuantity;
         uint16_t mBit;
+        modbus::area_e mModbusArea;
     private:
         const data_type_e mDataType;
         std::deque<var_data_t> mDataBuffer;

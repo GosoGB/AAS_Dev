@@ -4,7 +4,7 @@
  * 
  * @brief Modbus RTU 프로토콜의 주소 테이블을 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-09-28
+ * @date 2024-09-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -18,6 +18,7 @@
 #include <map>
 
 #include "Address.h"
+#include "Common/Status.h"
 
 
 
@@ -30,6 +31,12 @@ namespace muffin { namespace modbus {
         virtual ~AddressTable();
     public:
         void UpdateAddressTable(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range);
+        const Status FindSlaveID(const uint8_t slaveID) const;
+        const Address& RetrieveBySlaveID(const uint8_t slaveID) const;
+    private:
+        void printCell(const uint8_t cellWidth, const char* value, uint8_t* castedBuffer) const;
+        void printCell(const uint8_t cellWidth, const uint16_t value, uint8_t* castedBuffer) const;
+        void printAddressTable() const;
     private:
         std::map<uint8_t, Address> mAddressBySlaveMap;
     };

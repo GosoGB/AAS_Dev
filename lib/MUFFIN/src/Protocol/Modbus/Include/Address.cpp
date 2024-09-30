@@ -4,7 +4,7 @@
  * 
  * @brief 단일 Modbus RTU 슬레이브에 대한 주소 테이블을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-09-28
+ * @date 2024-09-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -12,8 +12,6 @@
 
 
 
-
-#include <string.h>
 
 #include "Address.h"
 #include "Common/Assert.h"
@@ -61,23 +59,39 @@ namespace muffin { namespace modbus {
                 im::NumericAddressRange storedRange = *it;
                 storedRange.MergeRanges(range);
 
-                rangeRetrieved.erase(it);
+                it = rangeRetrieved.erase(it);
                 rangeRetrieved.emplace(storedRange);
-                
                 LOG_VERBOSE(logger, "Merged the given range to the previous range set");
-                goto UPDATE_CONSECUTIVE_RAGES;
+                
+                if (it == rangeRetrieved.end())
+                {
+                    break;
+                }
+                
+                updateConsecutiveRanges(&rangeRetrieved);
             }
         }
 
         LOG_VERBOSE(logger, "Added a new range to the previous range set");
         rangeRetrieved.emplace(range);
-
-    UPDATE_CONSECUTIVE_RAGES:
-        updateConsecutiveRanges(&rangeRetrieved);
-        printAddressMap();
     }
 
-    std::set<im::NumericAddressRange> Address::GetAddress(const area_e area)
+    std::set<area_e> Address::RetrieveAreaSet() const
+    {
+        std::set<area_e> areaSet;
+
+        for (const auto& address : mAddressMap)
+        {
+            if (address.second.size() != 0)
+            {
+                areaSet.emplace(address.first);
+            }
+        }
+
+        return areaSet;
+    }
+
+    const std::set<im::NumericAddressRange>& Address::RetrieveByArea(const area_e area) const
     {
         auto it = mAddressMap.find(area);
         return it->second;
@@ -102,66 +116,5 @@ namespace muffin { namespace modbus {
                 updateConsecutiveRanges(range);
             }
         }
-    }
-    
-    void Address::printCell(const uint8_t cellWidth, const char* value, uint8_t* castedBuffer) const
-    {
-        char* buffer = reinterpret_cast<char*>(castedBuffer);
-
-        char cell[cellWidth];
-        memset(cell, '\0', cellWidth * sizeof(char));
-
-        snprintf(cell, cellWidth - 1, "| %-*s", cellWidth - 2, value);
-        strcat(buffer, cell);
-    }
-
-    void Address::printCell(const uint8_t cellWidth, const uint16_t value, uint8_t* castedBuffer) const
-    {
-        char* buffer = reinterpret_cast<char*>(castedBuffer);
-
-        char cell[cellWidth];
-        memset(cell, '\0', cellWidth * sizeof(char));
-
-        snprintf(cell, cellWidth - 1, "| %*u", cellWidth - 2, value);
-        strcat(buffer, cell);
-    }
-
-    void Address::printAddressMap() const
-    {
-        const char* dashLine = "----------------------------------------------\n";
-        const uint16_t bufferSize = 512;
-        const uint8_t cellWidth = 10;
-        
-        char buffer[bufferSize];
-        uint8_t* castedBuffer = reinterpret_cast<uint8_t*>(buffer);
-        memset(buffer, '\0', bufferSize * sizeof(char));
-        strcat(buffer, dashLine);
-        strcat(buffer, "| Area   | Index  | Start  | Last   | Qty.   |\n");
-        strcat(buffer, dashLine);
-
-        for (const auto& address : mAddressMap)
-        {
-            size_t idx = 1;
-            const area_e& area = address.first;
-            const std::set<muffin::im::NumericAddressRange>& ranges = address.second;
-
-            const char* strArea = area == area_e::COIL           ? "COIL" : 
-                                  area == area_e::DISCRETE_INPUT ? "D.I." :
-                                  area == area_e::INPUT_REGISTER ? "I.R." : "H.R.";
-
-            for (const auto& range : ranges)
-            {
-                printCell(cellWidth, strArea, castedBuffer);
-                printCell(cellWidth, idx, castedBuffer);
-                printCell(cellWidth, range.GetStartAddress(), castedBuffer);
-                printCell(cellWidth, range.GetLastAddress(), castedBuffer);
-                printCell(cellWidth, range.GetQuantity(), castedBuffer);
-                strcat(buffer, "|\n");
-                ++idx;
-            }
-        }
-
-        strcat(buffer, dashLine);
-        LOG_INFO(logger, "Modbus Address Table\n%s\n", buffer);
     }
 }}

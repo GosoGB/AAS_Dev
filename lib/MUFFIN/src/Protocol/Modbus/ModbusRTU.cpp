@@ -37,31 +37,26 @@ namespace muffin {
     #endif
     }
     
-    Status ModbusRTU::AddNodeReference(im::Node* node)
+    Status ModbusRTU::AddNodeReference(const uint8_t slaveID, im::Node& node)
     {
-        ASSERT((node != nullptr), "CANNOT ADD NULL POINTER AS A REFERENCE OF A NODE");
-
         try
         {
-            mNodeReferences.emplace_back(node);
+            mNodeReferences.emplace_back(&node);
         }
         catch(const std::bad_alloc& e)
         {
-            LOG_ERROR(logger, "%s: %s", e.what(), node->GetNodeID().c_str());
+            LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID().c_str());
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR(logger, "%s: %s", e.what(), node->GetNodeID().c_str());
+            LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID().c_str());
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
-        LOG_VERBOSE(muffin::logger, "Added node: %s", node->GetNodeID().c_str());
-        
-        LOG_VERBOSE(muffin::logger, "Address Set: %u ranges", mAddressRangeSet.size());
-        im::NumericAddressRange range(node->VariableNode.GetAddress(), node->VariableNode.GetQuantity());
-        updateAddressRange(range);
-        updateConsecutiveRanges();
-        LOG_VERBOSE(muffin::logger, "Address Set: %u ranges", mAddressRangeSet.size());
+        LOG_VERBOSE(muffin::logger, "Added node: %s", node.GetNodeID().c_str());
+
+        im::NumericAddressRange range(node.VariableNode.GetAddress(), node.VariableNode.GetQuantity());
+        mAddressTable.UpdateAddressTable(slaveID, node.VariableNode.GetModbusArea(), range);
         return Status(Status::Code::GOOD);
     }
 

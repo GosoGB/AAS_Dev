@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <map>
 #include <vector>
 
 #include "Common/Status.h"
@@ -35,12 +36,13 @@ namespace muffin {
     class ModbusRTU
     {
     public:
-        ModbusRTU(/*포트 번호, 슬레이브 번호를 받아야 합니다.*/);
+        ModbusRTU();
         virtual ~ModbusRTU();
     public:
-        Status AddNodeReference(im::Node* node);
+        Status AddNodeReference(const uint8_t slaveID, im::Node& node);
         Status RemoveReferece(const std::string& nodeID);
     private:
         std::vector<im::Node*> mNodeReferences;
+        modbus::AddressTable mAddressTable;
     };
 }
