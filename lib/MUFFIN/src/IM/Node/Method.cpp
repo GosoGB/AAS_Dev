@@ -24,14 +24,14 @@ namespace muffin { namespace im {
     Method::Method()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
     
     Method::~Method()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
     

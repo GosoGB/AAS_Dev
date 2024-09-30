@@ -34,7 +34,10 @@ namespace muffin { namespace im {
         const std::string mUID;
         const std::string mPID;
     public:
-        Variable mVariableNode;
-        Method mMethodNode;
+        Variable VariableNode;
+        Method MethodNode;
+
+    public:
+        const std::string& GetNodeID() const;
     };
 }}

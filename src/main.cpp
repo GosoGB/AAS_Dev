@@ -1,20 +1,50 @@
 #include <Arduino.h>
 #include <IM/Node/Include/NodeID.h>
 #include <IM/Node/Include/Helper.h>
-#include <IM/Node/Base.h>
+#include <IM/Node/Node.h>
 #include <Network/Ethernet/Ethernet.h>
 #include <Network/WiFi4/WiFi4.h>
 #include <Storage/ESP32FS/ESP32FS.h>
 #include <map>
 
+#include <Protocol/Modbus/ModbusRTU.h>
+#include <IM/Node/Include/NumericAddressRange.h>
+
 
 
 void setup()
 {
-    using namespace muffin;
-    logger = new Logger();
+    muffin::logger = new muffin::Logger();
 
+    muffin::im::Node node1("node1", "uid1", "pid1", muffin::im::data_type_e::INT16);
+    muffin::im::Node node2("node2", "uid2", "pid2", muffin::im::data_type_e::INT16);
+    muffin::im::Node node3("node3", "uid3", "pid3", muffin::im::data_type_e::INT16);
+    muffin::im::Node node4("node4", "uid4", "pid4", muffin::im::data_type_e::INT16);
 
+    node1.VariableNode.SetAddress(0);
+    node1.VariableNode.SetQuantity(1);
+
+    node2.VariableNode.SetAddress(1);
+    node2.VariableNode.SetQuantity(3);
+
+    node3.VariableNode.SetAddress(5);
+    node3.VariableNode.SetQuantity(3);
+
+    node4.VariableNode.SetAddress(8);
+    node4.VariableNode.SetQuantity(3);
+
+    muffin::ModbusRTU mbRTU;
+    mbRTU.AddNodeReference(&node1);
+    mbRTU.AddNodeReference(&node2);
+    mbRTU.AddNodeReference(&node3);
+    mbRTU.AddNodeReference(&node4);
+
+    // mbRTU.RemoveReferece(node3.GetNodeID());
+    // mbRTU.RemoveReferece(node2.GetNodeID());
+    // mbRTU.RemoveReferece(node1.GetNodeID());
+    // mbRTU.RemoveReferece(node3.GetNodeID());
+    
+    
 /*
     std::string strbrowseName = "Node #01";
     im::string_t strBrowseName;

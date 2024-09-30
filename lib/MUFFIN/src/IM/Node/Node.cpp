@@ -25,17 +25,22 @@ namespace muffin { namespace im {
         : mNodeID(nodeID)
         , mUID(uid)
         , mPID(pid)
-        , mVariableNode(dataType)
+        , VariableNode(dataType)
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
 
     Node::~Node()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
+    }
+
+    const std::string& Node::GetNodeID() const
+    {
+        return mNodeID;
     }
 }}

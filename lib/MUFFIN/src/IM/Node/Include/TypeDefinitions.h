@@ -74,6 +74,8 @@ namespace muffin { namespace im {
         bool HasValue     : 1;
         bool HasStatus    : 1;
         bool HasTimestamp : 1;
+        bool IsEventType  : 1;
+        bool HasNewEvent  : 1;
     } var_data_t;
 
 /* For future MUFFIN code base

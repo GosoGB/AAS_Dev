@@ -39,10 +39,25 @@ namespace muffin { namespace im {
         Status UpdateData(const var_data_t& data);
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
+    public:
+        /**
+         * @todo node cin 속성에 따라 데이터 처리하는 함수 작성해야 합니다.
+         */
+        void SetAddress(const uint16_t address) { mAddress = address; }
+        void SetQuantity(const uint16_t quantity) { mQuantity = quantity; }
+        uint16_t GetAddress() const { return mAddress; }
+        uint16_t GetQuantity() const { return mQuantity; }
+    private:
+        /**
+         * @todo node cin 을 이동 생성자로 가지고 오는 게 좋습니다.
+         */
+        uint16_t mAddress;
+        uint16_t mQuantity;
+        uint16_t mBit;
     private:
         const data_type_e mDataType;
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;
-        const uint8_t mMaxHistorySize = 2;
+        const uint8_t mMaxHistorySize = 5;
     };
 }}

@@ -28,17 +28,20 @@ namespace muffin { namespace im {
         : mDataType(dataType)
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
 
     Variable::~Variable()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
+    /**
+     * @todo jump table로 처리하는 것이 필요한지 고민해보고 필요하면 적용해야 합니다.
+     */
     Status Variable::UpdateData(const var_data_t& data)
     {
         if (mDataBuffer.size() == mMaxHistorySize)
@@ -52,9 +55,30 @@ namespace muffin { namespace im {
         }
         else
         {
-            ;
+            ASSERT(false, "NOT SUPPORTED DATA TYPE");
         }
 
         return Status(Status::Code::BAD);
+    }
+
+    var_data_t Variable::RetrieveData() const
+    {
+        return mDataBuffer.back();
+    }
+
+    std::vector<var_data_t> Variable::RetrieveHistory(const size_t numberofHistory) const
+    {
+        ASSERT((numberofHistory < mMaxHistorySize + 1), "CANNOT RETRIEVE MORE THAN THE MAXIMUM HITORY SIZE");
+
+        std::vector<var_data_t> history;
+
+        auto it = mDataBuffer.end();
+        for (size_t i = 0; i < numberofHistory; i++)
+        {
+            --it;
+            history.emplace_back(it.operator*());
+        }
+        
+        return history;
     }
 }}
