@@ -4,7 +4,7 @@
  * 
  * @brief Modbus RTU 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-09-28
+ * @date 2024-10-01
  * @version 0.0.1
  * 
  * 
@@ -21,13 +21,13 @@
 
 #pragma once
 
-#include <map>
+#include <HardwareSerial.h>
 #include <vector>
 
 #include "Common/Status.h"
-#include "Include/TypeDefinitions.h"
 #include "Include/AddressTable.h"
-#include "IM/Node/Node.h"
+#include "Include/NodeTable.h"
+#include "Include/TypeDefinitions.h"
 
 
 
@@ -39,10 +39,23 @@ namespace muffin {
         ModbusRTU();
         virtual ~ModbusRTU();
     public:
+        // Status Init();
+        // Status Config(jarvis::config::Base* config);
+        void SetPort(HardwareSerial& port);
         Status AddNodeReference(const uint8_t slaveID, im::Node& node);
-        Status RemoveReferece(const std::string& nodeID);
+        Status RemoveReferece(const uint8_t slaveID, const std::string& nodeID);
+    public:
+        Status Poll();
     private:
-        std::vector<im::Node*> mNodeReferences;
+        Status pollCoil(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
+        Status pollDiscreteInput(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
+        Status pollInputRegister(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
+        Status pollHoldingRegister(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
+        Status sendData() const;
+    private:
+        HardwareSerial* mSerial;
+        modbus::NodeTable mNodeTable;
         modbus::AddressTable mAddressTable;
+        std::vector<modbus::datum_t> mPolledData;
     };
 }

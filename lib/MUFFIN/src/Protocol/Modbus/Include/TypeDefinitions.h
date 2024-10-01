@@ -4,7 +4,7 @@
  * 
  * @brief Modbus와 관련된 데이터 타입들을 선언합니다.
  * 
- * @date 2024-09-23
+ * @date 2024-10-01
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -24,7 +24,6 @@
 
 namespace muffin { namespace modbus {
 
-
     typedef enum class ModbusAreaEnum
         : uint8_t
     {
@@ -33,4 +32,13 @@ namespace muffin { namespace modbus {
         INPUT_REGISTER    = 3,
         HOLDING_REGISTER  = 4
     } area_e;
+
+    typedef struct ModbusPolledDatumType
+    {
+        uint8_t   SlaveID;
+        area_e    Area : 3;
+        uint8_t   BitsRead : 5;
+        uint16_t  Address;
+        uint16_t  Value;
+    } datum_t;
 }}

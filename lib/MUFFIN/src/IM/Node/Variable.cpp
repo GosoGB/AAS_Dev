@@ -39,6 +39,16 @@ namespace muffin { namespace im {
     #endif
     }
 
+    Status Variable::Update(const bool value)
+    {
+        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+    }
+
+    Status Variable::Update(const uint8_t size, const uint16_t value[])
+    {
+        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+    }
+
     /**
      * @todo jump table로 처리하는 것이 필요한지 고민해보고 필요하면 적용해야 합니다.
      */

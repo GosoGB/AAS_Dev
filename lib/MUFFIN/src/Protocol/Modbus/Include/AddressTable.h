@@ -2,9 +2,9 @@
  * @file AddressTable.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief Modbus RTU 프로토콜의 주소 테이블을 표현하는 클래스를 선언합니다.
+ * @brief 다중 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-09-30
+ * @date 2024-10-01
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -16,6 +16,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 
 #include "Address.h"
 #include "Common/Status.h"
@@ -32,12 +33,23 @@ namespace muffin { namespace modbus {
     public:
         void UpdateAddressTable(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range);
         const Status FindSlaveID(const uint8_t slaveID) const;
-        const Address& RetrieveBySlaveID(const uint8_t slaveID) const;
+        size_t RetrieveBufferSize() const;
+        std::set<uint8_t> RetrieveSlaveIdSet() const;
+        const Address& RetrieveAddress(const uint8_t slaveID) const;
     private:
+        void countBufferSize();
+    #if defined(DEBUG)
         void printCell(const uint8_t cellWidth, const char* value, uint8_t* castedBuffer) const;
         void printCell(const uint8_t cellWidth, const uint16_t value, uint8_t* castedBuffer) const;
         void printAddressTable() const;
+    #else
+        /**
+         * @todo release 빌드 시에는 csv 형태로 로그를 만들어서 서버로 전송해야 함
+         */
+        void printAddressTable() const;
+    #endif
     private:
         std::map<uint8_t, Address> mAddressBySlaveMap;
+        size_t mBufferSize;
     };
 }}

@@ -20,6 +20,7 @@
 #pragma once
 
 #include <deque>
+#include <sys/_stdint.h>
 #include <vector>
 
 #include "Common/Status.h"
@@ -34,8 +35,11 @@ namespace muffin { namespace im {
     {
     public:
         /* @todo jarvis config 인스턴스로 대체해야 함 */
-        Variable(const data_type_e dataType);
+        explicit Variable(const data_type_e dataType);
         virtual ~Variable();
+    public:
+        Status Update(const bool value);
+        Status Update(const uint8_t size, const uint16_t value[]);
     public:
         Status UpdateData(const var_data_t& data);
         var_data_t RetrieveData() const;
@@ -50,6 +54,7 @@ namespace muffin { namespace im {
     public:
         uint16_t GetAddress() const { return mAddress; }
         uint16_t GetQuantity() const { return mQuantity; }
+        uint16_t GetBitIndex() const { return mBitIndex; }
         modbus::area_e GetModbusArea() const { return mModbusArea; }
     private:
         /**
@@ -57,7 +62,7 @@ namespace muffin { namespace im {
          */
         uint16_t mAddress;
         uint16_t mQuantity;
-        uint16_t mBit;
+        uint16_t mBitIndex;
         modbus::area_e mModbusArea;
     private:
         const data_type_e mDataType;

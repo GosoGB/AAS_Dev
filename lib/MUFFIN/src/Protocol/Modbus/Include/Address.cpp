@@ -2,9 +2,9 @@
  * @file Address.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief 단일 Modbus RTU 슬레이브에 대한 주소 테이블을 표현하는 클래스를 정의합니다.
+ * @brief 단일 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-09-30
+ * @date 2024-10-01
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -43,37 +43,32 @@ namespace muffin { namespace modbus {
     void Address::UpdateAddressMap(const area_e area, const im::NumericAddressRange& range)
     {
         auto it = mAddressMap.find(area);
-        auto& rangeRetrieved = it->second;
+        auto& ranges = it->second;
 
-        if (rangeRetrieved.size() == 0)
+        if (ranges.size() == 0)
         {
-            rangeRetrieved.emplace(range);
+            ranges.emplace(range);
             LOG_VERBOSE(logger, "Added a new range to an empty set");
             return ;
         }
-
-        for (auto it = rangeRetrieved.begin(); it != rangeRetrieved.end(); ++it)
+        
+        for (auto it = ranges.begin(); it != ranges.end(); it++)
         {
             if (it->IsMergeable(range) == true)
             {
-                im::NumericAddressRange storedRange = *it;
-                storedRange.MergeRanges(range);
+                im::NumericAddressRange retrievedRange = *it;
+                retrievedRange.MergeRanges(range);
 
-                it = rangeRetrieved.erase(it);
-                rangeRetrieved.emplace(storedRange);
+                ranges.erase(it);
+                ranges.emplace(retrievedRange);
+                it = ranges.begin();
                 LOG_VERBOSE(logger, "Merged the given range to the previous range set");
-                
-                if (it == rangeRetrieved.end())
-                {
-                    break;
-                }
-                
-                updateConsecutiveRanges(&rangeRetrieved);
+                return ;
             }
         }
-
+        
+        ranges.erase(range);
         LOG_VERBOSE(logger, "Added a new range to the previous range set");
-        rangeRetrieved.emplace(range);
     }
 
     std::set<area_e> Address::RetrieveAreaSet() const
@@ -91,7 +86,7 @@ namespace muffin { namespace modbus {
         return areaSet;
     }
 
-    const std::set<im::NumericAddressRange>& Address::RetrieveByArea(const area_e area) const
+    const std::set<im::NumericAddressRange>& Address::RetrieveAddressSet(const area_e area) const
     {
         auto it = mAddressMap.find(area);
         return it->second;

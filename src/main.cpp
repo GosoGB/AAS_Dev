@@ -40,9 +40,9 @@ void setup()
 
     muffin::ModbusRTU mbRTU;
     mbRTU.AddNodeReference(1, node1);
-    mbRTU.AddNodeReference(1, node2);
+    mbRTU.AddNodeReference(2, node2);
     mbRTU.AddNodeReference(1, node3);
-    mbRTU.AddNodeReference(1, node4);
+    mbRTU.AddNodeReference(2, node4);
 
     // mbRTU.RemoveReferece(node3.GetNodeID());
     // mbRTU.RemoveReferece(node2.GetNodeID());
