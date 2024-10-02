@@ -31,12 +31,13 @@ namespace muffin { namespace modbus {
         Address();
         ~Address();
     public:
-        void UpdateAddressMap(const area_e area, const muffin::im::NumericAddressRange& range);
+        void Update(const area_e area, const muffin::im::NumericAddressRange& range);
+        void Remove(const area_e area, const muffin::im::NumericAddressRange& range);
         std::set<area_e> RetrieveAreaSet() const;
         const std::set<im::NumericAddressRange>& RetrieveAddressSet(const area_e area) const;
     private:
         void updateConsecutiveRanges(std::set<muffin::im::NumericAddressRange>* range);
     private:
-        std::map<area_e, std::set<im::NumericAddressRange>> mAddressMap;
+        std::map<area_e, std::set<im::NumericAddressRange>> mMapAddressByArea;
     };
 }}

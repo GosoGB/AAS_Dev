@@ -31,7 +31,8 @@ namespace muffin { namespace modbus {
         AddressTable();
         virtual ~AddressTable();
     public:
-        void UpdateAddressTable(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range);
+        void Update(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range);
+        void Remove(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range);
         const Status FindSlaveID(const uint8_t slaveID) const;
         size_t RetrieveBufferSize() const;
         std::set<uint8_t> RetrieveSlaveIdSet() const;
@@ -49,7 +50,7 @@ namespace muffin { namespace modbus {
         void printAddressTable() const;
     #endif
     private:
-        std::map<uint8_t, Address> mAddressBySlaveMap;
+        std::map<uint8_t, Address> mMapAddressBySlave;
         size_t mBufferSize;
     };
 }}

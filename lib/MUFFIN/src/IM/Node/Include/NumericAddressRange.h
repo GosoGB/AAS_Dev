@@ -34,6 +34,9 @@ namespace muffin { namespace im {
         bool IsMergeable(const NumericAddressRange& obj) const;
         void MergeRanges(const NumericAddressRange& obj);
     public:
+        bool IsRemovable(const NumericAddressRange& obj) const;
+        void Remove(const NumericAddressRange& obj, bool* isRemovableRange, uint16_t* remainedAddress, uint16_t* remainedQuantity);
+    public:
         uint16_t GetStartAddress() const;
         uint16_t GetLastAddress() const;
         uint16_t GetQuantity() const;

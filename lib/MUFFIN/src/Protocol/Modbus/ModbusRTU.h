@@ -4,7 +4,7 @@
  * 
  * @brief Modbus RTU 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-10-01
+ * @date 2024-10-02
  * @version 0.0.1
  * 
  * 
@@ -21,12 +21,13 @@
 
 #pragma once
 
-#include <HardwareSerial.h>
 #include <vector>
 
+#include "Include/ArduinoRS485/src/RS485.h"
 #include "Common/Status.h"
 #include "Include/AddressTable.h"
 #include "Include/NodeTable.h"
+#include "Include/PolledDataTable.h"
 #include "Include/TypeDefinitions.h"
 
 
@@ -43,7 +44,7 @@ namespace muffin {
         // Status Config(jarvis::config::Base* config);
         void SetPort(HardwareSerial& port);
         Status AddNodeReference(const uint8_t slaveID, im::Node& node);
-        Status RemoveReferece(const uint8_t slaveID, const std::string& nodeID);
+        Status RemoveReferece(const uint8_t slaveID, im::Node& node);
     public:
         Status Poll();
     private:
@@ -53,9 +54,13 @@ namespace muffin {
         Status pollHoldingRegister(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
         Status sendData() const;
     private:
-        HardwareSerial* mSerial;
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        RS485Class mRS485;
+    #else
+        RS485Class* mRS485
+    #endif
         modbus::NodeTable mNodeTable;
         modbus::AddressTable mAddressTable;
-        std::vector<modbus::datum_t> mPolledData;
+        modbus::PolledDataTable mPolledDataTable;
     };
 }

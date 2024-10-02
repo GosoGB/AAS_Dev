@@ -1,0 +1,43 @@
+/**
+ * @file PolledDataTable.h
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
+ * @brief 다중 Modbus 슬레이브로부터 수집한 데이터를 표현하는 클래스를 선언합니다.
+ * 
+ * @date 2024-10-02
+ * @version 0.0.1
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
+ */
+
+
+
+
+#pragma once
+
+#include <map>
+
+#include "Common/Assert.h"
+#include "Common/Status.h"
+#include "PolledData.h"
+
+
+
+namespace muffin { namespace modbus {
+
+    class PolledDataTable
+    {
+    public:
+        PolledDataTable();
+        virtual ~PolledDataTable();
+    public:
+        Status UpdateCoil(const uint8_t slaveID, const uint16_t address, const bool value);
+        void UpdateDiscreteInput(const uint8_t slaveID, const uint16_t address, const bool value);
+        void UpdateInputRegister(const uint8_t slaveID, const uint16_t address, const uint16_t value);
+        void UpdateHoldingRegister(const uint8_t slaveID, const uint16_t address, const uint16_t value);
+    public:
+        bool RetrieveCoil(const uint8_t slaveID, const uint16_t address) const;
+    private:
+        std::map<uint8_t, PolledData> mMapPolledDataBySlave;
+    };
+}}

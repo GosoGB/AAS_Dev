@@ -78,6 +78,8 @@ namespace muffin { namespace im {
         bool HasNewEvent  : 1;
     } var_data_t;
 
+
+
 /* For future MUFFIN code base
     typedef enum class NodeIdTypeEnum
         : uint8_t

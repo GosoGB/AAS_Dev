@@ -73,6 +73,7 @@ namespace muffin { namespace im {
     void NumericAddressRange::MergeRanges(const NumericAddressRange& obj)
     {
         ASSERT((IsMergeable(obj) == true), "CANNOT MERGE NON-OVERLAPPING RANGES");
+
         LOG_VERBOSE(logger, "Range: [%u, %u]", mStart, mQuantity);
         LOG_VERBOSE(logger, "Given: [%u, %u]", obj.mStart, obj.mQuantity);
         
@@ -83,6 +84,77 @@ namespace muffin { namespace im {
         mQuantity = std::max(lastAddressInRange, lastAddressInGivenRange) - mStart + 1;
         
         LOG_VERBOSE(logger, "Merged: [%u, %u]", mStart, mQuantity);
+    }
+
+    bool NumericAddressRange::IsRemovable(const NumericAddressRange& obj) const
+    {        
+        const uint16_t lastAddressInGivenRange  = obj.GetLastAddress();
+        const uint16_t lastAddressInRange = GetLastAddress();
+
+        if ((lastAddressInGivenRange < mStart) || (lastAddressInRange < obj.mStart))
+        {
+            LOG_VERBOSE(logger, "No matching range to remove");
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    void NumericAddressRange::Remove(const NumericAddressRange& obj, bool* isRemovableRange, uint16_t* remainedAddress, uint16_t* remainedQuantity)
+    {
+        ASSERT((isRemovableRange != nullptr), "THE PARAMETER \"isRemovableRange\" CANNOT BE A NULL POINTER");
+        ASSERT((remainedAddress  != nullptr), "THE PARAMETER \"remainedAddress\" CANNOT BE A NULL POINTER");
+        ASSERT((remainedQuantity != nullptr), "THE PARAMETER \"remainedQuantity\" CANNOT BE A NULL POINTER");
+        ASSERT((IsRemovable(obj) == true),    "CALL \"IsRemovable\" FUNCTION TO CHECK IF REMOVABLE PRIOR TO CALLING THIS FUNCTION");
+        
+        const uint16_t lastAddressInGivenRange  = obj.GetLastAddress();
+        const uint16_t lastAddressInRange = GetLastAddress();
+
+        if ((lastAddressInGivenRange < mStart) || (lastAddressInRange < obj.mStart))
+        {
+            LOG_VERBOSE(logger, "No matching range to remove");
+            return ;
+        }
+
+        *isRemovableRange = false;
+        *remainedAddress = 0;
+        *remainedQuantity = 0;
+
+        if (mStart == obj.mStart && lastAddressInRange == lastAddressInGivenRange)
+        {
+            LOG_VERBOSE(logger, "Entire range is removable");
+            *isRemovableRange = true;
+        }
+        else if (mStart == obj.mStart && lastAddressInRange != lastAddressInGivenRange)
+        {
+            const uint16_t backupStart = mStart;
+
+            mStart     = lastAddressInGivenRange + 1;
+            mQuantity -= obj.mQuantity;
+
+            LOG_VERBOSE(logger, "Removed head of the range: [%u, %u] -> [%u, %u]",
+                backupStart, lastAddressInRange, mStart, GetLastAddress());
+        }
+        else if (mStart < obj.mStart && lastAddressInRange == lastAddressInGivenRange)
+        {
+            mQuantity = obj.mStart - mStart;
+
+            LOG_VERBOSE(logger, "Removed tail of the range: [%u, %u] -> [%u, %u]",
+                mStart, lastAddressInRange, mStart, GetLastAddress());
+        }
+        else if (mStart < obj.mStart && lastAddressInRange != lastAddressInGivenRange)
+        {
+            mQuantity = obj.mStart - mStart;
+            *remainedAddress = obj.mStart + obj.mQuantity;
+            *remainedQuantity = lastAddressInRange - lastAddressInGivenRange;
+        }
+        else
+        {
+            LOG_ERROR(logger, "UNDEFINED CONDITION FOR REMOVE OPERATION");
+            ASSERT(false, "UNDEFINED CONDITION FOR REMOVE OPERATION");
+        }
     }
 
     uint16_t NumericAddressRange::GetStartAddress() const

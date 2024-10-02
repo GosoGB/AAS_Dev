@@ -23,10 +23,10 @@ namespace muffin { namespace modbus {
 
     Address::Address()
     {
-        mAddressMap.emplace(area_e::COIL,             std::set<im::NumericAddressRange>());
-        mAddressMap.emplace(area_e::DISCRETE_INPUT,   std::set<im::NumericAddressRange>());
-        mAddressMap.emplace(area_e::INPUT_REGISTER,   std::set<im::NumericAddressRange>());
-        mAddressMap.emplace(area_e::HOLDING_REGISTER, std::set<im::NumericAddressRange>());
+        mMapAddressByArea.emplace(area_e::COIL,             std::set<im::NumericAddressRange>());
+        mMapAddressByArea.emplace(area_e::DISCRETE_INPUT,   std::set<im::NumericAddressRange>());
+        mMapAddressByArea.emplace(area_e::INPUT_REGISTER,   std::set<im::NumericAddressRange>());
+        mMapAddressByArea.emplace(area_e::HOLDING_REGISTER, std::set<im::NumericAddressRange>());
 
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -40,9 +40,9 @@ namespace muffin { namespace modbus {
     #endif
     }
 
-    void Address::UpdateAddressMap(const area_e area, const im::NumericAddressRange& range)
+    void Address::Update(const area_e area, const im::NumericAddressRange& range)
     {
-        auto it = mAddressMap.find(area);
+        auto it = mMapAddressByArea.find(area);
         auto& ranges = it->second;
 
         if (ranges.size() == 0)
@@ -71,11 +71,62 @@ namespace muffin { namespace modbus {
         LOG_VERBOSE(logger, "Added a new range to the previous range set");
     }
 
+    void Address::Remove(const area_e area, const im::NumericAddressRange& range)
+    {
+        auto& ranges = mMapAddressByArea.find(area)->second;
+
+        if (ranges.size() == 0)
+        {
+            LOG_VERBOSE(logger, "No range in the set to remove");
+            return ;
+        }
+        
+        for (auto it = ranges.begin(); it != ranges.end(); ++it)
+        {
+            if (it->IsRemovable(range) == false)
+            {
+                continue;
+            }
+            
+            im::NumericAddressRange retrievedRange = *it;
+            ranges.erase(it);
+
+            bool isRemovableRange;
+            uint16_t remainedAddress  = 0;
+            uint16_t remainedQuantity = 0;
+
+            retrievedRange.Remove(range, &isRemovableRange, &remainedAddress, &remainedQuantity);
+            if (isRemovableRange == true)
+            {
+                LOG_VERBOSE(logger, "Removed a range set");
+                return ;
+            }
+            else if (remainedAddress != 0 && remainedQuantity != 0)
+            {
+                im::NumericAddressRange remainedRange(remainedAddress, remainedQuantity);
+                for (const auto& e : ranges)
+                {
+                    LOG_DEBUG(logger, "%u", e.GetStartAddress());
+                }
+                
+                const auto retHead = ranges.emplace(retrievedRange);
+                const auto retTail = ranges.emplace(remainedRange);            
+                ASSERT((retHead.second == true), "FAILED TO REMOVE ADDRESS RANGE: HEAD");
+                ASSERT((retTail.second == true), "FAILED TO REMOVE ADDRESS RANGE: TAIL");
+                LOG_VERBOSE(logger, "Removed middle of a range set and remained part was emplaced again");
+                return ;
+            }
+
+            ranges.emplace(retrievedRange);
+            LOG_VERBOSE(logger, "Removed head or tail part of a range set");
+        }
+    }
+
     std::set<area_e> Address::RetrieveAreaSet() const
     {
         std::set<area_e> areaSet;
 
-        for (const auto& address : mAddressMap)
+        for (const auto& address : mMapAddressByArea)
         {
             if (address.second.size() != 0)
             {
@@ -88,7 +139,7 @@ namespace muffin { namespace modbus {
 
     const std::set<im::NumericAddressRange>& Address::RetrieveAddressSet(const area_e area) const
     {
-        auto it = mAddressMap.find(area);
+        auto it = mMapAddressByArea.find(area);
         return it->second;
     }
 

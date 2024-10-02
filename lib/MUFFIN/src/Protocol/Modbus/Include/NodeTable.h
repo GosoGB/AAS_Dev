@@ -4,7 +4,7 @@
  * 
  * @brief 단일 Modbus 마스터와 연결된 Node에 대한 참조 정보를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-01
+ * @date 2024-10-02
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -32,6 +32,8 @@ namespace muffin { namespace modbus {
         virtual ~NodeTable();
     public:
         Status Update(const uint8_t slaveID, im::Node& node);
+        Status Remove(const uint8_t slaveID, im::Node& node);
+        Status FindSlaveID(const uint8_t slaveID) const;
         const std::vector<im::Node*>& RetrieveBySlaveID(const uint8_t slaveID) const;
     private:
         std::map<uint8_t, std::vector<im::Node*>> mReferenceBySlaveMap;

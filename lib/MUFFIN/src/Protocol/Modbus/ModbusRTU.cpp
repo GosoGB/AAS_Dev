@@ -13,12 +13,11 @@
 
 
 
-#include <ArduinoRS485.h>
-#include <ArduinoModbus.h>
 #include <string.h>
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "ModbusRTU.h"
 
 
@@ -26,8 +25,9 @@
 namespace muffin {
 
     ModbusRTU::ModbusRTU()
-        : mSerial(nullptr)
-        , mPolledDataIndex(0)
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        : mRS485(Serial2, RS485_DEFAULT_TX_PIN, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN)
+    #endif
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -43,7 +43,10 @@ namespace muffin {
     
     void ModbusRTU::SetPort(HardwareSerial& port)
     {
+    #if not defined(MODLINK_L) && not defined(MODLINK_ML10)
+        mRS485(SERIAL_PORT_HARDWARE, RS485_DEFAULT_TX_PIN, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN);
         mSerial = &port;
+    #endif
     }
 
     Status ModbusRTU::AddNodeReference(const uint8_t slaveID, im::Node& node)
@@ -54,31 +57,30 @@ namespace muffin {
             return ret;
         }
 
+        const modbus::area_e area = node.VariableNode.GetModbusArea();
         const uint16_t address    = node.VariableNode.GetAddress();
         const uint16_t quantity   = node.VariableNode.GetQuantity();
-        const modbus::area_e area = node.VariableNode.GetModbusArea();
         im::NumericAddressRange range(address, quantity);
 
-        mAddressTable.UpdateAddressTable(slaveID, area, range);
-        const size_t bufferSize = mAddressTable.RetrieveBufferSize();
-        mPolledData.reserve(bufferSize);
+        mAddressTable.Update(slaveID, area, range);
         return Status(Status::Code::GOOD);
     }
 
-    Status ModbusRTU::RemoveReferece(const uint8_t slaveID, const std::string& nodeID)
+    Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
     {
-        for (auto it = mNodeReferences.begin(); it != mNodeReferences.end(); ++it)
+        Status ret = mNodeTable.Remove(slaveID, node);
+        if (ret != Status::Code::GOOD)
         {
-            if ((*it)->GetNodeID() == nodeID)
-            {
-                mNodeReferences.erase(it);
-                LOG_VERBOSE(muffin::logger, "Removed node: %s", nodeID.c_str());
-                return Status(Status::Code::GOOD);
-            }
+            return ret;
         }
-        
-        LOG_ERROR(muffin::logger, "FAILED TO REMOVE REFERENCE TO NODE \"%s\" SINCE IT'S NOT FOUND");
-        return Status(Status::Code::BAD_NOT_FOUND);
+
+        const modbus::area_e area = node.VariableNode.GetModbusArea();
+        const uint16_t address    = node.VariableNode.GetAddress();
+        const uint16_t quantity   = node.VariableNode.GetQuantity();
+        im::NumericAddressRange range(address, quantity);
+
+        mAddressTable.Remove(slaveID, area, range);
+        return Status(Status::Code::GOOD);
     }
 
     Status ModbusRTU::Poll()
@@ -128,62 +130,38 @@ namespace muffin {
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
-    Status pollCoil(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet)
+    Status ModbusRTU::pollCoil(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet)
     {
-        if (addressSet.size() == 1)
+        for (auto it = addressSet.begin(); it != addressSet.end(); ++it)
         {
-            const auto it = addressSet.begin();
-            const uint16_t address  = it->GetStartAddress();
+            const uint16_t startAddress  = it->GetStartAddress();
             const uint16_t quantity = it->GetQuantity();
 
-            if (ModbusRTUClient.requestFrom(slaveID, COILS, address, quantity) != quantity)
+            if (ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, quantity) != quantity)
             {
                 LOG_ERROR(logger, "FAILED TO POLL COIL: %s", ModbusRTUClient.lastError());
                 return Status(Status::Code::BAD);
             }
+            ASSERT((ModbusRTUClient.available() == quantity), "Quantity and the available bits do not match");
             LOG_VERBOSE(logger, "Succeeded to poll %u bits from Coil block", quantity);
-            
-            const uint16_t reps = static_cast<uint16_t>(0.5f + (quantity / 16.0f));
-            for (size_t i = 0; i < reps; i++)
+
+            for (size_t i = 0; i < quantity; i++)
             {
-                modbus::datum_t datum;
-                datum.SlaveID = slaveID;
-                datum.Address = address + i;
-                datum.Area = modbus::area_e::COIL;
+                const uint16_t address = startAddress + i;
+                const int8_t value = ModbusRTUClient.read();
 
-                uint8_t bitIndex = 0;
-                
-                while (ModbusRTUClient.available())
+                switch (value)
                 {
-                    int8_t value = ModbusRTUClient.read();
-
-                    if (value == 1)
-                    {
-                        datum.Value |= (1 << bitIndex);
-                    }
-                    else if (value == 0)
-                    {
-                        datum.Value &= ~(1 << bitIndex);
-                    }
-                    else
-                    {
-                        return Status(Status::Code::BAD_DATA_UNAVAILABLE);
-                    }
-                    
-                    datum.Address = address;
+                case true:
+                case false:
+                    mPolledDataTable.UpdateCoil(slaveID, address, value);
+                    continue;
+                default:
+                    return Status(Status::Code::BAD_DATA_UNAVAILABLE);
                 }
             }
-            
-            return Status(Status::Code::GOOD);
         }
-        
-        for (auto it = addressSet.begin(); it != std::prev(addressSet.end()); ++it)
-        {
-            address.GetStartAddress();
-        }
-        
-        
-        
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+
+        return Status(Status::Code::GOOD);
     }
 }

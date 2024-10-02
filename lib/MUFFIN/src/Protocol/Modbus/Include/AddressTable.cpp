@@ -38,21 +38,38 @@ namespace muffin { namespace modbus {
     #endif
     }
 
-    void AddressTable::UpdateAddressTable(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range)
+    void AddressTable::Update(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range)
     {
-        auto it = mAddressBySlaveMap.find(slaveID);
-        if (it == mAddressBySlaveMap.end())
+        auto it = mMapAddressBySlave.find(slaveID);
+        if (it == mMapAddressBySlave.end())
         {
             LOG_VERBOSE(logger, "New slave index has been given");
             Address address;
-            address.UpdateAddressMap(area, range);
-            mAddressBySlaveMap.emplace(slaveID, address);
+            address.Update(area, range);
+            mMapAddressBySlave.emplace(slaveID, address);
             LOG_VERBOSE(logger, "Created the new slave index to the address table");
             return ;
         }
 
         LOG_VERBOSE(logger, "Found the given slave index from the table");
-        it->second.UpdateAddressMap(area, range);
+        it->second.Update(area, range);
+        LOG_VERBOSE(logger, "Updated the slave index from the address table");
+
+        printAddressTable();
+        countBufferSize();
+    }
+
+    void AddressTable::Remove(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range)
+    {
+        auto it = mMapAddressBySlave.find(slaveID);
+        if (it == mMapAddressBySlave.end())
+        {
+            LOG_VERBOSE(logger, "No matching slave ID");
+            return ;
+        }
+
+        LOG_VERBOSE(logger, "Found the given slave index from the table");
+        it->second.Remove(area, range);
         LOG_VERBOSE(logger, "Updated the slave index from the address table");
 
         printAddressTable();
@@ -61,7 +78,7 @@ namespace muffin { namespace modbus {
 
     const Status AddressTable::FindSlaveID(const uint8_t slaveID) const
     {
-        return mAddressBySlaveMap.find(slaveID) == mAddressBySlaveMap.end() ?
+        return mMapAddressBySlave.find(slaveID) == mMapAddressBySlave.end() ?
             Status(Status::Code::BAD_NOT_FOUND) :
             Status(Status::Code::GOOD);
     }
@@ -75,7 +92,7 @@ namespace muffin { namespace modbus {
     {
         std::set<uint8_t> slaveIdSet;
 
-        for (const auto& address : mAddressBySlaveMap)
+        for (const auto& address : mMapAddressBySlave)
         {
             slaveIdSet.emplace(address.first);
         }
@@ -85,8 +102,8 @@ namespace muffin { namespace modbus {
 
     const Address& AddressTable::RetrieveAddress(const uint8_t slaveID) const
     {
-        ASSERT((mAddressBySlaveMap.find(slaveID) != mAddressBySlaveMap.end()), "ADDRESS WITH SLAVE ID %u NOT FOUND", slaveID);
-        return mAddressBySlaveMap.at(slaveID);
+        ASSERT((mMapAddressBySlave.find(slaveID) != mMapAddressBySlave.end()), "ADDRESS WITH SLAVE ID %u NOT FOUND", slaveID);
+        return mMapAddressBySlave.at(slaveID);
     }
     
     void AddressTable::countBufferSize()
@@ -94,7 +111,7 @@ namespace muffin { namespace modbus {
         mBufferSize = 0;
         constexpr float MODBUS_REGISTER_SIZE = 16.0f;
 
-        for (const auto& slaveID : mAddressBySlaveMap)
+        for (const auto& slaveID : mMapAddressBySlave)
         {
             const auto& addressMap = slaveID.second;
 
@@ -152,7 +169,7 @@ namespace muffin { namespace modbus {
         strcat(buffer, "| Slave  | Area   | Start  | Last   | Qty.   |\n");
         strcat(buffer, dashLine);
 
-        for (const auto& addressBySlave : mAddressBySlaveMap)
+        for (const auto& addressBySlave : mMapAddressBySlave)
         {
             const auto& slaveID = addressBySlave.first;
             const auto& address = addressBySlave.second;

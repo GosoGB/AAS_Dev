@@ -15,9 +15,11 @@
 
 #pragma once
 
+#include <set>
 #include <string>
 #include <sys/_stdint.h>
 
+#include "IM/Node/Include/NumericAddressRange.h"
 #include "Common/Status.h"
 
 
@@ -33,11 +35,17 @@ namespace muffin { namespace modbus {
         HOLDING_REGISTER  = 4
     } area_e;
 
-    typedef struct ModbusPolledDatumType
+    // typedef struct ModbusPolledDatumType /* 48 bits */
+    // {
+    //     uint8_t   SlaveID;
+    //     area_e    Area : 3;
+    //     uint8_t   BitsRead : 5;
+    //     uint16_t  Address;
+    //     uint16_t  Value;
+    // } datum_t;
+
+    typedef struct ModbusPolledDatumType  /* 32 bits */
     {
-        uint8_t   SlaveID;
-        area_e    Area : 3;
-        uint8_t   BitsRead : 5;
         uint16_t  Address;
         uint16_t  Value;
     } datum_t;

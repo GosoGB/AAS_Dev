@@ -17,10 +17,10 @@ void setup()
 {
     muffin::logger = new muffin::Logger();
 
-    muffin::im::Node node1("node1", "uid1", "pid1", muffin::im::data_type_e::INT16);
-    muffin::im::Node node2("node2", "uid2", "pid2", muffin::im::data_type_e::INT16);
-    muffin::im::Node node3("node3", "uid3", "pid3", muffin::im::data_type_e::INT16);
-    muffin::im::Node node4("node4", "uid4", "pid4", muffin::im::data_type_e::INT16);
+    muffin::im::Node node1("node1", "uid1", "pid1", muffin::im::data_type_e::BOOLEAN);
+    muffin::im::Node node2("node2", "uid2", "pid2", muffin::im::data_type_e::BOOLEAN);
+    muffin::im::Node node3("node3", "uid3", "pid3", muffin::im::data_type_e::BOOLEAN);
+    muffin::im::Node node4("node4", "uid4", "pid4", muffin::im::data_type_e::BOOLEAN);
 
     node1.VariableNode.SetAddress(0);
     node1.VariableNode.SetQuantity(1);
@@ -30,19 +30,24 @@ void setup()
     node2.VariableNode.SetQuantity(3);
     node2.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
-    node3.VariableNode.SetAddress(5);
+    node3.VariableNode.SetAddress(4);
     node3.VariableNode.SetQuantity(3);
-    node3.VariableNode.SetModbusArea(muffin::modbus::area_e::HOLDING_REGISTER);
+    node3.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
-    node4.VariableNode.SetAddress(8);
+    node4.VariableNode.SetAddress(7);
     node4.VariableNode.SetQuantity(3);
-    node4.VariableNode.SetModbusArea(muffin::modbus::area_e::HOLDING_REGISTER);
+    node4.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
     muffin::ModbusRTU mbRTU;
     mbRTU.AddNodeReference(1, node1);
-    mbRTU.AddNodeReference(2, node2);
+    mbRTU.AddNodeReference(1, node2);
     mbRTU.AddNodeReference(1, node3);
-    mbRTU.AddNodeReference(2, node4);
+    mbRTU.AddNodeReference(1, node4);
+
+    mbRTU.RemoveReferece(1, node1);
+    mbRTU.RemoveReferece(1, node3);
+    mbRTU.RemoveReferece(1, node4);
+    mbRTU.RemoveReferece(1, node2);
 
     // mbRTU.RemoveReferece(node3.GetNodeID());
     // mbRTU.RemoveReferece(node2.GetNodeID());
