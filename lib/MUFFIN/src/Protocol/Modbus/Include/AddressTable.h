@@ -4,7 +4,7 @@
  * 
  * @brief 다중 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-01
+ * @date 2024-10-03
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -30,15 +30,15 @@ namespace muffin { namespace modbus {
     public:
         AddressTable();
         virtual ~AddressTable();
-    public:
-        void Update(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range);
-        void Remove(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range);
-        const Status FindSlaveID(const uint8_t slaveID) const;
-        size_t RetrieveBufferSize() const;
-        std::set<uint8_t> RetrieveSlaveIdSet() const;
-        const Address& RetrieveAddress(const uint8_t slaveID) const;
     private:
-        void countBufferSize();
+        using AddressRange = im::NumericAddressRange;
+    public:
+        Status Update(const uint8_t slaveID, const area_e area, const AddressRange& range);
+        Status Remove(const uint8_t slaveID, const area_e area, const AddressRange& range);
+    public:
+        std::pair<Status, std::set<uint8_t>> RetrieveEntireSlaveID() const;
+        std::pair<Status, Address> RetrieveAddressBySlaveID(const uint8_t slaveID) const;
+    private:
     #if defined(DEBUG)
         void printCell(const uint8_t cellWidth, const char* value, uint8_t* castedBuffer) const;
         void printCell(const uint8_t cellWidth, const uint16_t value, uint8_t* castedBuffer) const;
@@ -51,6 +51,5 @@ namespace muffin { namespace modbus {
     #endif
     private:
         std::map<uint8_t, Address> mMapAddressBySlave;
-        size_t mBufferSize;
     };
 }}

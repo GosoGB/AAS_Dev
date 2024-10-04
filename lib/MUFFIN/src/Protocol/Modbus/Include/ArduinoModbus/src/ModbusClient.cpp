@@ -367,6 +367,8 @@ int ModbusClient::requestFrom(int id, int type, int address, int nb)
   _written = 0;
 
   return nb;
+/*
+*/
 }
 
 int ModbusClient::available()

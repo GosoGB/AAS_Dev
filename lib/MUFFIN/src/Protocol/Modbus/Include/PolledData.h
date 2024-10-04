@@ -18,6 +18,7 @@
 #include <map>
 #include <vector>
 
+#include "Common/Status.h"
 #include "TypeDefinitions.h"
 
 
@@ -30,10 +31,9 @@ namespace muffin { namespace modbus {
         PolledData();
         virtual ~PolledData();
     public:
-        Status UpdateCoil(const uint16_t address, const bool value);
-    public:
-        bool RetrieveCoil(const uint16_t address) const;
+        Status UpdateCoil(const uint16_t address, const int8_t value);
+        datum_t RetrieveCoil(const uint16_t address) const;
     private:
-        std::map<area_e, std::vector<datum_t>> mMapPolledDataByArea;
+        std::map<area_e, std::vector<datum_t>> mMapDatumByArea;
     };
 }}

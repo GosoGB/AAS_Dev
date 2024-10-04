@@ -38,11 +38,9 @@ namespace muffin { namespace im {
         explicit Variable(const data_type_e dataType);
         virtual ~Variable();
     public:
-        Status Update(const bool value);
-        Status Update(const uint8_t size, const uint16_t value[]);
-    public:
         Status UpdateData(const var_data_t& data);
         var_data_t RetrieveData() const;
+    public:
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
     public:
         /**

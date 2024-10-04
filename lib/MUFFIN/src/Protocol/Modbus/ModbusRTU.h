@@ -4,7 +4,7 @@
  * 
  * @brief Modbus RTU 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-10-02
+ * @date 2024-10-03
  * @version 0.0.1
  * 
  * 
@@ -39,26 +39,32 @@ namespace muffin {
     public:
         ModbusRTU();
         virtual ~ModbusRTU();
+    private:
+        using AddressRange = im::NumericAddressRange;
+    
     public:
         // Status Init();
         // Status Config(jarvis::config::Base* config);
         void SetPort(HardwareSerial& port);
         Status AddNodeReference(const uint8_t slaveID, im::Node& node);
         Status RemoveReferece(const uint8_t slaveID, im::Node& node);
+    private:
+        im::NumericAddressRange createAddressRange(im::Node& node) const;
+
     public:
         Status Poll();
     private:
-        Status pollCoil(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
-        Status pollDiscreteInput(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
-        Status pollInputRegister(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
-        Status pollHoldingRegister(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet);
-        Status sendData() const;
+        Status implementPolling();
+        Status updateVariableNodes();
+        Status pollCoil(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
+        // Status pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
+        // Status pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
+        // Status pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
     private:
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        RS485Class mRS485;
-    #else
-        RS485Class* mRS485
-    #endif
+        Status pollCoilTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
+
+    private:
+        RS485Class* mRS485;
         modbus::NodeTable mNodeTable;
         modbus::AddressTable mAddressTable;
         modbus::PolledDataTable mPolledDataTable;

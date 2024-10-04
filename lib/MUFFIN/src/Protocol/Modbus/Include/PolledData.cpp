@@ -13,10 +13,11 @@
 
 
 
+#include <algorithm>
+
 #include "Common/Assert.h"
-#include "Common/Status.h"
+#include "Common/Logger/Logger.h"
 #include "PolledData.h"
-#include "TypeDefinitions.h"
 
 
 
@@ -24,81 +25,110 @@ namespace muffin { namespace modbus {
 
     PolledData::PolledData()
     {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
     }
     
     PolledData::~PolledData()
     {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
-    Status PolledData::UpdateCoil(const uint16_t address, const bool value)
+    Status PolledData::UpdateCoil(const uint16_t address, const int8_t value)
     {
-        if (mMapPolledDataByArea.find(area_e::COIL) == mMapPolledDataByArea.end())
+        auto itArea = mMapDatumByArea.find(area_e::COIL);
+        if (itArea == mMapDatumByArea.end())
         {
-            mMapPolledDataByArea.emplace(std::make_pair(area_e::COIL, std::vector<datum_t>()));
+            try
+            {
+                auto result = mMapDatumByArea.emplace(area_e::COIL, std::vector<datum_t>());
+                itArea = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
         }
-        
-        const uint16_t vectorIndex = static_cast<uint16_t>(address / 16.0f);
-        const uint8_t bitIndex = (address - (vectorIndex * 16)) % 16;
+
+        auto itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
+        {
+            return datum2find.Address == address;
+        });
 
         datum_t datum;
-        datum.Address = vectorIndex;
+        datum.Address = address;
 
-        if (value == true)
+        switch (value)
         {
-            datum.Value |= 1 << bitIndex;
-        }
-        else if (value == false)
-        {
-            datum.Value &= ~(1 << bitIndex);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DATA_UNAVAILABLE);
+        case 0:
+        case 1:
+            datum.Value = value;
+            datum.IsOK  = true;
+            break;
+        default:
+            datum.Value = 0;
+            datum.IsOK  = false;
+            break;
         }
 
-        const auto itBegin = mMapPolledDataByArea[area_e::COIL].begin();
-        const auto itEnd   = mMapPolledDataByArea[area_e::COIL].end();
-        auto itCurrent = itBegin;
-
-        for (; itCurrent != itEnd; ++itCurrent)
+        if (itDatum == itArea->second.end())
         {
-            if (itCurrent->Address == vectorIndex)
+            try
             {
-                break;
+                mMapDatumByArea[area_e::COIL].emplace_back(datum);
+                return Status(Status::Code::GOOD);
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
         }
-
-        if (itCurrent == itEnd)
-        {
-            mMapPolledDataByArea[area_e::COIL].emplace_back(datum);
-        }
         else
         {
-            itCurrent->Value = datum.Value;
+            itDatum->Value = datum.Value;
+            itDatum->IsOK  = datum.IsOK;
+            return Status(Status::Code::GOOD);
         }
-
-        return Status(Status::Code::GOOD);
     }
 
-    bool PolledData::RetrieveCoil(const uint16_t address) const
+    datum_t PolledData::RetrieveCoil(const uint16_t address) const
     {
-        ASSERT((mMapPolledDataByArea.find(area_e::COIL) != mMapPolledDataByArea.end()), "NO DATA POLLED IN THE AREA");;
-        
-        const uint16_t vectorIndex = static_cast<uint16_t>(address / 16.0f);
-        const uint8_t bitIndex = (address - (vectorIndex * 16)) % 16;
+        std::vector<datum_t>::const_iterator itDatum;
 
-        const auto itBegin = mMapPolledDataByArea.at(area_e::COIL).begin();
-        const auto itEnd   = mMapPolledDataByArea.at(area_e::COIL).end();
-        auto itCurrent = itBegin;
-
-        for (; itCurrent != itEnd; ++itCurrent)
+        auto itArea = mMapDatumByArea.find(area_e::COIL);
+        if (itArea == mMapDatumByArea.end())
         {
-            if (itCurrent->Address == vectorIndex)
-            {
-                break;
-            }
+            goto BAD_NO_DATA;
         }
-        
-        return itCurrent->Value >> bitIndex & 1;
+
+        itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
+        {
+            return datum2find.Address == address;
+        });
+
+        if (itDatum != itArea->second.end())
+        {
+            return *itDatum;
+        }
+
+    BAD_NO_DATA:
+        datum_t datum { .Address = address, .Value = 0, .IsOK = false };
+        return datum;
     }
 }}

@@ -102,7 +102,7 @@ namespace muffin { namespace im {
         }
     }
 
-    void NumericAddressRange::Remove(const NumericAddressRange& obj, bool* isRemovableRange, uint16_t* remainedAddress, uint16_t* remainedQuantity)
+    Status NumericAddressRange::Remove(const NumericAddressRange& obj, bool* isRemovableRange, uint16_t* remainedAddress, uint16_t* remainedQuantity)
     {
         ASSERT((isRemovableRange != nullptr), "THE PARAMETER \"isRemovableRange\" CANNOT BE A NULL POINTER");
         ASSERT((remainedAddress  != nullptr), "THE PARAMETER \"remainedAddress\" CANNOT BE A NULL POINTER");
@@ -112,10 +112,10 @@ namespace muffin { namespace im {
         const uint16_t lastAddressInGivenRange  = obj.GetLastAddress();
         const uint16_t lastAddressInRange = GetLastAddress();
 
-        if ((lastAddressInGivenRange < mStart) || (lastAddressInRange < obj.mStart))
+        if ((obj.mStart < mStart) || (lastAddressInRange < lastAddressInGivenRange))
         {
             LOG_VERBOSE(logger, "No matching range to remove");
-            return ;
+            return Status(Status::Code::BAD_OUT_OF_RANGE);
         }
 
         *isRemovableRange = false;
@@ -154,7 +154,10 @@ namespace muffin { namespace im {
         {
             LOG_ERROR(logger, "UNDEFINED CONDITION FOR REMOVE OPERATION");
             ASSERT(false, "UNDEFINED CONDITION FOR REMOVE OPERATION");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
+
+        return Status(Status::Code::GOOD);
     }
 
     uint16_t NumericAddressRange::GetStartAddress() const

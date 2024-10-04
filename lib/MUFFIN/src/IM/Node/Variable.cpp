@@ -39,36 +39,25 @@ namespace muffin { namespace im {
     #endif
     }
 
-    Status Variable::Update(const bool value)
-    {
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-    }
-
-    Status Variable::Update(const uint8_t size, const uint16_t value[])
-    {
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-    }
-
     /**
      * @todo jump table로 처리하는 것이 필요한지 고민해보고 필요하면 적용해야 합니다.
      */
     Status Variable::UpdateData(const var_data_t& data)
     {
-        if (mDataBuffer.size() == mMaxHistorySize)
-        {
-            mDataBuffer.pop_front();
-        }
-        
         if (mDataType != data_type_e::STRING)
         {
-            mDataBuffer.push_back(data);
+            if (mDataBuffer.size() == mMaxHistorySize)
+            {
+                mDataBuffer.pop_front();
+            }
+            mDataBuffer.emplace_back(data);
+            return Status(Status::Code::GOOD);
         }
         else
         {
             ASSERT(false, "NOT SUPPORTED DATA TYPE");
+            return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
         }
-
-        return Status(Status::Code::BAD);
     }
 
     var_data_t Variable::RetrieveData() const

@@ -4,7 +4,7 @@
  * 
  * @brief 다중 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-01
+ * @date 2024-10-03
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -24,7 +24,6 @@
 namespace muffin { namespace modbus {
     
     AddressTable::AddressTable()
-        : mBufferSize(0)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -38,102 +37,124 @@ namespace muffin { namespace modbus {
     #endif
     }
 
-    void AddressTable::Update(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range)
+    Status AddressTable::Update(const uint8_t slaveID, const area_e area, const AddressRange& range)
     {
+        Status ret(Status::Code::UNCERTAIN);
+
         auto it = mMapAddressBySlave.find(slaveID);
         if (it == mMapAddressBySlave.end())
         {
-            LOG_VERBOSE(logger, "New slave index has been given");
-            Address address;
-            address.Update(area, range);
-            mMapAddressBySlave.emplace(slaveID, address);
-            LOG_VERBOSE(logger, "Created the new slave index to the address table");
-            return ;
+            try
+            {
+                auto result = mMapAddressBySlave.emplace(slaveID, Address());
+                it = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u, %u, [%u, %u]", e.what(), slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u, %u, [%u, %u]", e.what(), slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+
+            LOG_VERBOSE(logger, "Emplaced a new slave-address pair to the address table");
         }
 
-        LOG_VERBOSE(logger, "Found the given slave index from the table");
-        it->second.Update(area, range);
-        LOG_VERBOSE(logger, "Updated the slave index from the address table");
-
+        ret = it->second.Update(area, range);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE ADDRESS RANGE: %s", ret.c_str());
+            return ret;
+        }
+        LOG_VERBOSE(logger, "Address range updated: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+    #if defined(DEBUG)
         printAddressTable();
-        countBufferSize();
+    #else
+        CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
+    #endif
+        // countBufferSize();
+        return ret;
     }
 
-    void AddressTable::Remove(const uint8_t slaveID, const area_e area, const muffin::im::NumericAddressRange& range)
+    Status AddressTable::Remove(const uint8_t slaveID, const area_e area, const AddressRange& range)
     {
         auto it = mMapAddressBySlave.find(slaveID);
         if (it == mMapAddressBySlave.end())
         {
             LOG_VERBOSE(logger, "No matching slave ID");
-            return ;
+            return Status(Status::Code::BAD_NOT_FOUND);
         }
 
-        LOG_VERBOSE(logger, "Found the given slave index from the table");
-        it->second.Remove(area, range);
-        LOG_VERBOSE(logger, "Updated the slave index from the address table");
-
-        printAddressTable();
-        countBufferSize();
-    }
-
-    const Status AddressTable::FindSlaveID(const uint8_t slaveID) const
-    {
-        return mMapAddressBySlave.find(slaveID) == mMapAddressBySlave.end() ?
-            Status(Status::Code::BAD_NOT_FOUND) :
-            Status(Status::Code::GOOD);
-    }
-
-    size_t AddressTable::RetrieveBufferSize() const
-    {
-        return mBufferSize;
-    }
-
-    std::set<uint8_t> AddressTable::RetrieveSlaveIdSet() const
-    {
-        std::set<uint8_t> slaveIdSet;
-
-        for (const auto& address : mMapAddressBySlave)
+        Status ret = it->second.Remove(area, range);
+        switch (ret.ToCode())
         {
-            slaveIdSet.emplace(address.first);
+        case Status::Code::GOOD:
+            LOG_VERBOSE(logger, "Removed address range: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+        #if defined(DEBUG)
+            printAddressTable();
+        #else
+            CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
+        #endif
+            // countBufferSize();
+            return ret;
+        case Status::Code::GOOD_NO_DATA:
+            LOG_WARNING(logger, "ADDRESS RANGE TO REMOVE NOT FOUND: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+            return Status(Status::Code::GOOD);
+        default:
+            LOG_WARNING(logger, "FAILED TO REMOVE: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+            return ret;
         }
-
-        return slaveIdSet;
     }
 
-    const Address& AddressTable::RetrieveAddress(const uint8_t slaveID) const
+    std::pair<Status, std::set<uint8_t>> AddressTable::RetrieveEntireSlaveID() const
     {
-        ASSERT((mMapAddressBySlave.find(slaveID) != mMapAddressBySlave.end()), "ADDRESS WITH SLAVE ID %u NOT FOUND", slaveID);
-        return mMapAddressBySlave.at(slaveID);
-    }
-    
-    void AddressTable::countBufferSize()
-    {
-        mBufferSize = 0;
-        constexpr float MODBUS_REGISTER_SIZE = 16.0f;
+        std::exception exception;
+        Status::Code retCode;
 
-        for (const auto& slaveID : mMapAddressBySlave)
+        try
         {
-            const auto& addressMap = slaveID.second;
+            std::set<uint8_t> slaveIDs;
 
-            for (const auto& area : addressMap.RetrieveAreaSet())
+            for (const auto& pair : mMapAddressBySlave)
             {
-                for (const auto& address : addressMap.RetrieveAddressSet(area))
-                {
-                    if (area == modbus::area_e::COIL || area == modbus::area_e::DISCRETE_INPUT)
-                    {
-                        const float registerRequired = address.GetQuantity() / MODBUS_REGISTER_SIZE;
-                        const uint16_t registerQuantity = static_cast<uint16_t>(0.5f + registerRequired);
-                        mBufferSize += registerQuantity;
-                    }
-                    else
-                    {
-                        mBufferSize += address.GetQuantity();
-                    }
-                }
+                slaveIDs.emplace(pair.first);
             }
+
+            return std::make_pair(Status(Status::Code::GOOD), slaveIDs);
+        }
+        catch(const std::bad_alloc& e)
+        {
+            exception = e;
+            retCode = Status::Code::BAD_OUT_OF_MEMORY;
+        }
+        catch(const std::exception& e)
+        {
+            exception = e;
+            retCode = Status::Code::BAD_UNEXPECTED_ERROR;
+        }
+        
+        LOG_ERROR(logger, "%s", exception.what());
+        return std::make_pair(Status(retCode), std::set<uint8_t>());
+    }
+
+    std::pair<Status, Address> AddressTable::RetrieveAddressBySlaveID(const uint8_t slaveID) const
+    {
+        if (mMapAddressBySlave.find(slaveID) != mMapAddressBySlave.end())
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mMapAddressBySlave.at(slaveID));
+        }
+        else
+        {
+            LOG_WARNING(logger, "ADDRESS WITH SLAVE ID NOT FOUND: %u", slaveID);
+            return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), Address());
         }
     }
 
+#if defined(DEBUG)
     void AddressTable::printCell(const uint8_t cellWidth, const char* value, uint8_t* castedBuffer) const
     {
         char* buffer = reinterpret_cast<char*>(castedBuffer);
@@ -171,13 +192,19 @@ namespace muffin { namespace modbus {
 
         for (const auto& addressBySlave : mMapAddressBySlave)
         {
-            const auto& slaveID = addressBySlave.first;
-            const auto& address = addressBySlave.second;
-            const auto& areaSet = address.RetrieveAreaSet();
+            const uint8_t  slaveID = addressBySlave.first;
+            const Address& address = addressBySlave.second;
+            const auto& retrieved  = address.RetrieveArea();
 
-            for (const auto& area : areaSet)
+            if (retrieved.first.ToCode() != Status::Code::GOOD)
             {
-                const auto& ranges = address.RetrieveAddressSet(area);
+                LOG_ERROR(logger, "FAILED TO RETRIEVE ADDRESS: %s", retrieved.first.c_str());
+                continue;
+            }
+
+            for (const auto& area : retrieved.second)
+            {
+                const auto& ranges = address.RetrieveAddressRange(area);
                 const char* strArea = area == area_e::COIL             ? "COIL" :
                                         area == area_e::DISCRETE_INPUT ? "D.I." :
                                         area == area_e::INPUT_REGISTER ? "I.R." : "H.R.";
@@ -197,4 +224,6 @@ namespace muffin { namespace modbus {
         strcat(buffer, dashLine);
         LOG_INFO(logger, "Modbus Address Table\n%s\n", buffer);
     }
+#else
+#endif
 }}

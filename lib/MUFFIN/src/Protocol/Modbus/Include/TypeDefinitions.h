@@ -35,18 +35,10 @@ namespace muffin { namespace modbus {
         HOLDING_REGISTER  = 4
     } area_e;
 
-    // typedef struct ModbusPolledDatumType /* 48 bits */
-    // {
-    //     uint8_t   SlaveID;
-    //     area_e    Area : 3;
-    //     uint8_t   BitsRead : 5;
-    //     uint16_t  Address;
-    //     uint16_t  Value;
-    // } datum_t;
-
     typedef struct ModbusPolledDatumType  /* 32 bits */
     {
         uint16_t  Address;
         uint16_t  Value;
+        bool IsOK;
     } datum_t;
 }}

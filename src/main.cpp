@@ -9,6 +9,7 @@
 
 #include <Protocol/Modbus/ModbusRTU.h>
 #include <Protocol/Modbus/Include/TypeDefinitions.h>
+#include <Protocol/Modbus/Include/Address.h>
 #include <IM/Node/Include/NumericAddressRange.h>
 
 
@@ -27,15 +28,15 @@ void setup()
     node1.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
     node2.VariableNode.SetAddress(1);
-    node2.VariableNode.SetQuantity(3);
+    node2.VariableNode.SetQuantity(1);
     node2.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
-    node3.VariableNode.SetAddress(4);
-    node3.VariableNode.SetQuantity(3);
+    node3.VariableNode.SetAddress(2);
+    node3.VariableNode.SetQuantity(1);
     node3.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
-    node4.VariableNode.SetAddress(7);
-    node4.VariableNode.SetQuantity(3);
+    node4.VariableNode.SetAddress(3);
+    node4.VariableNode.SetQuantity(1);
     node4.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
 
     muffin::ModbusRTU mbRTU;
@@ -44,35 +45,18 @@ void setup()
     mbRTU.AddNodeReference(1, node3);
     mbRTU.AddNodeReference(1, node4);
 
-    mbRTU.RemoveReferece(1, node1);
-    mbRTU.RemoveReferece(1, node3);
-    mbRTU.RemoveReferece(1, node4);
-    mbRTU.RemoveReferece(1, node2);
-
-    // mbRTU.RemoveReferece(node3.GetNodeID());
-    // mbRTU.RemoveReferece(node2.GetNodeID());
-    // mbRTU.RemoveReferece(node1.GetNodeID());
-    // mbRTU.RemoveReferece(node3.GetNodeID());
-    
-    
-/*
-    std::string strbrowseName = "Node #01";
-    im::string_t strBrowseName;
-
-    Status ret = im::ConvertString(strbrowseName, &strBrowseName);
-    if (ret != Status::Code::GOOD)
+    while (true)
     {
-        LOG_ERROR(logger, "%s", ret.c_str());
+        const uint32_t startMillis = millis();
+        mbRTU.Poll();
+        LOG_DEBUG(muffin::logger, "Processing time: %u", millis() - startMillis);
+
+        LOG_DEBUG(muffin::logger, "node #1: %s", node1.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        LOG_DEBUG(muffin::logger, "node #2: %s", node2.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        LOG_DEBUG(muffin::logger, "node #3: %s", node3.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        LOG_DEBUG(muffin::logger, "node #4: %s", node4.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        delay(1000);
     }
-    LOG_INFO(logger, "[%s] Converted: %s", ret.c_str(), ConvertString(strBrowseName).c_str());
-
-    im::NodeID node01(0, 123123);
-    im::qualified_name_t browseName01;
-    browseName01.Name = strBrowseName;
-    browseName01.NamespaceIndex = node01.GetNamespaceIndex();
-
-    im::Base base01(node01, im::class_type_e::VARIABLE, browseName01);
-*/
 }
 
 void loop()

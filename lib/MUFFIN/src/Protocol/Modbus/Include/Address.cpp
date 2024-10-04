@@ -4,7 +4,7 @@
  * 
  * @brief 단일 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-01
+ * @date 2024-10-03
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -23,16 +23,19 @@ namespace muffin { namespace modbus {
 
     Address::Address()
     {
-        mMapAddressByArea.emplace(area_e::COIL,             std::set<im::NumericAddressRange>());
-        mMapAddressByArea.emplace(area_e::DISCRETE_INPUT,   std::set<im::NumericAddressRange>());
-        mMapAddressByArea.emplace(area_e::INPUT_REGISTER,   std::set<im::NumericAddressRange>());
-        mMapAddressByArea.emplace(area_e::HOLDING_REGISTER, std::set<im::NumericAddressRange>());
-
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
-    
+
+    Address::Address(const Address& obj)
+        : mMapAddressByArea(obj.mMapAddressByArea)
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed by Copy from %p to %p", &obj, this);
+    #endif
+    }
+
     Address::~Address()
     {
     #if defined(DEBUG)
@@ -40,127 +43,264 @@ namespace muffin { namespace modbus {
     #endif
     }
 
-    void Address::Update(const area_e area, const im::NumericAddressRange& range)
+    Status Address::Update(const area_e area, const AddressRange& range)
     {
-        auto it = mMapAddressByArea.find(area);
-        auto& ranges = it->second;
+        Status ret(Status::Code::UNCERTAIN);
 
-        if (ranges.size() == 0)
+        auto it = mMapAddressByArea.find(area);
+        if (it == mMapAddressByArea.end())
         {
-            ranges.emplace(range);
-            LOG_VERBOSE(logger, "Added a new range to an empty set");
-            return ;
+            try
+            {
+                auto result = mMapAddressByArea.emplace(area, std::set<AddressRange>());
+                it = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u, [%u, %u]", e.what(), static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u, [%u, %u]", e.what(), static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+            LOG_VERBOSE(logger, "Emplaced a new area-range pair to the address map");
         }
         
-        for (auto it = ranges.begin(); it != ranges.end(); it++)
+        auto& addressRangeSet = it->second;
+        if (addressRangeSet.size() == 0)
         {
-            if (it->IsMergeable(range) == true)
+            ret = emplaceAddressRange(area, range, &addressRangeSet);
+            if (ret == Status::Code::GOOD)
             {
-                im::NumericAddressRange retrievedRange = *it;
-                retrievedRange.MergeRanges(range);
+                LOG_VERBOSE(logger, "Emplaced the given address range to an empty set");
+            }
+            else
+            {
+                LOG_ERROR(logger, "FAILED TO EMPLACE ADDRESS RANGE: %s", ret.c_str());
+            }
 
-                ranges.erase(it);
-                ranges.emplace(retrievedRange);
-                it = ranges.begin();
-                LOG_VERBOSE(logger, "Merged the given range to the previous range set");
-                return ;
+            return ret;
+        }
+        
+        for (auto itRange = addressRangeSet.begin(); itRange != addressRangeSet.end(); ++itRange)
+        {
+            if (itRange->IsMergeable(range) == true)
+            {
+                AddressRange retrieved = *itRange;
+                addressRangeSet.erase(itRange);
+                retrieved.MergeRanges(range);
+
+                ret = emplaceAddressRange(area, retrieved, &addressRangeSet);
+                if (ret == Status::Code::GOOD)
+                {
+                    LOG_VERBOSE(logger, "Merged the given address range");
+                    goto UPDATE_CONSECUTIVES;
+                }
+                else
+                {
+                    LOG_ERROR(logger, "FAILED TO EMPLACE ADDRESS RANGE: %s", ret.c_str());
+                    return ret;
+                }
             }
         }
         
-        ranges.erase(range);
-        LOG_VERBOSE(logger, "Added a new range to the previous range set");
+        ret = emplaceAddressRange(area, range, &addressRangeSet);
+        if (ret == Status::Code::GOOD)
+        {
+            LOG_VERBOSE(logger, "Added a new address range");
+            goto UPDATE_CONSECUTIVES;
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAILED TO EMPLACE ADDRESS RANGE: %s", ret.c_str());
+            return ret;
+        }
+    
+    UPDATE_CONSECUTIVES:
+        ret = updateConsecutiveRanges(area, &addressRangeSet);
+        if (ret == Status::Code::GOOD)
+        {
+            LOG_VERBOSE(logger, "Updated the address map for area code: %u", static_cast<uint8_t>(area));
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE THE ADDRESS MAP FOR AREA CODE: %u", static_cast<uint8_t>(area));
+        }
+        return ret;
     }
 
-    void Address::Remove(const area_e area, const im::NumericAddressRange& range)
+    Status Address::emplaceAddressRange(const area_e area, const AddressRange& range, AddressRangeSet* ranges)
     {
-        auto& ranges = mMapAddressByArea.find(area)->second;
+        std::exception exception;
+        Status::Code retCode;
 
-        if (ranges.size() == 0)
+        try
         {
-            LOG_VERBOSE(logger, "No range in the set to remove");
-            return ;
+            auto result = ranges->emplace(range);
+            ASSERT((result.second == true), "FAILED TO EMPLACE ADDRESS RANGE TO THE SET SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            return Status(Status::Code::GOOD);
+        }
+        catch(const std::bad_alloc& e)
+        {
+            exception = e;
+            retCode = Status::Code::BAD_OUT_OF_MEMORY;
+        }
+        catch(const std::exception& e)
+        {
+            exception = e;
+            retCode = Status::Code::BAD_UNEXPECTED_ERROR;
+        }
+
+        LOG_ERROR(logger, "%s: %u, [%u, %u]", exception.what(), static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+        return Status(retCode);
+    }
+
+    Status Address::updateConsecutiveRanges(const area_e area, AddressRangeSet* ranges)
+    {
+        ASSERT((ranges != nullptr), "ADDRESS RANGE SET CANNOT BE A NULL POINTER");
+        
+        LOG_VERBOSE(logger, "Start to update consecutive ranges to merge");
+        Status ret(Status::Code::GOOD);
+
+        for (auto it = ranges->begin(); std::next(it) != ranges->end(); ++it)
+        {
+            if (it->IsMergeable(*std::next(it)) == true)
+            {
+                AddressRange formerRange = *it;
+                AddressRange latterRange = *std::next(it);
+                formerRange.MergeRanges(latterRange);
+                
+                ranges->erase(std::next(it));
+                ranges->erase(it);
+                it = ranges->begin();
+
+                ret = emplaceAddressRange(area, formerRange, ranges);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO UPDATE CONSECUTIVES: %s", ret.c_str());
+                    return ret;
+                }
+                
+                LOG_VERBOSE(logger, "Merged consecutive ranges");
+            }
+        }
+
+        return ret;
+    }
+
+    Status Address::Remove(const area_e area, const AddressRange& range)
+    {
+        auto& addressRangeSet = mMapAddressByArea.find(area)->second;
+        if (addressRangeSet.size() == 0)
+        {
+            goto NO_DATA_TO_REMOVE;
         }
         
-        for (auto it = ranges.begin(); it != ranges.end(); ++it)
+        for (auto it = addressRangeSet.begin(); it != addressRangeSet.end(); ++it)
         {
             if (it->IsRemovable(range) == false)
             {
                 continue;
             }
             
-            im::NumericAddressRange retrievedRange = *it;
-            ranges.erase(it);
+            AddressRange retrieved = *it;
+            addressRangeSet.erase(it);
 
             bool isRemovableRange;
             uint16_t remainedAddress  = 0;
             uint16_t remainedQuantity = 0;
 
-            retrievedRange.Remove(range, &isRemovableRange, &remainedAddress, &remainedQuantity);
+            Status ret = retrieved.Remove(range, &isRemovableRange, &remainedAddress, &remainedQuantity);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO REMOVE: %s", ret.c_str());
+                return ret;
+            }
+
             if (isRemovableRange == true)
             {
-                LOG_VERBOSE(logger, "Removed a range set");
-                return ;
+                LOG_VERBOSE(logger, "Removed the entire address range");
+                return Status(Status::Code::GOOD);
             }
             else if (remainedAddress != 0 && remainedQuantity != 0)
             {
-                im::NumericAddressRange remainedRange(remainedAddress, remainedQuantity);
-                for (const auto& e : ranges)
+                AddressRange remainedRange(remainedAddress, remainedQuantity);
+                for (const auto& e : addressRangeSet)
                 {
                     LOG_DEBUG(logger, "%u", e.GetStartAddress());
                 }
+
+                Status ret = emplaceAddressRange(area, retrieved, &addressRangeSet);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO EMPLACE THE HEAD OF THE REMAINED ADDRESS RANGE");
+                    return ret;
+                }
+
+                ret = emplaceAddressRange(area, remainedRange, &addressRangeSet);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO EMPLACE THE TAIL OF THE REMAINED ADDRESS RANGE");
+                    return ret;
+                }
                 
-                const auto retHead = ranges.emplace(retrievedRange);
-                const auto retTail = ranges.emplace(remainedRange);            
-                ASSERT((retHead.second == true), "FAILED TO REMOVE ADDRESS RANGE: HEAD");
-                ASSERT((retTail.second == true), "FAILED TO REMOVE ADDRESS RANGE: TAIL");
-                LOG_VERBOSE(logger, "Removed middle of a range set and remained part was emplaced again");
-                return ;
+                LOG_VERBOSE(logger, "Removed middle of a range set and remained parts were emplaced");
+                return ret;
             }
-
-            ranges.emplace(retrievedRange);
-            LOG_VERBOSE(logger, "Removed head or tail part of a range set");
-        }
-    }
-
-    std::set<area_e> Address::RetrieveAreaSet() const
-    {
-        std::set<area_e> areaSet;
-
-        for (const auto& address : mMapAddressByArea)
-        {
-            if (address.second.size() != 0)
+            else
             {
-                areaSet.emplace(address.first);
+                Status ret = emplaceAddressRange(area, retrieved, &addressRangeSet);
+                if (ret == Status::Code::GOOD)
+                {
+                    LOG_VERBOSE(logger, "Removed head or tail part of given address range");
+                }
+                else
+                {
+                    LOG_ERROR(logger, "FAILED TO EMPLACE THE HEAD OR TAIL PART OF GIVEN ADDRESS RANGE");
+                }
+                return ret;
             }
         }
 
-        return areaSet;
+    NO_DATA_TO_REMOVE:
+        LOG_VERBOSE(logger, "No address in the range to remove");
+        return Status(Status::Code::GOOD_NO_DATA);
     }
 
-    const std::set<im::NumericAddressRange>& Address::RetrieveAddressSet(const area_e area) const
+    std::pair<Status, std::set<area_e>> Address::RetrieveArea() const
     {
-        auto it = mMapAddressByArea.find(area);
-        return it->second;
-    }
+        std::exception exception;
+        Status::Code retCode;
 
-    void Address::updateConsecutiveRanges(std::set<muffin::im::NumericAddressRange>* range)
-    {
-        ASSERT((range != nullptr), "RANGE MUST NOT BE A NULL POINTER");
-        LOG_VERBOSE(logger, "Start to update consecutive ranges to merge");
-
-        for (auto it = range->begin(); it != std::prev(range->end()); ++it)
+        try
         {
-            if (it->IsMergeable(*std::next(it)) == true)
+            std::set<area_e> areas;
+            for (const auto& pair : mMapAddressByArea)
             {
-                im::NumericAddressRange formerRange = *it;
-                im::NumericAddressRange latterRange = *std::next(it);
-                range->erase(std::next(it));
-                it = range->erase(it);
-                formerRange.MergeRanges(latterRange);
-                range->emplace(formerRange);
-                LOG_VERBOSE(logger, "Merged consecutive ranges");
-                updateConsecutiveRanges(range);
+                areas.emplace(pair.first);
             }
+            return std::make_pair(Status(Status::Code::GOOD), areas);
         }
+        catch(const std::bad_alloc& e)
+        {
+            exception = e;
+            retCode = Status::Code::BAD_OUT_OF_MEMORY;
+        }
+        catch(const std::exception& e)
+        {
+            exception = e;
+            retCode = Status::Code::BAD_UNEXPECTED_ERROR;
+        }
+        
+        LOG_ERROR(logger, "%s", exception.what());
+        return std::make_pair(Status(retCode), std::set<area_e>());
+    }
+
+    const std::set<im::NumericAddressRange>& Address::RetrieveAddressRange(const area_e area) const
+    {
+        return mMapAddressByArea.find(area)->second;
     }
 }}

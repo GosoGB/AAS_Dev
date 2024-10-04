@@ -4,7 +4,7 @@
  * 
  * @brief Modbus RTU 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-10-01
+ * @date 2024-10-03
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -25,9 +25,7 @@
 namespace muffin {
 
     ModbusRTU::ModbusRTU()
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        : mRS485(Serial2, RS485_DEFAULT_TX_PIN, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN)
-    #endif
+        : mRS485(nullptr)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -36,6 +34,13 @@ namespace muffin {
     
     ModbusRTU::~ModbusRTU()
     {
+        if (mRS485 != nullptr)
+        {
+            delete mRS485;
+            mRS485 = nullptr;
+            LOG_VERBOSE(logger, "Destroyed RS485 instance at address: %p");
+        }
+        
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
@@ -43,10 +48,7 @@ namespace muffin {
     
     void ModbusRTU::SetPort(HardwareSerial& port)
     {
-    #if not defined(MODLINK_L) && not defined(MODLINK_ML10)
-        mRS485(SERIAL_PORT_HARDWARE, RS485_DEFAULT_TX_PIN, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN);
-        mSerial = &port;
-    #endif
+        mRS485 = new RS485Class(port, RS485_DEFAULT_TX_PIN, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN);
     }
 
     Status ModbusRTU::AddNodeReference(const uint8_t slaveID, im::Node& node)
@@ -54,15 +56,21 @@ namespace muffin {
         Status ret = mNodeTable.Update(slaveID, node);
         if (ret != Status::Code::GOOD)
         {
-            return ret;
+            LOG_ERROR(logger, "FAILED TO UPDATE NODE REFERENCE: %s", ret.c_str());
+            return Status(Status::Code::BAD);
         }
 
         const modbus::area_e area = node.VariableNode.GetModbusArea();
-        const uint16_t address    = node.VariableNode.GetAddress();
-        const uint16_t quantity   = node.VariableNode.GetQuantity();
-        im::NumericAddressRange range(address, quantity);
+        const AddressRange range = createAddressRange(node);
 
-        mAddressTable.Update(slaveID, area, range);
+        ret = mAddressTable.Update(slaveID, area, range);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE ADDRESS TABLE: %s", ret.c_str());
+            return Status(Status::Code::BAD);
+        }
+        
+        LOG_VERBOSE(logger, "Updated node reference: %s", node.GetNodeID().c_str());
         return Status(Status::Code::GOOD);
     }
 
@@ -71,93 +79,240 @@ namespace muffin {
         Status ret = mNodeTable.Remove(slaveID, node);
         if (ret != Status::Code::GOOD)
         {
-            return ret;
+            LOG_ERROR(logger, "FAILED TO REMOVE NODE REFERENCE: %s", ret.c_str());
+            return Status(Status::Code::BAD);
         }
 
         const modbus::area_e area = node.VariableNode.GetModbusArea();
-        const uint16_t address    = node.VariableNode.GetAddress();
-        const uint16_t quantity   = node.VariableNode.GetQuantity();
-        im::NumericAddressRange range(address, quantity);
+        const AddressRange range = createAddressRange(node);
 
-        mAddressTable.Remove(slaveID, area, range);
+        ret = mAddressTable.Remove(slaveID, area, range);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO REMOVE ADDRESS TABLE: %s", ret.c_str());
+            return Status(Status::Code::BAD);
+        }
+        
+        LOG_VERBOSE(logger, "Removed node reference: %s", node.GetNodeID().c_str());
         return Status(Status::Code::GOOD);
+    }
+
+    im::NumericAddressRange ModbusRTU::createAddressRange(im::Node& node) const
+    {
+        const uint16_t address  = node.VariableNode.GetAddress();
+        const uint16_t quantity = node.VariableNode.GetQuantity();
+        return AddressRange(address, quantity);
     }
 
     Status ModbusRTU::Poll()
     {
-        for (const auto& slaveID : mAddressTable.RetrieveSlaveIdSet())
+        Status ret = implementPolling();
+        if (ret != Status::Code::GOOD)
         {
-            const modbus::Address address = mAddressTable.RetrieveAddress(slaveID);
+            LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
+        }
+        
+        ret = updateVariableNodes();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE NODES: %s", ret.c_str());
+        }
 
-            for (const auto& area : address.RetrieveAreaSet())
+        return ret;
+    }
+
+    Status ModbusRTU::implementPolling()
+    {
+        Status ret(Status::Code::UNCERTAIN);
+
+        const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
+        if (retrievedSlaveInfo.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE SLAVE ID FOR POLLING: %s", retrievedSlaveInfo.first.c_str());
+            return Status(Status::Code::BAD);
+        }
+
+        for (const auto& slaveID : retrievedSlaveInfo.second)
+        {
+            const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
+            if (retrievedAddressInfo.first.ToCode() != Status::Code::GOOD)
             {
-                const auto& addressSet = address.RetrieveAddressSet(area);
+                LOG_ERROR(logger, "FAILED TO RETRIEVE ADDRESSES FOR POLLING: %s", retrievedAddressInfo.first.c_str());
+                return Status(Status::Code::BAD);
+            }
+
+            const auto retrievedAreaInfo = retrievedAddressInfo.second.RetrieveArea();
+            if (retrievedAreaInfo.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE MODBUS AREA FOR POLLING: %s", retrievedAreaInfo.first.c_str());
+                return Status(Status::Code::BAD);
+            }
+
+            for (const auto& area : retrievedAreaInfo.second)
+            {
+                const auto& addressSetToPoll = retrievedAddressInfo.second.RetrieveAddressRange(area);
+                switch (area)
+                {
+                case modbus::area_e::COIL:
+                    // ret = pollCoil(slaveID, addressSetToPoll);
+                    ret = pollCoilTest(slaveID, addressSetToPoll);
+                    break;
+                // case modbus::area_e::DISCRETE_INPUT:
+                //     ret = pollDiscreteInput(slaveID, addressSetToPoll);
+                //     break;
+                // case modbus::area_e::INPUT_REGISTER:
+                //     ret = pollInputRegister(slaveID, addressSetToPoll);
+                //     break;
+                // case modbus::area_e::HOLDING_REGISTER:
+                //     ret = pollHoldingRegister(slaveID, addressSetToPoll);
+                //     break;
+                default:
+                    ASSERT(false, "UNDEFINED MODBUS MEMORY AREA");
+                    break;
+                }
+
+                if (ret != Status(Status::Code::GOOD))
+                {
+                    LOG_ERROR(logger, "FAILED TO POLL: %s, %u, %u", ret.c_str(), slaveID, static_cast<uint8_t>(area));
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    Status ModbusRTU::updateVariableNodes()
+    {
+        Status ret(Status::Code::UNCERTAIN);
+
+        const auto retrievedSlaveInfo = mNodeTable.RetrieveEntireSlaveID();
+        if (retrievedSlaveInfo.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE SLAVE ID FOR NODE UPDATE: %s", retrievedSlaveInfo.first.c_str());
+            return Status(Status::Code::BAD_NOT_FOUND);
+        }
+
+        for (const auto& slaveID : retrievedSlaveInfo.second)
+        {
+            const auto retrievedNodeInfo = mNodeTable.RetrieveNodeBySlaveID(slaveID);
+            if (retrievedNodeInfo.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE NODE REFERENCES: %s", retrievedNodeInfo.first.c_str());
+                return Status(Status::Code::BAD_NOT_FOUND);
+            }
+
+            for (auto& node : retrievedNodeInfo.second)
+            {
+                modbus::area_e area = node->VariableNode.GetModbusArea();
+                const uint16_t address = node->VariableNode.GetAddress();
+                const uint16_t quantity = node->VariableNode.GetQuantity();
+
+                modbus::datum_t datum;
+                im::var_data_t variableData;
 
                 switch (area)
                 {
                 case modbus::area_e::COIL:
-                    pollCoil(slaveID, addressSet);
+                    datum = mPolledDataTable.RetrieveCoil(slaveID, address);
+                    if (datum.IsOK == false)
+                    {
+                        variableData.StatusCode = Status::Code::BAD;
+                        variableData.Value.Boolean = datum.Value == 1 ? true : false;
+                    }
+                    else
+                    {
+                        variableData.Value.Boolean = datum.Value == 1 ? true : false;
+                        variableData.StatusCode = Status::Code::GOOD;
+                    }
+                    ret = node->VariableNode.UpdateData(variableData);
                     break;
                 case modbus::area_e::DISCRETE_INPUT:
-                    pollDiscreteInput(slaveID, addressSet);
+                    /* code */
                     break;
                 case modbus::area_e::INPUT_REGISTER:
-                    pollInputRegister(slaveID, addressSet);
+                    /* code */
                     break;
                 case modbus::area_e::HOLDING_REGISTER:
-                    pollHoldingRegister(slaveID, addressSet);
+                    /* code */
                     break;
                 default:
                     break;
                 }
-
-                // for (const auto& range : addressSet)
-                // {
-                //     const uint16_t address  = range.GetStartAddress();
-                //     const uint16_t quantity = range.GetQuantity();
-                // }
-            }
-        }
-        
-        for (const auto& slaveID : mAddressTable.RetrieveSlaveIdSet())
-        {
-            for (auto& node : mNodeTable.RetrieveBySlaveID(slaveID))
-            {
-                // node->VariableNode.UpdateData()
             }
         }
 
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        return ret;
     }
 
-    Status ModbusRTU::pollCoil(const uint8_t slaveID, const std::set<muffin::im::NumericAddressRange>& addressSet)
+    Status ModbusRTU::pollCoil(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
     {
-        for (auto it = addressSet.begin(); it != addressSet.end(); ++it)
+        Status ret(Status::Code::GOOD);
+        constexpr int8_t INVALID_VALUE = -1;
+
+        for (const auto& addressRange : addressRangeSet)
         {
-            const uint16_t startAddress  = it->GetStartAddress();
-            const uint16_t quantity = it->GetQuantity();
+            const uint16_t startAddress = addressRange.GetStartAddress();
+            const uint16_t pollQuantity = addressRange.GetQuantity();
+            
+            ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
+            const char* lastError = ModbusRTUClient.lastError();
 
-            if (ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, quantity) != quantity)
+            if (lastError != nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO POLL COIL: %s", ModbusRTUClient.lastError());
-                return Status(Status::Code::BAD);
+                LOG_ERROR(logger, "FAILED TO POLL: %s", lastError);
+                ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
+                for (size_t i = 0; i < pollQuantity; i++)
+                {
+                    const uint16_t address = startAddress + i;
+                    mPolledDataTable.UpdateCoil(slaveID, address, INVALID_VALUE);
+                }
+                continue;
             }
-            ASSERT((ModbusRTUClient.available() == quantity), "Quantity and the available bits do not match");
-            LOG_VERBOSE(logger, "Succeeded to poll %u bits from Coil block", quantity);
+            LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
-            for (size_t i = 0; i < quantity; i++)
+            for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
                 const int8_t value = ModbusRTUClient.read();
 
                 switch (value)
                 {
-                case true:
-                case false:
+                case 1:
+                case 0:
                     mPolledDataTable.UpdateCoil(slaveID, address, value);
                     continue;
                 default:
-                    return Status(Status::Code::BAD_DATA_UNAVAILABLE);
+                    LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
+                    ret = Status::Code::BAD_DATA_LOST;
+                    mPolledDataTable.UpdateCoil(slaveID, address, INVALID_VALUE);
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    Status ModbusRTU::pollCoilTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
+    {
+        for (const auto& addressRange : addressRangeSet)
+        {
+            const uint16_t startAddress = addressRange.GetStartAddress();
+            const uint16_t pollQuantity = addressRange.GetQuantity();
+
+            for (size_t i = 0; i < pollQuantity; i++)
+            {
+                const uint16_t address = startAddress + i;
+                const int8_t value = random(0, 2);
+
+                switch (value)
+                {
+                case 1:
+                case 0:
+                    mPolledDataTable.UpdateCoil(slaveID, address, value);
+                    continue;
+                default:
+                    LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
+                    mPolledDataTable.UpdateCoil(slaveID, address, -1);
                 }
             }
         }
