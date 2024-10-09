@@ -42,6 +42,7 @@ namespace muffin { namespace jarvis {
         Status emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN);
         Status validateMetaData(const JsonObject json);
         Status validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateNetwork(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
     private:
         /*Metadata*/
         prtcl_ver_e mProtocolVersion;
