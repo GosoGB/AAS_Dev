@@ -1,47 +1,54 @@
 /**
  * @file Alarm.cpp
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-09-20
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @copyright Copyright (c) 2024
+ * @brief Alarm 이벤트 설정 형식을 표현하는 클래스를 정의합니다.
  * 
+ * @date 2024-10-07
+ * @version 0.0.1
+ * 
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
 
 
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Alarm.h"
 
 
+
 namespace muffin { namespace jarvis { namespace config {
 
-    Alarm::Alarm(const std::string& key)
-        : Base(key)
+    Alarm::Alarm(const cfg_key_e category)
+        : Base(category)
     {
+    #if defined(DEBUG)
+        ASSERT((category != cfg_key_e::ALARM), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     Alarm::~Alarm()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Alarm& Alarm::operator=(const Alarm& obj)
     {
         if (this != &obj)
         {
-            mCondition  =  obj.mCondition;
             mNodeID     =  obj.mNodeID;
-            mAlarmType  =  obj.mAlarmType;
-            mUCL        =  obj.mUCL;
+            mType       =  obj.mType;
             mLCL        =  obj.mLCL;
-            // mLclUID     =  obj.mLclUID;
-            // mUclUID     =  obj.mUclUID;
-            // mLclPID     =  obj.mLclPID;
-            // mUclPID     =  obj.mUclPID;
+            mLclUID     =  obj.mLclUID;
+            mUCL        =  obj.mUCL;
+            mUclUID     =  obj.mUclUID;
+            mCondition  =  obj.mCondition;
         }
         
         return *this;
@@ -50,15 +57,13 @@ namespace muffin { namespace jarvis { namespace config {
     bool Alarm::operator==(const Alarm& obj) const
     {
        return (
-            mCondition  ==  obj.mCondition  &&       
             mNodeID     ==  obj.mNodeID     &&
-            mAlarmType  ==  obj.mAlarmType  &&
+            mType       ==  obj.mType       &&
+            mLCL        ==  obj.mLCL        &&
+            mLclUID     ==  obj.mLclUID     && 
             mUCL        ==  obj.mUCL        &&
-            mLCL        ==  obj.mLCL  
-            // mLclUID     ==  obj.mLclUID     && 
-            // mUclUID     ==  obj.mUclUID     && 
-            // mLclPID     ==  obj.mLclPID     && 
-            // mUclPID     ==  obj.mUclPID     && 
+            mUclUID     ==  obj.mUclUID     && 
+            mCondition  ==  obj.mCondition
         );
     }
 
@@ -67,185 +72,139 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    Status Alarm::SetNodeID(const std::string& nodeID)
+    void Alarm::SetNodeID(const std::string& nodeID)
     {
+        ASSERT((nodeID.size() == 4), "NODE ID MUST BE A STRING WITH LEGNTH OF 4");
+
         mNodeID = nodeID;
-        if (mNodeID == nodeID)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsNodeIdSet = true;
     }
 
-    Status Alarm::SetAlarmType(const uint8_t& type)
+    void Alarm::SetType(const alarm_type_e type)
     {
-        mAlarmType = type;
-        if (mAlarmType == type)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mType = type;
+        mIsTypeSet = true;
     }
 
-    Status Alarm::SetUCL(const double& ucl)
-    {
-        mUCL = ucl;
-        if (mUCL == ucl)
-        {
-            mIsUclSet = true;
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
-    }
-
-    Status Alarm::SetLCL(const double& lcl)
+    void Alarm::SetLCL(const float lcl)
     {
         mLCL = lcl;
-        if (mLCL == lcl)
-        {
-            mIsLclSet = true;
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsLclSet = true;
     }
 
-    Status Alarm::SetCondition(const std::vector<uint16_t>& condition)
+    void Alarm::SetLclUID(const std::string& lclUID)
     {
+        ASSERT((lclUID.size() == 4), "LCL UID MUST BE A STRING WITH LEGNTH OF 4");
+        ASSERT((lclUID.at(0) == 'P'), "LCL UID MUST START WITH A CHARACTER 'P'");
+
+        mLclUID = lclUID;
+        mIsLclUidSet = true;
+    }
+
+    void Alarm::SetUCL(const float ucl)
+    {
+        mUCL = ucl;
+        mIsUclSet = true;
+    }
+
+    void Alarm::SetUclUID(const std::string& uclUID)
+    {
+        ASSERT((uclUID.size() == 4), "UCL UID MUST BE A STRING WITH LEGNTH OF 4");
+        ASSERT((uclUID.at(0) == 'P'), "UCL UID MUST START WITH A CHARACTER 'P'");
+
+        mUclUID = uclUID;
+        mIsUclUidSet = true;
+    }
+
+    void Alarm::SetCondition(const std::vector<uint16_t>& condition)
+    {
+        ASSERT((condition.size() != 0), "INPUT PARAMETER <condition> CANNOT BE AN EMPTY VECTOR");
+
         mCondition = condition;
-        if (mCondition == condition)
+        mIsConditionSet = true;
+    }
+
+    std::pair<Status, std::string> Alarm::GetNodeID() const
+    {
+        if (mIsNodeIdSet)
         {
-            mHasCondition = true;
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mNodeID);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mNodeID);
         }
     }
 
-    // Status Alarm::SetUclUID(const std::string& uclUID)
-    // {
-    //     mUclUID = uclUID;
-    //     if (mUclUID == uclUID)
-    //     {
-    //         return Status(Status::Code::GOOD_ENTRY_REPLACED);
-    //     }
-    //     else
-    //     {
-    //         return Status(Status::Code::BAD_DEVICE_FAILURE);
-    //     }
-    // }
-
-    // Status Alarm::SetUclPID(const std::string& uclPID)
-    // {
-    //     mUclPID = uclPID;
-    //     if (mUclPID == uclPID)
-    //     {
-    //         return Status(Status::Code::GOOD_ENTRY_REPLACED);
-    //     }
-    //     else
-    //     {
-    //         return Status(Status::Code::BAD_DEVICE_FAILURE);
-    //     }
-    // }
-
-    // Status Alarm::SetLclUID(const std::string& lclUID)
-    // {
-    //     mLclUID = lclUID;
-    //     if (mLclUID == lclUID)
-    //     {
-    //         return Status(Status::Code::GOOD_ENTRY_REPLACED);
-    //     }
-    //     else
-    //     {
-    //         return Status(Status::Code::BAD_DEVICE_FAILURE);
-    //     }
-    // }
-
-    // Status Alarm::SetLclPID(const std::string& lclPID)
-    // {
-    //     mLclPID = lclPID;
-    //     if (mLclPID == lclPID)
-    //     {
-    //         return Status(Status::Code::GOOD_ENTRY_REPLACED);
-    //     }
-    //     else
-    //     {
-    //         return Status(Status::Code::BAD_DEVICE_FAILURE);
-    //     }
-    // }
-
-    const bool& Alarm::HasUCL() const
+    std::pair<Status, alarm_type_e> Alarm::GetType() const
     {
-        return mIsUclSet;
+        if (mIsTypeSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mType);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mType);
+        }
     }
 
-    const bool& Alarm::HasLCL() const
+    std::pair<Status, float> Alarm::GetLCL() const
     {
-        return mIsLclSet;
+        if (mIsLclSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mLCL);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mLCL);
+        }
     }
 
-    const bool& Alarm::HasCondition() const
+    std::pair<Status, std::string> Alarm::GetLclUID() const
     {
-        return mHasCondition;
+        if (mIsLclUidSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mLclUID);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mLclUID);
+        }
     }
 
-    const std::string& Alarm::GetNodeID() const
+    std::pair<Status, float> Alarm::GetUCL() const
     {
-        return mNodeID;
+        if (mIsUclSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mUCL);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mUCL);
+        }
     }
 
-    const uint8_t& Alarm::GetAlarmType() const
+    std::pair<Status, std::string> Alarm::GetUclUID() const
     {
-        return mAlarmType;
+        if (mIsUclUidSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mUclUID);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mUclUID);
+        }
     }
 
-    const double& Alarm::GetUCL() const
+    std::pair<Status, std::vector<uint16_t>> Alarm::GetCondition() const
     {
-        return mUCL;
+        if (mIsConditionSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mCondition);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mCondition);
+        }
     }
-
-    const double& Alarm::GetLCL() const
-    {
-        return mLCL;
-    }
-
-    const std::vector<uint16_t>& Alarm::GetCondition() const
-    {
-        return mCondition;
-    }
-
-    // const std::string& Alarm::GetUclUID() const
-    // {
-    //     return mUclUID;
-    // }
-
-    // const std::string& Alarm::GetLclUID() const
-    // {
-    //     return mLclUID;
-    // }
-
-    // const std::string& Alarm::GetUclPID() const
-    // {
-    //     return mUclPID;
-    // }
-
-    // const std::string& Alarm::GetLclPID() const
-    // {
-    //     return mLclPID;
-    // }
 }}}
-
-

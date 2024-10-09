@@ -1,13 +1,12 @@
 /**
  * @file Rs485.cpp
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief RS-485 시리얼 포트 설정 형식을 표현하는 클래스를 선언합니다.
+ * @brief RS-485 시리얼 포트 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-07
  * @version 0.0.1
- * 
- * @todo ModbusRTU 설정 형식을 참조하여 클래스를 전반적으로 수정해야 합니다. (@김주성)
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -15,32 +14,39 @@
 
 
 
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Rs485.h"
 
 
+
 namespace muffin { namespace jarvis { namespace config {
 
-    Rs485::Rs485(const std::string& key)
-        : Base(key)
+    Rs485::Rs485(const cfg_key_e category)
+        : Base(category)
     {
+    #if defined(DEBUG)
+        ASSERT((category != cfg_key_e::RS485), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     Rs485::~Rs485()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Rs485& Rs485::operator=(const Rs485& obj)
     {
         if (this != &obj)
         {
-            mPortName  = obj.mPortName;
-            mParityBit = obj.mParityBit;
-            mBaudRate  = obj.mBaudRate;
-            mDataBit   = obj.mDataBit;
-            mStopBit   = obj.mStopBit;
+            mPortIndex  = obj.mPortIndex;
+            mParityBit  = obj.mParityBit;
+            mBaudRate   = obj.mBaudRate;
+            mDataBit    = obj.mDataBit;
+            mStopBit    = obj.mStopBit;
         }
         
         return *this;
@@ -49,11 +55,11 @@ namespace muffin { namespace jarvis { namespace config {
     bool Rs485::operator==(const Rs485& obj) const
     {
        return (
-            mPortName  == obj.mPortName    &&
-            mParityBit == obj.mParityBit   &&
-            mBaudRate  == obj.mBaudRate    &&
-            mDataBit   == obj.mDataBit     &&
-            mStopBit   == obj.mStopBit     
+            mPortIndex  == obj.mPortIndex   &&
+            mParityBit  == obj.mParityBit   &&
+            mBaudRate   == obj.mBaudRate    &&
+            mDataBit    == obj.mDataBit     &&
+            mStopBit    == obj.mStopBit     
         );
     }
 
@@ -62,96 +68,93 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    Status Rs485::SetPortName(const uint8_t& name)
+    void Rs485::SetPortIndex(const prt_e index)
     {
-        mPortName = name;
-        if (mPortName == name)
+        mPortIndex = index;
+        mIsPortIndexSet = true;
+    }
+
+    void Rs485::SetBaudRate(const bdr_e baudRate)
+    {
+        mBaudRate = baudRate;
+        mIsBaudRateSet = true;
+    }
+
+    void Rs485::SetDataBit(const dbit_e dataBit)
+    {
+        mDataBit = dataBit;
+        mIsDataBitSet = true;
+    }
+
+    void Rs485::SetParityBit(const pbit_e parityBit)
+    {
+        mParityBit = parityBit;
+        mIsParityBitSet = true;
+    }
+
+    void Rs485::SetStopBit(const sbit_e stopBit)
+    {
+        mStopBit = stopBit;
+        mIsStopBitSet = true;
+    }
+
+    std::pair<Status, prt_e> Rs485::GetPortIndex() const
+    {
+        if (mIsPortIndexSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mPortIndex);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mPortIndex);
         }
     }
 
-    Status Rs485::SetBaudRate(const uint32_t& baudrate)
+    std::pair<Status, bdr_e> Rs485::GetBaudRate() const
     {
-        mBaudRate = baudrate;
-        if (mBaudRate == baudrate)
+        if (mIsBaudRateSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mBaudRate);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mBaudRate);
         }
     }
 
-    Status Rs485::SetDataBit(const uint8_t& databit)
+    std::pair<Status, dbit_e> Rs485::GetDataBit() const
     {
-        mDataBit = databit;
-        if (mDataBit == databit)
+        if (mIsDataBitSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mDataBit);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mDataBit);
         }
     }
 
-    Status Rs485::SetParityBit(const uint8_t& paritybit)
+    std::pair<Status, pbit_e> Rs485::GetParityBit() const
     {
-        mParityBit = paritybit;
-        if (mParityBit == paritybit)
+        if (mIsParityBitSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mParityBit);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mParityBit);
         }
     }
 
-    Status Rs485::SetStopBit(const uint8_t& stopbit)
+    std::pair<Status, sbit_e> Rs485::GetStopBit() const
     {
-        mStopBit = stopbit;
-        if (mStopBit == stopbit)
+        if (mIsStopBitSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mStopBit);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mStopBit);
         }
     }
-
-    const uint8_t& Rs485::GetPortName() const
-    {
-        return mPortName;
-    }
-
-    const uint32_t& Rs485::GetBaudRate() const
-    {
-        return mBaudRate;
-    }
-
-    const uint8_t& Rs485::GetDataBit() const
-    {
-        return mDataBit;
-    }
-
-    const uint8_t& Rs485::GetParityBit() const
-    {
-        return mParityBit;
-    }
-
-    const uint8_t& Rs485::GetStopBit() const
-    {
-        return mStopBit;
-    }
-
 }}}
-
-

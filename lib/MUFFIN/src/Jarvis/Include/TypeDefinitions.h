@@ -4,7 +4,11 @@
  * 
  * @brief JARVIS에서 사용하는 데이터 타입들을 정의합니다.
  * 
+<<<<<<< HEAD
  * @date 2024-10-05
+=======
+ * @date 2024-10-09
+>>>>>>> feature/jarvis/config
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -22,6 +26,60 @@
 
 namespace muffin { namespace jarvis {
 
+<<<<<<< HEAD
+=======
+    typedef enum class NodeAddressTypeEnum
+        : uint8_t
+    {
+        NUMERIC     = 1,
+        STRING      = 2,
+        BYTE_STRING = 3,
+        GUID        = 4
+    } adtp_e;
+
+    typedef union NodeAddressUnion
+    {
+        uint32_t Numeric;
+    } addr_u;
+
+    typedef enum class ModbusAreaEnum
+        : uint8_t
+    {
+        COILS            = 1,
+        DISCRETE_INPUT   = 2,
+        INPUT_REGISTER   = 3,
+        HOLDING_REGISTER = 4
+    } mb_area_e;
+
+    typedef enum class NumericScaleByPowerOfTenEnum
+        : int8_t
+    {
+        NEGATIVE_3   = -3,
+        NEGATIVE_2   = -2,
+        NEGATIVE_1   = -1,
+        POSITIVE_1   =  1,
+        POSITIVE_2   =  2,
+        POSITIVE_3   =  3
+    } scl_e;
+
+    typedef enum class DataTypeEnum
+        : uint8_t
+    {
+        BOOLEAN   =  0,
+        INT8      =  1,
+        UINT8     =  2,
+        INT16     =  3,
+        UINT16    =  4,
+        INT32     =  5,
+        UINT32    =  6,
+        INT64     =  7,
+        UINT64    =  8,
+        FLOAT32   =  9,
+        FLOAT64   = 10,
+        STRING    = 11
+    } dt_e;
+
+>>>>>>> feature/jarvis/config
     typedef enum class JarvisProtocolVersionEnum
         : uint8_t
     {
@@ -96,4 +154,106 @@ namespace muffin { namespace jarvis {
         WIFI4     = 1,
         LTE_CatM1 = 2
     } nic_e;
+<<<<<<< HEAD
+=======
+
+    typedef enum AlarmEventTypeEnum
+        : uint8_t
+    {
+        ONLY_LCL      = 1,
+        ONLY_UCL      = 2,
+        LCL_AND_UCL   = 3,
+        ON_CONDITION  = 4
+    } alarm_type_e;
+
+    typedef enum OperationTimeTypeEnum
+        : uint8_t
+    {
+        FROM_MACHINE  = 1,
+        FROM_MODLINK  = 2
+    } op_time_type_e;
+
+    typedef enum ComparisonOperatorEnum
+        : uint8_t
+    {
+        LESS_THAN     = 0,
+        LESS_EQUAL    = 1,
+        EQUAL         = 2,
+        GREATER_EQUAL = 3,
+        GREATER_THAN  = 4
+    } cmp_op_e;
+
+    typedef enum class LteCatM1ModelEnum
+    {
+        LM5,
+        LCM300
+    } md_e;
+
+    typedef enum class LteCatM1CountryEnum
+    {
+        KOREA,
+        USA
+        // JAPAN,
+        // VIETNAM,
+        // TAIWAN
+    } ctry_e;
+
+    typedef enum class WiFi4AuthModeEnum
+    {
+        OPEN               = 0,
+        WEP                = 1,
+        WPA_PSK            = 2,
+        WPA2_PSK           = 3,
+        WPA_WPA2_PSK       = 4,
+        WPA2_ENTERPRISE    = 5
+    } wifi_auth_e;
+
+    typedef enum class WiFi4ExtensibleAuthenticationProtocolEnum
+    {
+        TLS   = 0,
+        PEAP  = 1,
+        TTLS  = 2
+    } wifi_eap_auth_e;
+
+    typedef enum class ServerNetworkInterfaceCardEnum
+    {
+        WiFi4     = 0,
+        Ethernet  = 1,
+        LTE_CatM1 = 2
+    } snic_e;
+
+    typedef enum class DataUnitEnum
+        : uint8_t
+    {
+        BYTE   =  8,
+        WORD   = 16,
+        DWORD  = 32,
+        QWORD  = 64
+    } data_unit_e;
+
+    typedef enum class ByteOrderEnum
+        : uint8_t
+    {
+        LOW   = 0,
+        HIGH  = 1
+    } byte_order_e;
+
+    typedef struct DataUnitOrderType
+    {
+        data_unit_e DataUnit;
+        byte_order_e ByteOrder;
+        uint8_t Index;
+    } ord_t;
+
+    typedef enum class FormatSpecifierEnum
+    {
+        INTEGER_32,
+        UNSIGNED_INTEGER_32,
+        FLOATING_POINT_32,
+        STRING,
+        CHARACTER,
+        HEX_LOWERCASE,
+        HEX_UPPERCASE
+    } fmt_spec_e;
+>>>>>>> feature/jarvis/config
 }}

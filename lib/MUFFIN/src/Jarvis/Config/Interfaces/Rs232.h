@@ -1,13 +1,12 @@
 /**
  * @file Rs232.h
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief RS-232 시리얼 포트 설정 형식을 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-07
  * @version 0.0.1
- * 
- * @todo ModbusRTU 설정 형식을 참조하여 클래스를 전반적으로 수정해야 합니다. (@김주성)
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -24,43 +23,38 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-
     class Rs232 : public Base
     {
     public:
-        Rs232(const std::string& key);
+        explicit Rs232(const cfg_key_e category);
         virtual ~Rs232() override;
     public:
         Rs232& operator=(const Rs232& obj);
         bool operator==(const Rs232& obj) const;
         bool operator!=(const Rs232& obj) const;
-    
     public:
-        Status SetPortName(const uint8_t& name);
-        Status SetBaudRate(const uint32_t& baudrate);
-        Status SetDataBit(const uint8_t& databit);
-        Status SetParityBit(const uint8_t& paritybit);
-        Status SetStopBit(const uint8_t& stopbit);
-    
+        void SetPortIndex(const prt_e index);
+        void SetBaudRate(const bdr_e baudRate);
+        void SetDataBit(const dbit_e dataBit);
+        void SetParityBit(const pbit_e parityBit);
+        void SetStopBit(const sbit_e stopBit);
     public:
-        const uint8_t& GetPortName() const;
-        const uint32_t& GetBaudRate() const;
-        const uint8_t& GetDataBit() const;
-        const uint8_t& GetParityBit() const;
-        const uint8_t& GetStopBit() const;
-
+        std::pair<Status, prt_e> GetPortIndex() const;
+        std::pair<Status, bdr_e> GetBaudRate() const;
+        std::pair<Status, dbit_e> GetDataBit() const;
+        std::pair<Status, pbit_e> GetParityBit() const;
+        std::pair<Status, sbit_e> GetStopBit() const;
     private:
-        bool mIsPortNameSet  = false;
-        bool mIsBaudrateSet  = false;
-        bool mIsDataBitSet   = false;
-        bool mIsParityBitSet = false;
-        bool mIsStopBitSet   = false;
-
+        bool mIsPortIndexSet  = false;
+        bool mIsBaudRateSet   = false;
+        bool mIsDataBitSet    = false;
+        bool mIsParityBitSet  = false;
+        bool mIsStopBitSet    = false;
     private:
-        uint8_t mPortName;
-        uint8_t mParityBit;
-        uint32_t mBaudRate;
-        uint8_t mDataBit;
-        uint8_t mStopBit;
+        prt_e mPortIndex;
+        bdr_e mBaudRate;
+        dbit_e mDataBit;
+        pbit_e mParityBit;
+        sbit_e mStopBit;
     };
 }}}

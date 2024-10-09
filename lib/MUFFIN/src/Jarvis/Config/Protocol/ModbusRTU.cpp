@@ -5,7 +5,7 @@
  * 
  * @brief Modbus RTU 프로토콜 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-04
+ * @date 2024-10-07
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -22,10 +22,11 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    ModbusRTU::ModbusRTU(const std::string& key)
-        : Base(key)
+    ModbusRTU::ModbusRTU(const cfg_key_e category)
+        : Base(category)
     {
     #if defined(DEBUG)
+        ASSERT((category != cfg_key_e::MODBUS_RTU), "CATEGORY DOES NOT MATCH");
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
@@ -63,28 +64,8 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    void ModbusRTU::SetNodes(std::vector<std::string>&& nodes) noexcept
-    {
-        ASSERT((nodes.size() != 0), "NODE REFERENCES CANNOT BE NULL");
-
-        mNodes = std::move(nodes);
-        mIsNodesSet = true;
-    }
-
     void ModbusRTU::SetPort(const prt_e prt)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((static_cast<uint8_t>(prt) == 2), "UNDEFINED SERIAL PORT");
-    #else
-        ASSERT(
-            (
-                static_cast<uint8_t>(prt) == 2 || 
-                static_cast<uint8_t>(prt) == 3
-            ), 
-            "UNDEFINED SERIAL PORT"
-        );
-    #endif
-    
         mPort = prt;
         mIsPortSet = true;
     }
@@ -97,16 +78,12 @@ namespace muffin { namespace jarvis { namespace config {
         mIsSlaveIdSet = true;
     }
 
-    std::pair<Status, std::vector<std::string>> ModbusRTU::GetNodes() const
+    void ModbusRTU::SetNodes(std::vector<std::string>&& nodes) noexcept
     {
-        if (mIsNodesSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mNodes);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mNodes);
-        }
+        ASSERT((nodes.size() != 0), "NODE REFERENCES CANNOT BE NULL");
+
+        mNodes = std::move(nodes);
+        mIsNodesSet = true;
     }
 
     std::pair<Status, uint8_t> ModbusRTU::GetPort() const
@@ -130,6 +107,18 @@ namespace muffin { namespace jarvis { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mIsSlaveIdSet);
+        }
+    }
+
+    std::pair<Status, std::vector<std::string>> ModbusRTU::GetNodes() const
+    {
+        if (mIsNodesSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mNodes);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mNodes);
         }
     }
 }}}

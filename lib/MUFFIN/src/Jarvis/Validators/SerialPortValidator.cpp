@@ -140,6 +140,9 @@ namespace muffin { namespace jarvis {
                 return ret;
             }
         }
+
+        LOG_VERBOSE(logger, "Valid RS-232 config instance")
+        return Status(Status::Code::GOOD);
     
     INVALID_RS232:
         return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
@@ -220,6 +223,9 @@ namespace muffin { namespace jarvis {
                 return ret;
             }
         }
+
+        LOG_VERBOSE(logger, "Valid RS-485 config instance")
+        return Status(Status::Code::GOOD);
     
     INVALID_RS485:
         return Status(Status::Code::BAD_DATA_ENCODING_INVALID);

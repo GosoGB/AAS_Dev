@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <string>
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
@@ -26,11 +26,11 @@ namespace muffin { namespace jarvis { namespace config {
     class Base
     {
     public:
-        explicit Base(const std::string& category);
+        explicit Base(const cfg_key_e category);
         virtual ~Base();
     public:
-        std::string GetCategory() const;
+        cfg_key_e GetCategory() const;
     private:
-        const std::string mCategory;
+        const cfg_key_e mCategory;
     };
 }}}

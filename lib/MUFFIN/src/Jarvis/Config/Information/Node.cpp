@@ -1,54 +1,63 @@
 /**
  * @file Node.cpp
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-09-20
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @copyright Copyright (c) 2024
+ * @brief Node 설정 형식을 표현하는 클래스를 정의합니다.
  * 
+ * @date 2024-10-08
+ * @version 0.0.1
+ * 
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
 
 
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Node.h"
 
 
+
 namespace muffin { namespace jarvis { namespace config {
 
-    Node::Node(const std::string& key)
-        : Base(key)
+    Node::Node(const cfg_key_e category)
+        : Base(category)
     {
+    #if defined(DEBUG)
+        ASSERT((category != cfg_key_e::NODE), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     Node::~Node()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Node& Node::operator=(const Node& obj)
     {
         if (this != &obj)
         {
-            mMap       =  obj.mMap;
-            mOrd       =  obj.mOrd;
-            mDt        =  obj.mDt;
-            mStrAddr   =  obj.mStrAddr;
-            mUintAddr  =  obj.mUintAddr;
-            mBit       =  obj.mBit;
-            mArea      =  obj.mArea;
-            mQty       =  obj.mQty;
-            mScl       =  obj.mScl;
-            mOffset    =  obj.mOffset;
-            mNodeId    =  obj.mNodeId;
-            mFmt       =  obj.mFmt;
-            mName      =  obj.mName;
-            mUnit      =  obj.mUnit;
-            mUID       =  obj.mUID;
-            mPID       =  obj.mPID;
+            mNodeID                 = obj.mNodeID;
+            mAddressType            = obj.mAddressType;
+            mAddress                = obj.mAddress;
+            mModbusArea             = obj.mModbusArea;
+            mBitIndex               = obj.mBitIndex;
+            mAddressQuantity        = obj.mAddressQuantity;
+            mNumericScale           = obj.mNumericScale;
+            mNumericOffset          = obj.mNumericOffset;
+            mMapMappingRules        = obj.mMapMappingRules;
+            mVectorDataUnitOrders   = obj.mVectorDataUnitOrders;
+            mVectorDataTypes        = obj.mVectorDataTypes;
+            mFormatString           = obj.mFormatString;
+            mDeprecableUID          = obj.mDeprecableUID;
+            mDeprecableDisplayName  = obj.mDeprecableDisplayName;
+            mDeprecableDisplayUnit  = obj.mDeprecableDisplayUnit;
+            mHasAttributeEvent      = obj.mHasAttributeEvent;
         }
         
         return *this;
@@ -57,22 +66,22 @@ namespace muffin { namespace jarvis { namespace config {
     bool Node::operator==(const Node& obj) const
     {
        return (
-            mMap        == obj.mMap         &&    
-            mOrd        == obj.mOrd         &&    
-            mDt         == obj.mDt          &&
-            mStrAddr    == obj.mStrAddr     &&    
-            mUintAddr   == obj.mUintAddr    &&    
-            mBit        == obj.mBit         &&
-            mArea       == obj.mArea        &&
-            mQty        == obj.mQty         &&
-            mScl        == obj.mScl         &&
-            mOffset     == obj.mOffset      &&
-            mNodeId     == obj.mNodeId      &&
-            mFmt        == obj.mFmt         &&
-            mName       == obj.mName        &&
-            mUnit       == obj.mUnit        &&
-            mUID        == obj.mUID         &&
-            mPID        == obj.mPID         
+            mNodeID                 == obj.mNodeID                  &&
+            mAddressType            == obj.mAddressType             &&
+            mAddress.Numeric        == obj.mAddress.Numeric         &&
+            mModbusArea             == obj.mModbusArea              &&
+            mBitIndex               == obj.mBitIndex                &&
+            mAddressQuantity        == obj.mAddressQuantity         &&
+            mNumericScale           == obj.mNumericScale            &&
+            mNumericOffset          == obj.mNumericOffset           &&
+            mMapMappingRules        == obj.mMapMappingRules         &&
+            mVectorDataUnitOrders   == obj.mVectorDataUnitOrders    &&
+            mVectorDataTypes        == obj.mVectorDataTypes         &&
+            mFormatString           == obj.mFormatString            &&
+            mDeprecableUID          == obj.mDeprecableUID           &&
+            mDeprecableDisplayName  == obj.mDeprecableDisplayName   &&
+            mDeprecableDisplayUnit  == obj.mDeprecableDisplayUnit   &&
+            mHasAttributeEvent      == obj.mHasAttributeEvent
         );
     }
 
@@ -81,298 +90,659 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    Status Node::SetNodeID(const std::string& nodeid)
+    void Node::SetNodeID(const std::string& nodeID)
     {
-        mNodeId = nodeid;
-        if (mNodeId == nodeid)
+        ASSERT((nodeID.size() == 4), "NODE ID MUST BE A STRING WITH LEGNTH OF 4");
+
+        mNodeID = nodeID;
+        mIsNodeIdSet = true;
+    }
+
+    void Node::SetAddressType(const adtp_e type)
+    {
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsModbusAreaSet == true && type != adtp_e::NUMERIC)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }()
+            ), "ADDRESS TYPE MUST BE NUMERIC WHEN MODBUS PROTOCOL IS USED"
+        );
+
+        mAddressType = type;
+        mIsAddressTypeSet = true;
+    }
+
+    void Node::SetAddrress(const addr_u address)
+    {
+        ASSERT((mIsAddressTypeSet == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
+
+        mAddress = address;
+        mIsAddressSet = true;
+    }
+
+    void Node::SetModbusArea(const mb_area_e area)
+    {
+        ASSERT((mIsAddressTypeSet == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mAddressType == adtp_e::NUMERIC), "ADDRESS TYPE MUST BE SET TO NUMERIC");
+
+        mModbusArea = area;
+        mIsModbusAreaSet = true;
+    }
+
+    void Node::SetBitIndex(const uint8_t index)
+    {
+        // 데이터 타입 유효성 검사
+        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mVectorDataTypes.size() == 1), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
+        ASSERT((mVectorDataUnitOrders.size() == 1), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE ALIGNMENT ORDER");
+
+        // 함께 설정 불가능한 Node 속성에 대한 유효성 검사
+        ASSERT((mIsAddressQuantitySet  == false), "BIT INDEX CAN ONLY BE APPLIED WHEN ADDRESS QUANTITY IS DISABLED");
+        ASSERT((mIsNumericScaleSet     == false), "BIT INDEX CAN ONLY BE APPLIED WHEN NUMERIC SCALING IS DISABLED");
+        ASSERT((mIsNumericOffsetSet    == false), "BIT INDEX CAN ONLY BE APPLIED WHEN NUMERIC OFFSET IS DISABLED");
+        ASSERT((mIsFormatStringSet     == false), "BIT INDEX CAN ONLY BE APPLIED WHEN FORMAT STRING IS DISABLED");
+
+        // Modbus 메모리 영역 유효성 검사
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsModbusAreaSet == true)
+                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }()
+            ), "BIT INDEX CANNOT BE SET WHEN MODBUS MEMORY AREA IS ALREADY SET TO BIT"
+        );
+
+        // 비트 인덱스의 범위 유효성 검사
+        ASSERT(
+            (
+                [&]()
+                {
+                    switch (mVectorDataTypes.front())
+                    {
+                    case dt_e::INT8:
+                    case dt_e::UINT8:
+                        if (index > 7)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    case dt_e::INT16:
+                    case dt_e::UINT16:
+                        if (index > 15)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    case dt_e::INT32:
+                    case dt_e::UINT32:
+                        if (index > 31)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    case dt_e::INT64:
+                    case dt_e::UINT64:
+                        if (index > 63)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    default:
+                        return false;
+                    }
+                }()
+            ), "BIT INDEX OUT OF RANGE OR INVALID DATA TYPE"
+        );
+        
+        mBitIndex = index;
+        mIsBitIndexSet = true;
+    }
+
+    void Node::SetNumericAddressQuantity(const uint8_t quantity)
+    {
+        ASSERT((mIsAddressTypeSet == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mAddressType == adtp_e::NUMERIC), "ADDRESS TYPE MUST BE NUMERIC");
+        ASSERT((mIsBitIndexSet == false), "NUMERIC ADDRESS QUANTITY CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsModbusAreaSet == true)
+                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }()
+            ), "NUMERIC ADDRESS QUANTITY CAN ONLY BE SET WHEN MODBUS MEMORY AREA IS SET TO REGISTERS"
+        );
+        ASSERT((quantity != 0), "NUMERIC ADDRESS QUANTITY CANNOT BE SET TO 0");
+
+        mAddressQuantity = quantity;
+        mIsAddressQuantitySet = true;
+    }
+
+    void Node::SetNumericScale(const scl_e scale)
+    {
+        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mVectorDataTypes.size() == 1), "NUMERIC SCALE CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
+        ASSERT(
+            (
+                [&]()
+                {
+                    switch (mVectorDataTypes.front())
+                    {
+                    case dt_e::STRING:
+                    case dt_e::BOOLEAN:
+                        return false;
+                    default:
+                        return true;
+                    }
+                }()
+            ), "NUMERIC SCALE CANNOT BE APPLIED TO DATA WHICH ISSTRING OR BOOLEAN TYPE"
+        );
+        ASSERT((mIsBitIndexSet == false), "NUMERIC SCALE CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+
+        mNumericScale = scale;
+        mIsNumericScaleSet = true;
+    }
+
+    void Node::SetNumericOffset(const float offset)
+    {
+        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mVectorDataTypes.size() == 1), "NUMERIC OFFSET CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
+        ASSERT(
+            (
+                [&]()
+                {
+                    switch (mVectorDataTypes.front())
+                    {
+                    case dt_e::STRING:
+                    case dt_e::BOOLEAN:
+                        return false;
+                    default:
+                        return true;
+                    }
+                }()
+            ), "NUMERIC OFFSET CANNOT BE APPLIED TO DATA WHICH IS STRING OR BOOLEAN TYPE"
+        );
+        ASSERT((mIsBitIndexSet == false), "NUMERIC OFFSET CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+
+        mNumericOffset = offset;
+        mIsNumericOffsetSet = true;
+    }
+
+    void Node::SetMappingRules(const std::map<std::uint16_t, std::string>&& mappingRules) noexcept
+    {
+        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mVectorDataTypes.size() == 1), "MAPPING RULES CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
+        ASSERT(
+            (
+                [&]()
+                {
+                    switch (mVectorDataTypes.front())
+                    {
+                    case dt_e::STRING:
+                    case dt_e::FLOAT32:
+                    case dt_e::FLOAT64:
+                        return false;
+                    default:
+                        return true;
+                    }
+                }()
+            ), "MAPPING RULES CANNOT BE APPLIED TO DATA WHICH IS STRING, FP32 OR FP64 TYPE"
+        );
+        ASSERT((mappingRules.size() > 0), "INVALID MAPPING RULES: NO RULE AT ALL");
+
+        mMapMappingRules = std::move(mappingRules);
+        mIsMappingRulesSet = true;
+    }
+
+    void Node::SetDataUnitOrders(const std::vector<DataUnitOrder>&& orders) noexcept
+    {
+        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mVectorDataTypes.size() > 0), "DATA UNIT ORDERS CANNOT BE APPLIED WHEN THERE IS NO DATA TYPE");
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsModbusAreaSet == true)
+                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }()
+            ), "DATA UNIT ORDERS CAN ONLY BE SET WHEN MODBUS MEMORY AREA IS SET TO REGISTERS"
+        );
+        ASSERT((orders.size() == mVectorDataTypes.size()), "DATA UNIT ORDERS AND DATA TYPES MUST BE EQUAL IN LENGTH");
+
+        mVectorDataUnitOrders = std::move(orders);
+        mIsDataUnitOrdersSet = true;
+    }
+
+    void Node::SetDataTypes(const std::vector<dt_e>& dt)
+    {
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsModbusAreaSet == true)
+                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                        {
+                            if (dt.size() != 1)
+                            {
+                                return false;
+                            }
+                            else if (dt.front() != dt_e::BOOLEAN)
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                }()
+            ), "DATA TYPES CAN ONLY BE SET WHEN MODBUS MEMORY AREA IS SET TO REGISTERS"
+        );
+        ASSERT((mIsBitIndexSet == false), "DATA TYPES CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+
+        mVectorDataTypes = dt;
+        mIsDataTypesSet = true;
+    }
+
+    void Node::SetFormatString(const std::string& format)
+    {
+        // 속성 간 의존성 검사
+        ASSERT((mIsBitIndexSet == false), "FORMAT STRING CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mIsDataUnitOrdersSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mVectorDataTypes.size() > 0), "DATA TYPE CANNOT BE EMPTY ARRAY");
+        ASSERT((mVectorDataUnitOrders.size() == mVectorDataTypes.size()), "DATA UNIT ORDERS AND DATA TYPES MUST BE EQUAL IN LENGTH");
+        
+        // 데이터 타입 유효성 검사
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsModbusAreaSet == true)
+                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }()
+            ), "FORMAT STRING CAN ONLY BE SET WHEN MODBUS MEMORY AREA IS SET TO REGISTERS"
+        );
+        ASSERT(
+            (
+                [&]()
+                {
+                    for (const auto& dataType : mVectorDataTypes)
+                    {
+                        switch (dataType)
+                        {
+                        case dt_e::BOOLEAN:
+                            return false;
+                        default:
+                            return true;
+                        }
+                    }
+                }()
+            ), "FORMAT STRING CANNOT BE APPLIED TO DATA WHICH IS STRING, FP32 OR FP64 TYPE"
+        );
+
+        // format 문자열 유효성 검사
+        ASSERT(
+            (
+                [&]()
+                {
+                    const char* formatString = format.c_str();
+                    uint8_t index = 0;
+
+                    while (*formatString)
+                    {
+                        if (*formatString == '%')
+                        {
+                            ++formatString;
+
+                            while (isdigit(*formatString) || *formatString == '.' || *formatString == 'l')
+                            {// Check for width and precision modifiers
+                                ++formatString;
+                            }
+
+                              // Check for valid format specifiers
+                            if (*formatString == 'd')
+                            {
+                                dt_e dt = mVectorDataTypes[index];
+                                ++index;
+
+                                if (dt != dt_e::INT8 && dt != dt_e::INT16 && dt != dt_e::INT32)
+                                {
+                                    return false;
+                                }
+                            }
+                            else if (*formatString == 'u')
+                            {
+                                dt_e dt = mVectorDataTypes[index];
+                                ++index;
+
+                                if (dt != dt_e::UINT8 && dt != dt_e::UINT16 && dt != dt_e::UINT32)
+                                {
+                                    return false;
+                                }
+                            }
+                            else if (*formatString == 'f')
+                            {
+                                dt_e dt = mVectorDataTypes[index];
+                                ++index;
+
+                                if (dt != dt_e::FLOAT32)
+                                {
+                                    return false;
+                                }
+                            }
+                            else if (*formatString == 's' || *formatString == 'c')
+                            {
+                                dt_e dt = mVectorDataTypes[index];
+                                ++index;
+
+                                if (dt != dt_e::STRING)
+                                {
+                                    return false;
+                                }
+                            }
+                            else if (*formatString == 'x' || *formatString == 'X')
+                            {
+                                dt_e dt = mVectorDataTypes[index];
+                                ++index;
+
+                                if (dt != dt_e::INT8 && dt != dt_e::INT16 && dt != dt_e::INT32 &&
+                                    dt != dt_e::UINT8 && dt != dt_e::UINT16 && dt != dt_e::UINT32)
+                                {
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                            
+                            ++formatString;
+                        }
+                        else
+                        {
+                            ++formatString;
+                        }
+                    }
+                    return true;
+                }()
+            ), "INVALID FORMAT STRING: %s", format.c_str()
+        );
+        ASSERT((format.size() != 0), "FORMAT STRING CANNOT BE AN EMPTY STRING");
+
+        mFormatString = format;
+        mIsFormatStringSet = true;
+    }
+
+    void Node::SetDeprecableUID(const std::string& uid)
+    {
+        ASSERT((uid.size() == 4), "UID MUST BE A STRING WITH LEGNTH OF 4");
+        ASSERT(
+            (
+                uid.substr(0, 1) == "P"  || 
+                uid.substr(0, 1) == "A"  || 
+                uid.substr(0, 1) == "E"  ||
+                uid.substr(0, 2) == "DI" || 
+                uid.substr(0, 2) == "DO" ||
+                uid.substr(0, 2) == "MD"
+            ), "UID MUST START WITH ONE OF PREFIXES, \"P\", \"A\", \"E\", \"DI\", \"DO\", \"MD\""
+        );
+
+        mDeprecableUID = uid;
+        mIsDeprecableUidSet = true;
+    }
+
+    void Node::SetDeprecableDisplayName(const std::string& displayName)
+    {
+        mDeprecableDisplayName = displayName;
+        mIsDeprecableDisplayNameSet = true;
+    }
+
+    void Node::SetDeprecableDisplayUnit(const std::string& displayUnit)
+    {
+        mDeprecableDisplayUnit = displayUnit;
+        mIsDeprecableDisplayUnitSet = true;
+    }
+
+    void Node::SetAttributeEvent(const bool hasEvent)
+    {
+        mHasAttributeEvent = hasEvent;
+        mIsAttributeEventSet = true;
+    }
+
+    std::pair<Status, std::string> Node::GetNodeID() const
+    {
+        if (mIsNodeIdSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mNodeID);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mNodeID);
         }
     }
 
-    Status Node::SetAddressType(const uint8_t& adtp)
+    std::pair<Status, adtp_e> Node::GetAddressType() const
     {
-        mAddrType = adtp;
-        if (mAddrType == adtp)
+        if (mIsAddressTypeSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mAddressType);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mAddressType);
         }
     }
 
-    Status Node::SetAddrress(const uint16_t& addr)
+    std::pair<Status, addr_u> Node::GetAddrress() const
     {
-        mUintAddr = addr;
-        if (mUintAddr == addr)
+        if (mIsAddressSet)
         {
-            mIsAddrSet = true;
-            mIsAddrStr = false;
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mAddress);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mAddress);
         }
     }
 
-    Status Node::SetModbusArea(const uint8_t& area)
+    std::pair<Status, mb_area_e> Node::GetModbusArea() const
     {
-        mArea = area;
-        if (mArea == area)
+        if (mIsModbusAreaSet)
         {
-            mIsAreaSet = true;
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mModbusArea);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mModbusArea);
         }
     }
 
-    Status Node::SetBitIndex(const uint8_t& bit)
+    std::pair<Status, uint8_t> Node::GetBitIndex() const
     {
-        mBit = bit;
-        if (mBit == bit)
+        if (mIsBitIndexSet)
         {
-            mIsBitSet = true;
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mBitIndex);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mBitIndex);
         }
     }
 
-    Status Node::SetModbusRegisterQuantity(const uint8_t& qty)
+    std::pair<Status, uint8_t> Node::GetNumericAddressQuantity() const
     {
-        mQty = qty;
-        if (mQty == qty)
+        if (mIsAddressQuantitySet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mAddressQuantity);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mAddressQuantity);
         }
     }
 
-    Status Node::SetDataScale(const int8_t& scl)
+    std::pair<Status, scl_e> Node::GetNumericScale() const
     {
-        mScl = scl;
-        if (mScl == scl)
+        if (mIsNumericScaleSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mNumericScale);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mNumericScale);
         }
     }
 
-    Status Node::SetDataOffset(const float& ofst)
+    std::pair<Status, float> Node::GetNumericOffset() const
     {
-        mOffset = ofst;
-        if (mOffset == ofst)
+        if (mIsNumericOffsetSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mNumericOffset);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mNumericOffset);
         }
     }
 
-    Status Node::SetDataOrder(const std::vector<std::string>& ord)
+    std::pair<Status, std::map<std::uint16_t, std::string>> Node::GetMappingRules() const
     {
-        mOrd = ord;
-        if (mOrd == ord)
+        if (mIsMappingRulesSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mMapMappingRules);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mMapMappingRules);
         }
     }
 
-    Status Node::SetDataTypes(const std::vector<uint8_t>& dt)
+    std::pair<Status, std::vector<DataUnitOrder>> Node::GetDataUnitOrders() const
     {
-        mDt = dt;
-        if (mDt == dt)
+        if (mIsDataUnitOrdersSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mVectorDataUnitOrders);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mVectorDataUnitOrders);
         }
     }
 
-    Status Node::SetFormatString(const std::string& fmt)
+    std::pair<Status, std::vector<dt_e>> Node::GetDataTypes() const
     {
-        mFmt = fmt;
-        if (mFmt == fmt)
+        if (mIsDataTypesSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mVectorDataTypes);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mVectorDataTypes);
         }
     }
 
-    Status Node::SetMappingRules(const std::map<std::uint16_t, std::string>& map)
+    std::pair<Status, std::string> Node::GetFormatString() const
     {
-        mMap = map;
-        if (mMap == map)
+        if (mIsFormatStringSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mFormatString);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mFormatString);
         }
     }
 
-    Status Node::SetDataName(const std::string& name)
+    std::pair<Status, std::string> Node::GetDeprecableUID() const
     {
-        mName = name;
-        if (mName == name)
+        if (mIsDeprecableUidSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mDeprecableUID);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mDeprecableUID);
         }
     }
 
-    Status Node::SetDataUnit(const std::string& unit)
+    std::pair<Status, std::string> Node::GetDeprecableDisplayName() const
     {
-        mUnit = unit;
-        if (mUnit == unit)
+        if (mIsDeprecableDisplayNameSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mDeprecableDisplayName);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mDeprecableDisplayName);
         }
     }
 
-    Status Node::SetUID(const std::string& uid)
+    std::pair<Status, std::string> Node::GetDeprecableDisplayUnit() const
     {
-        mUID = uid;
-        if (mUID == uid)
+        if (mIsDeprecableDisplayUnitSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mDeprecableDisplayUnit);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mDeprecableDisplayUnit);
         }
     }
 
-    Status Node::SetPID(const std::string& pid)
+    std::pair<Status, bool> Node::GetAttributeEvent() const
     {
-        mPID = pid;
-        if (mPID == pid)
+        if (mIsAttributeEventSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mHasAttributeEvent);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mHasAttributeEvent);
         }
     }
-
-    const std::string& Node::GetNodeID() const
-    {
-        return mNodeId;
-    }
-
-    const uint8_t& Node::GetAddressType() const
-    {
-        return mAddrType;
-    }
-
-    const uint16_t& Node::GetUint16Addrress() const
-    {
-        return mUintAddr;
-    }
-
-    const uint8_t& Node::GetModbusArea() const
-    {
-        return mArea;
-    }
-
-    const uint8_t& Node::GetBitIndex() const
-    {
-        return mBit;
-    }
-
-    const uint8_t& Node::GetModbusRegisterQuantity() const
-    {
-        return mQty;
-    }
-
-    const int8_t& Node::GetDataScale() const
-    {
-        return mScl;
-    }
-
-    const float& Node::GetDataOffset() const
-    {
-        return mOffset;
-    }
-
-    const std::vector<std::string>& Node::GetDataOrder() const
-    {
-        return mOrd;
-    }
-
-    const std::vector<uint8_t>& Node::GetDataTypes() const
-    {
-        return mDt;
-    }
-
-    const std::string& Node::GetFormatString() const
-    {
-        return mFmt;
-    }
-
-    const std::map<std::uint16_t, std::string>& Node::GetMappingRules() const
-    {
-        return mMap;
-    }
-
-    const std::string& Node::GetDataName() const
-    {
-        return mName;
-    }
-
-    const std::string& Node::GetDataUnit() const
-    {
-        return mUnit;
-    }
-
-    const std::string& Node::GetUID() const
-    {
-        return mUID;
-    }
-
-    const std::string& Node::GetPID() const
-    {
-        return mPID;
-    }
-
 }}}
-
-

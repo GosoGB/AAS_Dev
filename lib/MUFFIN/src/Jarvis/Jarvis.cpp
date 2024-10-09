@@ -19,7 +19,7 @@
 
 #include "Config/Information/Alarm.h"
 #include "Config/Information/Node.h"
-#include "Config/Information/Optime.h"
+#include "Config/Information/OperationTime.h"
 #include "Config/Information/Production.h"
 #include "Config/Interfaces/Rs232.h"
 #include "Config/Interfaces/Rs485.h"

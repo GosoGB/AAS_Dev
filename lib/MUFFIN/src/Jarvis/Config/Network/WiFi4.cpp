@@ -4,7 +4,7 @@
  * 
  * @brief Wi-Fi 인터페이스 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2024-09-03
+ * @date 2024-10-07
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -13,6 +13,9 @@
 
 
 
+#include <regex> 
+
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "WiFi4.h"
 
@@ -20,15 +23,20 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    WiFi4::WiFi4()
-        : Base("wifi")
+    WiFi4::WiFi4(const cfg_key_e category)
+        : Base(category)
     {
+    #if defined(DEBUG)
+        ASSERT((category != cfg_key_e::WIFI4), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     WiFi4::~WiFi4()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     WiFi4& WiFi4::operator=(const WiFi4& obj)
@@ -83,315 +91,492 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    Status WiFi4::SetDHCP(const bool enableDHCP)
+    void WiFi4::SetDHCP(const bool enableDHCP)
     {
+        ASSERT(
+            (
+                mIsStaticIPv4Set == false &&
+                mIsSubnetmaskSet == false &&
+                mIsGatewaySet    == false &&
+                mIsDNS1Set       == false &&
+                mIsDNS2Set       == false
+            ), "INVALID PRECONDITION: CANNOT SET STATIC IPv4 PRIOR TO DHCP"
+        );
+
         mEnableDHCP = enableDHCP;
-        if (mEnableDHCP == enableDHCP)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsEnableDhcpSet = true;
+
+        ASSERT(
+            (
+                mStaticIPv4 == INADDR_NONE &&
+                mSubnetmask == INADDR_NONE &&
+                mGateway    == INADDR_NONE &&
+                mDNS1       == INADDR_NONE &&
+                mDNS2       == INADDR_NONE
+            ), "INVALID POSTCONDITION: IPv4 ADDRESSES MUST BE DEFAULT VALUE WHICH IS 0.0.0.0"
+        );
     }
 
-    Status WiFi4::SetStaticIPv4(const std::string& staticIPv4)
+    void WiFi4::SetStaticIPv4(const IPAddress& staticIPv4)
     {
-        if (mStaticIPv4.fromString(staticIPv4.c_str()))
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                staticIPv4 != IPAddress(0, 0, 0, 0)        ||
+                staticIPv4 != IPAddress(127, 0, 0, 1)      ||
+                staticIPv4 != IPAddress(192, 0, 2, 0)      ||
+                staticIPv4 != IPAddress(203, 0, 113, 0)    ||
+                staticIPv4 != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mStaticIPv4 = staticIPv4;
+        mIsStaticIPv4Set = true;
     }
 
-    Status WiFi4::SetSubnet(const std::string& subnetmask)
+    void WiFi4::SetSubnetmask(const IPAddress& subnetmask)
     {
-        if (mSubnetmask.fromString(subnetmask.c_str()))
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                subnetmask != IPAddress(0, 0, 0, 0)        ||
+                subnetmask != IPAddress(127, 0, 0, 1)      ||
+                subnetmask != IPAddress(192, 0, 2, 0)      ||
+                subnetmask != IPAddress(203, 0, 113, 0)    ||
+                subnetmask != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mSubnetmask = subnetmask;
+        mIsSubnetmaskSet = true;
     }
 
-    Status WiFi4::SetGateway(const std::string& gateway)
+    void WiFi4::SetGateway(const IPAddress& gateway)
     {
-        if (mGateway.fromString(gateway.c_str()))
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                gateway != IPAddress(0, 0, 0, 0)        ||
+                gateway != IPAddress(127, 0, 0, 1)      ||
+                gateway != IPAddress(192, 0, 2, 0)      ||
+                gateway != IPAddress(203, 0, 113, 0)    ||
+                gateway != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mGateway = gateway;
+        mIsGatewaySet = true;
     }
 
-    Status WiFi4::SetDNS1(const std::string& dns1)
+    void WiFi4::SetDNS1(const IPAddress& dns1)
     {
-        if (mDNS1.fromString(dns1.c_str()))
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                dns1 != IPAddress(0, 0, 0, 0)        ||
+                dns1 != IPAddress(127, 0, 0, 1)      ||
+                dns1 != IPAddress(192, 0, 2, 0)      ||
+                dns1 != IPAddress(203, 0, 113, 0)    ||
+                dns1 != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mDNS1 = dns1;
+        mIsDNS1Set = true;
     }
 
-    Status WiFi4::SetDNS2(const std::string& dns2)
+    void WiFi4::SetDNS2(const IPAddress& dns2)
     {
-        if (mDNS2.fromString(dns2.c_str()))
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                dns2 != IPAddress(0, 0, 0, 0)        ||
+                dns2 != IPAddress(127, 0, 0, 1)      ||
+                dns2 != IPAddress(192, 0, 2, 0)      ||
+                dns2 != IPAddress(203, 0, 113, 0)    ||
+                dns2 != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mDNS2 = dns2;
+        mIsDNS2Set = true;
     }
 
-    Status WiFi4::SetSSID(const std::string& ssid)
+    void WiFi4::SetSSID(const std::string& ssid)
     {
-        assert(ssid.length() < 33);
+        ASSERT((ssid.length() < 33), "SSID CANNOT EXCEED 32 CHARACTERS");
+        ASSERT((ssid.empty() == false), "SSID CANNOT BE AN EMPTY STRING");
+        ASSERT(
+            (
+                [&]()
+                {
+                    std::regex invalidChars("[<>#%&{}\\\\\\s`~!@\\$\\^\\*\\(\\)\\[\\];:\",.]+");
+                    return std::regex_search(ssid, invalidChars) == false;
+                }()
+            ), "INVALID CHARACTER IS INCLUDED IN THE SSID: %s", ssid.c_str()
+        );
 
         mSSID = ssid;
-        if (mSSID == ssid)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsSsidSet = true;
     }
 
-    Status WiFi4::SetPSK(const std::string& psk)
+    void WiFi4::SetPSK(const std::string& psk)
     {
-        assert(psk.length() < 65);
+        ASSERT((psk.length() < 65), "PSK CANNOT EXCEED 64 CHARACTERS");
+        ASSERT((psk.length() >  7), "PSK CANNOT BE SHORTER THAN 8 CHARACTERS");
+        ASSERT((mIsAuthModeSet == true), "AUTH MODE MUST BE SET BEFOREHAND");
+        ASSERT((mAuthMode != wifi_auth_mode_t::WIFI_AUTH_OPEN), "PSK CANNOT BE SET WHEN AUTH MODE: \"open\"");
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == false), "PSK CANNOT BE SET WHEN EAP IS ENABLED");
 
         mPSK = psk;
-        if (mPSK == psk)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsPskSet = true;
     }
 
-    Status WiFi4::SetAuthMode(const std::string& auth)
+    void WiFi4::SetAuthMode(const wifi_auth_mode_t auth)
     {
-        assert(auth == "open" || auth == "wep" || auth == "wpa_psk" || auth == "wpa2_psk" || auth == "wpa_wpa2_psk" || auth == "wpa2_enterprise");
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == false), "AUTH MODE CANNOT BE SET WHEN EAP IS ENABLED");
+        ASSERT(
+            (
+                auth != wifi_auth_mode_t::WIFI_AUTH_OPEN      &&
+                auth != wifi_auth_mode_t::WIFI_AUTH_WEP       &&
+                auth != wifi_auth_mode_t::WIFI_AUTH_WPA_PSK   &&
+                auth != wifi_auth_mode_t::WIFI_AUTH_WPA2_PSK  &&
+                auth != wifi_auth_mode_t::WIFI_AUTH_WPA_WPA2_PSK
+            ),
+            "UNSUPPORTED Wi-Fi AUTH MODE: %u", static_cast<uint8_t>(auth)
+        );
 
-        if (auth == "open")
-        {
-            mAuthMode = wifi_auth_mode_t::WIFI_AUTH_OPEN;
-        }
-        else if (auth == "wep")
-        {
-            mAuthMode = wifi_auth_mode_t::WIFI_AUTH_WEP;
-        }
-        else if (auth == "wpa_psk")
-        {
-            mAuthMode = wifi_auth_mode_t::WIFI_AUTH_WPA_PSK;
-        }
-        else if (auth == "wpa2_psk")
-        {
-            mAuthMode = wifi_auth_mode_t::WIFI_AUTH_WPA2_PSK;
-        }
-        else if (auth == "wpa_wpa2_psk")
-        {
-            mAuthMode = wifi_auth_mode_t::WIFI_AUTH_WPA_WPA2_PSK;
-        }
-        else
-        {
-            mAuthMode = wifi_auth_mode_t::WIFI_AUTH_WPA2_ENTERPRISE;
-        }
-        return Status(Status::Code::GOOD);
+        mAuthMode = auth;
+        mIsAuthModeSet = true;
     }
 
-    Status WiFi4::SetEAP(const bool& eap)
+    void WiFi4::SetEAP(const bool enableEAP)
     {
-        mEnableEAP = eap;
-        if (mEnableEAP == eap)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        ASSERT(
+            (
+                mIsPskSet == false &&
+                mIsAuthModeSet == false
+            ), "PSK AND AUTH MODE CANNOT BE SET BEFORE EAP DOES"
+        );
+
+        mEnableEAP = enableEAP;
+        mIsEnableEapSet = true;
     }
 
-    Status WiFi4::SetEapID(const std::string& eapID)
+    void WiFi4::SetEapAuthMode(const wpa2_auth_method_t eapAuth)
     {
-        assert(eapID.length() < 65);
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == true), "EAP MUST BE ENABLED TO SET EAP AUTH MODE");
+
+        mEapAuthMode = eapAuth;
+        mIsEapAuthModeSet = true;
+
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mEapAuthMode == wpa2_auth_method_t::WPA2_AUTH_TLS)
+                    {
+                        return
+                        (
+                            mIsEapClientCertificateSet &&
+                            mIsEapClientKeySet
+                        );
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }()
+            ), "CLIENT CERTIFICATE AND KEY MUST BE SET BEFOREHAND TO SET EAP TLS MODE"
+        );
+    }
+
+    void WiFi4::SetEapID(const std::string& eapID)
+    {
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == true), "EAP MUST BE ENABLED TO SET EAP ID");
+
+        ASSERT((mIsEapAuthModeSet == true), "EAP AUTH MODE MUST BE SET BEFOREHAND");
+        ASSERT((mEapAuthMode != wpa2_auth_method_t::WPA2_AUTH_TLS), "EAP ID CANNOT BE SET WHEN AUTH MODE IS TLS");
+        
+        ASSERT((eapID.length() < 65), "EAP ID CANNOT EXCEED 64 CHARACTERS");
+        ASSERT((eapID.empty() == false), "EAP ID CANNOT BE AN EMPTY STRING");
 
         mEapID = eapID;
-        if (mEapID == eapID)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsEapIdSet = true;
     }
 
-    Status WiFi4::SetEapUserName(const std::string& eapUserName)
+    void WiFi4::SetEapUserName(const std::string& eapUserName)
     {
-        assert(eapUserName.length() < 65);
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == true), "EAP MUST BE ENABLED TO SET EAP USERNAME");
+
+        ASSERT((mIsEapAuthModeSet == true), "EAP AUTH MODE MUST BE SET BEFOREHAND");
+        ASSERT((mEapAuthMode != wpa2_auth_method_t::WPA2_AUTH_TLS), "EAP USERNAME CANNOT BE SET WHEN AUTH MODE IS TLS");
+
+        ASSERT((eapUserName.length() < 65), "EAP USERNAME CANNOT EXCEED 64 CHARACTERS");
+        ASSERT((eapUserName.empty() == false), "EAP USERNAME CANNOT BE AN EMPTY STRING");
 
         mEapUserName = eapUserName;
-        if (mEapUserName == eapUserName)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsEapUserNameSet = true;
     }
 
-    Status WiFi4::SetEapPassword(const std::string& eapPassword)
+    void WiFi4::SetEapPassword(const std::string& eapPassword)
     {
-        assert(eapPassword.length() < 65);
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == true), "EAP MUST BE ENABLED TO SET EAP PASSWORD");
+
+        ASSERT((mIsEapAuthModeSet == true), "EAP AUTH MODE MUST BE SET BEFOREHAND");
+        ASSERT((mEapAuthMode != wpa2_auth_method_t::WPA2_AUTH_TLS), "EAP PASSWORD CANNOT BE SET WHEN AUTH MODE IS TLS");
+
+        ASSERT((eapPassword.length() < 65), "EAP PASSWORD CANNOT EXCEED 64 CHARACTERS");
+        ASSERT((eapPassword.empty() == false), "EAP PASSWORD CANNOT BE AN EMPTY STRING");
 
         mEapPassword = eapPassword;
-        if (mEapPassword == eapPassword)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsEapPasswordSet = true;
     }
 
-    Status WiFi4::SetEapCaCertificate(const std::string& eapCaCert)
+    void WiFi4::SetEapCaCertificate(const std::string& eapCaCert)
     {
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == true), "EAP MUST BE ENABLED TO SET EAP CA CERTIFICATE");
+
         mEapCaCertificate = eapCaCert;
-        if (mEapCaCertificate == eapCaCert)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsEapCaCertificateSet = true;
     }
 
-    Status WiFi4::SetEapClientCertificate(const std::string& eapClientCert)
+    void WiFi4::SetEapClientCertificate(const std::string& eapClientCert)
     {
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == true), "EAP MUST BE ENABLED TO SET EAP CLIENT CERTIFICATE");
+
         mEapClientCertificate = eapClientCert;
-        if (mEapClientCertificate == eapClientCert)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mIsEapClientCertificateSet = true;
     }
 
-    Status WiFi4::SetEapClientKey(const std::string& eapClientKey)
+    void WiFi4::SetEapClientKey(const std::string& eapClientKey)
     {
+        ASSERT((mIsEnableEapSet == true), "EAP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableEAP == true), "EAP MUST BE ENABLED TO SET EAP CLIENT KEY");
+
         mEapClientKey = eapClientKey;
-        if (mEapClientKey == eapClientKey)
+        mIsEapClientKeySet = true;
+    }
+
+    std::pair<Status, bool> WiFi4::GetDHCP() const
+    {
+        if (mIsEnableDhcpSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mEnableDHCP);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mEnableDHCP);
         }
     }
 
-    bool WiFi4::GetDHCP() const
+    std::pair<Status, IPAddress> WiFi4::GetStaticIPv4() const
     {
-        return mEnableDHCP;
+        if (mIsStaticIPv4Set)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mStaticIPv4);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mStaticIPv4);
+        }
     }
 
-    const IPAddress& WiFi4::GetStaticIPv4() const
+    std::pair<Status, IPAddress> WiFi4::GetSubnetmask() const
     {
-        return mStaticIPv4;
+        if (mIsSubnetmaskSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mSubnetmask);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mSubnetmask);
+        }
     }
 
-    const IPAddress& WiFi4::GetSubnet() const
+    std::pair<Status, IPAddress> WiFi4::GetGateway() const
     {
-        return mSubnetmask;
+        if (mIsGatewaySet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mGateway);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mGateway);
+        }
     }
 
-    const IPAddress& WiFi4::GetGateway() const
+    std::pair<Status, IPAddress> WiFi4::GetDNS1() const
     {
-        return mGateway;
+        if (mIsDNS1Set)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mDNS1);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mDNS1);
+        }
     }
 
-    const IPAddress& WiFi4::GetDNS1() const
+    std::pair<Status, IPAddress> WiFi4::GetDNS2() const
     {
-        return mDNS1;
+        if (mIsDNS2Set)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mDNS2);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mDNS2);
+        }
     }
 
-    const IPAddress& WiFi4::GetDNS2() const
+    std::pair<Status, std::string> WiFi4::GetSSID() const
     {
-        return mDNS2;
+        if (mIsSsidSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mSSID);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mSSID);
+        }
     }
 
-    const std::string& WiFi4::GetSSID() const
+    std::pair<Status, std::string> WiFi4::GetPSK()  const
     {
-        return mSSID;
+        if (mIsPskSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mPSK);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mPSK);
+        }
     }
 
-    const std::string& WiFi4::GetPSK() const
+    std::pair<Status, wifi_auth_mode_t> WiFi4::GetAuthMode() const
     {
-        return mPSK;
+        if (mIsAuthModeSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mAuthMode);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mAuthMode);
+        }
     }
 
-    wifi_auth_mode_t WiFi4::GetAuthMode() const
+    std::pair<Status, bool> WiFi4::GetEAP() const
     {
-        return mAuthMode;
+        if (mIsEnableEapSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEnableEAP);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEnableEAP);
+        }
     }
 
-    bool WiFi4::GetEAP() const
+    std::pair<Status, wpa2_auth_method_t> WiFi4::GetEapAuthMode() const
     {
-        return mEnableEAP;
+        if (mIsEapAuthModeSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEapAuthMode);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEapAuthMode);
+        }
     }
 
-    const std::string& WiFi4::GetEapID() const
+    std::pair<Status, std::string> WiFi4::GetEapID() const
     {
-        return mEapID;
+        if (mIsEapIdSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEapID);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEapID);
+        }
     }
 
-    const std::string& WiFi4::GetEapUserName() const
+    std::pair<Status, std::string> WiFi4::GetEapUserName() const
     {
-        return mEapUserName;
+        if (mIsEapUserNameSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEapUserName);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEapUserName);
+        }
     }
 
-    const std::string& WiFi4::GetEapPassword() const
+    std::pair<Status, std::string> WiFi4::GetEapPassword() const
     {
-        return mEapPassword;
+        if (mIsEapPasswordSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEapPassword);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEapPassword);
+        }
     }
 
-    const std::string& WiFi4::GetEapCaCertificate() const
+    std::pair<Status, std::string> WiFi4::GetEapCaCertificate() const
     {
-        return mEapCaCertificate;
+        if (mIsEapCaCertificateSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEapCaCertificate);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEapCaCertificate);
+        }
     }
 
-    const std::string& WiFi4::GetEapClientCertificate() const
+    std::pair<Status, std::string> WiFi4::GetEapClientCertificate() const
     {
-        return mEapClientCertificate;
+        if (mIsEapClientCertificateSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEapClientCertificate);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEapClientCertificate);
+        }
     }
 
-    const std::string& WiFi4::GetEapClientKey() const
+    std::pair<Status, std::string> WiFi4::GetEapClientKey() const
     {
-        return mEapClientKey;
+        if (mIsEapClientKeySet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEapClientKey);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEapClientKey);
+        }
     }
-
 }}}

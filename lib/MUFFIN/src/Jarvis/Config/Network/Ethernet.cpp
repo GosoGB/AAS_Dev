@@ -4,7 +4,7 @@
  * 
  * @brief Ethernet 인터페이스 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2024-09-02
+ * @date 2024-10-07
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -13,22 +13,28 @@
 
 
 
-#include "Ethernet.h"
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Ethernet.h"
 
 
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Ethernet::Ethernet()
-        : Base("ethernet")
+    Ethernet::Ethernet(const cfg_key_e category)
+        : Base(category)
     {
+    #if defined(DEBUG)
+        ASSERT((category != cfg_key_e::ETHERNET), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     Ethernet::~Ethernet()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Ethernet& Ethernet::operator=(const Ethernet& obj)
@@ -63,106 +69,196 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    Status Ethernet::SetDHCP(const bool enableDHCP)
+    void Ethernet::SetDHCP(const bool enableDHCP)
     {
+        ASSERT(
+            (
+                mIsStaticIPv4Set == false &&
+                mIsSubnetmaskSet == false &&
+                mIsGatewaySet    == false &&
+                mIsDNS1Set       == false &&
+                mIsDNS2Set       == false
+            ), "INVALID PRECONDITION: CANNOT SET STATIC IPv4 PRIOR TO DHCP"
+        );
+
         mEnableDHCP = enableDHCP;
-        if (mEnableDHCP == enableDHCP)
+        mIsEnableDhcpSet = true;
+
+        ASSERT(
+            (
+                mStaticIPv4 == INADDR_NONE &&
+                mSubnetmask == INADDR_NONE &&
+                mGateway    == INADDR_NONE &&
+                mDNS1       == INADDR_NONE &&
+                mDNS2       == INADDR_NONE
+            ), "INVALID POSTCONDITION: IPv4 ADDRESSES MUST BE DEFAULT VALUE WHICH IS 0.0.0.0"
+        );
+    }
+
+    void Ethernet::SetStaticIPv4(const IPAddress& staticIPv4)
+    {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                staticIPv4 != IPAddress(0, 0, 0, 0)        ||
+                staticIPv4 != IPAddress(127, 0, 0, 1)      ||
+                staticIPv4 != IPAddress(192, 0, 2, 0)      ||
+                staticIPv4 != IPAddress(203, 0, 113, 0)    ||
+                staticIPv4 != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mStaticIPv4 = staticIPv4;
+        mIsStaticIPv4Set = true;
+    }
+
+    void Ethernet::SetSubnetmask(const IPAddress& subnetmask)
+    {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                subnetmask != IPAddress(0, 0, 0, 0)        ||
+                subnetmask != IPAddress(127, 0, 0, 1)      ||
+                subnetmask != IPAddress(192, 0, 2, 0)      ||
+                subnetmask != IPAddress(203, 0, 113, 0)    ||
+                subnetmask != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mSubnetmask = subnetmask;
+        mIsSubnetmaskSet = true;
+    }
+
+    void Ethernet::SetGateway(const IPAddress& gateway)
+    {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                gateway != IPAddress(0, 0, 0, 0)        ||
+                gateway != IPAddress(127, 0, 0, 1)      ||
+                gateway != IPAddress(192, 0, 2, 0)      ||
+                gateway != IPAddress(203, 0, 113, 0)    ||
+                gateway != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mGateway = gateway;
+        mIsGatewaySet = true;
+    }
+
+    void Ethernet::SetDNS1(const IPAddress& dns1)
+    {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                dns1 != IPAddress(0, 0, 0, 0)        ||
+                dns1 != IPAddress(127, 0, 0, 1)      ||
+                dns1 != IPAddress(192, 0, 2, 0)      ||
+                dns1 != IPAddress(203, 0, 113, 0)    ||
+                dns1 != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mDNS1 = dns1;
+        mIsDNS1Set = true;
+    }
+
+    void Ethernet::SetDNS2(const IPAddress& dns2)
+    {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
+        ASSERT(
+            (
+                dns2 != IPAddress(0, 0, 0, 0)        ||
+                dns2 != IPAddress(127, 0, 0, 1)      ||
+                dns2 != IPAddress(192, 0, 2, 0)      ||
+                dns2 != IPAddress(203, 0, 113, 0)    ||
+                dns2 != IPAddress(255, 255, 255, 255)
+            ),
+            "INVALID IPv4 ADDRESS"
+        );
+
+        mDNS2 = dns2;
+        mIsDNS2Set = true;
+    }
+
+    std::pair<Status, bool> Ethernet::GetDHCP() const
+    {
+        if (mIsEnableDhcpSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mEnableDHCP);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mEnableDHCP);
         }
     }
 
-    Status Ethernet::SetStaticIPv4(const std::string& staticIPv4)
+    std::pair<Status, IPAddress> Ethernet::GetStaticIPv4() const
     {
-        if (mStaticIPv4.fromString(staticIPv4.c_str()))
+        if (mIsStaticIPv4Set)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mStaticIPv4);
         }
         else
         {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            return std::make_pair(Status(Status::Code::BAD), mStaticIPv4);
         }
     }
 
-    Status Ethernet::SetSubnet(const std::string& subnetmask)
+    std::pair<Status, IPAddress> Ethernet::GetSubnetmask() const
     {
-        if (mSubnetmask.fromString(subnetmask.c_str()))
+        if (mIsSubnetmaskSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mSubnetmask);
         }
         else
         {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            return std::make_pair(Status(Status::Code::BAD), mSubnetmask);
         }
     }
 
-    Status Ethernet::SetGateway(const std::string& gateway)
+    std::pair<Status, IPAddress> Ethernet::GetGateway() const
     {
-        if (mGateway.fromString(gateway.c_str()))
+        if (mIsGatewaySet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mGateway);
         }
         else
         {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            return std::make_pair(Status(Status::Code::BAD), mGateway);
         }
     }
 
-    Status Ethernet::SetDNS1(const std::string& dns1)
+    std::pair<Status, IPAddress> Ethernet::GetDNS1() const
     {
-        if (mDNS1.fromString(dns1.c_str()))
+        if (mIsDNS1Set)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mDNS1);
         }
         else
         {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            return std::make_pair(Status(Status::Code::BAD), mDNS1);
         }
     }
 
-    Status Ethernet::SetDNS2(const std::string& dns2)
+    std::pair<Status, IPAddress> Ethernet::GetDNS2() const
     {
-        if (mDNS2.fromString(dns2.c_str()))
+        if (mIsDNS2Set)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mDNS2);
         }
         else
         {
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            return std::make_pair(Status(Status::Code::BAD), mDNS2);
         }
-    }
-
-    bool Ethernet::GetDHCP() const
-    {
-        return mEnableDHCP;
-    }
-
-    const IPAddress& Ethernet::GetStaticIPv4() const
-    {
-        return mStaticIPv4;
-    }
-
-    const IPAddress& Ethernet::GetSubnet() const
-    {
-        return mSubnetmask;
-    }
-
-    const IPAddress& Ethernet::GetGateway() const
-    {
-        return mGateway;
-    }
-
-    const IPAddress& Ethernet::GetDNS1() const
-    {
-        return mDNS1;
-    }
-
-    const IPAddress& Ethernet::GetDNS2() const
-    {
-        return mDNS2;
     }
 }}}

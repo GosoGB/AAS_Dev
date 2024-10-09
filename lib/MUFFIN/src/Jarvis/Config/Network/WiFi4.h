@@ -4,7 +4,7 @@
  * 
  * @brief Wi-Fi 인터페이스 설정 정보를 관리하는 클래스를 선언합니다.
  * 
- * @date 2024-09-03
+ * @date 2024-10-07
  * @version 0.0.1
  * 
  * @todo JARVIS 설계 문서에 WPA2 authentication method 속성을 추가로 정의해야 합니다.
@@ -22,9 +22,11 @@
 
 #include <esp_wifi_types.h>
 #include <IPAddress.h>
+#include <WiFiSTA.h>
 
 #include "Common/Status.h"
 #include "Jarvis/Include/Base.h"
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
@@ -33,49 +35,68 @@ namespace muffin { namespace jarvis { namespace config {
     class WiFi4 : public Base
     {
     public:
-        WiFi4();
+        explicit WiFi4(const cfg_key_e category);
         virtual ~WiFi4() override;
     public:
         WiFi4& operator=(const WiFi4& obj);
         bool operator==(const WiFi4& obj) const;
         bool operator!=(const WiFi4& obj) const;
     public:
-        Status SetDHCP(const bool enableDHCP);
-        Status SetStaticIPv4(const std::string& staticIPv4);
-        Status SetSubnet(const std::string& subnetmask);
-        Status SetGateway(const std::string& gateway);
-        Status SetDNS1(const std::string& dns1);
-        Status SetDNS2(const std::string& dns2);
-        Status SetSSID(const std::string& ssid);
-        Status SetPSK(const std::string& psk) ;
-        Status SetAuthMode(const std::string& auth);
-        Status SetEAP(const bool& eap);
-        Status SetEapID(const std::string& eapID);
-        Status SetEapUserName(const std::string& eapUserName);
-        Status SetEapPassword(const std::string& eapPassword);
-        Status SetEapCaCertificate(const std::string& eapCaCert);
-        Status SetEapClientCertificate(const std::string& eapClientCert);
-        Status SetEapClientKey(const std::string& eapClientKey);
-
+        void SetDHCP(const bool enableDHCP);
+        void SetStaticIPv4(const IPAddress& staticIPv4);
+        void SetSubnetmask(const IPAddress& subnetmask);
+        void SetGateway(const IPAddress& gateway);
+        void SetDNS1(const IPAddress& dns1);
+        void SetDNS2(const IPAddress& dns2);
+        void SetSSID(const std::string& ssid);
+        void SetPSK(const std::string& psk) ;
+        void SetAuthMode(const wifi_auth_mode_t auth);
+        void SetEAP(const bool enableEAP);
+        void SetEapAuthMode(const wpa2_auth_method_t eapAuth);
+        void SetEapID(const std::string& eapID);
+        void SetEapUserName(const std::string& eapUserName);
+        void SetEapPassword(const std::string& eapPassword);
+        void SetEapCaCertificate(const std::string& eapCaCert);
+        void SetEapClientCertificate(const std::string& eapClientCert);
+        void SetEapClientKey(const std::string& eapClientKey);
     public:
-        bool GetDHCP() const;
-        const IPAddress& GetStaticIPv4() const;
-        const IPAddress& GetSubnet() const;
-        const IPAddress& GetGateway() const;
-        const IPAddress& GetDNS1() const;
-        const IPAddress& GetDNS2() const;
-        const std::string& GetSSID() const;
-        const std::string& GetPSK() const;
-        wifi_auth_mode_t GetAuthMode() const;
-        bool GetEAP() const;
-        const std::string& GetEapID() const;
-        const std::string& GetEapUserName() const;
-        const std::string& GetEapPassword() const;
-        const std::string& GetEapCaCertificate() const;
-        const std::string& GetEapClientCertificate() const;
-        const std::string& GetEapClientKey() const;
+        std::pair<Status, bool> GetDHCP() const;
+        std::pair<Status, IPAddress> GetStaticIPv4() const;
+        std::pair<Status, IPAddress> GetSubnetmask() const;
+        std::pair<Status, IPAddress> GetGateway() const;
+        std::pair<Status, IPAddress> GetDNS1() const;
+        std::pair<Status, IPAddress> GetDNS2() const;
+        std::pair<Status, std::string> GetSSID() const;
+        std::pair<Status, std::string> GetPSK()  const;
+        std::pair<Status, wifi_auth_mode_t> GetAuthMode() const;
+        std::pair<Status, bool> GetEAP() const;
+        std::pair<Status, wpa2_auth_method_t> GetEapAuthMode() const;
+        std::pair<Status, std::string> GetEapID() const;
+        std::pair<Status, std::string> GetEapUserName() const;
+        std::pair<Status, std::string> GetEapPassword() const;
+        std::pair<Status, std::string> GetEapCaCertificate() const;
+        std::pair<Status, std::string> GetEapClientCertificate() const;
+        std::pair<Status, std::string> GetEapClientKey() const;
     private:
-        bool mEnableDHCP = true;
+        bool mIsEnableDhcpSet             = false;
+        bool mIsStaticIPv4Set             = false;
+        bool mIsSubnetmaskSet             = false;
+        bool mIsGatewaySet                = false;
+        bool mIsDNS1Set                   = false;
+        bool mIsDNS2Set                   = false;
+        bool mIsSsidSet                   = false;
+        bool mIsPskSet                    = false;
+        bool mIsAuthModeSet               = false;
+        bool mIsEnableEapSet              = false;
+        bool mIsEapAuthModeSet            = false;
+        bool mIsEapIdSet                  = false;
+        bool mIsEapUserNameSet            = false;
+        bool mIsEapPasswordSet            = false;
+        bool mIsEapCaCertificateSet       = false;
+        bool mIsEapClientCertificateSet   = false;
+        bool mIsEapClientKeySet           = false;
+    private:
+        bool mEnableDHCP;
         IPAddress mStaticIPv4;
         IPAddress mSubnetmask;
         IPAddress mGateway;
@@ -84,7 +105,8 @@ namespace muffin { namespace jarvis { namespace config {
         std::string mSSID;
         std::string mPSK;
         wifi_auth_mode_t mAuthMode;
-        bool mEnableEAP = false;
+        bool mEnableEAP;
+        wpa2_auth_method_t mEapAuthMode;
         std::string mEapID;
         std::string mEapUserName;
         std::string mEapPassword;

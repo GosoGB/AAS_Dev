@@ -1,12 +1,14 @@
 /**
  * @file Node.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-09-20
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @copyright Copyright (c) 2024
+ * @brief Node 설정 형식을 표현하는 클래스를 선언합니다.
  * 
+ * @date 2024-10-08
+ * @version 0.0.1
+ * 
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -19,108 +21,88 @@
 
 #include "Common/Status.h"
 #include "Jarvis/Include/Base.h"
+#include "Jarvis/Include/DataUnitOrder.h"
 
 
 
 namespace muffin { namespace jarvis { namespace config {
 
-
     class Node : public Base
     {
     public:
-        Node(const std::string& key);
+        explicit Node(const cfg_key_e category);
         virtual ~Node() override;
     public:
         Node& operator=(const Node& obj);
         bool operator==(const Node& obj) const;
         bool operator!=(const Node& obj) const;
-    
     public:
-        Status SetNodeID(const std::string& nodeid);
-        Status SetAddressType(const uint8_t& adtp);
-        // Status SetAddrress(const std::string& addr);
-        Status SetAddrress(const uint16_t& addr);
-        Status SetModbusArea(const uint8_t& area);
-        Status SetBitIndex(const uint8_t& bit);
-        Status SetModbusRegisterQuantity(const uint8_t& qty);
-        Status SetDataScale(const int8_t& scl);
-        Status SetDataOffset(const float& ofst);
-        Status SetMappingRules(const std::map<std::uint16_t, std::string>& map);
-        Status SetDataOrder(const std::vector<std::string>& ord);
-        Status SetDataTypes(const std::vector<uint8_t>& dt);
-        Status SetFormatString(const std::string& fmt);
-        Status SetDataName(const std::string& name);
-        Status SetDataUnit(const std::string& unit);
-        Status SetUID(const std::string& uid);
-        Status SetPID(const std::string& pid);
-    
+        void SetNodeID(const std::string& nodeID);
+        void SetAddressType(const adtp_e type);
+        void SetAddrress(const addr_u address);
+        void SetModbusArea(const mb_area_e area);
+        void SetBitIndex(const uint8_t index);
+        void SetNumericAddressQuantity(const uint8_t quantity);
+        void SetNumericScale(const scl_e scale);
+        void SetNumericOffset(const float offset);
+        void SetMappingRules(const std::map<std::uint16_t, std::string>&& mappingRules) noexcept;
+        void SetDataUnitOrders(const std::vector<DataUnitOrder>&& orders) noexcept;
+        void SetDataTypes(const std::vector<dt_e>& dt);
+        void SetFormatString(const std::string& format);
+        void SetDeprecableUID(const std::string& uid);
+        void SetDeprecableDisplayName(const std::string& displayName);
+        void SetDeprecableDisplayUnit(const std::string& displayUnit);
+        void SetAttributeEvent(const bool hasEvent);
     public:
-        const std::string& GetNodeID() const;
-        const uint8_t& GetAddressType() const;
-        // const std::string& GetStrAddrress() const;
-        const uint16_t& GetUint16Addrress() const;
-        const uint8_t& GetModbusArea() const;
-        const uint8_t& GetBitIndex() const;
-        const uint8_t& GetModbusRegisterQuantity() const;
-
-        const int8_t& GetDataScale() const;
-        const float& GetDataOffset() const;
-        const std::vector<std::string>& GetDataOrder() const;
-        const std::vector<uint8_t>& GetDataTypes() const;
-        const std::string& GetFormatString() const;
-        const std::map<std::uint16_t, std::string>& GetMappingRules() const;
-
-        const std::string& GetDataName() const;
-        const std::string& GetDataUnit() const;
-        const std::string& GetUID() const;
-        const std::string& GetPID() const;
-
-    public:
-        Status HasModbusArea(bool* hasArea) const;
-        Status HasBitIndex(bool* hasBit) const;
-        Status HasModbusRegisterQuantity(bool* hasQty) const;
-        Status HasDataScale(bool* hasScl) const;
-        Status HasDataOffset(bool* hasOfst) const;
-        Status HasDataOrder(bool* hasOrd) const;
-        Status HasDataTypes(bool* hasDt) const;
-        Status HasFormatString(bool* hasFmt) const;
-        Status HasMappingRules(bool* hasMap) const;
-        Status HasDataName(bool* hasName) const;
-        Status HasDataUnit(bool* hasUnit) const;
-
+        std::pair<Status, std::string> GetNodeID() const;
+        std::pair<Status, adtp_e> GetAddressType() const;
+        std::pair<Status, addr_u> GetAddrress() const;
+        std::pair<Status, mb_area_e> GetModbusArea() const;
+        std::pair<Status, uint8_t> GetBitIndex() const;
+        std::pair<Status, uint8_t> GetNumericAddressQuantity() const;
+        std::pair<Status, scl_e> GetNumericScale() const;
+        std::pair<Status, float> GetNumericOffset() const;
+        std::pair<Status, std::map<std::uint16_t, std::string>> GetMappingRules() const;
+        std::pair<Status, std::vector<DataUnitOrder>> GetDataUnitOrders() const;
+        std::pair<Status, std::vector<dt_e>> GetDataTypes() const;
+        std::pair<Status, std::string> GetFormatString() const;
+        std::pair<Status, std::string> GetDeprecableUID() const;
+        std::pair<Status, std::string> GetDeprecableDisplayName() const;
+        std::pair<Status, std::string> GetDeprecableDisplayUnit() const;
+        std::pair<Status, bool> GetAttributeEvent() const;
     private:
-        bool mIsAddrStr    = false;
-        bool mIsNodeIdSet  = false;
-        bool mIsAddrSet    = false;
-        bool mIsAreaSet    = false;
-        bool mIsBitSet     = false;
-        bool mIsQtySet     = false;
-        bool mIsSclSet     = false;
-        bool mIsOfstSet    = false;
-        bool mIsOrdSet     = false;
-        bool mIsDtSet      = false;
-        bool mIsFmtSet     = false;
-        bool mIsMapSet     = false;
-        bool mIsNameSet    = false;
-        bool mIsUnitSet    = false;
-        
+        bool mIsNodeIdSet                   = false;
+        bool mIsAddressTypeSet              = false;
+        bool mIsAddressSet                  = false;
+        bool mIsModbusAreaSet               = false;
+        bool mIsBitIndexSet                 = false;
+        bool mIsAddressQuantitySet          = false;
+        bool mIsNumericScaleSet             = false;
+        bool mIsNumericOffsetSet            = false;
+        bool mIsMappingRulesSet             = false;
+        bool mIsDataUnitOrdersSet           = false;
+        bool mIsDataTypesSet                = false;
+        bool mIsFormatStringSet             = false;
+        bool mIsDeprecableUidSet            = false;
+        bool mIsDeprecableDisplayNameSet    = false;
+        bool mIsDeprecableDisplayUnitSet    = false;
+        bool mIsAttributeEventSet           = false;
     private:
-        std::map<std::uint16_t, std::string> mMap;
-        std::vector<std::string> mOrd;
-        std::vector<uint8_t> mDt;
-        std::string mStrAddr;
-        uint16_t mUintAddr;
-        uint8_t mAddrType  = 0;
-        uint8_t mBit;
-        uint8_t mArea      = 0;
-        uint8_t mQty       = 0;
-        int8_t mScl        = 0;
-        float mOffset      = 0;
-        std::string mNodeId;
-        std::string mFmt;
-        std::string mName;
-        std::string mUnit;
-        std::string mUID;
-        std::string mPID;
+        std::string mNodeID;
+        adtp_e mAddressType;
+        addr_u mAddress;
+        mb_area_e mModbusArea;
+        uint8_t mBitIndex;
+        uint8_t mAddressQuantity;
+        scl_e mNumericScale;
+        float mNumericOffset;
+        std::map<std::uint16_t, std::string> mMapMappingRules;
+        std::vector<DataUnitOrder> mVectorDataUnitOrders;
+        std::vector<dt_e> mVectorDataTypes;
+        std::string mFormatString;
+        std::string mDeprecableUID;
+        std::string mDeprecableDisplayName;
+        std::string mDeprecableDisplayUnit;
+        bool mHasAttributeEvent;
     };
 }}}

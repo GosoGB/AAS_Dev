@@ -1,12 +1,14 @@
 /**
  * @file Alarm.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-09-20
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @copyright Copyright (c) 2024
+ * @brief Alarm 이벤트 설정 형식을 표현하는 클래스를 선언합니다.
  * 
+ * @date 2024-10-07
+ * @version 0.0.1
+ * 
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -23,63 +25,46 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-
     class Alarm : public Base
     {
     public:
-        Alarm(const std::string& key);
+        explicit Alarm(const cfg_key_e category);
         virtual ~Alarm() override;
     public:
         Alarm& operator=(const Alarm& obj);
         bool operator==(const Alarm& obj) const;
-        bool operator!=(const Alarm& obj) const;
-    
+        bool operator!=(const Alarm& obj) const;    
     public:
-        Status SetNodeID(const std::string& nodeID);
-        Status SetAlarmType(const uint8_t& type);
-        Status SetUCL(const double& ucl);
-        Status SetLCL(const double& lcl);
-        Status SetCondition(const std::vector<uint16_t>& condition);
-    
-    // public:
-    //     Status SetUclUID(const std::string& uclUID);
-    //     Status SetLclUID(const std::string& lclUID);
-    //     Status SetUclPID(const std::string& uclPID);
-    //     Status SetLclPID(const std::string& lclPID);   
-
+        void SetNodeID(const std::string& nodeID);
+        void SetType(const alarm_type_e type);
+        void SetLCL(const float lcl);
+        void SetLclUID(const std::string& lclUID);
+        void SetUCL(const float ucl);
+        void SetUclUID(const std::string& uclUID);
+        void SetCondition(const std::vector<uint16_t>& condition);
     public:
-        const bool& HasUCL() const;
-        const bool& HasLCL() const;
-        const bool& HasCondition() const;
-
-    public:
-        const std::string& GetNodeID() const;
-        const uint8_t& GetAlarmType() const;
-        const double& GetUCL() const;
-        const double& GetLCL() const;
-        const std::vector<uint16_t>& GetCondition() const;
- 
-    // public: 
-    //     const std::string& GetUclUID() const;
-    //     const std::string& GetLclUID() const;
-    //     const std::string& GetUclPID() const;
-    //     const std::string& GetLclPID() const;
-
+        std::pair<Status, std::string> GetNodeID() const;
+        std::pair<Status, alarm_type_e> GetType() const;
+        std::pair<Status, float> GetLCL() const;
+        std::pair<Status, std::string> GetLclUID() const;
+        std::pair<Status, float> GetUCL() const;
+        std::pair<Status, std::string> GetUclUID() const;
+        std::pair<Status, std::vector<uint16_t>> GetCondition() const;
     private:
-        bool mHasCondition = false;
-        bool mHasNodeID = false;
-        bool mIsUclSet = false;
-        bool mIsLclSet = false;
-
+        bool mIsNodeIdSet     = false;
+        bool mIsTypeSet       = false;
+        bool mIsLclSet        = false;
+        bool mIsLclUidSet     = false;
+        bool mIsUclSet        = false;
+        bool mIsUclUidSet     = false;
+        bool mIsConditionSet  = false;
     private:
         std::string mNodeID;
+        alarm_type_e mType;
+        float mLCL = 0;
+        std::string mLclUID;
+        float mUCL = 0;
+        std::string mUclUID;
         std::vector<uint16_t> mCondition;
-        uint8_t mAlarmType;
-        double mUCL = 0;
-        double mLCL = 0;
-        // std::string mLclUID;
-        // std::string mUclUID;
-        // std::string mLclPID;
-        // std::string mUclPID;
     };
 }}}
