@@ -2,9 +2,9 @@
  * @file Operation.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief Operation 인터페이스 설정 정보를 관리하는 클래스를 정의합니다.
+ * @brief Operation 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2024-09-02
+ * @date 2024-10-08
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -13,30 +13,36 @@
 
 
 
-#include "Operation.h"
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Operation.h"
 
 
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Operation::Operation()
-        : Base("op")
+    Operation::Operation(const cfg_key_e category)
+        : Base(category)
     {
+    #if defined(DEBUG)
+        ASSERT((category != cfg_key_e::OPERATION), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     Operation::~Operation()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Operation& Operation::operator=(const Operation& obj)
     {
         if (this != &obj)
         {
-            mExpired         = obj.mExpired;
-            mOTA             = obj.mOTA;
+            mPlanExpired     = obj.mPlanExpired;
+            mCheckForOTA     = obj.mCheckForOTA;
             mServerNIC       = obj.mServerNIC;
             mIntervalServer  = obj.mIntervalServer;
             mIntervalPolling = obj.mIntervalPolling;
@@ -48,11 +54,11 @@ namespace muffin { namespace jarvis { namespace config {
     bool Operation::operator==(const Operation& obj) const
     {
         return (
-            mExpired         == obj.mExpired          &&  
-            mOTA             == obj.mOTA              &&
-            mServerNIC       == obj.mServerNIC        &&  
-            mIntervalServer  == obj.mIntervalServer   &&      
-            mIntervalPolling == obj.mIntervalPolling            
+            mPlanExpired     == obj.mPlanExpired      &&
+            mCheckForOTA     == obj.mCheckForOTA      &&
+            mServerNIC       == obj.mServerNIC        &&
+            mIntervalServer  == obj.mIntervalServer   &&
+            mIntervalPolling == obj.mIntervalPolling
         );
     }
 
@@ -61,82 +67,97 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    Status Operation::SetExpired(const bool exp)
+    void Operation::SetPlanExpired(const bool planExpired)
     {
-        mExpired = exp;
-        if (mExpired == exp)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mPlanExpired = planExpired;
+        mIsPlanExpiredSet = true;
     }
 
-    Status Operation::SetOTA(const bool ota)
+    void Operation::SetCheckForOTA(const bool checkForOTA)
     {
-        mOTA = ota;
-        if (mOTA == ota)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
+        mCheckForOTA = checkForOTA;
+        mIsCheckForOtaSet = true;
     }
 
-    Status Operation::SetIntervalServer(const uint32_t& intvsrv)
-    {
-        mIntervalServer = intvsrv;
-        if (mIntervalServer == intvsrv)
-        {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
-    }
-
-    Status Operation::SetServerNIC(const std::string& snic)
+    void Operation::SetServerNIC(const snic_e snic)
     {
         mServerNIC = snic;
-        if (mServerNIC == snic)
+        mIsServerNicSet = true;
+    }
+
+    void Operation::SetIntervalServer(const uint16_t interval)
+    {
+        ASSERT((interval > 0), "INTERVAL CANNOT BE SET TO 0");
+
+        mIntervalServer = interval;
+        mIsIntervalServerSet = true;
+    }
+
+    void Operation::SetIntervalPolling(const uint16_t interval)
+    {
+        ASSERT((interval > 0), "INTERVAL CANNOT BE SET TO 0");
+
+        mIntervalPolling = interval;
+        mIsIntervalPollingSet = true;
+    }
+
+    std::pair<Status, bool> Operation::GetPlanExpired() const
+    {
+        if (mIsPlanExpiredSet)
         {
-            return Status(Status::Code::GOOD_ENTRY_REPLACED);
+            return std::make_pair(Status(Status::Code::GOOD), mPlanExpired);
         }
         else
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            return std::make_pair(Status(Status::Code::BAD), mPlanExpired);
         }
     }
 
-    bool Operation::GetExpired() const
+    std::pair<Status, bool> Operation::GetCheckForOTA() const
     {
-        return mExpired;
+        if (mIsCheckForOtaSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mCheckForOTA);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mCheckForOTA);
+        }
     }
 
-    bool Operation::GetOTA() const
+    std::pair<Status, snic_e> Operation::GetServerNIC() const
     {
-        return mOTA;
+        if (mIsServerNicSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mServerNIC);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mServerNIC);
+        }
     }
 
-    const uint32_t& Operation::GetIntervalServer() const
+    std::pair<Status, uint16_t> Operation::GetIntervalServer() const
     {
-        return mIntervalServer;
+        if (mIsIntervalServerSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mIntervalServer);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mIntervalServer);
+        }
     }
 
-    const uint16_t& Operation::GetIntervalPolling() const
+    std::pair<Status, uint16_t> Operation::GetIntervalPolling() const
     {
-        return mIntervalPolling;
+        if (mIsIntervalPollingSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mIntervalPolling);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mIntervalPolling);
+        }
     }
-
-    const std::string& Operation::GetServerNIC() const
-    {
-        return mServerNIC;
-    }
-
-   
 }}}

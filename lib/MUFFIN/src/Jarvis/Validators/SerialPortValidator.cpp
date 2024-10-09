@@ -126,8 +126,8 @@ namespace muffin { namespace jarvis {
                 goto INVALID_RS232;
             }
 
-            config::Rs232* rs232 = new config::Rs232("rs232");
-            rs232->SetPortName(retPRT.second);
+            config::Rs232* rs232 = new config::Rs232(cfg_key_e::RS232);
+            rs232->SetPortIndex(retPRT.second);
             rs232->SetBaudRate(retBDR.second);
             rs232->SetDataBit(retDBIT.second);
             rs232->SetParityBit(retPBIT.second);
@@ -137,6 +137,7 @@ namespace muffin { namespace jarvis {
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
+                delete rs232;
                 return ret;
             }
         }
@@ -209,8 +210,8 @@ namespace muffin { namespace jarvis {
                 goto INVALID_RS485;
             }
 
-            config::Rs485* rs485 = new config::Rs485("rs485");
-            rs485->SetPortName(retPRT.second);
+            config::Rs485* rs485 = new config::Rs485(cfg_key_e::RS485);
+            rs485->SetPortIndex(retPRT.second);
             rs485->SetBaudRate(retBDR.second);
             rs485->SetDataBit(retDBIT.second);
             rs485->SetParityBit(retPBIT.second);
@@ -220,6 +221,7 @@ namespace muffin { namespace jarvis {
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
+                delete rs485;
                 return ret;
             }
         }
