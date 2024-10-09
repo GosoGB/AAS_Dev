@@ -4,11 +4,7 @@
  * 
  * @brief JARVIS에서 사용하는 데이터 타입들을 정의합니다.
  * 
-<<<<<<< HEAD
- * @date 2024-10-05
-=======
  * @date 2024-10-09
->>>>>>> feature/jarvis/config
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -26,8 +22,6 @@
 
 namespace muffin { namespace jarvis {
 
-<<<<<<< HEAD
-=======
     typedef enum class NodeAddressTypeEnum
         : uint8_t
     {
@@ -79,7 +73,6 @@ namespace muffin { namespace jarvis {
         STRING    = 11
     } dt_e;
 
->>>>>>> feature/jarvis/config
     typedef enum class JarvisProtocolVersionEnum
         : uint8_t
     {
@@ -105,7 +98,7 @@ namespace muffin { namespace jarvis {
         PRODUCTION_INFO     = 11
     } cfg_key_e;
 
-    typedef enum ModlinkSerialPortIndexEnum
+    typedef enum class ModlinkSerialPortIndexEnum
         : uint8_t
     {
         PORT_2 = 2,
@@ -114,7 +107,7 @@ namespace muffin { namespace jarvis {
     #endif
     } prt_e;
 
-    typedef enum ModlinkSerialPortBaudRateEnum
+    typedef enum class ModlinkSerialPortBaudRateEnum
         : uint32_t
     {
         BDR_9600    =   9600,
@@ -123,7 +116,7 @@ namespace muffin { namespace jarvis {
         BDR_115200  = 115200
     } bdr_e;
 
-    typedef enum ModlinkSerialPortDataBitEnum
+    typedef enum class ModlinkSerialPortDataBitEnum
         : uint8_t
     {
         DBIT_5  = 5,
@@ -132,7 +125,7 @@ namespace muffin { namespace jarvis {
         DBIT_8  = 8
     } dbit_e;
 
-    typedef enum ModlinkSerialPortParityBitEnum
+    typedef enum class ModlinkSerialPortParityBitEnum
         : uint8_t
     {
         NONE  = 0,
@@ -140,24 +133,22 @@ namespace muffin { namespace jarvis {
         EVEN  = 2
     } pbit_e;
 
-    typedef enum ModlinkSerialPortStopBitEnum
+    typedef enum class ModlinkSerialPortStopBitEnum
         : uint8_t
     {
         SBIT_1  = 1,
         SBIT_2  = 2
     } sbit_e;
     
-    typedef enum ModlinkNetworkInterfaceEnum
+    typedef enum class ModlinkNetworkInterfaceEnum
         : uint8_t
     {
         ETHERNET  = 0,
         WIFI4     = 1,
         LTE_CatM1 = 2
     } nic_e;
-<<<<<<< HEAD
-=======
 
-    typedef enum AlarmEventTypeEnum
+    typedef enum class AlarmEventTypeEnum
         : uint8_t
     {
         ONLY_LCL      = 1,
@@ -166,14 +157,14 @@ namespace muffin { namespace jarvis {
         ON_CONDITION  = 4
     } alarm_type_e;
 
-    typedef enum OperationTimeTypeEnum
+    typedef enum class OperationTimeTypeEnum
         : uint8_t
     {
         FROM_MACHINE  = 1,
         FROM_MODLINK  = 2
     } op_time_type_e;
 
-    typedef enum ComparisonOperatorEnum
+    typedef enum class ComparisonOperatorEnum
         : uint8_t
     {
         LESS_THAN     = 0,
@@ -234,8 +225,8 @@ namespace muffin { namespace jarvis {
     typedef enum class ByteOrderEnum
         : uint8_t
     {
-        LOW   = 0,
-        HIGH  = 1
+        LOWER   = 0,
+        HIGHER  = 1
     } byte_order_e;
 
     typedef struct DataUnitOrderType
@@ -255,5 +246,4 @@ namespace muffin { namespace jarvis {
         HEX_LOWERCASE,
         HEX_UPPERCASE
     } fmt_spec_e;
->>>>>>> feature/jarvis/config
 }}

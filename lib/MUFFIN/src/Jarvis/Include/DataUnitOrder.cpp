@@ -106,7 +106,7 @@ namespace muffin { namespace jarvis {
         {
             ord_t order;
             order.DataUnit   = data_unit_e::BYTE;
-            order.ByteOrder  = byte_order_e::LOW;
+            order.ByteOrder  = byte_order_e::LOWER;
             order.Index      = 0;
 
             return std::make_pair(Status(Status::Code::BAD_OUT_OF_RANGE), order);
