@@ -5,8 +5,11 @@
  * 
  * @brief JARVIS 설정 정보의 유효성을 검사하기 위한 모듈 클래스를 선언합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-11
  * @version 0.0.1
+ * 
+ * @todo 구상 검증 클래스의 Inspect 함수 내에서 매개변수로 받은 key 값이
+ *       해당 클래스의 key 값과 일치하는지 검사하는 ASSERT를 추가할 것
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

@@ -2,7 +2,7 @@
  * @file ProductionInfoValidator.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief 생산 정보 수집을 위한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
+ * @brief 생산실적 정보를 수집하기 위한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
  * @date 2024-10-10
  * @version 0.0.1

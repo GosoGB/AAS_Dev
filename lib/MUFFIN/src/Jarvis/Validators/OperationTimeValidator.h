@@ -1,8 +1,8 @@
 /**
- * @file ProductionInfoValidator.h
+ * @file OperationTimeValidator.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief 생산실적 정보를 수집하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
+ * @brief 가동시간 정보를 수집하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
  * @date 2024-10-10
  * @version 0.0.1
@@ -26,11 +26,11 @@
 
 namespace muffin { namespace jarvis {
 
-    class ProductionInfoValidator
+    class OperationTimeValidator
     {
     public:
-        ProductionInfoValidator();
-        virtual ~ProductionInfoValidator();
+        OperationTimeValidator();
+        virtual ~OperationTimeValidator();
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
