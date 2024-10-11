@@ -80,7 +80,7 @@ namespace muffin { namespace jarvis { namespace config {
         mIsTypeSet = true;
     }
 
-    void OperationTime::SetCriterion(const uint32_t criterion)
+    void OperationTime::SetCriterion(const int32_t criterion)
     {
         mCriterion = criterion;
         mIsCriterionSet = true;
@@ -116,7 +116,7 @@ namespace muffin { namespace jarvis { namespace config {
         }
     }
 
-    std::pair<Status, uint32_t> OperationTime::GetCriterion() const
+    std::pair<Status, int32_t> OperationTime::GetCriterion() const
     {
         if (mIsCriterionSet)
         {

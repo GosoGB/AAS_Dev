@@ -444,9 +444,15 @@ namespace muffin {
         uint8_t numItemsInQueue = uxQueueMessagesWaiting(QUEUE_MQTT_MESSAGE);
         LOG_VERBOSE(logger, "Number of items in queue: %u", numItemsInQueue);
 
-        MqttMessage* message = new MqttMessage(
+        MqttMessage* message = new(std::nothrow) MqttMessage(
             socket, msgID, topic, payload.c_str()
         );
+        if (message == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+
         xQueueSend(QUEUE_MQTT_MESSAGE, &message, portMAX_DELAY);
         LOG_VERBOSE(logger, "Sent the message to the queue");
 
