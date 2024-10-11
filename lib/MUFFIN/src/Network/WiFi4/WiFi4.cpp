@@ -19,7 +19,6 @@
 #include "Common/Logger/Logger.h"
 
 
-
 namespace muffin {
 
     WiFi4::state_e WiFi4::mState = state_e::NOT_INITIALIZED_YET;
@@ -71,7 +70,7 @@ namespace muffin {
     Status WiFi4::Config(jarvis::config::Base* config)
     {
         assert(config != nullptr);
-        assert(config->GetCategory() == "wifi");
+        // assert(config->GetCategory() == cfg_key_e::WIFI4);
         assert(mState != state_e::NOT_INITIALIZED_YET);
 
         if (mIsArduinoEventCallbackRegistered == false)
@@ -90,11 +89,11 @@ namespace muffin {
         }
         
         mConfig = *static_cast<jarvis::config::WiFi4*>(config);
-        WiFi.setMinSecurity(mConfig.GetAuthMode());
+        WiFi.setMinSecurity(mConfig.GetAuthMode().second);
         WiFi.setAutoReconnect(true);
 
         bool isConfigured = false;
-        if (mConfig.GetDHCP() == true)
+        if (mConfig.GetDHCP().second == true)
         {
             IPAddress dhcpIPv4(0, 0, 0, 0);
             isConfigured = WiFi.config(
@@ -108,11 +107,11 @@ namespace muffin {
         else
         {
             isConfigured = WiFi.config(
-                mConfig.GetStaticIPv4(),
-                mConfig.GetGateway(),
-                mConfig.GetSubnet(),
-                mConfig.GetDNS1(),
-                mConfig.GetDNS2()
+                mConfig.GetStaticIPv4().second,
+                mConfig.GetGateway().second,
+                mConfig.GetSubnetmask().second,
+                mConfig.GetDNS1().second,
+                mConfig.GetDNS2().second
             );
         }
 
@@ -133,13 +132,13 @@ namespace muffin {
 
         wl_status_t ret = wl_status_t::WL_IDLE_STATUS;
 
-        if (mConfig.GetAuthMode() == wifi_auth_mode_t::WIFI_AUTH_OPEN)
+        if (mConfig.GetAuthMode().second == wifi_auth_mode_t::WIFI_AUTH_OPEN)
         {
-            ret = WiFi.begin(mConfig.GetSSID().c_str(), NULL);
+            ret = WiFi.begin(mConfig.GetSSID().second.c_str(), NULL);
         }
-        else if (mConfig.GetAuthMode() != wifi_auth_mode_t::WIFI_AUTH_WPA2_ENTERPRISE)
+        else if (mConfig.GetAuthMode().second != wifi_auth_mode_t::WIFI_AUTH_WPA2_ENTERPRISE)
         {
-            ret = WiFi.begin(mConfig.GetSSID().c_str(), mConfig.GetPSK().c_str());
+            ret = WiFi.begin(mConfig.GetSSID().second.c_str(), mConfig.GetPSK().second.c_str());
         }
         else
         {
@@ -148,11 +147,11 @@ namespace muffin {
             assert(false);
 
             ret = WiFi.begin(
-                mConfig.GetSSID().c_str(), 
+                mConfig.GetSSID().second.c_str(), 
                 wpa2_auth_method_t::WPA2_AUTH_TLS, 
-                mConfig.GetEapID().c_str(), 
-                mConfig.GetEapUserName().c_str(), 
-                mConfig.GetEapPassword().c_str()
+                mConfig.GetEapID().second.c_str(), 
+                mConfig.GetEapUserName().second.c_str(), 
+                mConfig.GetEapPassword().second.c_str()
             );
         }
 

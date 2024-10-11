@@ -51,8 +51,13 @@ namespace muffin { namespace jarvis {
     private:
         Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        std::pair<Status, dbit_e> convertToDataBit(const uint8_t dataBit);
-        std::pair<Status, pbit_e> convertToParityBit(const uint8_t parityBit);
-        std::pair<Status, sbit_e> convertToStopBit(const uint8_t stopBit);
+        std::pair<Status, md_e> convertToLteModel(const std::string model);
+        std::pair<Status, ctry_e> convertToLteCountry(const std::string country);
+    private:
+        std::pair<Status, wifi_auth_mode_t> convertToAuth(const uint8_t auth);
+        std::pair<Status, wpa2_auth_method_t> convertToEapAuth(const uint8_t eapAuth);
+        std::pair<Status, IPAddress> convertToIPv4(const std::string ip, const bool& isSubnetmask);
+   
+     
     };
 }}
