@@ -24,6 +24,7 @@
 #include "Validator.h"
 #include "Jarvis/Validators/MetaDataValidator.h"
 #include "Jarvis/Validators/SerialPortValidator.h"
+#include "Jarvis/Validators/NetworkValidator.h"
 
 
  
@@ -90,6 +91,7 @@ namespace muffin { namespace jarvis {
                 case cfg_key_e::WIFI4:
                 case cfg_key_e::ETHERNET:
                 case cfg_key_e::LTE_CatM1:
+                    ret = validateNetwork(cinKey, cinArray, &outputVector);
                     break;
                 case cfg_key_e::MODBUS_RTU:
                 case cfg_key_e::MODBUS_TCP:
@@ -205,7 +207,23 @@ namespace muffin { namespace jarvis {
         return ret;
     }
 
-
+    Status Validator::validateNetwork(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
+        NetworkValidator validator;
+        Status ret = validator.Inspect(key, json, outputVector);
+        if (ret != Status(Status::Code::GOOD))
+        {
+            LOG_ERROR(logger, "INVALID NETWORK CONFIG: %s", ret.c_str());
+        }
+        else
+        {
+            LOG_INFO(logger, "Network Config: %s", ret.c_str());
+        }
+        return ret;
+    }
 
 
 
@@ -963,51 +981,51 @@ namespace muffin { namespace jarvis {
 
     Status Validator::ValidateIPv4Address(const std::string& ipv4, const bool& isSubnetmask)
     {
-        if (ipv4.length() < 7)
-        {
-            LOG_ERROR(logger, "[DECODING ERROR] INVALID IPv4 ADDRESS: {%s}", ipv4.c_str());
+        // if (ipv4.length() < 7)
+        // {
+        //     LOG_ERROR(logger, "[DECODING ERROR] INVALID IPv4 ADDRESS: {%s}", ipv4.c_str());
             
-            assert(ipv4.length() > 6);
-            return Status(Status::Code::BAD_DECODING_ERROR);
-        }
-        // end of preconditions
+        //     assert(ipv4.length() > 6);
+        //     return Status(Status::Code::BAD_DECODING_ERROR);
+        // }
+        // // end of preconditions
 
 
-        // create regular expression for the validation
-        std::regex validationRegex;
-        if (isSubnetmask == true)
-        {
-            validationRegex.assign("^((255|254|252|248|240|224|192|128|0)\\.){3}(255|254|252|248|240|224|192|128|0)$");
-        }
-        else
-        {
-            validationRegex.assign("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-        }
+        // // create regular expression for the validation
+        // std::regex validationRegex;
+        // if (isSubnetmask == true)
+        // {
+        //     validationRegex.assign("^((255|254|252|248|240|224|192|128|0)\\.){3}(255|254|252|248|240|224|192|128|0)$");
+        // }
+        // else
+        // {
+        //     validationRegex.assign("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+        // }
 
 
-        // validating IPv4 address using regular expression
-        const bool isValid = std::regex_match(ipv4.c_str(), validationRegex);
+        // // validating IPv4 address using regular expression
+        // const bool isValid = std::regex_match(ipv4.c_str(), validationRegex);
 
 
-        // returning corresponding status code
-        if (isValid == true)
-        {
-            return Status(Status::Code::GOOD);
-        }
-        else
-        {
-            if (isSubnetmask == true)
-            {
-                LOG_ERROR(logger, "[DECODING ERROR] INVALID SUBNETMASK ADDRESS: {%s}", ipv4.c_str());
-            }
-            else
-            {
-                LOG_ERROR(logger, "[DECODING ERROR] INVALID IPv4 ADDRESS: {%s}", ipv4.c_str());
-            }
+        // // returning corresponding status code
+        // if (isValid == true)
+        // {
+        //     return Status(Status::Code::GOOD);
+        // }
+        // else
+        // {
+        //     if (isSubnetmask == true)
+        //     {
+        //         LOG_ERROR(logger, "[DECODING ERROR] INVALID SUBNETMASK ADDRESS: {%s}", ipv4.c_str());
+        //     }
+        //     else
+        //     {
+        //         LOG_ERROR(logger, "[DECODING ERROR] INVALID IPv4 ADDRESS: {%s}", ipv4.c_str());
+        //     }
 
-            assert(isValid == true);
-            return Status(Status::Code::BAD_DECODING_ERROR);
-        }
+        //     assert(isValid == true);
+        //     return Status(Status::Code::BAD_DECODING_ERROR);
+        // }
     }
 
     Status Validator::ValidateModbusNodeCondition(JsonObject& node)
