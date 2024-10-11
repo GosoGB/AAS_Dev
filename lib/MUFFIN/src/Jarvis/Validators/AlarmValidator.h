@@ -1,10 +1,10 @@
 /**
- * @file ProductionInfoValidator.h
+ * @file AlarmValidator.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief 생산실적 정보를 수집하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
+ * @brief 알람 이벤트를 생성하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2024-10-10
+ * @date 2024-10-12
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "Common/Status.h"
+#include "Jarvis/Config/Information/Alarm.h"
 #include "Jarvis/Include/Base.h"
 #include "Jarvis/Include/TypeDefinitions.h"
 
@@ -26,11 +27,11 @@
 
 namespace muffin { namespace jarvis {
 
-    class ProductionInfoValidator
+    class AlarmValidator
     {
     public:
-        ProductionInfoValidator();
-        virtual ~ProductionInfoValidator();
+        AlarmValidator();
+        virtual ~AlarmValidator();
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
@@ -38,13 +39,12 @@ namespace muffin { namespace jarvis {
     private:
         Status validateMandatoryKeys(const JsonObject json);
         Status validateMandatoryValues(const JsonObject json);
+        Status processLowerControlLimit(const JsonObject json, config::Alarm* cin);
+        Status processUpperControlLimit(const JsonObject json, config::Alarm* cin);
+        Status processControlLimits(const JsonObject json, config::Alarm* cin);
+        Status processConditions(const JsonObject json, config::Alarm* cin);
         Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        bool mIsTotalNull   = false;
-        bool mIsGoodNull    = false;
-        bool mIsDefectNull  = false;
-        std::string mTotalNodeID;
-        std::string mGoodNodeID;
-        std::string mDefectNodeID;
+        std::pair<Status, alarm_type_e> convertToAlarmType(const uint8_t type);
     };
 }}

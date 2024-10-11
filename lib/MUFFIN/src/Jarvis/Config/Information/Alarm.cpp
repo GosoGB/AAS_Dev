@@ -14,6 +14,10 @@
 
 
 
+#if defined(DEBUG)
+    #include <regex>
+#endif
+
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Alarm.h"
@@ -94,8 +98,15 @@ namespace muffin { namespace jarvis { namespace config {
 
     void Alarm::SetLclUID(const std::string& lclUID)
     {
-        ASSERT((lclUID.size() == 4), "LCL UID MUST BE A STRING WITH LEGNTH OF 4");
-        ASSERT((lclUID.at(0) == 'P'), "LCL UID MUST START WITH A CHARACTER 'P'");
+        ASSERT(
+            (
+                [&]()
+                {
+                    const std::regex pattern("^P\\d{4}$");
+                    return std::regex_match(lclUID, pattern);
+                }()
+            ), "INVALID LCL UID: %s", lclUID.c_str()
+        );
 
         mLclUID = lclUID;
         mIsLclUidSet = true;
@@ -109,14 +120,21 @@ namespace muffin { namespace jarvis { namespace config {
 
     void Alarm::SetUclUID(const std::string& uclUID)
     {
-        ASSERT((uclUID.size() == 4), "UCL UID MUST BE A STRING WITH LEGNTH OF 4");
-        ASSERT((uclUID.at(0) == 'P'), "UCL UID MUST START WITH A CHARACTER 'P'");
+        ASSERT(
+            (
+                [&]()
+                {
+                    const std::regex pattern("^P\\d{4}$");
+                    return std::regex_match(uclUID, pattern);
+                }()
+            ), "INVALID UCL UID: %s", uclUID.c_str()
+        );
 
         mUclUID = uclUID;
         mIsUclUidSet = true;
     }
 
-    void Alarm::SetCondition(const std::vector<uint16_t>& condition)
+    void Alarm::SetCondition(const std::vector<int16_t>& condition)
     {
         ASSERT((condition.size() != 0), "INPUT PARAMETER <condition> CANNOT BE AN EMPTY VECTOR");
 
@@ -196,7 +214,7 @@ namespace muffin { namespace jarvis { namespace config {
         }
     }
 
-    std::pair<Status, std::vector<uint16_t>> Alarm::GetCondition() const
+    std::pair<Status, std::vector<int16_t>> Alarm::GetCondition() const
     {
         if (mIsConditionSet)
         {

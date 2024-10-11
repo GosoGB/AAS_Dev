@@ -4,7 +4,7 @@
  * 
  * @brief 생산실적 정보를 수집하기 위한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2024-10-10
+ * @date 2024-10-11
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -15,8 +15,8 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "ProductionInfoValidator.h"
 #include "Jarvis/Config/Information/Production.h"
+#include "ProductionInfoValidator.h"
 
 
 
@@ -51,71 +51,50 @@ namespace muffin { namespace jarvis {
          *       두 개 이상의 설정을 받을 수 있도록 수정해야 합니다.
          */
         JsonObject json = arrayCIN[0].as<JsonObject>();
-        if (json.containsKey("tot") == false ||
-            json.containsKey("ok")  == false ||
-            json.containsKey("ng")  == false)
-        {
-            LOG_ERROR(logger, "THERE IS MORE THAN ONE MISSING KEY");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
-        }
-        /*모든 키가 존재합니다.*/
-        
-        const bool isTotalNull  = json["tot"].isNull();
-        const bool isGoodNull   = json["ok"].isNull();
-        const bool isDefectNull = json["ng"].isNull();
-        if (isTotalNull && isGoodNull && isDefectNull)
-        {
-            LOG_ERROR(logger, "AT LEAST ONE KEY MUST NOT BE A NULL VALUE");
-            return Status(Status::Code::BAD_NO_DATA_AVAILABLE);
-        }
-        /*적어도 하나의 Node ID가 존재합니다.*/
 
-        std::string totalNodeID   = json["tot"].as<std::string>();
-        std::string goodNodeID    = json["ok"].as<std::string>();
-        std::string defectNodeID  = json["ng"].as<std::string>();
-        if (isTotalNull  == false && totalNodeID.length()  != 4 ||
-            isGoodNull   == false && goodNodeID.length()   != 4 ||
-            isDefectNull == false && defectNodeID.length() != 4)
+        Status ret = validateMandatoryKeys(json);
+        if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "NODE ID LENGTH MUST BE EQUAL TO 4");
-            return Status(Status::Code::BAD_NODE_ID_INVALID);
-        }
-        /*모든 Node ID의 형식 자체는 유효합니다.*/
-
-        config::Production* prod = new config::Production(key);
-        if (isTotalNull == false)
-        {
-            prod->SetNodeIdTotal(totalNodeID);
+            LOG_ERROR(logger, "MANDATORY KEYS CANNOT BE MISSING");
+            return ret;
         }
 
-        if (isGoodNull == false)
+        ret = validateMandatoryValues(json);
+        if (ret != Status::Code::GOOD)
         {
-            prod->SetNodeIdGood(goodNodeID);
+            LOG_ERROR(logger, "MANDATORY KEY'S VALUE IS NULL OR INVALID NODE ID");
+            return ret;
         }
 
-        if (isDefectNull == false)
+        config::Production* prod = new(std::nothrow) config::Production(key);
+        if (prod == nullptr)
         {
-            prod->SetNodeIdNG(defectNodeID);
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: PRODUCTION");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+
+        if (mIsTotalNull == false)
+        {
+            prod->SetNodeIdTotal(mTotalNodeID);
+        }
+
+        if (mIsGoodNull == false)
+        {
+            prod->SetNodeIdGood(mGoodNodeID);
+        }
+
+        if (mIsDefectNull == false)
+        {
+            prod->SetNodeIdNG(mDefectNodeID);
         }
         /*생산실적 정보가 존재하는 모든 Node ID가 설정되었습니다.*/
 
-        try
+        ret = emplaceCIN(static_cast<config::Base*>(prod), outVector);
+        if (ret != Status::Code::GOOD)
         {
-            outVector->emplace_back(static_cast<config::Base*>(prod));
-        }
-        catch(const std::bad_alloc& e)
-        {
-            LOG_ERROR(logger, "%s: CIN class: PRODUCTION", e.what());
-
+            LOG_ERROR(logger, "FAILED TO EMPLACE PRODUCTION INFO CIN: %s", ret.c_str());
             delete prod;
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-        catch(const std::exception& e)
-        {
-            LOG_ERROR(logger, "%s: CIN class: PRODUCTION", e.what());
-            
-            delete prod;
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            return ret;
         }
 
         if (arrayCIN.size() > 1)
@@ -126,6 +105,70 @@ namespace muffin { namespace jarvis {
         else
         {
             return Status(Status::Code::GOOD);
+        }
+    }
+
+    Status ProductionInfoValidator::validateMandatoryKeys(const JsonObject json)
+    {
+        bool isValid = true;
+        isValid &= json.containsKey("tot");
+        isValid &= json.containsKey("ok");
+        isValid &= json.containsKey("ng");
+
+        if (isValid == true)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
+    }
+
+    Status ProductionInfoValidator::validateMandatoryValues(const JsonObject json)
+    {
+        mIsTotalNull  = json["tot"].isNull();
+        mIsGoodNull   = json["ok"].isNull();
+        mIsDefectNull = json["ng"].isNull();
+        if (mIsTotalNull && mIsGoodNull && mIsDefectNull)
+        {
+            LOG_ERROR(logger, "AT LEAST ONE KEY MUST NOT BE A NULL VALUE");
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
+        /*적어도 하나의 생산실적 정보에 대한 설정이 존재합니다.*/
+
+        mTotalNodeID   = json["tot"].as<std::string>();
+        mGoodNodeID    = json["ok"].as<std::string>();
+        mDefectNodeID  = json["ng"].as<std::string>();
+        if (mIsTotalNull  == false && mTotalNodeID.length()  != 4 ||
+            mIsGoodNull   == false && mGoodNodeID.length()   != 4 ||
+            mIsDefectNull == false && mDefectNodeID.length() != 4)
+        {
+            LOG_ERROR(logger, "NODE ID LENGTH MUST BE EQUAL TO 4");
+            return Status(Status::Code::BAD_NODE_ID_INVALID);
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+    Status ProductionInfoValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
+    {
+        ASSERT((cin != nullptr), "INPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
+
+        try
+        {
+            outVector->emplace_back(cin);
+            return Status(Status::Code::GOOD);
+        }
+        catch(const std::bad_alloc& e)
+        {
+            LOG_ERROR(logger, "%s", e.what());
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "%s", e.what());
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
     }
 }}

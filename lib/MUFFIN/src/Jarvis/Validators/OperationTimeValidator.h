@@ -38,7 +38,9 @@ namespace muffin { namespace jarvis {
     private:
         Status validateMandatoryKeys(const JsonObject json);
         Status validateMandatoryValues(const JsonObject json);
+        Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        uint8_t mConfigArraySize = 0;
+        std::pair<Status, op_time_type_e> convertToOperationTimeType(const uint8_t type);
+        std::pair<Status, cmp_op_e> convertToLogicalOperator(const std::string& stringOperator);
     };
 }}

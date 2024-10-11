@@ -126,7 +126,13 @@ namespace muffin { namespace jarvis {
                 goto INVALID_RS232;
             }
 
-            config::Rs232* rs232 = new config::Rs232(cfg_key_e::RS232);
+            config::Rs232* rs232 = new(std::nothrow) config::Rs232(cfg_key_e::RS232);
+            if (rs232 == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: RS-232");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+
             rs232->SetPortIndex(retPRT.second);
             rs232->SetBaudRate(retBDR.second);
             rs232->SetDataBit(retDBIT.second);
@@ -152,6 +158,11 @@ namespace muffin { namespace jarvis {
 
     Status SerialPortValidator::validateRS485(const JsonArray array, cin_vector* outVector)
     {
+        /**
+         * @todo MODLINK-L의 경우에는 RS-485 포트가 한 개 뿐이기 때문에 
+         *       만약 두 개의 CIN이 들어온다면 ERROR 코드 대신 WARNING
+         *       코드를 반환하도록 코드를 수정해야 합니다.
+         */
         for (JsonObject cin : array)
         {
             Status ret = validateMandatoryKeys(cin);
@@ -210,7 +221,13 @@ namespace muffin { namespace jarvis {
                 goto INVALID_RS485;
             }
 
-            config::Rs485* rs485 = new config::Rs485(cfg_key_e::RS485);
+            config::Rs485* rs485 = new(std::nothrow) config::Rs485(cfg_key_e::RS485);
+            if (rs485 == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: RS-485");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            
             rs485->SetPortIndex(retPRT.second);
             rs485->SetBaudRate(retBDR.second);
             rs485->SetDataBit(retDBIT.second);
@@ -273,7 +290,7 @@ namespace muffin { namespace jarvis {
 
     Status SerialPortValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
-        ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
+        ASSERT((cin != nullptr), "INPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         try
         {

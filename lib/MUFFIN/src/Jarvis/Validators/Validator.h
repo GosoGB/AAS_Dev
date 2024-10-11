@@ -11,6 +11,11 @@
  * @todo 구상 검증 클래스의 Inspect 함수 내에서 매개변수로 받은 key 값이
  *       해당 클래스의 key 값과 일치하는지 검사하는 ASSERT를 추가할 것
  * 
+ * @todo 전역변수인 std::nothrow 구조체를 모든 new 연산자에 대한 매개변수로서
+ *       전달하지 않는 코드가 없도록 변경해야 합니다. 이는 std::bad_alloc 예외
+ *       대신에 nullptr가 반환하도록 설정하기 위한 것으로 메모리 할당 실패 시
+ *       별도의 예외 개체 처리 없이도 시스템이 크래시가 나지 않도록 해줍니다.
+ * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
@@ -45,38 +50,18 @@ namespace muffin { namespace jarvis {
         Status emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN);
         Status validateMetaData(const JsonObject json);
         Status validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateOperation(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateNode(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateAlarm(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateOperationTime(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        Status validateProductionInfo(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
     private:
         /*Metadata*/
         prtcl_ver_e mProtocolVersion;
         std::string mRequestIdentifier;
         std::set<cfg_key_e> mContainerKeySet;
-
-
-
-
-    private:
-        Status VailidateRs232(JsonPair& pair);
-        Status VailidateRs485(JsonPair& pair);
-        Status VailidateWIFI(JsonPair& pair);
-        Status VailidateETH(JsonPair& pair);
-        Status VailidateLTE(JsonPair& pair);
-        Status VailidateModbusRTU(JsonPair& pair);
-        Status VailidateModbusTCP(JsonPair& pair);
-        Status VailidateOperation(JsonPair& pair);
-        Status VailidateNode(JsonPair& pair);
-        Status VailidateAlarm(JsonPair& pair);
-        Status VailidateOptime(JsonPair& pair);
-        Status VailidateProduction(JsonPair& pair);
-    private:
-        Status ValidateIPv4Address(const std::string& ipv4, const bool& isSubnetmask);
-        Status ValidateModbusNodeCondition(JsonObject& node);
-    
-    private:/*Config Instance Container*/
-        JsonObject mCnt;
-    private:
-        bool mHasPortNumber02 = false;
-    #ifndef MODLINK_L
-        bool mHasPortNumber03 = false;    
-    #endif
     };
 }}

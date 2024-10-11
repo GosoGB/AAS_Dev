@@ -35,12 +35,12 @@ namespace muffin { namespace jarvis { namespace config {
     public:
         void SetNodeID(const std::string& nodeID);
         void SetType(const op_time_type_e type);
-        void SetCriterion(const uint32_t criterion);
+        void SetCriterion(const int32_t criterion);
         void SetOperator(const cmp_op_e operater);
     public:
         std::pair<Status, std::string> GetNodeID() const;
         std::pair<Status, op_time_type_e> GetType() const;
-        std::pair<Status, uint32_t> GetCriterion() const;
+        std::pair<Status, int32_t> GetCriterion() const;
         std::pair<Status, cmp_op_e> GetOperator() const;
     private:
         bool mIsNodeIdSet      = false;
@@ -50,7 +50,7 @@ namespace muffin { namespace jarvis { namespace config {
     private:
         std::string mNodeID;
         op_time_type_e mType;
-        uint32_t mCriterion;
+        int32_t mCriterion;
         cmp_op_e mOperater;
     };
 }}}

@@ -154,7 +154,7 @@ namespace muffin { namespace jarvis {
         ONLY_LCL      = 1,
         ONLY_UCL      = 2,
         LCL_AND_UCL   = 3,
-        ON_CONDITION  = 4
+        CONDITION     = 4
     } alarm_type_e;
 
     typedef enum class OperationTimeTypeEnum
