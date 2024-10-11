@@ -4,7 +4,7 @@
  * 
  * @brief 가동시간 정보를 수집하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2024-10-10
+ * @date 2024-10-11
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -35,5 +35,10 @@ namespace muffin { namespace jarvis {
         using cin_vector = std::vector<config::Base*>;
     public:
         Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+    private:
+        Status validateMandatoryKeys(const JsonObject json);
+        Status validateMandatoryValues(const JsonObject json);
+    private:
+        uint8_t mConfigArraySize = 0;
     };
 }}

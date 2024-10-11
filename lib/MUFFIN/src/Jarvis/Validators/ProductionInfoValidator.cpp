@@ -40,8 +40,26 @@ namespace muffin { namespace jarvis {
     {
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
+        ASSERT((key == cfg_key_e::PRODUCTION_INFO), "CONFIG CATEGORY DOES NOT MATCH");
 
+        /**
+         * @todo 현재는 한 번에 하나의 설정만 받는 것을 염두에 둔 설계입니다.
+         *       다만, 향후에 multi-drop 방식과 같이 두 개 이상의 슬레이브와
+         *       연동하는 경우에는 두 개 이상의 설정이 필요할 수 있습니다.
+         * 
+         *       그러한 상황이 된다면 하나의 설정만 받는 현행 방식의 코드를
+         *       두 개 이상의 설정을 받을 수 있도록 수정해야 합니다.
+         */
         JsonObject json = arrayCIN[0].as<JsonObject>();
+        if (json.containsKey("tot") == false ||
+            json.containsKey("ok")  == false ||
+            json.containsKey("ng")  == false)
+        {
+            LOG_ERROR(logger, "THERE IS MORE THAN ONE MISSING KEY");
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
+        /*모든 키가 존재합니다.*/
+        
         const bool isTotalNull  = json["tot"].isNull();
         const bool isGoodNull   = json["ok"].isNull();
         const bool isDefectNull = json["ng"].isNull();
@@ -84,15 +102,6 @@ namespace muffin { namespace jarvis {
         try
         {
             outVector->emplace_back(static_cast<config::Base*>(prod));
-            if (arrayCIN.size() > 1)
-            {
-                LOG_WARNING(logger, "ONLY ONE PRODUCTION INFO CONFIG WILL BE APPLIED");
-                return Status(Status::Code::UNCERTAIN);
-            }
-            else
-            {
-                return Status(Status::Code::GOOD);
-            }
         }
         catch(const std::bad_alloc& e)
         {
@@ -107,6 +116,16 @@ namespace muffin { namespace jarvis {
             
             delete prod;
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+
+        if (arrayCIN.size() > 1)
+        {
+            LOG_WARNING(logger, "ONLY ONE PRODUCTION INFO CONFIG WILL BE APPLIED");
+            return Status(Status::Code::UNCERTAIN);
+        }
+        else
+        {
+            return Status(Status::Code::GOOD);
         }
     }
 }}
