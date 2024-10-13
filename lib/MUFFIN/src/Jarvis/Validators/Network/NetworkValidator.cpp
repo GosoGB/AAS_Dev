@@ -99,13 +99,13 @@ namespace muffin { namespace jarvis {
         if (retMD.first.ToCode() != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "INVALID LTE Cat.M1 Model: %s", md.c_str());
-            goto INVALID_LTE_CatM1;
+            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
         }
 
         if (retCtry.first.ToCode() != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "INVALID LTE Cat.M1 Country: %s", ctry.c_str());
-            goto INVALID_LTE_CatM1;
+            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
         }
 
         config::CatM1* catM1 = new config::CatM1(cfg_key_e::LTE_CatM1);
@@ -122,8 +122,6 @@ namespace muffin { namespace jarvis {
         LOG_VERBOSE(logger, "Valid LTE Cat.M1 config instance")
         return Status(Status::Code::GOOD);
         
-    INVALID_LTE_CatM1:
-        return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
     }
 
     Status NetworkValidator::validateMandatoryKeysLteCatM1(const JsonObject json)
@@ -201,20 +199,116 @@ namespace muffin { namespace jarvis {
         const std::string ClientCertificate = cin["crt"].as<std::string>();
         const std::string ClientKey         = cin["key"].as<std::string>();
 
-        const auto retAUTH      = convertToAuth(AUTH);
-        const auto retWPA2AUTH  = convertToEapAuth(WPA2AUTH);
-        const auto retIP        = convertToIPv4(IP,false);
-        const auto retSVM       = convertToIPv4(SVM,true);
-        const auto retGTW       = convertToIPv4(GTW,false);
-        const auto retDNS1      = convertToIPv4(DNS1,false);
-        const auto retDNS2      = convertToIPv4(DNS2,false);
-
-
-
-
 
         config::WiFi4* wifi4 = new config::WiFi4(cfg_key_e::WIFI4);
+        
+
+        const auto retAUTH      = convertToAuth(AUTH);
+        const auto retWPA2AUTH  = convertToEapAuth(WPA2AUTH);
+
+        if(DHCP == false)
+        {
+            const auto retIP        = convertToIPv4(IP,false);
+            const auto retSVM       = convertToIPv4(SVM,true);
+            const auto retGTW       = convertToIPv4(GTW,false);
+            const auto retDNS1      = convertToIPv4(DNS1,false);
+            const auto retDNS2      = convertToIPv4(DNS2,false);
+
+            if (retIP.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID WIFI IPv4: %s", IP.c_str());
+                goto INVALID_WIFI4;
+            }
+
+            if (retSVM.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID WIFI Subnetmask: %s", SVM.c_str());
+                goto INVALID_WIFI4;
+            }
+
+            if (retGTW.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID WIFI Gateway: %s", GTW.c_str());
+                goto INVALID_WIFI4;
+            }
+
+            if (retDNS1.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID WIFI IPv4: %s", IP.c_str());
+                goto INVALID_WIFI4;
+            }
+
+            if (retDNS2.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID WIFI IPv4: %s", IP.c_str());
+                goto INVALID_WIFI4;
+            }
+            wifi4->SetStaticIPv4(retIP.second);
+            wifi4->SetSubnetmask(retSVM.second);
+            wifi4->SetGateway(retGTW.second);
+            wifi4->SetDNS1(retDNS1.second);
+            wifi4->SetDNS2(retDNS2.second);
+        }
+        
+
+        if (retAUTH.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "INVALID WIFI AUTH: %d", AUTH);
+            goto INVALID_WIFI4;
+        }
+
+        if (retWPA2AUTH.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "INVALID WIFI WPA AUTH: %d", WPA2AUTH);
+            goto INVALID_WIFI4;
+        }
+
+
         wifi4->SetDHCP(DHCP);
+        wifi4->SetAuthMode(retAUTH.second);
+        wifi4->SetEapAuthMode(retWPA2AUTH.second);
+        wifi4->SetSSID(SSID);
+
+        
+        if(cin["psk"].isNull() == false)
+        {
+            wifi4->SetPSK(PSK);
+        }
+
+        if(cin["eap"].isNull() == false)
+        {
+            wifi4->SetEAP(EAP);
+        }
+
+        if(cin["id"].isNull() == false)
+        {
+            wifi4->SetEapID(EapID);
+        }
+
+        if(cin["user"].isNull() == false)
+        {
+            wifi4->SetEapUserName(EapUser);
+        }
+
+        if(cin["pass"].isNull() == false)
+        {
+            wifi4->SetEapPassword(EapPassword);
+        }
+
+        if(cin["ca_cert"].isNull() == false)
+        {
+            wifi4->SetEapCaCertificate(CaCertifiacte);
+        }
+
+        if(cin["crt"].isNull() == false)
+        {
+            wifi4->SetEapClientCertificate(ClientCertificate);
+        }
+
+        if(cin["key"].isNull() == false)
+        {
+            wifi4->SetEapClientKey(ClientKey);
+        }
 
         ret = emplaceCIN(static_cast<config::Base*>(wifi4), outVector);
         if (ret != Status::Code::GOOD)
@@ -313,6 +407,145 @@ INVALID_WIFI4:
         }
     }
 
+    Status NetworkValidator::validateEthernet(const JsonArray array, cin_vector* outVector)
+    {
+        if (array.size() != 1)
+        {
+            LOG_ERROR(logger, "INVALID ETHERNET CONFIG: ONLY ONE ETHERNET MODULE CAN BE CONFIGURED");
+            ASSERT((array.size() == 1), "ETHERNET CONFIG CANNOT BE GREATER THAN 1");
+            return Status(Status::Code::BAD_NOT_SUPPORTED);
+        }
+
+        JsonObject cin = array[0];
+        Status ret = validateMandatoryKeysEthernet(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "INVALID ETHERNET: MANDATORY KEY CANNOT BE MISSING");
+            return ret;
+        }
+
+        ret = validateMandatoryValuesEthernet(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "INVALID ETHERNET: MANDATORY KEY'S VALUE CANNOT BE NULL");
+            return ret;
+        }
+        
+        const bool DHCP                     = cin["dhcp"].as<bool>();
+        const std::string IP                = cin["ip"].as<std::string>();
+        const std::string SVM               = cin["snm"].as<std::string>();
+        const std::string GTW               = cin["gtw"].as<std::string>();
+        const std::string DNS1              = cin["dns1"].as<std::string>();
+        const std::string DNS2              = cin["dns2"].as<std::string>();
+    
+        config::Ethernet* ethernet = new config::Ethernet(cfg_key_e::ETHERNET);
+        
+        ethernet->SetDHCP(DHCP);
+        if(DHCP == false)
+        {
+            const auto retIP        = convertToIPv4(IP,false);
+            const auto retSVM       = convertToIPv4(SVM,true);
+            const auto retGTW       = convertToIPv4(GTW,false);
+            const auto retDNS1      = convertToIPv4(DNS1,false);
+            const auto retDNS2      = convertToIPv4(DNS2,false);
+
+            if (retIP.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID ETHERNET IPv4: %s", IP.c_str());
+                goto INVALID_ETHERNET;
+            }
+
+            if (retSVM.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID ETHERNET Subnetmask: %s", SVM.c_str());
+                goto INVALID_ETHERNET;
+            }
+
+            if (retGTW.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID ETHERNET Gateway: %s", GTW.c_str());
+                goto INVALID_ETHERNET;
+            }
+
+            if (retDNS1.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID ETHERNET IPv4: %s", IP.c_str());
+                goto INVALID_ETHERNET;
+            }
+
+            if (retDNS2.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID ETHERNET IPv4: %s", IP.c_str());
+                goto INVALID_ETHERNET;
+            }
+            ethernet->SetStaticIPv4(retIP.second);
+            ethernet->SetSubnetmask(retSVM.second);
+            ethernet->SetGateway(retGTW.second);
+            ethernet->SetDNS1(retDNS1.second);
+            ethernet->SetDNS2(retDNS2.second);
+        }
+    
+
+        ret = emplaceCIN(static_cast<config::Base*>(ethernet), outVector);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
+            return ret;
+        }
+
+    LOG_VERBOSE(logger, "Valid ethernet config instance")
+    return Status(Status::Code::GOOD);
+    
+INVALID_ETHERNET:
+    return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+    }
+
+    Status NetworkValidator::validateMandatoryKeysEthernet(const JsonObject json)
+    {
+        bool isValid = true;
+        isValid &= json.containsKey("dhcp");
+        isValid &= json.containsKey("ip");
+        isValid &= json.containsKey("snm");     
+        isValid &= json.containsKey("gtw");    
+        isValid &= json.containsKey("dns1");    
+        isValid &= json.containsKey("dns2");   
+
+        if (isValid == true)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
+    }
+
+    Status NetworkValidator::validateMandatoryValuesEthernet(const JsonObject json)
+    {
+        bool isValid = true;
+        isValid &= json["dhcp"].isNull() == false;    
+    
+        bool DHCP = json["dhcp"].as<bool>();
+
+        // DHCP가 아닌 경우에는 IP정보가 필수로 입력 되어야 함
+        if (!DHCP) 
+        {
+            isValid &= json["ip"].isNull() == false;
+            isValid &= json["snm"].isNull() == false;
+            isValid &= json["gtw"].isNull() == false;
+            isValid &= json["dns1"].isNull() == false;
+            isValid &= json["dns2"].isNull() == false;
+        }
+
+        if (isValid == true)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
+    }
 
     Status NetworkValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
@@ -432,74 +665,4 @@ INVALID_WIFI4:
             return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), IPAddress());
         }
     }
-
-    // std::pair<Status, prt_e> NetworkValidator::convertToPortIndex(const uint8_t portIndex)
-    // {
-    //     switch (portIndex)
-    //     {
-    //     case 2:
-    //         return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_2);
-        
-    //     #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
-    //     case 3:
-    //         return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_3);
-    //     #endif
-
-    //     default:
-    //         return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), prt_e::PORT_2);
-    //     }
-    // }
-
-    // std::pair<Status, bdr_e> NetworkValidator::convertToBaudRate(const uint32_t baudRate)
-    // {
-    //     switch (baudRate)
-    //     {
-    //     case 9600:
-    //     case 19200:
-    //     case 38400:
-    //     case 115200:
-    //         return std::make_pair(Status(Status::Code::GOOD), static_cast<bdr_e>(baudRate));
-    //     default:
-    //         return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), bdr_e::BDR_9600);
-    //     }
-    // }
-
-    // std::pair<Status, dbit_e> NetworkValidator::convertToDataBit(const uint8_t dataBit)
-    // {
-    //     switch (dataBit)
-    //     {
-    //     case 5:
-    //     case 6:
-    //     case 7:
-    //     case 8:
-    //         return std::make_pair(Status(Status::Code::GOOD), static_cast<dbit_e>(dataBit));
-    //     default:
-    //         return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), dbit_e::DBIT_8);
-    //     }
-    // }
-
-    // std::pair<Status, pbit_e> NetworkValidator::convertToParityBit(const uint8_t parityBit)
-    // {
-    //     switch (parityBit)
-    //     {
-    //     case 0:
-    //     case 1:
-    //     case 2:
-    //         return std::make_pair(Status(Status::Code::GOOD), static_cast<pbit_e>(parityBit));
-    //     default:
-    //         return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), pbit_e::NONE);
-    //     }
-    // }
-
-    // std::pair<Status, sbit_e> NetworkValidator::convertToStopBit(const uint8_t stopBit)
-    // {
-    //     switch (stopBit)
-    //     {
-    //     case 1:
-    //     case 2:
-    //         return std::make_pair(Status(Status::Code::GOOD), static_cast<sbit_e>(stopBit));
-    //     default:
-    //         return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), sbit_e::SBIT_1);
-    //     }
-    // }
 }}

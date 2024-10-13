@@ -23,8 +23,9 @@
 #include "Jarvis/Include/Helper.h"
 #include "Validator.h"
 #include "Jarvis/Validators/MetaDataValidator.h"
-#include "Jarvis/Validators/SerialPortValidator.h"
-#include "Jarvis/Validators/NetworkValidator.h"
+#include "Jarvis/Validators/Interfaces/SerialPortValidator.h"
+#include "Jarvis/Validators/Protocol/ModbusValidator.h"
+#include "Jarvis/Validators/Network/NetworkValidator.h"
 
 
  
