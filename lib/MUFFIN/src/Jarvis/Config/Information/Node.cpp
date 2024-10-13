@@ -142,7 +142,21 @@ namespace muffin { namespace jarvis { namespace config {
         // 데이터 타입 유효성 검사
         ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() == 1), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
-        ASSERT((mVectorDataUnitOrders.size() == 1), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE ALIGNMENT ORDER");
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsDataUnitOrdersSet == true)
+                    {
+                        if (mVectorDataUnitOrders.size() != 1)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }()
+            ), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE ALIGNMENT ORDER"
+        );
 
         // 함께 설정 불가능한 Node 속성에 대한 유효성 검사
         ASSERT((mIsAddressQuantitySet  == false), "BIT INDEX CAN ONLY BE APPLIED WHEN ADDRESS QUANTITY IS DISABLED");
@@ -352,7 +366,7 @@ namespace muffin { namespace jarvis { namespace config {
         mIsDataUnitOrdersSet = true;
     }
 
-    void Node::SetDataTypes(const std::vector<dt_e>& dt)
+    void Node::SetDataTypes(const std::vector<dt_e>&& dt) noexcept
     {
         ASSERT(
             (
@@ -378,7 +392,7 @@ namespace muffin { namespace jarvis { namespace config {
         );
         ASSERT((mIsBitIndexSet == false), "DATA TYPES CANNOT BE SET WHEN BIT INDEX IS ENABLED");
 
-        mVectorDataTypes = dt;
+        mVectorDataTypes = std::move(dt);
         mIsDataTypesSet = true;
     }
 

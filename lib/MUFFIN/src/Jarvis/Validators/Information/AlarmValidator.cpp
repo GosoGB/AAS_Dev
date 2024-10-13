@@ -58,9 +58,9 @@ namespace muffin { namespace jarvis {
                 LOG_ERROR(logger, "MANDATORY KEY'S VALUE CANNOT BE NULL");
                 return ret;
             }
-        
+
             const std::string nodeID = json["nodeId"].as<std::string>();
-            if (nodeID.length()  != 4)
+            if (nodeID.length() != 4)
             {
                 LOG_ERROR(logger, "NODE ID LENGTH MUST BE EQUAL TO 4");
                 return Status(Status::Code::BAD_NODE_ID_INVALID);

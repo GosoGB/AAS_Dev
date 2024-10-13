@@ -25,10 +25,10 @@ namespace muffin { namespace jarvis {
     typedef enum class NodeAddressTypeEnum
         : uint8_t
     {
-        NUMERIC     = 1,
-        STRING      = 2,
-        BYTE_STRING = 3,
-        GUID        = 4
+        NUMERIC     = 0,
+        STRING      = 1,
+        BYTE_STRING = 2,
+        GUID        = 3
     } adtp_e;
 
     typedef union NodeAddressUnion
@@ -208,9 +208,12 @@ namespace muffin { namespace jarvis {
 
     typedef enum class ServerNetworkInterfaceCardEnum
     {
-        WiFi4     = 0,
-        Ethernet  = 1,
-        LTE_CatM1 = 2
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        Ethernet,
+    #elif defined(MODLINK_B)
+        WiFi4,
+    #endif
+        LTE_CatM1
     } snic_e;
 
     typedef enum class DataUnitEnum
@@ -237,12 +240,17 @@ namespace muffin { namespace jarvis {
     } ord_t;
 
     typedef enum class FormatSpecifierEnum
+        : uint8_t
     {
         INTEGER_32,
+        INTEGER_64,
         UNSIGNED_INTEGER_32,
-        FLOATING_POINT_32,
-        STRING,
+        UNSIGNED_INTEGER_64,
+        FLOATING_POINT_64,
         CHARACTER,
+        WIDE_CHARACTER,
+        STRING,
+        WIDE_STRING,
         HEX_LOWERCASE,
         HEX_UPPERCASE
     } fmt_spec_e;

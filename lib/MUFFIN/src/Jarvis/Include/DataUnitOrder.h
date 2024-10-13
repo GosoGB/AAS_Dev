@@ -38,7 +38,8 @@ namespace muffin { namespace jarvis {
         uint8_t GetSize() const;
         uint8_t GetCapacity() const;
         Status EmplaceBack(const ord_t order);
-        std::pair<Status, ord_t> Retrieve(const uint8_t index);
+        std::pair<Status, ord_t> Retrieve(const uint8_t index) const;
+        size_t RetrieveTotalSize() const;
     private:
         std::vector<ord_t> mVectorOrder;
     };

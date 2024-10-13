@@ -214,33 +214,29 @@ namespace muffin { namespace jarvis {
 
     std::pair<Status, cmp_op_e> OperationTimeValidator::convertToLogicalOperator(const std::string& stringOperator)
     {
-        cmp_op_e logicalOperator = cmp_op_e::LESS_THAN;
-
         if (stringOperator == "<")
         {
-            logicalOperator = cmp_op_e::LESS_THAN;
+            return std::make_pair(Status(Status::Code::GOOD), cmp_op_e::LESS_THAN);
         }
         else if (stringOperator == "<=")
         {
-            logicalOperator = cmp_op_e::LESS_EQUAL;
+            return std::make_pair(Status(Status::Code::GOOD), cmp_op_e::LESS_EQUAL);
         }
         else if (stringOperator == "==")
         {
-            logicalOperator = cmp_op_e::EQUAL;
+            return std::make_pair(Status(Status::Code::GOOD), cmp_op_e::EQUAL);
         }
         else if (stringOperator == ">=")
         {
-            logicalOperator = cmp_op_e::GREATER_EQUAL;
+            return std::make_pair(Status(Status::Code::GOOD), cmp_op_e::GREATER_EQUAL);
         }
         else if (stringOperator == ">")
         {
-            logicalOperator = cmp_op_e::GREATER_THAN;
+            return std::make_pair(Status(Status::Code::GOOD), cmp_op_e::GREATER_THAN);
         }
         else
         {
-            return std::make_pair(Status(Status::Code::BAD_ENCODING_ERROR), logicalOperator);
+            return std::make_pair(Status(Status::Code::BAD_ENCODING_ERROR), cmp_op_e::LESS_THAN);
         }
-
-        return std::make_pair(Status(Status::Code::GOOD), logicalOperator);
     }
 }}

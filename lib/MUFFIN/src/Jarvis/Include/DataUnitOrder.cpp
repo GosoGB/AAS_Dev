@@ -100,7 +100,7 @@ namespace muffin { namespace jarvis {
         return ret;
     }
 
-    std::pair<Status, ord_t> DataUnitOrder::Retrieve(const uint8_t index)
+    std::pair<Status, ord_t> DataUnitOrder::Retrieve(const uint8_t index) const
     {
         if ((index + 1) > mVectorOrder.size())
         {
@@ -115,5 +115,19 @@ namespace muffin { namespace jarvis {
         {
             return std::make_pair(Status(Status::Code::GOOD), mVectorOrder[index]);
         }
+    }
+    
+    size_t DataUnitOrder::RetrieveTotalSize() const
+    {
+        ASSERT((mVectorOrder.size() != 0), "TOTAL SIZE CANNOT BE CALCULATED WHEN THERE IS NO DATA UNIT ORDER EMPLACED");
+
+        size_t sum = 0;
+
+        for (const auto& order : mVectorOrder)
+        {
+            sum += static_cast<uint8_t>(order.DataUnit);
+        }
+        
+        return sum;
     }
 }}
