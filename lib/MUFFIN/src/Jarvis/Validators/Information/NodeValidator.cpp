@@ -173,21 +173,68 @@ namespace muffin { namespace jarvis {
                 return mFormatString.first;
             }
 
+            ret = validateModbusArea();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID MODBUS AREA CONFIG: %s", ret.c_str());
+                return ret;
+            }
+            
+            ret = validateBitIndex();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID BIT INDEX CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
-            validateModbusArea();
-            validateBitIndex();
-            validateAddressQuantity();
-            validateNumericScale();
-            validateNumericOffset();
-            validateMappingRules();
-            validateDataUnitOrders();
-            validateDataTypes();
-            validateFormatString();
+            ret = validateAddressQuantity();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID ADDRESS QUANTITY CONFIG: %s", ret.c_str());
+                return ret;
+            }
+            
+            ret = validateNumericScale();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID NUMERIC SCALE CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateNumericOffset();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID NUMERIC OFFSET CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateMappingRules();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID MAPPING RULES CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateDataUnitOrders();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID DATA UNIT ORDER CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateDataTypes();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID DATA TYPES CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateFormatString();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID FORMAT STRING CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
             config::Node* node = new(std::nothrow) config::Node(cfg_key_e::ALARM);
             if (node == nullptr)
@@ -199,11 +246,66 @@ namespace muffin { namespace jarvis {
             node->SetNodeID(mNodeID);
             node->SetAddressType(mAddressType.second);
             node->SetAddrress(mAddress.second);
-            node->SetDataTypes(std::move(retDT.second));
-            node->SetDeprecableUID(uid);
-            node->SetDeprecableDisplayName(displayName);
-            node->SetDeprecableDisplayUnit(displayUnit);
-            node->SetAttributeEvent(isEvent);
+            node->SetDataTypes(std::move(mDataTypes.second));
+            node->SetDeprecableUID(mUID);
+            node->SetDeprecableDisplayName(mDisplayName);
+            node->SetDeprecableDisplayUnit(mDisplayUnit);
+            node->SetAttributeEvent(mIsEventType);
+
+            if (mModbusArea.first == Status::Code::GOOD)
+            {
+                node->SetModbusArea(mModbusArea.second);
+            }
+            
+            if (mBitIndex.first == Status::Code::GOOD)
+            {
+                node->SetBitIndex(mBitIndex.second);
+            }
+
+            if (mAddressQuantity.first == Status::Code::GOOD)
+            {
+                node->SetNumericAddressQuantity(mAddressQuantity.second);
+            }
+
+            if (mNumericScale.first == Status::Code::GOOD)
+            {
+                node->SetNumericScale(mNumericScale.second);
+            }
+            
+            if (mNumericOffset.first == Status::Code::GOOD)
+            {
+                node->SetNumericOffset(mNumericOffset.second);
+            }
+
+            if (mMappingRules.first == Status::Code::GOOD)
+            {
+                node->SetMappingRules(std::move(mMappingRules.second));
+            }
+
+            if (mDataUnitOrders.first == Status::Code::GOOD)
+            {
+                node->SetDataUnitOrders(std::move(mDataUnitOrders.second));
+            }
+            
+            if (mFormatString.first == Status::Code::GOOD)
+            {
+                node->SetFormatString(mFormatString.second);
+            }
+
+            try
+            {
+                outVector->emplace_back(std::move(node));
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR NODE CIN: %s", e.what());
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO EMPLACE NODE CIN: %s", e.what());
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
         }
     }
 
@@ -397,7 +499,6 @@ namespace muffin { namespace jarvis {
         if (mNumericOffset.first == Status::Code::GOOD)
         {
             LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC OFFSET");
-            LOG_ERROR(logger, "WITH ");
             return Status(Status::Code::BAD_CONFIGURATION_ERROR);
         }
 
@@ -913,19 +1014,63 @@ namespace muffin { namespace jarvis {
             switch (specifier)
             {
             case fmt_spec_e::INTEGER_32:
-                if (dataType != dt_e::INT8 && dataType != dt_e::INT16 && dataType != dt_e::INT32)
+                if (dataType != dt_e::INT8  && dataType != dt_e::INT16  && dataType != dt_e::INT32)
                 {
-                    LOG_ERROR(logger, "THE NUMBER OF FORMAT SPECIFIERS MUST BE EQUAL TO THE NUMBER OF DATA TYPES");
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"32-BIT INTEGER\"");
                     return Status(Status::Code::BAD_CONFIGURATION_ERROR);
                 }
                 break;
-            
-            default:
+            case fmt_spec_e::INTEGER_64:
+                if (dataType != dt_e::INT8  && dataType != dt_e::INT16  && dataType != dt_e::INT32 && dataType != dt_e::INT64)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT INTEGER\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
                 break;
+            case fmt_spec_e::UNSIGNED_INTEGER_32:
+                if (dataType != dt_e::UINT8 && dataType != dt_e::UINT16 && dataType != dt_e::UINT32)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 32-BIT INTEGER\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::UNSIGNED_INTEGER_64:
+                if (dataType != dt_e::UINT8 && dataType != dt_e::UINT16 && dataType != dt_e::UINT32 && dataType != dt_e::UINT64)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 64-BIT INTEGER\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::FLOATING_POINT_64:
+                if (dataType != dt_e::FLOAT32 && dataType != dt_e::FLOAT64)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT FLOATING POINT\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::CHARACTER:
+            case fmt_spec_e::STRING:
+                if (dataType != dt_e::STRING)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"STRING\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::HEX_LOWERCASE:
+            case fmt_spec_e::HEX_UPPERCASE:
+                if (static_cast<uint8_t>(dt_e::UINT64) < static_cast<uint8_t>(dataType) && 
+                    static_cast<uint8_t>(dataType) < static_cast<uint8_t>(dt_e::BOOLEAN))
+                if (dataType == dt_e::BOOLEAN || dataType == dt_e::FLOAT32 || dataType == dt_e::FLOAT64 || dataType == dt_e::STRING)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"HEXA CODE\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            default:
+                LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER: %u", static_cast<uint8_t>(specifier));
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
             }
         }
-
-        mVectorFormatSpecifier 순서와 std::vector<muffin::jarvis::dt_e> 가 일치하는지 확인 필요함
     }
 
     std::pair<Status, std::vector<dt_e>> NodeValidator::processDataTypes(JsonArray dataTypes)
@@ -1588,13 +1733,9 @@ namespace muffin { namespace jarvis {
                 }
                 else if (*format == 'c')
                 {
-                    if (isLongLong == true)
+                    if (isLong == true || isLongLong == true)
                     {
                         goto INVALID_SPECIFIER;
-                    }
-                    else if (isLong == true)
-                    {
-                        formatSpecifier = fmt_spec_e::WIDE_CHARACTER;
                     }
                     else
                     {
@@ -1603,13 +1744,9 @@ namespace muffin { namespace jarvis {
                 }
                 else if (*format == 's')
                 {
-                    if (isLongLong == true)
+                    if (isLong == true || isLongLong == true)
                     {
                         goto INVALID_SPECIFIER;
-                    }
-                    else if (isLong == true)
-                    {
-                        formatSpecifier = fmt_spec_e::WIDE_STRING;
                     }
                     else
                     {
