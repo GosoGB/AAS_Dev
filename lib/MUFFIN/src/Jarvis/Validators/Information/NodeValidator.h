@@ -4,7 +4,7 @@
  * 
  * @brief Node 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2024-10-12
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -76,7 +76,7 @@ namespace muffin { namespace jarvis {
         std::pair<Status, float> mNumericOffset;
         std::pair<Status, std::map<uint16_t, std::string>> mMappingRules;
         std::pair<Status, std::vector<DataUnitOrder>> mDataUnitOrders;
-        std::pair<Status, std::vector<muffin::jarvis::dt_e>> mDataTypes;
+        std::pair<Status, std::vector<dt_e>> mDataTypes;
         std::pair<Status, std::string> mFormatString;
         std::string mUID;
         std::string mDisplayName;
