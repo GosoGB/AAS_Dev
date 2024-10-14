@@ -199,8 +199,13 @@ namespace muffin { namespace jarvis {
         const std::string ClientCertificate = cin["crt"].as<std::string>();
         const std::string ClientKey         = cin["key"].as<std::string>();
 
-
-        config::WiFi4* wifi4 = new config::WiFi4(cfg_key_e::WIFI4);
+        config::WiFi4* wifi4 = new (std::nothrow) config::WiFi4(cfg_key_e::WIFI4);
+        if (wifi4 == nullptr)
+        {
+            LOG_ERROR(logger, );
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        
         
 
         const auto retAUTH      = convertToAuth(AUTH);
