@@ -309,31 +309,71 @@ namespace muffin { namespace jarvis {
 
     std::pair<Status, std::vector<std::string>> ModbusValidator::convertToNodes(const JsonArray nodes)
     {
-        std::vector<std::string> vNode;
+        if (nodes.size() == 0)
+        {
+            LOG_ERROR(logger, "NODES REFERENCE LENGTH CANNOT BE 0");
+            return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), std::vector<std::string>());
+        }
+        
+        std::vector<std::string> vectorNode;
+        try
+        {
+            vectorNode.reserve(nodes.size());
+        }
+        catch(const std::bad_alloc& e)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR NODES REFERENCES: %s", e.what());
+
+            vectorNode.clear();
+            return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), vectorNode);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "FAILED TO RESERVE VECTOR FOR NODES REFERENCE: %s", e.what());
+
+            vectorNode.clear();
+            return std::make_pair(Status(Status::Code::BAD_UNEXPECTED_ERROR), vectorNode);
+        }
+        
         for (JsonVariant node : nodes)
         {
-            std::string nodeID = node.as<std::string>();
-            if (nodeID.size() != 4)
+            const std::string nodeID = node.as<std::string>();
+
+            if (nodeID.length() != 4)
             {
-                LOG_ERROR(logger, "DECODING ERROR: INVALID OR CORRUPTED NODE ID: {%s}", nodeID.c_str());
-                return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), std::move(vNode));
+                LOG_ERROR(logger, "DECODING ERROR: INVALID OR CORRUPTED NODE ID: %s", nodeID.c_str());
+
+                vectorNode.clear();
+                return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), std::move(vectorNode));
             }
-            vNode.push_back(nodeID);
+
+            try
+            {
+                vectorNode.emplace_back(nodeID);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO EMPLACE NODE REFERENCE: %s", e.what());
+
+                vectorNode.clear();
+                return std::make_pair(Status(Status::Code::BAD_UNEXPECTED_ERROR), vectorNode);
+            }
         }    
-        return std::make_pair(Status(Status::Code::GOOD), std::move(vNode));
+        
+        return std::make_pair(Status(Status::Code::GOOD), std::move(vectorNode));
     }
 
     std::pair<Status, nic_e> ModbusValidator::convertToIface(const std::string iface)
     {
-        if(iface == "wifi")
+        if (iface == "wifi")
         {
             return std::make_pair(Status(Status::Code::GOOD), nic_e::WIFI4);
         }
-        else if(iface == "eth")
+        else if (iface == "eth")
         {
             return std::make_pair(Status(Status::Code::GOOD), nic_e::ETHERNET);
         }
-        else if(iface == "lte")
+        else if (iface == "lte")
         {
             return std::make_pair(Status(Status::Code::GOOD), nic_e::LTE_CatM1);
         }
