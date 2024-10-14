@@ -236,7 +236,7 @@ namespace muffin { namespace jarvis {
                 return ret;
             }
 
-            config::Node* node = new(std::nothrow) config::Node(cfg_key_e::ALARM);
+            config::Node* node = new(std::nothrow) config::Node();
             if (node == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: NODE");
