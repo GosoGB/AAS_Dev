@@ -13,7 +13,6 @@
 
 
 
-#include <regex>
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "ModbusValidator.h"
@@ -91,7 +90,13 @@ namespace muffin { namespace jarvis {
      
             const auto retIP      = convertToIPv4(ip);
             const auto retIface   = convertToIface(iface);
-            auto retNodes   = convertToNodes(nodes);
+            auto retNodes         = convertToNodes(nodes);
+
+            if (prt == 0)
+            {
+                LOG_ERROR(logger, "INVALID MODBUS TCP SERVER PORT NUMBER : %d", prt);
+                goto INVALID_MODBUS_TCP;
+            }
 
             if (retIP.first.ToCode() != Status::Code::GOOD)
             {
@@ -126,7 +131,7 @@ namespace muffin { namespace jarvis {
             }
         }
 
-        LOG_VERBOSE(logger, "Valid RS-232 config instance")
+        LOG_VERBOSE(logger, "Valid Modbus TCP config instance")
         return Status(Status::Code::GOOD);
     
     INVALID_MODBUS_TCP:
@@ -141,14 +146,14 @@ namespace muffin { namespace jarvis {
             Status ret = validateMandatoryKeysModbusRTU(cin);
             if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "INVALID RS-485: MANDATORY KEY CANNOT BE MISSING");
+                LOG_ERROR(logger, "INVALID MODBUS RTU: MANDATORY KEY CANNOT BE MISSING");
                 return ret;
             }
 
             ret = validateMandatoryValuesModbusRTU(cin);
             if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "INVALID RS-485: MANDATORY KEY'S VALUE CANNOT BE NULL");
+                LOG_ERROR(logger, "INVALID MODBUS RTU: MANDATORY KEY'S VALUE CANNOT BE NULL");
                 return ret;
             }
 
@@ -159,7 +164,6 @@ namespace muffin { namespace jarvis {
             const auto retPRT  = convertToPortIndex(prt);
             const auto retSID  = convertToSlaveID(sid);
             auto retNodes      = convertToNodes(nodes);
-
 
             if (retPRT.first.ToCode() != Status::Code::GOOD)
             {
@@ -180,6 +184,7 @@ namespace muffin { namespace jarvis {
             }
 
             config::ModbusRTU* modbusRTU = new config::ModbusRTU(cfg_key_e::MODBUS_RTU);
+
             modbusRTU->SetPort(retPRT.second);
             modbusRTU->SetSlaveID(retSID.second);
             modbusRTU->SetNodes(std::move(retNodes.second));
@@ -222,6 +227,9 @@ namespace muffin { namespace jarvis {
         isValid &= json["prt"].isNull()  == false;
         isValid &= json["sid"].isNull()  == false;
         isValid &= json["nodes"].isNull() == false;
+        isValid &= json["prt"].is<uint8_t>();
+        isValid &= json["sid"].is<uint8_t>();
+        isValid &= json["nodes"].is<JsonArray>();
 
         if (isValid == true)
         {
@@ -258,6 +266,10 @@ namespace muffin { namespace jarvis {
         isValid &= json["prt"].isNull()  == false;
         isValid &= json["iface"].isNull() == false;
         isValid &= json["nodes"].isNull() == false;
+        isValid &= json["ip"].is<std::string>();
+        isValid &= json["prt"].is<uint16_t>();
+        isValid &= json["iface"].is<std::string>();
+        isValid &= json["nodes"].is<JsonArray>();
 
         if (isValid == true)
         {
@@ -280,12 +292,12 @@ namespace muffin { namespace jarvis {
         }
         catch(const std::bad_alloc& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: RS-232, CIN address: %p", e.what(), cin);
+            LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: RS-232, CIN address: %p", e.what(), cin);
+            LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
     }
@@ -309,31 +321,71 @@ namespace muffin { namespace jarvis {
 
     std::pair<Status, std::vector<std::string>> ModbusValidator::convertToNodes(const JsonArray nodes)
     {
-        std::vector<std::string> vNode;
+        if (nodes.size() == 0)
+        {
+            LOG_ERROR(logger, "NODES REFERENCE LENGTH CANNOT BE 0");
+            return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), std::vector<std::string>());
+        }
+        
+        std::vector<std::string> vectorNode;
+        try
+        {
+            vectorNode.reserve(nodes.size());
+        }
+        catch(const std::bad_alloc& e)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR NODES REFERENCES: %s", e.what());
+
+            vectorNode.clear();
+            return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), vectorNode);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "FAILED TO RESERVE VECTOR FOR NODES REFERENCE: %s", e.what());
+
+            vectorNode.clear();
+            return std::make_pair(Status(Status::Code::BAD_UNEXPECTED_ERROR), vectorNode);
+        }
+        
         for (JsonVariant node : nodes)
         {
-            std::string nodeID = node.as<std::string>();
-            if (nodeID.size() != 4)
+            const std::string nodeID = node.as<std::string>();
+
+            if (nodeID.length() != 4)
             {
-                LOG_ERROR(logger, "DECODING ERROR: INVALID OR CORRUPTED NODE ID: {%s}", nodeID.c_str());
-                return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), std::move(vNode));
+                LOG_ERROR(logger, "DECODING ERROR: INVALID OR CORRUPTED NODE ID: %s", nodeID.c_str());
+
+                vectorNode.clear();
+                return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), std::move(vectorNode));
             }
-            vNode.push_back(nodeID);
+
+            try
+            {
+                vectorNode.emplace_back(nodeID);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO EMPLACE NODE REFERENCE: %s", e.what());
+
+                vectorNode.clear();
+                return std::make_pair(Status(Status::Code::BAD_UNEXPECTED_ERROR), vectorNode);
+            }
         }    
-        return std::make_pair(Status(Status::Code::GOOD), std::move(vNode));
+        
+        return std::make_pair(Status(Status::Code::GOOD), std::move(vectorNode));
     }
 
     std::pair<Status, nic_e> ModbusValidator::convertToIface(const std::string iface)
     {
-        if(iface == "wifi")
+        if (iface == "wifi")
         {
             return std::make_pair(Status(Status::Code::GOOD), nic_e::WIFI4);
         }
-        else if(iface == "eth")
+        else if (iface == "eth")
         {
             return std::make_pair(Status(Status::Code::GOOD), nic_e::ETHERNET);
         }
-        else if(iface == "lte")
+        else if (iface == "lte")
         {
             return std::make_pair(Status(Status::Code::GOOD), nic_e::LTE_CatM1);
         }
@@ -347,32 +399,20 @@ namespace muffin { namespace jarvis {
     {
         IPAddress IPv4;
 
-        std::regex validationRegex;
-        
-        validationRegex.assign("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-        
-
-        // validating IPv4 address using regular expression
-        if (std::regex_match(ip, validationRegex))
+        if (IPv4.fromString(ip.c_str()))  // fromString 함수가 IP 변환에 성공했는지 확인
         {
-            if (IPv4.fromString(ip.c_str()))  // fromString 함수가 IP 변환에 성공했는지 확인
-            {
-                return std::make_pair(Status(Status::Code::GOOD), IPv4);
-            }
-            else
-            {
-                return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), IPAddress());
-            }
+            return std::make_pair(Status(Status::Code::GOOD), IPv4);
         }
         else
         {
             return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), IPAddress());
         }
+       
     }
 
     std::pair<Status, uint8_t> ModbusValidator::convertToSlaveID(const uint8_t slaveID)
     {
-        if(slaveID > 247 || slaveID == 0)
+        if (slaveID > 247 || slaveID == 0)
         {
             return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), 0);
         }

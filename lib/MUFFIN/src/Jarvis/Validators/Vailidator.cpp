@@ -215,4 +215,40 @@ namespace muffin { namespace jarvis {
         }
         return ret;
     }
+
+    Status Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
+        NetworkValidator validator;
+        Status ret = validator.Inspect(key, json, outputVector);
+        if (ret != Status(Status::Code::GOOD))
+        {
+            LOG_ERROR(logger, "INVALID NETWORK CONFIG: %s", ret.c_str());
+        }
+        else
+        {
+            LOG_INFO(logger, "Network Config: %s", ret.c_str());
+        }
+        return ret;
+    }
+
+    Status Validator::validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
+        NetworkValidator validator;
+        Status ret = validator.Inspect(key, json, outputVector);
+        if (ret != Status(Status::Code::GOOD))
+        {
+            LOG_ERROR(logger, "INVALID NETWORK CONFIG: %s", ret.c_str());
+        }
+        else
+        {
+            LOG_INFO(logger, "Network Config: %s", ret.c_str());
+        }
+        return ret;
+    }
 }}
