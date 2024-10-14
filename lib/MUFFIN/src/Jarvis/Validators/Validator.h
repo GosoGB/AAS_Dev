@@ -48,7 +48,7 @@ namespace muffin { namespace jarvis {
         Status Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN);
     private:
         Status emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN);
-        Status validateMetaData(const JsonObject json);
+        Status validateMetaData(const JsonDocument json);
         Status validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
         Status validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
         Status validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);

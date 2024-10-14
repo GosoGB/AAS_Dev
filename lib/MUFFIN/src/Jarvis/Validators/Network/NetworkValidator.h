@@ -19,6 +19,11 @@
 #include <ArduinoJson.h>
 #include <vector>
 
+#include <esp_wifi_types.h>
+#include <IPAddress.h>
+#include <IPv6Address.h>
+#include <WiFiSTA.h>
+
 #include "Common/Status.h"
 #include "Jarvis/Include/Base.h"
 #include "Jarvis/Include/TypeDefinitions.h"

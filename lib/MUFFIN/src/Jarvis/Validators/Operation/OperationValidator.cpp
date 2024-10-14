@@ -69,7 +69,7 @@ namespace muffin { namespace jarvis {
             return retSNIC.first;
         }
         
-        config::Operation* operation = new(std::nothrow) config::Operation(cfg_key_e::OPERATION);
+        config::Operation* operation = new(std::nothrow) config::Operation();
         if (operation == nullptr)
         {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: OPERATION");

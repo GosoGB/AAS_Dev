@@ -277,11 +277,9 @@ namespace muffin { namespace jarvis {
             return ret;
         }
 
-    LOG_VERBOSE(logger, "Valid WiFi4 config instance")
-    return Status(Status::Code::GOOD);
+        LOG_VERBOSE(logger, "Valid WiFi4 config instance")
+        return Status(Status::Code::GOOD);
     
-INVALID_WIFI4:
-    return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
     }
 
     Status NetworkValidator::validateMandatoryKeysWiFi4(const JsonObject json)
@@ -470,11 +468,9 @@ INVALID_WIFI4:
             return ret;
         }
 
-    LOG_VERBOSE(logger, "Valid ethernet config instance")
-    return Status(Status::Code::GOOD);
+        LOG_VERBOSE(logger, "Valid ethernet config instance")
+        return Status(Status::Code::GOOD);
     
-INVALID_ETHERNET:
-    return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
     }
 
     Status NetworkValidator::validateMandatoryKeysEthernet(const JsonObject json)

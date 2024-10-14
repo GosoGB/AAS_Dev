@@ -62,7 +62,7 @@ namespace muffin {
     Status Ethernet::Config(jarvis::config::Base* config)
     {
         assert(config != nullptr);
-        assert(config->GetCategory() == "ethernet");
+        assert(config->GetCategory() == jarvis::cfg_key_e::ETHERNET);
         assert(mState != state_e::NOT_INITIALIZED_YET);
 
         if (mIsArduinoEventCallbackRegistered == false)
@@ -98,7 +98,7 @@ namespace muffin {
         mState = state_e::SUCCEDDED_TO_START_PHY;
 
         bool isConfigured = false;
-        if (mConfig.GetDHCP() == true)
+        if (mConfig.GetDHCP().second == true)
         {
             IPAddress dhcpIPv4(0, 0, 0, 0);
             isConfigured = ETH.config(
@@ -112,11 +112,11 @@ namespace muffin {
         else
         {
             isConfigured = ETH.config(
-                mConfig.GetStaticIPv4(),
-                mConfig.GetGateway(),
-                mConfig.GetSubnet(),
-                mConfig.GetDNS1(),
-                mConfig.GetDNS2()
+                mConfig.GetStaticIPv4().second,
+                mConfig.GetGateway().second,
+                mConfig.GetSubnetmask().second,
+                mConfig.GetDNS1().second,
+                mConfig.GetDNS2().second
             );
         }
 
