@@ -554,6 +554,12 @@ INVALID_ETHERNET:
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), WIFI_AUTH_OPEN);
         }
 
+        if (auth.is<uint8_t>() == false)
+        {
+            LOG_ERROR(logger, "WiFi AUTH MUST BE A 8-BIT UNSIGNED INTEGER");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), WIFI_AUTH_OPEN);
+        }
+
         const uint8_t authValue = auth.as<uint8_t>();
         switch (authValue)
         {
@@ -579,6 +585,13 @@ INVALID_ETHERNET:
             LOG_VERBOSE(logger, "WiFi EAP AUTH values were not provied");
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), WPA2_AUTH_TLS);
         }
+
+        if (wpaAuth.is<uint8_t>() == false)
+        {
+            LOG_ERROR(logger, "WiFi EAP AUTH MUST BE A 8-BIT UNSIGNED INTEGER");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), WPA2_AUTH_TLS);
+        }
+
         const uint8_t WpaAuthValue = wpaAuth.as<uint8_t>();
 
         switch (WpaAuthValue)
@@ -615,11 +628,17 @@ INVALID_ETHERNET:
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), "");
         }
 
+        if (psk.is<std::string>() == false)
+        {
+            LOG_ERROR(logger, "WiFi PSK MUST BE STRING");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), "");
+        }
+
         const std::string pskValue = psk.as<std::string>();
 
         if (pskValue.length() > 63)
         {
-            LOG_ERROR(logger, "WiFi SSID LENGTH IS TOO LONG");
+            LOG_ERROR(logger, "WiFi PSK LENGTH IS TOO LONG");
             return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), pskValue);
         }
        
@@ -633,6 +652,13 @@ INVALID_ETHERNET:
             LOG_VERBOSE(logger, "WiFi EAP Identity values were not provied");
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), "");
         }
+
+        if (id.is<std::string>() == false)
+        {
+            LOG_ERROR(logger, "WiFi EAP IDENTITY MUST BE STRING");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), "");
+        }
+
         const std::string idValue = id.as<std::string>();
 
         if (idValue.length() > 64)
@@ -651,6 +677,13 @@ INVALID_ETHERNET:
             LOG_VERBOSE(logger, "WiFi EAP username values were not provied");
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), "");
         }
+
+        if (user.is<std::string>() == false)
+        {
+            LOG_ERROR(logger, "WiFi EAP USERNAME MUST BE STRING");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), "");
+        }
+
         const std::string userValue = user.as<std::string>();
 
         if (userValue.length() > 64)
@@ -669,6 +702,13 @@ INVALID_ETHERNET:
             LOG_VERBOSE(logger, "WiFi EAP password values were not provied");
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), "");
         }
+
+        if (pass.is<std::string>() == false)
+        {
+            LOG_ERROR(logger, "WiFi EAP PASSWORD MUST BE STRING");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), "");
+        }
+
         const std::string passValue = pass.as<std::string>();
 
         if (passValue.length() > 64)
@@ -684,8 +724,14 @@ INVALID_ETHERNET:
     {
         if (caCert.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi EAP password values were not provied");
+            LOG_VERBOSE(logger, "WiFi CA Certificate values were not provied");
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), "");
+        }
+
+        if (caCert.is<std::string>() == false)
+        {
+            LOG_ERROR(logger, "WiFi CA CERTIFICATE MUST BE STRING");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), "");
         }
         
         const std::string caCertValue = caCert.as<std::string>();
@@ -696,8 +742,14 @@ INVALID_ETHERNET:
     {
         if (crt.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi EAP password values were not provied");
+            LOG_VERBOSE(logger, "WiFi Client Certificate values were not provied");
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), "");
+        }
+
+        if (crt.is<std::string>() == false)
+        {
+            LOG_ERROR(logger, "WiFi Client CERTIFICATE MUST BE STRING");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), "");
         }
 
         const std::string clientCertValue = crt.as<std::string>();
@@ -708,8 +760,14 @@ INVALID_ETHERNET:
     {
         if (key.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi EAP password values were not provied");
+            LOG_VERBOSE(logger, "WiFi Client key values were not provied");
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), "");
+        }
+
+        if (key.is<std::string>() == false)
+        {
+            LOG_ERROR(logger, "WiFi Client KEY MUST BE STRING");
+            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), "");
         }
 
         const std::string clientKeyValue = key.as<std::string>();
