@@ -22,15 +22,14 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Rs232::Rs232(const cfg_key_e category)
-        : Base(category)
+    Rs232::Rs232()
+        : Base(cfg_key_e::RS232)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT(false, "RS-232 CANNOT BE USED WITH MODLINK-L AND MODLINK-ML10");
     #endif
 
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::RS232), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }

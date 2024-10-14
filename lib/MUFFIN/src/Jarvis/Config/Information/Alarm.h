@@ -28,7 +28,7 @@ namespace muffin { namespace jarvis { namespace config {
     class Alarm : public Base
     {
     public:
-        explicit Alarm(const cfg_key_e category);
+        Alarm();
         virtual ~Alarm() override;
     public:
         Alarm& operator=(const Alarm& obj);

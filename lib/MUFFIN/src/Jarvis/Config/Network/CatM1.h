@@ -26,7 +26,7 @@ namespace muffin { namespace jarvis { namespace config {
     class CatM1 : public Base
     {
     public:
-        explicit CatM1(const cfg_key_e category);
+        CatM1();
         virtual ~CatM1() override;
     public:
         CatM1& operator=(const CatM1& obj);

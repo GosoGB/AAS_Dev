@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    ModbusRTU::ModbusRTU(const cfg_key_e category)
-        : Base(category)
+    ModbusRTU::ModbusRTU()
+        : Base(cfg_key_e::MODBUS_RTU)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::MODBUS_RTU), "CATEGORY DOES NOT MATCH");
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }

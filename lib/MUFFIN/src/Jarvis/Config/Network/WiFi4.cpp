@@ -23,11 +23,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    WiFi4::WiFi4(const cfg_key_e category)
-        : Base(category)
+    WiFi4::WiFi4()
+        : Base(cfg_key_e::WIFI4)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::WIFI4), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }

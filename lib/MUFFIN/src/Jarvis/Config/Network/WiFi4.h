@@ -35,7 +35,7 @@ namespace muffin { namespace jarvis { namespace config {
     class WiFi4 : public Base
     {
     public:
-        explicit WiFi4(const cfg_key_e category);
+        WiFi4();
         virtual ~WiFi4() override;
     public:
         WiFi4& operator=(const WiFi4& obj);

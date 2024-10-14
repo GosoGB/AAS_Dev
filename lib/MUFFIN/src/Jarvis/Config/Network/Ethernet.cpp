@@ -21,11 +21,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Ethernet::Ethernet(const cfg_key_e category)
-        : Base(category)
+    Ethernet::Ethernet()
+        : Base(cfg_key_e::ETHERNET)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::ETHERNET), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }

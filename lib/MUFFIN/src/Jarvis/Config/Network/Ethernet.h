@@ -28,7 +28,7 @@ namespace muffin { namespace jarvis { namespace config {
     class Ethernet : public Base
     {
     public:
-        explicit Ethernet(const cfg_key_e category);
+        Ethernet();
         virtual ~Ethernet() override;
     public:
         Ethernet& operator=(const Ethernet& obj);

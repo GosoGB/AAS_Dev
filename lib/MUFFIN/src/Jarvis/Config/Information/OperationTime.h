@@ -26,7 +26,7 @@ namespace muffin { namespace jarvis { namespace config {
     class OperationTime : public Base
     {
     public:
-        explicit OperationTime(const cfg_key_e category);
+        OperationTime();
         virtual ~OperationTime() override;
     public:
         OperationTime& operator=(const OperationTime& obj);

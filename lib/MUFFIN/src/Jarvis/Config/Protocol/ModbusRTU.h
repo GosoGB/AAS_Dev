@@ -29,7 +29,7 @@ namespace muffin { namespace jarvis { namespace config {
     class ModbusRTU : public Base
     {
     public:
-        explicit ModbusRTU(const cfg_key_e category);
+        ModbusRTU();
         virtual ~ModbusRTU() override;
     public:
         ModbusRTU& operator=(const ModbusRTU& obj);
