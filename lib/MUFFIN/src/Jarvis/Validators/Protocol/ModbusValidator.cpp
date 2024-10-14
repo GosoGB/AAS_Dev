@@ -200,7 +200,7 @@ namespace muffin { namespace jarvis {
             modbusRTU->SetSlaveID(retSID.second);
             modbusRTU->SetNodes(std::move(retNodes.second));
 
-            Status ret = emplaceCIN(static_cast<config::Base*>(modbusRTU), outVector);
+            ret = emplaceCIN(static_cast<config::Base*>(modbusRTU), outVector);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
@@ -433,20 +433,4 @@ namespace muffin { namespace jarvis {
         }
     }
 
-    std::pair<Status, prt_e> ModbusValidator::convertToPortIndex(const uint8_t portIndex)
-    {
-        switch (portIndex)
-        {
-        case 2:
-            return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_2);
-        
-        #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
-        case 3:
-            return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_3);
-        #endif
-
-        default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), prt_e::PORT_2);
-        }
-    }
 }}
