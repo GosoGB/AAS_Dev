@@ -126,7 +126,7 @@ namespace muffin { namespace jarvis {
                 goto INVALID_RS232;
             }
 
-            config::Rs232* rs232 = new(std::nothrow) config::Rs232(cfg_key_e::RS232);
+            config::Rs232* rs232 = new(std::nothrow) config::Rs232();
             if (rs232 == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: RS-232");
@@ -221,7 +221,7 @@ namespace muffin { namespace jarvis {
                 goto INVALID_RS485;
             }
 
-            config::Rs485* rs485 = new(std::nothrow) config::Rs485(cfg_key_e::RS485);
+            config::Rs485* rs485 = new(std::nothrow) config::Rs485();
             if (rs485 == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: RS-485");
