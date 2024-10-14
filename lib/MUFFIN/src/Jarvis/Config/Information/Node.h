@@ -30,7 +30,7 @@ namespace muffin { namespace jarvis { namespace config {
     class Node : public Base
     {
     public:
-        explicit Node(const cfg_key_e category);
+        Node();
         virtual ~Node() override;
     public:
         Node& operator=(const Node& obj);

@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Node::Node(const cfg_key_e category)
-        : Base(category)
+    Node::Node()
+        : Base(cfg_key_e::NODE)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::NODE), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }

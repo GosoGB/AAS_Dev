@@ -116,7 +116,13 @@ namespace muffin { namespace jarvis {
                 goto INVALID_MODBUS_TCP;
             }   
 
-            config::ModbusTCP* modbusTCP = new config::ModbusTCP(cfg_key_e::MODBUS_TCP);
+            config::ModbusTCP* modbusTCP = new(std::nothrow) config::ModbusTCP();
+            if (modbusTCP == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: MODBUS TCP");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+
             modbusTCP->SetIPv4(retIP.second);
             modbusTCP->SetPort(prt);
             modbusTCP->SetNIC(retIface.second);
@@ -182,8 +188,13 @@ namespace muffin { namespace jarvis {
                 LOG_ERROR(logger, "INVALID MODBUS RTU NODES");
                 goto INVALID_MODBUS_RTU;
             }
-
-            config::ModbusRTU* modbusRTU = new config::ModbusRTU(cfg_key_e::MODBUS_RTU);
+            
+            config::ModbusRTU* modbusRTU = new(std::nothrow) config::ModbusRTU();
+            if (modbusRTU == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: MODBUS RTU");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
 
             modbusRTU->SetPort(retPRT.second);
             modbusRTU->SetSlaveID(retSID.second);

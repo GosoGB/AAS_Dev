@@ -100,7 +100,12 @@ namespace muffin { namespace jarvis {
             return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
         }
 
-        config::CatM1* catM1 = new config::CatM1(cfg_key_e::LTE_CatM1);
+        config::CatM1* catM1 = new(std::nothrow) config::CatM1();
+        if (catM1 == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: LTE cat.M1");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
         catM1->SetModel(retMD.second);
         catM1->SetCounty(retCtry.second);
 

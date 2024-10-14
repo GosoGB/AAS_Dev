@@ -74,7 +74,7 @@ namespace muffin { namespace jarvis {
                 return retType.first;
             }
 
-            config::Alarm* alarm = new(std::nothrow) config::Alarm(cfg_key_e::ALARM);
+            config::Alarm* alarm = new(std::nothrow) config::Alarm();
             if (alarm == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: ALARM");

@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Rs485::Rs485(const cfg_key_e category)
-        : Base(category)
+    Rs485::Rs485()
+        : Base(cfg_key_e::RS485)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::RS485), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }

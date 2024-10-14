@@ -169,7 +169,7 @@ namespace muffin { namespace jarvis {
             return retClientKey.first;
         }
 
-        config::WiFi4* wifi4 = new (std::nothrow) config::WiFi4(cfg_key_e::WIFI4);
+        config::WiFi4* wifi4 = new (std::nothrow) config::WiFi4();
         if (wifi4 == nullptr)
         {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR WIFI REFERENCES");
@@ -407,8 +407,13 @@ INVALID_WIFI4:
         }
         
         const bool DHCP = cin["dhcp"].as<bool>();
-
-        config::Ethernet* ethernet = new config::Ethernet(cfg_key_e::ETHERNET);
+        
+        config::Ethernet* ethernet = new(std::nothrow) config::Ethernet();
+        if (ethernet == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: ETHERNET");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
         
         ethernet->SetDHCP(DHCP);
 

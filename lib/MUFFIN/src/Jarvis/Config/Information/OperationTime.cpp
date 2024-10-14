@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    OperationTime::OperationTime(const cfg_key_e category)
-        : Base(category)
+    OperationTime::OperationTime()
+        : Base(cfg_key_e::OPERATION_TIME)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::OPERATION_TIME), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }

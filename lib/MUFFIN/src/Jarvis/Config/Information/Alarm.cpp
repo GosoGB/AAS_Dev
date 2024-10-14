@@ -26,11 +26,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Alarm::Alarm(const cfg_key_e category)
-        : Base(category)
+    Alarm::Alarm()
+        : Base(cfg_key_e::ALARM)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::ALARM), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }

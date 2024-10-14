@@ -31,7 +31,7 @@ namespace muffin { namespace jarvis { namespace config {
     class ModbusTCP : public Base
     {
     public:
-        explicit ModbusTCP(const cfg_key_e category);
+        ModbusTCP();
         virtual ~ModbusTCP() override;
     public:
         ModbusTCP& operator=(const ModbusTCP& obj);
