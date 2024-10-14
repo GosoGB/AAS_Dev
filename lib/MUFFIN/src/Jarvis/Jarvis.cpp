@@ -58,5 +58,7 @@ namespace muffin {
     {
         jarvis::Validator validator;
         Status ret = validator.Inspect(json, &mMapCIN);
+
+        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 }

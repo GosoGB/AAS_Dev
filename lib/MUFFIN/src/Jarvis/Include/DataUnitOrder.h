@@ -30,6 +30,10 @@ namespace muffin { namespace jarvis {
         explicit DataUnitOrder(const uint8_t sizeOfOrder);
         virtual ~DataUnitOrder();
     public:
+        DataUnitOrder& operator=(const DataUnitOrder& obj);
+        bool operator==(const DataUnitOrder& obj) const;
+        bool operator!=(const DataUnitOrder& obj) const;
+    public:
         std::vector<ord_t>::iterator begin();
         std::vector<ord_t>::iterator end();
         std::vector<ord_t>::const_iterator begin() const;

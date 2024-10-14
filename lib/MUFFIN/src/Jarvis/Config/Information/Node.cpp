@@ -5,7 +5,7 @@
  * 
  * @brief Node 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-08
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -74,7 +74,7 @@ namespace muffin { namespace jarvis { namespace config {
             mNumericScale           == obj.mNumericScale            &&
             mNumericOffset          == obj.mNumericOffset           &&
             mMapMappingRules        == obj.mMapMappingRules         &&
-            mVectorDataUnitOrders   == obj.mVectorDataUnitOrders    &&
+            std::equal(mVectorDataUnitOrders.begin(), mVectorDataUnitOrders.end(), obj.mVectorDataUnitOrders.begin()) &&
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
             mDeprecableUID          == obj.mDeprecableUID           &&
@@ -432,6 +432,8 @@ namespace muffin { namespace jarvis { namespace config {
                             return true;
                         }
                     }
+
+                    return true;
                 }()
             ), "FORMAT STRING CANNOT BE APPLIED TO DATA WHICH IS BOOLEAN TYPE"
         );

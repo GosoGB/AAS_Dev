@@ -307,6 +307,8 @@ namespace muffin { namespace jarvis {
                 return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
         }
+
+        return Status(Status::Code::GOOD);
     }
 
     /**
@@ -736,7 +738,7 @@ namespace muffin { namespace jarvis {
             }
         }
 
-        LOG_VERBOSE(logger, "Configured numeric offset: %d", );
+        LOG_VERBOSE(logger, "Configured numeric offset: %.2f", mNumericOffset.second);
         return Status(Status::Code::GOOD);
     }
 
@@ -1058,8 +1060,6 @@ namespace muffin { namespace jarvis {
                 break;
             case fmt_spec_e::HEX_LOWERCASE:
             case fmt_spec_e::HEX_UPPERCASE:
-                if (static_cast<uint8_t>(dt_e::UINT64) < static_cast<uint8_t>(dataType) && 
-                    static_cast<uint8_t>(dataType) < static_cast<uint8_t>(dt_e::BOOLEAN))
                 if (dataType == dt_e::BOOLEAN || dataType == dt_e::FLOAT32 || dataType == dt_e::FLOAT64 || dataType == dt_e::STRING)
                 {
                     LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"HEXA CODE\"");
@@ -1071,6 +1071,8 @@ namespace muffin { namespace jarvis {
                 return Status(Status::Code::BAD_CONFIGURATION_ERROR);
             }
         }
+
+        return Status(Status::Code::GOOD);
     }
 
     std::pair<Status, std::vector<dt_e>> NodeValidator::processDataTypes(JsonArray dataTypes)
@@ -1262,6 +1264,8 @@ namespace muffin { namespace jarvis {
                 return std::make_pair(Status(Status::Code::BAD_UNEXPECTED_ERROR), vectorDataUnitOrder);
             }
         }
+
+        return std::make_pair(Status(Status::Code::GOOD), vectorDataUnitOrder);
     }
     
     std::pair<Status, adtp_e> NodeValidator::convertToAdressType(const uint8_t type)
