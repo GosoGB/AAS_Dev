@@ -85,7 +85,7 @@ namespace muffin { namespace jarvis {
             return retType.first;
         }
 
-        config::OperationTime* operationTime = new(std::nothrow) config::OperationTime(cfg_key_e::OPERATION_TIME);
+        config::OperationTime* operationTime = new(std::nothrow) config::OperationTime();
         if (operationTime == nullptr)
         {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: OPERATION TIME");

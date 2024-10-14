@@ -66,7 +66,7 @@ namespace muffin { namespace jarvis {
             return ret;
         }
 
-        config::Production* prod = new(std::nothrow) config::Production(key);
+        config::Production* prod = new(std::nothrow) config::Production();
         if (prod == nullptr)
         {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: PRODUCTION");
@@ -140,9 +140,9 @@ namespace muffin { namespace jarvis {
         mTotalNodeID   = json["tot"].as<std::string>();
         mGoodNodeID    = json["ok"].as<std::string>();
         mDefectNodeID  = json["ng"].as<std::string>();
-        if (mIsTotalNull  == false && mTotalNodeID.length()  != 4 ||
-            mIsGoodNull   == false && mGoodNodeID.length()   != 4 ||
-            mIsDefectNull == false && mDefectNodeID.length() != 4)
+        if ((mIsTotalNull  == false && mTotalNodeID.length()  != 4) ||
+            (mIsGoodNull   == false && mGoodNodeID.length()   != 4) ||
+            (mIsDefectNull == false && mDefectNodeID.length() != 4))
         {
             LOG_ERROR(logger, "NODE ID LENGTH MUST BE EQUAL TO 4");
             return Status(Status::Code::BAD_NODE_ID_INVALID);

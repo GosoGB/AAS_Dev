@@ -50,11 +50,22 @@ namespace muffin { namespace jarvis {
     
     bool DataUnitOrder::operator==(const DataUnitOrder& obj) const
     {
-        return std::equal(
-            mVectorOrder.begin(),
-            mVectorOrder.end(),
-            obj.mVectorOrder.begin()
-        );
+        if (mVectorOrder.size() != obj.mVectorOrder.size())
+        {
+            return false;
+        }
+        
+        for (size_t i = 0; i < mVectorOrder.size(); ++i)
+        {
+            if ((mVectorOrder[i].ByteOrder != obj.mVectorOrder[i].ByteOrder) ||
+                (mVectorOrder[i].DataUnit  != obj.mVectorOrder[i].DataUnit)  ||
+                (mVectorOrder[i].Index     != obj.mVectorOrder[i].Index))
+            {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     bool DataUnitOrder::operator!=(const DataUnitOrder& obj) const
