@@ -4,7 +4,7 @@
  * 
  * @brief Data unit 정렬 순서를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-09
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -38,6 +38,30 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
+    DataUnitOrder& DataUnitOrder::operator=(const DataUnitOrder& obj)
+    {
+        if (this != &obj)
+        {
+            mVectorOrder = obj.mVectorOrder;
+        }
+        
+        return *this;
+    }
+    
+    bool DataUnitOrder::operator==(const DataUnitOrder& obj) const
+    {
+        return std::equal(
+            mVectorOrder.begin(),
+            mVectorOrder.end(),
+            obj.mVectorOrder.begin()
+        );
+    }
+    
+    bool DataUnitOrder::operator!=(const DataUnitOrder& obj) const
+    {
+        return !(*this == obj);
+    }
+    
     std::vector<ord_t>::iterator DataUnitOrder::begin()
     {
         return mVectorOrder.begin();
@@ -60,14 +84,14 @@ namespace muffin { namespace jarvis {
     
     uint8_t DataUnitOrder::GetSize() const
     {
-        ASSERT((mVectorOrder.size() <= UINT8_MAX), "");
+        ASSERT((mVectorOrder.size() <= UINT8_MAX), "THE NUMBER OF DATA UNIT ORDERS CANNOT EXCEED 255");
 
         return static_cast<uint8_t>(mVectorOrder.size());
     }
 
     uint8_t DataUnitOrder::GetCapacity() const
     {
-        ASSERT((mVectorOrder.capacity() <= UINT8_MAX), "");
+        ASSERT((mVectorOrder.capacity() <= UINT8_MAX), "CAPACITY OF DATA UNIT ORDERS CANNOT EXCEED 255");
 
         return static_cast<uint8_t>(mVectorOrder.capacity());
     }

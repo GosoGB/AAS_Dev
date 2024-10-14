@@ -4,7 +4,7 @@
  * 
  * @brief JARVIS 전반에 걸쳐 공통으로 사용할 수 있는 함수를 정의합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -34,17 +34,17 @@ namespace muffin { namespace jarvis {
         if (endPointer == str)
         {
             LOG_ERROR(logger, "NONCONVERTIBLE STRING: %s", str);
-            return UINT32_MAX;
+            return UINT8_MAX;
         }
         else if (*endPointer != '\0')
         {
             LOG_ERROR(logger, "PARTIALLY CONVERTED: %s", endPointer);
-            return UINT32_MAX;
+            return UINT8_MAX;
         }
         else if (errno == ERANGE)
         {
             LOG_ERROR(logger, "OUT OF RANGE: %s", str);
-            return UINT32_MAX;
+            return UINT8_MAX;
         }
         else
         {
@@ -90,7 +90,7 @@ namespace muffin { namespace jarvis {
 
     std::pair<Status, cfg_key_e> ConvertToConfigKey(const prtcl_ver_e version, const char* str)
     {
-        if (static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_1) <=static_cast<uint8_t>(version))
+        if (static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_1) <= static_cast<uint8_t>(version))
         {
             if (strcmp(str, "rs232") == 0)
             {
@@ -140,21 +140,16 @@ namespace muffin { namespace jarvis {
             {
                 return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::PRODUCTION_INFO);
             }
-        }
-        else if (static_cast<uint8_t>(version) == static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_2))
-        {
-            ASSERT(false, "UNSUPPORTED VERSION");
-            return std::make_pair(Status(Status::Code::BAD_PROTOCOL_VERSION_UNSUPPORTED), cfg_key_e::ALARM);
-        }
-        else if (static_cast<uint8_t>(version) == static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_3))
-        {
-            ASSERT(false, "UNSUPPORTED VERSION");
-            return std::make_pair(Status(Status::Code::BAD_PROTOCOL_VERSION_UNSUPPORTED), cfg_key_e::ALARM);
+            else
+            {
+                LOG_ERROR(logger, "INVALID KEY: %s", str);
+                return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), cfg_key_e::ALARM);
+            }
         }
         else
         {
-            LOG_ERROR(logger, "INVALID KEY: %s", str);
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), cfg_key_e::ALARM);
+            ASSERT(false, "UNSUPPORTED VERSION");
+            return std::make_pair(Status(Status::Code::BAD_PROTOCOL_VERSION_UNSUPPORTED), cfg_key_e::ALARM);
         }
     }
 }}

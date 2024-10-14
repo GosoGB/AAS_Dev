@@ -5,7 +5,7 @@
  * 
  * @brief Modbus RTU 프로토콜 설정 형식을 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-07
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -29,7 +29,7 @@ namespace muffin { namespace jarvis { namespace config {
     class ModbusRTU : public Base
     {
     public:
-        explicit ModbusRTU(const cfg_key_e category);
+        ModbusRTU();
         virtual ~ModbusRTU() override;
     public:
         ModbusRTU& operator=(const ModbusRTU& obj);
@@ -40,7 +40,7 @@ namespace muffin { namespace jarvis { namespace config {
         void SetSlaveID(const uint8_t sid);
         void SetNodes(std::vector<std::string>&& nodes) noexcept;
     public:
-        std::pair<Status, uint8_t> GetPort() const;
+        std::pair<Status, prt_e> GetPort() const;
         std::pair<Status, uint8_t> GetSlaveID() const;
         std::pair<Status, std::vector<std::string>> GetNodes() const;
     private:
