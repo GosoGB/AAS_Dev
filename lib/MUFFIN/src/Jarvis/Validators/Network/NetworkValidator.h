@@ -37,10 +37,6 @@ namespace muffin { namespace jarvis {
     public:
         Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
-        Status validateLteCatM1(const JsonArray array, cin_vector* outVector);
-        Status validateMandatoryKeysLteCatM1(const JsonObject json);
-        Status validateMandatoryValuesLteCatM1(const JsonObject json);
-    private:
         Status validateEthernet(const JsonArray array, cin_vector* outVector);
         Status validateMandatoryKeysEthernet(const JsonObject json);
         Status validateMandatoryValuesEthernet(const JsonObject json);
@@ -51,12 +47,19 @@ namespace muffin { namespace jarvis {
     private:
         Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        std::pair<Status, md_e> convertToLteModel(const std::string model);
-        std::pair<Status, ctry_e> convertToLteCountry(const std::string country);
-    private:
-        std::pair<Status, wifi_auth_mode_t> convertToAuth(const uint8_t auth);
-        std::pair<Status, wpa2_auth_method_t> convertToEapAuth(const uint8_t eapAuth);
-        std::pair<Status, IPAddress> convertToIPv4(const std::string ip, const bool& isSubnetmask);
+        std::pair<Status, bool> convertToDHCP(JsonVariant dhcp);
+        std::pair<Status, bool> convertToEAP(JsonVariant eap);
+        std::pair<Status, wifi_auth_mode_t> convertToAuth(JsonVariant auth);
+        std::pair<Status, wpa2_auth_method_t> convertToWpaAuth(JsonVariant wpaAuth);
+        std::pair<Status, std::string> convertToSSID(JsonVariant ssid);
+        std::pair<Status, std::string> convertToPSK(JsonVariant psk);
+        std::pair<Status, std::string> convertToEapID(JsonVariant id);
+        std::pair<Status, std::string> convertToEapUser(JsonVariant user);
+        std::pair<Status, std::string> convertToEapPassword(JsonVariant pass);
+        std::pair<Status, std::string> convertToCaCertificate(JsonVariant caCert);
+        std::pair<Status, std::string> convertToClientCertificate(JsonVariant crt);
+        std::pair<Status, std::string> convertToClientKey(JsonVariant key);
+        std::pair<Status, IPAddress> convertToIPv4(JsonVariant ip, const bool& isSubnetmask);
    
      
     };
