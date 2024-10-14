@@ -248,9 +248,7 @@ namespace muffin { namespace jarvis {
         UNSIGNED_INTEGER_64,
         FLOATING_POINT_64,
         CHARACTER,
-        WIDE_CHARACTER,
         STRING,
-        WIDE_STRING,
         HEX_LOWERCASE,
         HEX_UPPERCASE
     } fmt_spec_e;

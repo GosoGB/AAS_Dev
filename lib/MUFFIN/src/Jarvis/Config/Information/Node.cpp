@@ -282,7 +282,7 @@ namespace muffin { namespace jarvis { namespace config {
                         return true;
                     }
                 }()
-            ), "NUMERIC SCALE CANNOT BE APPLIED TO DATA WHICH ISSTRING OR BOOLEAN TYPE"
+            ), "NUMERIC SCALE CANNOT BE APPLIED TO DATA WHICH IS STRING OR BOOLEAN TYPE"
         );
         ASSERT((mIsBitIndexSet == false), "NUMERIC SCALE CANNOT BE SET WHEN BIT INDEX IS ENABLED");
 
@@ -401,9 +401,7 @@ namespace muffin { namespace jarvis { namespace config {
         // 속성 간 의존성 검사
         ASSERT((mIsBitIndexSet == false), "FORMAT STRING CANNOT BE SET WHEN BIT INDEX IS ENABLED");
         ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
-        ASSERT((mIsDataUnitOrdersSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() > 0), "DATA TYPE CANNOT BE EMPTY ARRAY");
-        ASSERT((mVectorDataUnitOrders.size() == mVectorDataTypes.size()), "DATA UNIT ORDERS AND DATA TYPES MUST BE EQUAL IN LENGTH");
         
         // 데이터 타입 유효성 검사
         ASSERT(
@@ -436,7 +434,7 @@ namespace muffin { namespace jarvis { namespace config {
                         }
                     }
                 }()
-            ), "FORMAT STRING CANNOT BE APPLIED TO DATA WHICH IS STRING, FP32 OR FP64 TYPE"
+            ), "FORMAT STRING CANNOT BE APPLIED TO DATA WHICH IS BOOLEAN TYPE"
         );
 
         // format 문자열 유효성 검사

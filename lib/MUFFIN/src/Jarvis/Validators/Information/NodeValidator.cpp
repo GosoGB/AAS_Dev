@@ -4,7 +4,7 @@
  * 
  * @brief Node 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2024-10-12
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -173,21 +173,68 @@ namespace muffin { namespace jarvis {
                 return mFormatString.first;
             }
 
+            ret = validateModbusArea();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID MODBUS AREA CONFIG: %s", ret.c_str());
+                return ret;
+            }
+            
+            ret = validateBitIndex();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID BIT INDEX CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
-            validateModbusArea();
-            validateBitIndex();
-            validateAddressQuantity();
-            validateNumericScale();
-            validateNumericOffset();
-            validateMappingRules();
-            validateDataUnitOrders();
-            validateDataTypes();
-            validateFormatString();
+            ret = validateAddressQuantity();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID ADDRESS QUANTITY CONFIG: %s", ret.c_str());
+                return ret;
+            }
+            
+            ret = validateNumericScale();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID NUMERIC SCALE CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateNumericOffset();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID NUMERIC OFFSET CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateMappingRules();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID MAPPING RULES CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateDataUnitOrders();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID DATA UNIT ORDER CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateDataTypes();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID DATA TYPES CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
+            ret = validateFormatString();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "INVALID FORMAT STRING CONFIG: %s", ret.c_str());
+                return ret;
+            }
 
             config::Node* node = new(std::nothrow) config::Node(cfg_key_e::ALARM);
             if (node == nullptr)
@@ -199,11 +246,66 @@ namespace muffin { namespace jarvis {
             node->SetNodeID(mNodeID);
             node->SetAddressType(mAddressType.second);
             node->SetAddrress(mAddress.second);
-            node->SetDataTypes(std::move(retDT.second));
-            node->SetDeprecableUID(uid);
-            node->SetDeprecableDisplayName(displayName);
-            node->SetDeprecableDisplayUnit(displayUnit);
-            node->SetAttributeEvent(isEvent);
+            node->SetDataTypes(std::move(mDataTypes.second));
+            node->SetDeprecableUID(mUID);
+            node->SetDeprecableDisplayName(mDisplayName);
+            node->SetDeprecableDisplayUnit(mDisplayUnit);
+            node->SetAttributeEvent(mIsEventType);
+
+            if (mModbusArea.first == Status::Code::GOOD)
+            {
+                node->SetModbusArea(mModbusArea.second);
+            }
+            
+            if (mBitIndex.first == Status::Code::GOOD)
+            {
+                node->SetBitIndex(mBitIndex.second);
+            }
+
+            if (mAddressQuantity.first == Status::Code::GOOD)
+            {
+                node->SetNumericAddressQuantity(mAddressQuantity.second);
+            }
+
+            if (mNumericScale.first == Status::Code::GOOD)
+            {
+                node->SetNumericScale(mNumericScale.second);
+            }
+            
+            if (mNumericOffset.first == Status::Code::GOOD)
+            {
+                node->SetNumericOffset(mNumericOffset.second);
+            }
+
+            if (mMappingRules.first == Status::Code::GOOD)
+            {
+                node->SetMappingRules(std::move(mMappingRules.second));
+            }
+
+            if (mDataUnitOrders.first == Status::Code::GOOD)
+            {
+                node->SetDataUnitOrders(std::move(mDataUnitOrders.second));
+            }
+            
+            if (mFormatString.first == Status::Code::GOOD)
+            {
+                node->SetFormatString(mFormatString.second);
+            }
+
+            try
+            {
+                outVector->emplace_back(std::move(node));
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR NODE CIN: %s", e.what());
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO EMPLACE NODE CIN: %s", e.what());
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
         }
     }
 
@@ -380,8 +482,8 @@ namespace muffin { namespace jarvis {
         {
             LOG_VERBOSE(logger, "Bit index is not enabled");
             return Status(Status::Code::GOOD);
-        } 
-           
+        }
+
         if (mAddressQuantity.first == Status::Code::GOOD)
         {
             LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH ADDRESS QUANTITY");
@@ -397,7 +499,6 @@ namespace muffin { namespace jarvis {
         if (mNumericOffset.first == Status::Code::GOOD)
         {
             LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC OFFSET");
-            LOG_ERROR(logger, "WITH ");
             return Status(Status::Code::BAD_CONFIGURATION_ERROR);
         }
 
@@ -532,7 +633,54 @@ namespace muffin { namespace jarvis {
      */
     Status NodeValidator::validateNumericScale()
     {
-        ;
+        if (mNumericScale.first.ToCode() == Status::Code::GOOD_NO_DATA)
+        {
+            LOG_VERBOSE(logger, "Numeric scale is not enabled");
+            return Status(Status::Code::GOOD);
+        }
+        
+        if (mDataTypes.second.size() != 1)
+        {
+            LOG_ERROR(logger, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mDataUnitOrders.first == Status::Code::GOOD)
+        {
+            if (mDataUnitOrders.second.size() != 1)
+            {
+                LOG_ERROR(logger, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+        
+        switch (mDataTypes.second.front())
+        {
+            case dt_e::STRING:
+            case dt_e::BOOLEAN:
+                LOG_ERROR(logger, "NUMERIC SCALE CANNOT BE CONFIGURED WITH \"STRING\" OR \"BOOLEAN\" DATA TYPE");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            default:
+                break;
+        }
+        
+        if (mBitIndex.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "NUMERIC SCALE CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mModbusArea.first == Status::Code::GOOD)
+        {
+            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            {
+                LOG_ERROR(logger, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+
+        LOG_VERBOSE(logger, "Configured numeric scale: %d", static_cast<int8_t>(mNumericScale.second));
+        return Status(Status::Code::GOOD);
     }
 
     /**
@@ -542,7 +690,54 @@ namespace muffin { namespace jarvis {
      */
     Status NodeValidator::validateNumericOffset()
     {
-        ;
+        if (mNumericOffset.first.ToCode() == Status::Code::GOOD_NO_DATA)
+        {
+            LOG_VERBOSE(logger, "Numeric offset is not enabled");
+            return Status(Status::Code::GOOD);
+        }
+
+        if (mDataTypes.second.size() != 1)
+        {
+            LOG_ERROR(logger, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mDataUnitOrders.first == Status::Code::GOOD)
+        {
+            if (mDataUnitOrders.second.size() != 1)
+            {
+                LOG_ERROR(logger, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+        
+        switch (mDataTypes.second.front())
+        {
+            case dt_e::STRING:
+            case dt_e::BOOLEAN:
+                LOG_ERROR(logger, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH \"STRING\" OR \"BOOLEAN\" DATA TYPE");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            default:
+                break;
+        }
+        
+        if (mBitIndex.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "NUMERIC OFFSET CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mModbusArea.first == Status::Code::GOOD)
+        {
+            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            {
+                LOG_ERROR(logger, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+
+        LOG_VERBOSE(logger, "Configured numeric offset: %d", );
+        return Status(Status::Code::GOOD);
     }
 
     /**
@@ -552,7 +747,40 @@ namespace muffin { namespace jarvis {
      */
     Status NodeValidator::validateMappingRules()
     {
-        ;
+        if (mMappingRules.first.ToCode() == Status::Code::GOOD_NO_DATA)
+        {
+            LOG_VERBOSE(logger, "Mapping rules are not enabled");
+            return Status(Status::Code::GOOD);
+        }
+
+        if (mDataTypes.second.size() != 1)
+        {
+            LOG_ERROR(logger, "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mDataUnitOrders.first == Status::Code::GOOD)
+        {
+            if (mDataUnitOrders.second.size() != 1)
+            {
+                LOG_ERROR(logger, "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+        
+        switch (mDataTypes.second.front())
+        {
+            case dt_e::STRING:
+            case dt_e::FLOAT32:
+            case dt_e::FLOAT64:
+                LOG_ERROR(logger, "MAPPING RULES CANNOT BE CONFIGURED WITH \"STRING\", \"FP32\" OR \"FP64\" DATA TYPE");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            default:
+                break;
+        }
+
+        LOG_VERBOSE(logger, "Configured mapping rules");
+        return Status(Status::Code::GOOD);
     }
 
     /**
@@ -562,7 +790,50 @@ namespace muffin { namespace jarvis {
      */
     Status NodeValidator::validateDataUnitOrders()
     {
-        ;
+        if (mDataUnitOrders.first.ToCode() == Status::Code::GOOD_NO_DATA)
+        {
+            LOG_VERBOSE(logger, "Data unit orders are not enabled");
+            return Status(Status::Code::GOOD);
+        }
+        
+        if (mBitIndex.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "DATA UNIT ORDERS CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mModbusArea.first == Status::Code::GOOD)
+        {
+            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            {
+                LOG_ERROR(logger, "DATA UNIT ORDERS CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+        
+        if (mDataUnitOrders.second.size() != mDataTypes.second.size())
+        {
+            LOG_ERROR(logger, "DATA UNIT ORDERS MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA TYPES");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        for (const auto& dataUnitOrder : mDataUnitOrders.second)
+        {
+            std::set<uint8_t> setIndex;
+
+            for (const auto& orderType : dataUnitOrder)
+            {
+                const auto result = setIndex.emplace(orderType.Index);
+                if (result.second == false)
+                {
+                    LOG_ERROR(logger, "DATA UNIT ORDER INDICES CANNOT BE DUPLICATED");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+            }
+        }
+
+        LOG_VERBOSE(logger, "Configured data unit orders");
+        return Status(Status::Code::GOOD);
     }
     
     /**
@@ -572,7 +843,133 @@ namespace muffin { namespace jarvis {
      */
     Status NodeValidator::validateDataTypes()
     {
-        ;
+        if (mDataTypes.first.ToCode() == Status::Code::GOOD_NO_DATA)
+        {
+            LOG_VERBOSE(logger, "Data types are not enabled");
+            return Status(Status::Code::GOOD);
+        }
+        
+        if (mBitIndex.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "DATA TYPES CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+        
+        if (mDataUnitOrders.first == Status::Code::GOOD)
+        {
+            if (mDataTypes.second.size() != mDataUnitOrders.second.size())
+            {
+                LOG_ERROR(logger, "DATA TYPES MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA UNIT ORDERS");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+            
+            for (uint8_t i = 0; i < mDataTypes.second.size(); ++i)
+            {
+                const DataUnitOrder& dataUnitOrder = mDataUnitOrders.second.at(i);
+                size_t sumOrderSize = 0;
+
+                for (const auto& order : dataUnitOrder)
+                {
+                    sumOrderSize += static_cast<uint8_t>(order.DataUnit);
+                }
+                
+                size_t dataTypeSize = 0;
+                switch (mDataTypes.second.at(i))
+                {
+                    case dt_e::BOOLEAN:
+                        LOG_ERROR(logger, "DATA TYPE \"BOOLEAN\" CANNOT BE CONFIGURED WITH DATA UNIT ORDER");
+                        return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                    case dt_e::INT8:
+                    case dt_e::UINT8:
+                    case dt_e::STRING:
+                        dataTypeSize = 8;
+                        break;
+                    case dt_e::INT16:
+                    case dt_e::UINT16:
+                        dataTypeSize = 16;
+                        break;
+                    case dt_e::INT32:
+                    case dt_e::UINT32:
+                    case dt_e::FLOAT32:
+                        dataTypeSize = 32;
+                        break;
+                    case dt_e::INT64:
+                    case dt_e::UINT64:
+                    case dt_e::FLOAT64:
+                        dataTypeSize = 64;
+                        break;
+                    default:
+                        return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+                }
+            
+                if (dataTypeSize != sumOrderSize)
+                {
+                    LOG_ERROR(logger, "DATA TYPE SIZE DOES NOT MATCH WITH THE SUM OF DATA UNIT ORDERS");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+            }
+        }
+
+        if (mModbusArea.first == Status::Code::GOOD)
+        {
+            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            {
+                if (mDataTypes.second.size() != 1)
+                {
+                    LOG_ERROR(logger, "DATA TYPE MUST HAVE ONE ELEMENT WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                else if (mDataTypes.second.front() != dt_e::BOOLEAN)
+                {
+                    LOG_ERROR(logger, "DATA TYPE MUST BE \"BOOLEAN\" WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+            }
+            else
+            {
+                constexpr uint8_t REGISTER_SIZE = 16;
+                const size_t totalRegisterSize = REGISTER_SIZE * mAddressQuantity.second;
+                size_t sumDataTypeSize = 0;
+
+                for (const auto& dataType : mDataTypes.second)
+                {
+                    switch (dataType)
+                    {
+                        case dt_e::INT8:
+                        case dt_e::UINT8:
+                        case dt_e::STRING:
+                            sumDataTypeSize += 8;
+                            break;
+                        case dt_e::INT16:
+                        case dt_e::UINT16:
+                            sumDataTypeSize += 16;
+                            break;
+                        case dt_e::INT32:
+                        case dt_e::UINT32:
+                        case dt_e::FLOAT32:
+                            sumDataTypeSize += 32;
+                            break;
+                        case dt_e::INT64:
+                        case dt_e::UINT64:
+                        case dt_e::FLOAT64:
+                            sumDataTypeSize += 64;
+                            break;
+                        default:
+                            LOG_ERROR(logger, "DATA TYPE \"BOOLEAN\" CANNOT BE CONFIGURED WITH MODBUS AREA USING REGISTERS");
+                            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                    }
+                }
+
+                if (totalRegisterSize != sumDataTypeSize)
+                {
+                    LOG_ERROR(logger, "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+            }
+        }
+
+        LOG_VERBOSE(logger, "Configured data types");
+        return Status(Status::Code::GOOD);
     }
 
     /**
@@ -582,9 +979,99 @@ namespace muffin { namespace jarvis {
      */
     Status NodeValidator::validateFormatString()
     {
-        mVectorFormatSpecifier 순서와 std::vector<muffin::jarvis::dt_e> 가 일치하는지 확인 필요함
-    }
+        if (mFormatString.first.ToCode() == Status::Code::GOOD_NO_DATA)
+        {
+            LOG_VERBOSE(logger, "Format string is not enabled");
+            return Status(Status::Code::GOOD);
+        }
+        
+        if (mBitIndex.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FORMAT STRING CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
 
+        if (mModbusArea.first == Status::Code::GOOD)
+        {
+            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            {
+                LOG_ERROR(logger, "FORMAT STRING CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+
+        if (mVectorFormatSpecifier.size() != mDataTypes.second.size())
+        {
+            LOG_ERROR(logger, "THE NUMBER OF FORMAT SPECIFIERS MUST BE EQUAL TO THE NUMBER OF DATA TYPES");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        for (uint8_t i = 0; i < mVectorFormatSpecifier.size(); ++i)
+        {
+            fmt_spec_e specifier = mVectorFormatSpecifier[i];
+            dt_e dataType = mDataTypes.second[i];
+
+            switch (specifier)
+            {
+            case fmt_spec_e::INTEGER_32:
+                if (dataType != dt_e::INT8  && dataType != dt_e::INT16  && dataType != dt_e::INT32)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"32-BIT INTEGER\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::INTEGER_64:
+                if (dataType != dt_e::INT8  && dataType != dt_e::INT16  && dataType != dt_e::INT32 && dataType != dt_e::INT64)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT INTEGER\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::UNSIGNED_INTEGER_32:
+                if (dataType != dt_e::UINT8 && dataType != dt_e::UINT16 && dataType != dt_e::UINT32)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 32-BIT INTEGER\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::UNSIGNED_INTEGER_64:
+                if (dataType != dt_e::UINT8 && dataType != dt_e::UINT16 && dataType != dt_e::UINT32 && dataType != dt_e::UINT64)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 64-BIT INTEGER\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::FLOATING_POINT_64:
+                if (dataType != dt_e::FLOAT32 && dataType != dt_e::FLOAT64)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT FLOATING POINT\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::CHARACTER:
+            case fmt_spec_e::STRING:
+                if (dataType != dt_e::STRING)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"STRING\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case fmt_spec_e::HEX_LOWERCASE:
+            case fmt_spec_e::HEX_UPPERCASE:
+                if (static_cast<uint8_t>(dt_e::UINT64) < static_cast<uint8_t>(dataType) && 
+                    static_cast<uint8_t>(dataType) < static_cast<uint8_t>(dt_e::BOOLEAN))
+                if (dataType == dt_e::BOOLEAN || dataType == dt_e::FLOAT32 || dataType == dt_e::FLOAT64 || dataType == dt_e::STRING)
+                {
+                    LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"HEXA CODE\"");
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            default:
+                LOG_ERROR(logger, "INVALID DATA TYPE FOR FORMAT SPECIFIER: %u", static_cast<uint8_t>(specifier));
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+    }
 
     std::pair<Status, std::vector<dt_e>> NodeValidator::processDataTypes(JsonArray dataTypes)
     {
@@ -1246,13 +1733,9 @@ namespace muffin { namespace jarvis {
                 }
                 else if (*format == 'c')
                 {
-                    if (isLongLong == true)
+                    if (isLong == true || isLongLong == true)
                     {
                         goto INVALID_SPECIFIER;
-                    }
-                    else if (isLong == true)
-                    {
-                        formatSpecifier = fmt_spec_e::WIDE_CHARACTER;
                     }
                     else
                     {
@@ -1261,13 +1744,9 @@ namespace muffin { namespace jarvis {
                 }
                 else if (*format == 's')
                 {
-                    if (isLongLong == true)
+                    if (isLong == true || isLongLong == true)
                     {
                         goto INVALID_SPECIFIER;
-                    }
-                    else if (isLong == true)
-                    {
-                        formatSpecifier = fmt_spec_e::WIDE_STRING;
                     }
                     else
                     {

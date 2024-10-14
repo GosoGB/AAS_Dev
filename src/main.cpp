@@ -1,19 +1,19 @@
 #include <Arduino.h>
-// #include <Jarvis/Config/Network/CatM1.h>
-// #include <Jarvis/Config/Interfaces/Rs232.h>
-// #include <Jarvis/Validators/Validator.h>
+#include <Jarvis/Config/Network/CatM1.h>
+#include <Jarvis/Config/Interfaces/Rs232.h>
+#include <Jarvis/Validators/Validator.h>
 
-// #include <DataFormat/JSON/JSON.h>
-// #include <Network/CatM1/CatM1.h>
+#include <DataFormat/JSON/JSON.h>
+#include <Network/CatM1/CatM1.h>
 
 
-// #include <Network/Ethernet/Ethernet.h>
-// #include <Network/WiFi4/WiFi4.h>
-// #include <Network/TypeDefinitions.h>
-// #include <Protocol/MQTT/CatMQTT/CatMQTT.h>
-// #include <Storage/ESP32FS/ESP32FS.h>
-// #include <vector>
-// #include <ArduinoJson.h>
+#include <Network/Ethernet/Ethernet.h>
+#include <Network/WiFi4/WiFi4.h>
+#include <Network/TypeDefinitions.h>
+#include <Protocol/MQTT/CatMQTT/CatMQTT.h>
+#include <Storage/ESP32FS/ESP32FS.h>
+#include <vector>
+#include <ArduinoJson.h>
 
 
 // static std::string PROGMEM JARVIS_DEFAULT = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"ptr":2,"sid":1,"nodes":["no01","no02"]}],"mbtcp":[],"op":[{"snic":"lte","exp":true,"intvPoll":1,"intvSrv":60,"ota":false}],"node":[{"id":"no01","adtp":0,"addr":0,"area":4,"bit":null,"qty":1,"scl":-1,"ofst":null,"dt":3,"map":null,"ord":null,"uid":"DI1","fmt":null,"name":"테스트","unit":"N/A","event":true},{"id":"no01","adtp":0,"addr":1,"area":4,"bit":3,"qty":null,"scl":null,"ofst":null,"dt":3,"map":{"0":"닫힘","1":"열림"},"ord":"nuill","uid":"DO1","name":"테스트","unit":"N/A","event":true}],"alarm":[],"optime":[],"prod":[]}})";
@@ -111,5 +111,73 @@ void setup()
 
 void loop()
 {
+    // 
+}
+
+
+/*
+#include <IM/Node/Include/NodeID.h>
+#include <IM/Node/Include/Helper.h>
+#include <IM/Node/Node.h>
+#include <Network/Ethernet/Ethernet.h>
+#include <Network/WiFi4/WiFi4.h>
+#include <Storage/ESP32FS/ESP32FS.h>
+#include <map>
+
+#include <Protocol/Modbus/ModbusRTU.h>
+#include <Protocol/Modbus/Include/TypeDefinitions.h>
+#include <Protocol/Modbus/Include/Address.h>
+#include <IM/Node/Include/NumericAddressRange.h>
+
+
+
+void setup()
+{
+    muffin::logger = new muffin::Logger();
+
+    muffin::im::Node node1("node1", "uid1", "pid1", muffin::im::data_type_e::BOOLEAN);
+    muffin::im::Node node2("node2", "uid2", "pid2", muffin::im::data_type_e::BOOLEAN);
+    muffin::im::Node node3("node3", "uid3", "pid3", muffin::im::data_type_e::BOOLEAN);
+    muffin::im::Node node4("node4", "uid4", "pid4", muffin::im::data_type_e::BOOLEAN);
+
+    node1.VariableNode.SetAddress(0);
+    node1.VariableNode.SetQuantity(1);
+    node1.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
+
+    node2.VariableNode.SetAddress(1);
+    node2.VariableNode.SetQuantity(1);
+    node2.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
+
+    node3.VariableNode.SetAddress(2);
+    node3.VariableNode.SetQuantity(1);
+    node3.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
+
+    node4.VariableNode.SetAddress(3);
+    node4.VariableNode.SetQuantity(1);
+    node4.VariableNode.SetModbusArea(muffin::modbus::area_e::COIL);
+
+    muffin::ModbusRTU mbRTU;
+    mbRTU.AddNodeReference(1, node1);
+    mbRTU.AddNodeReference(1, node2);
+    mbRTU.AddNodeReference(1, node3);
+    mbRTU.AddNodeReference(1, node4);
+
+    while (true)
+    {
+        const uint32_t startMillis = millis();
+        mbRTU.Poll();
+        LOG_DEBUG(muffin::logger, "Processing time: %u", millis() - startMillis);
+
+        LOG_DEBUG(muffin::logger, "node #1: %s", node1.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        LOG_DEBUG(muffin::logger, "node #2: %s", node2.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        LOG_DEBUG(muffin::logger, "node #3: %s", node3.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        LOG_DEBUG(muffin::logger, "node #4: %s", node4.VariableNode.RetrieveData().Value.Boolean ? "true" : "false");
+        delay(1000);
+    }
+}
+
+void loop()
+{
     // put your main code here, to run repeatedly:
 }
+*/
