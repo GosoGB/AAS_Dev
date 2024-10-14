@@ -23,7 +23,18 @@
 namespace muffin { namespace jarvis {
 
     NodeValidator::NodeValidator()
-        : mPatternUID(std::regex(R"(^(?:(P|A|E)\d{3}|(?:DI|DO|MD)\d{2})$)"))
+        : mAddressType(Status(Status::Code::UNCERTAIN), adtp_e::NUMERIC)
+        , mAddress(Status(Status::Code::UNCERTAIN), addr_u())
+        , mModbusArea(Status(Status::Code::UNCERTAIN), mb_area_e::COILS)
+        , mBitIndex(Status(Status::Code::UNCERTAIN), 0)
+        , mAddressQuantity(Status(Status::Code::UNCERTAIN), 0)
+        , mNumericScale(Status(Status::Code::UNCERTAIN), scl_e::NEGATIVE_1)
+        , mNumericOffset(Status(Status::Code::UNCERTAIN), 0.0f)
+        , mMappingRules(Status(Status::Code::UNCERTAIN), std::map<uint16_t, std::string>())
+        , mDataUnitOrders(Status(Status::Code::UNCERTAIN), std::vector<DataUnitOrder>())
+        , mDataTypes(Status(Status::Code::UNCERTAIN), std::vector<muffin::jarvis::dt_e>())
+        , mFormatString(Status(Status::Code::UNCERTAIN), std::string())
+        , mPatternUID(std::regex(R"(^(?:(P|A|E)\d{3}|(?:DI|DO|MD)\d{2})$)"))
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -72,7 +83,7 @@ namespace muffin { namespace jarvis {
                 return mAddressType.first;
             }
             
-            mAddress = convertToAddress(mAddressType.second, json["addr"].as<JsonVariant>());
+            mAddress = convertToAddress(json["addr"].as<JsonVariant>());
             if (mAddress.first.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "INVALID ADDRESS: %s", mAddress.first.c_str());
@@ -164,6 +175,14 @@ namespace muffin { namespace jarvis {
 
 
             validateModbusArea();
+            validateBitIndex();
+            validateAddressQuantity();
+            validateNumericScale();
+            validateNumericOffset();
+            validateMappingRules();
+            validateDataUnitOrders();
+            validateDataTypes();
+            validateFormatString();
 
 
 
@@ -268,7 +287,7 @@ namespace muffin { namespace jarvis {
     {
         if (mModbusArea.first.ToCode() == Status::Code::GOOD_NO_DATA)
         {
-            LOG_VERBOSE(logger, "Modbus memory area config is not enabled");
+            LOG_VERBOSE(logger, "Modbus memory area is not enabled");
             return Status(Status::Code::GOOD);
         }
         
@@ -349,6 +368,223 @@ namespace muffin { namespace jarvis {
             return Status(Status::Code::GOOD);
         }
     }
+
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD 비트 인덱스 설정이 없거나, 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateBitIndex()
+    {
+        if (mBitIndex.first.ToCode() == Status::Code::GOOD_NO_DATA)
+        {
+            LOG_VERBOSE(logger, "Bit index is not enabled");
+            return Status(Status::Code::GOOD);
+        } 
+           
+        if (mAddressQuantity.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH ADDRESS QUANTITY");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+        
+        if (mNumericScale.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC SCALE");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+        
+        if (mNumericOffset.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC OFFSET");
+            LOG_ERROR(logger, "WITH ");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mFormatString.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH FORMAT STRING");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mDataTypes.second.size() != 1)
+        {
+            LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPE");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mDataUnitOrders.first == Status::Code::GOOD)
+        {
+            if (mDataUnitOrders.second.size() != 1)
+            {
+                LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDER");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+
+        if (mModbusArea.first == Status::Code::GOOD)
+        {
+            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            {
+                LOG_ERROR(logger, "BIT INDEX CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+
+        switch (mDataTypes.second.front())
+        {
+            case dt_e::INT8:
+            case dt_e::UINT8:
+                if (mBitIndex.second > 7)
+                {
+                    LOG_ERROR(logger, "BIT INDEX OUT OF RANGE FOR 8-BIT INTEGER: %u", mBitIndex.second);
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case dt_e::INT16:
+            case dt_e::UINT16:
+                if (mBitIndex.second > 15)
+                {
+                    LOG_ERROR(logger, "BIT INDEX OUT OF RANGE FOR 16-BIT INTEGER: %u", mBitIndex.second);
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case dt_e::INT32:
+            case dt_e::UINT32:
+                if (mBitIndex.second > 31)
+                {
+                    LOG_ERROR(logger, "BIT INDEX OUT OF RANGE FOR 32-BIT INTEGER: %u", mBitIndex.second);
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            case dt_e::INT64:
+            case dt_e::UINT64:
+                if (mBitIndex.second > 63)
+                {
+                    LOG_ERROR(logger, "BIT INDEX OUT OF RANGE FOR 64-BIT INTEGER: %u", mBitIndex.second);
+                    return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+                }
+                break;
+            default:
+                LOG_ERROR(logger, "INVALID DATA TYPE FOR BIT INDEX: %u", 
+                    static_cast<uint8_t>(mDataTypes.second.front()));
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        LOG_VERBOSE(logger, "Bit index [%u] can be configured with data type: %u",
+            mBitIndex.second, static_cast<uint8_t>(mDataTypes.second.front()));
+        return Status(Status::Code::GOOD);
+    }
+
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD Numeric Address Quantity 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateAddressQuantity()
+    {
+        if (mAddressType.second != adtp_e::NUMERIC)
+        {
+            if (mAddressQuantity.first == Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF ADDRESS TYPE IS NOT NUMERIC");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+            else
+            {
+                LOG_VERBOSE(logger, "Numeric address quantity is not enabled");
+                return Status(Status::Code::GOOD);
+            }
+        }
+        
+        if (mAddressType.second == adtp_e::NUMERIC)
+        {
+            if (mAddressQuantity.first == Status::Code::GOOD_NO_DATA)
+            {
+                LOG_ERROR(logger, "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF ADDRESS TYPE IS NUMERIC");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+
+        if (mBitIndex.first == Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED");
+            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+        }
+
+        if (mModbusArea.first == Status::Code::GOOD)
+        {
+            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            {
+                LOG_ERROR(logger, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\"");
+                return Status(Status::Code::BAD_CONFIGURATION_ERROR);
+            }
+        }
+
+        LOG_VERBOSE(logger, "Configured numeric address quantity: %u", mAddressQuantity.second);
+        return Status(Status::Code::GOOD);
+    }
+
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD Numeric Scale 설정이 없거나, 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateNumericScale()
+    {
+        ;
+    }
+
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD Numeric Offset 설정이 없거나, 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateNumericOffset()
+    {
+        ;
+    }
+
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD Mapping Rules 설정이 없거나, 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateMappingRules()
+    {
+        ;
+    }
+
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD Data Unit Orders 설정이 없거나, 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateDataUnitOrders()
+    {
+        ;
+    }
+    
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD Data Types 설정이 없거나, 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateDataTypes()
+    {
+        ;
+    }
+
+    /**
+     * @return Status
+     *     @li Status::Code::GOOD Format String 설정이 없거나, 설정 정보가 유효합니다.
+     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
+     */
+    Status NodeValidator::validateFormatString()
+    {
+        mVectorFormatSpecifier 순서와 std::vector<muffin::jarvis::dt_e> 가 일치하는지 확인 필요함
+    }
+
 
     std::pair<Status, std::vector<dt_e>> NodeValidator::processDataTypes(JsonArray dataTypes)
     {
@@ -556,12 +792,14 @@ namespace muffin { namespace jarvis {
         }
     }
 
-    std::pair<Status, addr_u> NodeValidator::convertToAddress(adtp_e addressType, JsonVariant address)
+    std::pair<Status, addr_u> NodeValidator::convertToAddress(JsonVariant address)
     {
+        ASSERT((mAddressType.first == Status::Code::GOOD), "ADDRESS TYPE MUST BE CONFIGURED IN ADVANCE");
+
         addr_u addressUnion;
         addressUnion.Numeric = 0;
 
-        switch (addressType)
+        switch (mAddressType.second)
         {
         case adtp_e::NUMERIC:
             if (address.is<uint32_t>() == false)

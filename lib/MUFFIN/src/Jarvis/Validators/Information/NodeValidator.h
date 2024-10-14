@@ -41,13 +41,21 @@ namespace muffin { namespace jarvis {
         Status validateMandatoryKeys(const JsonObject json);
         Status validateMandatoryValues(const JsonObject json);
         Status validateModbusArea();
+        Status validateBitIndex();
+        Status validateAddressQuantity();
+        Status validateNumericScale();
+        Status validateNumericOffset();
+        Status validateMappingRules();
+        Status validateDataUnitOrders();
+        Status validateDataTypes();
+        Status validateFormatString();
     private:
         std::pair<Status, std::vector<dt_e>> processDataTypes(JsonArray dataTypes);
         std::pair<Status, std::vector<DataUnitOrder>> processDataUnitOrders(JsonVariant dataUnitOrders);
         // Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
         std::pair<Status, adtp_e> convertToAdressType(const uint8_t type);
-        std::pair<Status, addr_u> convertToAddress(adtp_e addressType, JsonVariant address);
+        std::pair<Status, addr_u> convertToAddress(JsonVariant address);
         std::pair<Status, mb_area_e> convertToModbusArea(JsonVariant modbusArea);
         std::pair<Status, uint8_t> convertToBitIndex(JsonVariant bitIndex);
         std::pair<Status, uint8_t> convertToAddressQuantity(JsonVariant addressQuantity);
