@@ -80,7 +80,7 @@ namespace muffin { namespace jarvis {
         const auto retType = convertToOperationTimeType(type);
         if (retType.first != rsc_e::GOOD)
         {
-            const std::string message = "INVALID OPERATION TIME TYPE:"  + std::to_string(type);
+            const std::string message = "INVALID OPERATION TIME TYPE:" + std::to_string(type);
             return std::make_pair(rsc, message);
         }
 
@@ -141,7 +141,7 @@ namespace muffin { namespace jarvis {
         }
         else
         {
-            return std::make_pair(rsc_e::GOOD, "GOOD");    
+            return std::make_pair(rsc_e::GOOD, "GOOD");
         }
     }
 

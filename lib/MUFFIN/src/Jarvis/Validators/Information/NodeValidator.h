@@ -40,15 +40,15 @@ namespace muffin { namespace jarvis {
     private:
         rsc_e validateMandatoryKeys(const JsonObject json);
         rsc_e validateMandatoryValues(const JsonObject json);
-        rsc_e validateModbusArea();
-        rsc_e validateBitIndex();
-        rsc_e validateAddressQuantity();
-        rsc_e validateNumericScale();
-        rsc_e validateNumericOffset();
-        rsc_e validateMappingRules();
-        rsc_e validateDataUnitOrders();
-        rsc_e validateDataTypes();
-        rsc_e validateFormatString();
+        std::pair<rsc_e, std::string> validateModbusArea();
+        std::pair<rsc_e, std::string> validateBitIndex();
+        std::pair<rsc_e, std::string> validateAddressQuantity();
+        std::pair<rsc_e, std::string> validateNumericScale();
+        std::pair<rsc_e, std::string> validateNumericOffset();
+        std::pair<rsc_e, std::string> validateMappingRules();
+        std::pair<rsc_e, std::string> validateDataUnitOrders();
+        std::pair<rsc_e, std::string> validateDataTypes();
+        std::pair<rsc_e, std::string> validateFormatString();
     private:
         std::pair<rsc_e, std::vector<dt_e>> processDataTypes(JsonArray dataTypes);
         std::pair<rsc_e, std::vector<DataUnitOrder>> processDataUnitOrders(JsonVariant dataUnitOrders);
