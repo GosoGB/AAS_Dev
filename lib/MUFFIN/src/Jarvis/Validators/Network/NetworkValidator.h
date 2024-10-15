@@ -1,7 +1,6 @@
 /**
  * @file NetworkValidator.h
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
- * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
@@ -17,7 +16,9 @@
 #pragma once
 
 #include <ArduinoJson.h>
+#include <esp_wifi_types.h>
 #include <vector>
+#include <WiFiSTA.h>
 
 #include <esp_wifi_types.h>
 #include <IPAddress.h>

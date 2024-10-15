@@ -1,11 +1,10 @@
 /**
  * @file Jarvis.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
- * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief MODLINK 설정을 담당하는 JARVIS 클래스를 선언합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
