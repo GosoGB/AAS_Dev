@@ -1,6 +1,7 @@
 /**
  * @file NetworkValidator.cpp
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
@@ -12,15 +13,14 @@
 
 
 
-#include <regex>
-
+#include <regex> 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "NetworkValidator.h"
 #include "Jarvis/Config/Network/CatM1.h"
 #include "Jarvis/Config/Network/Ethernet.h"
 #include "Jarvis/Config/Network/WiFi4.h"
 #include "Jarvis/Include/Helper.h"
-#include "NetworkValidator.h"
 
 
 
@@ -68,6 +68,7 @@ namespace muffin { namespace jarvis {
         if (array.size() != 1)
         {
             LOG_ERROR(logger, "INVALID WIFI CONFIG: ONLY ONE WIFI MODULE CAN BE CONFIGURED");
+            ASSERT((array.size() == 1), "WIFI CONFIG CANNOT BE GREATER THAN 1");
             return Status(Status::Code::BAD_NOT_SUPPORTED);
         }
 
@@ -97,11 +98,11 @@ namespace muffin { namespace jarvis {
             return retAUTH.first;
         }
 
-        const auto retWpaAUTH = convertToWpaAuth(cin["auth"].as<JsonVariant>());
+        const auto retWpaAUTH = convertToWpaAuth(cin["wpa2auth"].as<JsonVariant>());
         if (retWpaAUTH.first.ToCode() != Status::Code::GOOD &&
             retWpaAUTH.first.ToCode() != Status::Code::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI WPA AUTH: %s", retWpaAUTH.first.c_str());
+            LOG_ERROR(logger, "INVALID WIFI EAP AUTH: %s", retWpaAUTH.first.c_str());
             return retWpaAUTH.first;
         }
 
@@ -278,6 +279,7 @@ namespace muffin { namespace jarvis {
 
         LOG_VERBOSE(logger, "Valid WiFi4 config instance")
         return Status(Status::Code::GOOD);
+    
     }
 
     Status NetworkValidator::validateMandatoryKeysWiFi4(const JsonObject json)
@@ -320,6 +322,11 @@ namespace muffin { namespace jarvis {
         isValid &= json["dhcp"].is<bool>();
         isValid &= json["ssid"].is<std::string>();
         isValid &= json["eap"].is<bool>();
+
+        if (isValid == false)
+        {
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
     
         bool DHCP = json["dhcp"].as<bool>();
 
@@ -337,37 +344,80 @@ namespace muffin { namespace jarvis {
             isValid &= json["dns1"].is<std::string>();
             isValid &= json["dns2"].is<std::string>();
 
+            if (isValid == false)
+            {
+                LOG_ERROR(logger, "WIFI : STATIC IP SETTING ERROR");
+                return Status(Status::Code::BAD_ENCODING_ERROR);
+            }
+
         }
 
-        // AUTH값이 0이 아니고 EAP 값이 FALSE일때만 PSK 입력 필요// EAP가 TURE이면 PSK가 들어와도 사용하지 않기 때문에 우선 ERROR 처리하지 않음
-        uint8_t Auth = json["auth"].as<uint8_t>();
-        bool EAP = json["eap"].as<bool>();
+          // auth가 null이 아니면 uint8_t 타입인지 검사
+        if (json["auth"].isNull() == false)
+        {
+            if (json["auth"].is<uint8_t>() == false)
+            {
+                LOG_ERROR(logger, "'AUTH' IS NOT OF TYPE UNSIGNED INT 8");
+                return Status(Status::Code::BAD_ENCODING_ERROR);
+            }
 
-        if (Auth != 0 && EAP == false)
-        {
-            isValid &= json["psk"].isNull() == false;
-            isValid &= json["psk"].is<std::string>();
-        } 
+            bool EAP = json["eap"].as<bool>();
+            uint8_t Auth = json["auth"].as<uint8_t>();
 
-        // WPA2AUTH 값이 0이 아닌 경우 EAP ID, EAP USERNAME, EAP PASSWORD 입력 필요
-        uint8_t Wpa2Auth = json["wpa2auth"].as<uint8_t>();
-        if (Wpa2Auth == 0)
-        {
-            isValid &= json["crt"].isNull() == false;
-            isValid &= json["key"].isNull() == false;
-            isValid &= json["crt"].is<std::string>();
-            isValid &= json["key"].is<std::string>();
-        }
-        else
-        {
-            isValid &= json["id"].isNull() == false;
-            isValid &= json["user"].isNull() == false;
-            isValid &= json["pass"].isNull() == false;
-            isValid &= json["id"].is<std::string>();
-            isValid &= json["user"].is<std::string>();
-            isValid &= json["pass"].is<std::string>();
+            // AUTH값이 0이 아니고 EAP 값이 FALSE일때만 PSK 입력 필요// EAP가 TURE이면 PSK가 들어와도 사용하지 않기 때문에 우선 ERROR 처리하지 않음
+            if (Auth != 0 && EAP == false)
+            {
+                isValid &= json["psk"].isNull() == false;
+                isValid &= json["psk"].is<std::string>();
+            }
+
+            if (isValid == false)
+            {
+                LOG_ERROR(logger, "AUTH SETTING ERROR, CHECK PSK");
+                return Status(Status::Code::BAD_ENCODING_ERROR);
+            }
         }
 
+        if (json["wpa2auth"].isNull() == false)
+        {
+            if (json["wpa2auth"].is<uint8_t>() == false)
+            {
+                LOG_ERROR(logger, "'EAP AUTH' IS NOT OF TYPE UNSIGNED INT 8");
+                return Status(Status::Code::BAD_ENCODING_ERROR);
+            }
+
+            // WPA2AUTH 값이 0이 아닌 경우 EAP ID, EAP USERNAME, EAP PASSWORD 입력 필요
+            uint8_t Wpa2Auth = json["wpa2auth"].as<uint8_t>();
+            if (Wpa2Auth == 0)
+            {
+                isValid &= json["crt"].isNull() == false;
+                isValid &= json["key"].isNull() == false;
+                isValid &= json["crt"].is<std::string>();
+                isValid &= json["key"].is<std::string>();
+
+                if (isValid == false)
+                {
+                    LOG_ERROR(logger, "EAP AUTH SETTING ERROR, CHECK CLIENT CERTIFICATE,KEY");
+                    return Status(Status::Code::BAD_ENCODING_ERROR);
+                }
+            }
+            else
+            {
+                isValid &= json["id"].isNull() == false;
+                isValid &= json["user"].isNull() == false;
+                isValid &= json["pass"].isNull() == false;
+                isValid &= json["id"].is<std::string>();
+                isValid &= json["user"].is<std::string>();
+                isValid &= json["pass"].is<std::string>();
+
+                if (isValid == false)
+                {
+                    LOG_ERROR(logger, "EAP AUTH SETTING ERROR, CHECK EAP ID, USER, PASSWORD");
+                    return Status(Status::Code::BAD_ENCODING_ERROR);
+                }
+            }
+        }
+        
         if (isValid == true)
         {
             return Status(Status::Code::GOOD);
@@ -468,6 +518,7 @@ namespace muffin { namespace jarvis {
 
         LOG_VERBOSE(logger, "Valid ethernet config instance")
         return Status(Status::Code::GOOD);
+    
     }
 
     Status NetworkValidator::validateMandatoryKeysEthernet(const JsonObject json)
@@ -495,7 +546,12 @@ namespace muffin { namespace jarvis {
         bool isValid = true;
         isValid &= json["dhcp"].isNull() == false;
         isValid &= json["dhcp"].is<bool>();
-    
+
+        if (isValid == false)
+        {
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
+        
         bool DHCP = json["dhcp"].as<bool>();
 
         // DHCP가 아닌 경우에는 IP정보가 필수로 입력 되어야 함
