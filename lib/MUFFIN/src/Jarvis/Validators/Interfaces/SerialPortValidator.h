@@ -35,7 +35,7 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
         std::pair<rsc_e, std::string> validateRS232(const JsonArray array, cin_vector* outVector);
         std::pair<rsc_e, std::string> validateRS485(const JsonArray array, cin_vector* outVector);

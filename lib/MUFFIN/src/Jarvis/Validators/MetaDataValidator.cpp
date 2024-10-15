@@ -247,31 +247,40 @@ namespace muffin { namespace jarvis {
 
         for (auto config : container)
         {
-            if (config.value().is<JsonArray>() == false)
-            {
-                mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS NOT A JSON ARRAY";
-                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
-            }
-            
             const auto retKey = ConvertToConfigKey(mVersion, config.key().c_str());
             if (retKey.first.ToCode() != Status::Code::GOOD)
             {
                 mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS NOT DEFINED";
                 return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
-            }
+            }/*컨테이너 안에서 사용할 수 있는 유효한 키(key) 값잆니다.*/
 
-            if (config.value().as<JsonArray>().size() == 0)
+            if (config.value().is<JsonArray>() == false)
             {
-                LOG_VERBOSE(logger, "CONFIG HAS AN EMPTY ARRAY: %s", config.key().c_str());
+                mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS NOT A JSON ARRAY";
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            }/*키(key)에 맵핑된 값이 유효한 JSON ARRAY 형식입니다.*/
+            
+            if ((config.value().isNull() == true) || (config.value().as<JsonArray>().size() == 0))
+            {
+                LOG_VERBOSE(logger, "CONFIG IS  A NULL OR AN EMPTY ARRAY: %s", config.key().c_str());
                 continue;
-            }
+            }/*키(key)에 맵핑된 JSON ARRAY가 NULL이 아니며 길이가 0도 아닙니다.*/
+
+            for (auto cin : config.value().as<JsonArray>())
+            {
+                if (cin.is<JsonObject>() == false)
+                {
+                    mResponseDescription = "INVALID CONTAINER: CONFIG INSTANCE MUST BE JSON OBJECT: \"" + std::string(config.key().c_str()) + "\"";
+                    return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+                }
+            }/*JSON ARRAY 내부의 Config Instance 형식이 유효한 JSON OBJECT 형식입니다.*/
             
             const auto retEmplace = mContainerKeySet.emplace(retKey.second);
             if (retEmplace.second == false)
             {
                 mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS DUPLICATED";
                 return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCES;
-            }
+            }/*컨테이너에서 사용할 수 있는 유효한 키(key) 값이며, 설정 정보 내에서 유효합니다.*/
         }
         
         mResponseDescription = "GOOD";
