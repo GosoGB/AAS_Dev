@@ -17,12 +17,9 @@
 
 #include <ArduinoJson.h>
 #include <esp_wifi_types.h>
-#include <vector>
-#include <WiFiSTA.h>
-
-#include <esp_wifi_types.h>
 #include <IPAddress.h>
 #include <IPv6Address.h>
+#include <vector>
 #include <WiFiSTA.h>
 
 #include "Common/Status.h"

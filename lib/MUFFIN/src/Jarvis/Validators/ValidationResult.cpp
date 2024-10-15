@@ -13,8 +13,6 @@
 
 
 
-#pragma once
-
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "ValidationResult.h"

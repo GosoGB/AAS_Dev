@@ -53,7 +53,7 @@ namespace muffin {
     #endif
     }
     
-    Status Jarvis::Validate(const JsonDocument& json)
+    Status Jarvis::Validate(JsonDocument& json)
     {
         jarvis::Validator validator;
         const auto result = validator.Inspect(json, &mMapCIN);

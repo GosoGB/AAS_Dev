@@ -33,7 +33,7 @@ namespace muffin {
         Jarvis();
         virtual ~Jarvis();
     public:
-        Status Validate(const JsonDocument& json);
+        Status Validate(JsonDocument& json);
     private:
         std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>> mMapCIN;// config instance
     };

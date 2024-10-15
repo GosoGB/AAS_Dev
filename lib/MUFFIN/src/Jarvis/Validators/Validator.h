@@ -41,7 +41,7 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        ValidationResult Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN);
+        ValidationResult Inspect(JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN);
     private:
         std::pair<rsc_e, std::string> validateMetaData(const JsonObject json);
         std::pair<rsc_e, std::string> validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);

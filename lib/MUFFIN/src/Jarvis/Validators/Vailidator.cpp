@@ -25,6 +25,7 @@
 #include "Jarvis/Validators/Interfaces/SerialPortValidator.h"
 #include "Jarvis/Validators/Protocol/ModbusValidator.h"
 #include "Jarvis/Validators/Network/NetworkValidator.h"
+#include "Jarvis/Validators/Network/LteValidator.h"
 
 
  
@@ -44,7 +45,7 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    ValidationResult Validator::Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN)
+    ValidationResult Validator::Inspect(JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN)
     {
         ASSERT((mapCIN != nullptr), "OUTPUT PARAMETER <mapCIN> CANNOT BE A NULL POINTER");
         ASSERT((mapCIN->size() == 0), "OUTPUT PARAMETER <mapCIN> MUST BE EMPTY");
@@ -122,13 +123,13 @@ namespace muffin { namespace jarvis {
                 case cfg_key_e::RS485:
                     ret = validateSerialPort(key, cinArray, &outputVector);
                     break;
-                // case cfg_key_e::WIFI4:
-                // case cfg_key_e::ETHERNET:
-                //     ret = validateNicLAN(key, cinArray, &outputVector);
-                //     break;
-                // case cfg_key_e::LTE_CatM1:
-                //     ret = validateNicLTE(key, cinArray, &outputVector);
-                //     break;
+                case cfg_key_e::WIFI4:
+                case cfg_key_e::ETHERNET:
+                    ret = validateNicLAN(key, cinArray, &outputVector);
+                    break;
+                case cfg_key_e::LTE_CatM1:
+                    ret = validateNicLTE(key, cinArray, &outputVector);
+                    break;
                 // case cfg_key_e::MODBUS_RTU:
                 // case cfg_key_e::MODBUS_TCP:
                 //     ret = validateModbus(key, cinArray, &outputVector);
@@ -439,7 +440,7 @@ namespace muffin { namespace jarvis {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
         
-        NetworkValidator validator;
+        LteValidator validator;
         return validator.Inspect(key, json, outputVector);
     }
 }}
