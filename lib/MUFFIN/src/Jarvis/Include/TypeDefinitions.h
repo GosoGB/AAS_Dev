@@ -26,6 +26,7 @@ namespace muffin { namespace jarvis {
         : uint16_t
     {
         GOOD                                        = 0x0000,
+        GOOD_NO_DATA                                = 0x0001,
         UNCERTAIN                                   = 0x4000,
         UNCERTAIN_CONFIG_INSTANCE                   = 0x4460,
         UNCERTAIN_CONFIG_INSTANCES                  = 0x44A0,
