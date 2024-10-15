@@ -36,24 +36,23 @@ namespace muffin { namespace jarvis {
     #endif
     }
     
-    Status OperationValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> OperationValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
+        ASSERT((arrayCIN.isNull() == false), "INPUT PARAMETER <arrayCIN> CANNOT BE NULL");
+        ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
-        ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
 
         JsonObject json = arrayCIN[0].as<JsonObject>();
-        Status ret = validateMandatoryKeys(json);
-        if (ret != Status::Code::GOOD)
+        rsc_e rsc = validateMandatoryKeys(json);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "MANDATORY KEYS CANNOT BE MISSING");
-            return ret;
+            return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY CANNOT BE MISSING");
         }
 
-        ret = validateMandatoryValues(json);
-        if (ret != Status::Code::GOOD)
+        rsc = validateMandatoryValues(json);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "MANDATORY KEY'S VALUE CANNOT BE NULL");
-            return ret;
+            return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY'S VALUE CANNOT BE NULL");
         }
         
         const bool isExpired    = json["exp"].as<bool>();
@@ -63,17 +62,16 @@ namespace muffin { namespace jarvis {
 
         const std::string snic = json["snic"].as<std::string>();
         const auto retSNIC = convertToServerNIC(snic);
-        if (retSNIC.first.ToCode() != Status::Code::GOOD)
+        if (retSNIC.first != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "MANDATORY KEY'S VALUE CANNOT BE NULL");
-            return retSNIC.first;
+            const std::string message = "INVALID SERVER NETWORK INTERFACE: " + snic;
+            return std::make_pair(rsc, message);
         }
         
         config::Operation* operation = new(std::nothrow) config::Operation();
         if (operation == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: OPERATION");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR OPERATION CONFIG");
         }
 
         operation->SetPlanExpired(isExpired);
@@ -82,26 +80,28 @@ namespace muffin { namespace jarvis {
         operation->SetIntervalServer(serverInverval);
         operation->SetServerNIC(retSNIC.second);
 
-        ret = emplaceCIN(static_cast<config::Base*>(operation), outVector);
-        if (ret != Status::Code::GOOD)
+        rsc = emplaceCIN(static_cast<config::Base*>(operation), outVector);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO EMPLACE OPERATION CIN: %s", ret.c_str());
-            delete operation;
-            return ret;
+            if (operation != nullptr)
+            {
+                delete operation;
+                operation = nullptr;
+            }
+            return std::make_pair(rsc, "FAILED TO EMPLACE: OPERATION CONFIG INSTANCE");
         }
 
         if (arrayCIN.size() > 1)
         {
-            LOG_WARNING(logger, "ONLY ONE OPERATION CONFIG WILL BE APPLIED");
-            return Status(Status::Code::UNCERTAIN);
+            return std::make_pair(rsc_e::UNCERTAIN, "ONLY ONE OPERATION CONFIG WILL BE APPLIED");
         }
         else
         {
-            return Status(Status::Code::GOOD);
+            return std::make_pair(rsc_e::GOOD, "GOOD");
         }
     }
 
-    Status OperationValidator::validateMandatoryKeys(const JsonObject json)
+    rsc_e OperationValidator::validateMandatoryKeys(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json.containsKey("snic");
@@ -112,15 +112,15 @@ namespace muffin { namespace jarvis {
         
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status OperationValidator::validateMandatoryValues(const JsonObject json)
+    rsc_e OperationValidator::validateMandatoryValues(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json["snic"].isNull()            == false;
@@ -135,55 +135,55 @@ namespace muffin { namespace jarvis {
         
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status OperationValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
+    rsc_e OperationValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
         ASSERT((cin != nullptr), "INPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         try
         {
             outVector->emplace_back(cin);
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         catch(const std::bad_alloc& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }
 
-    std::pair<Status, snic_e> OperationValidator::convertToServerNIC(const std::string& nic)
+    std::pair<rsc_e, snic_e> OperationValidator::convertToServerNIC(const std::string& nic)
     {
         if (nic == "lte")
         {
-            return std::make_pair(Status(Status::Code::GOOD), snic_e::LTE_CatM1);
+            return std::make_pair(rsc_e::GOOD, snic_e::LTE_CatM1);
         }
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         else if (nic == "eth")
         {
-            return std::make_pair(Status(Status::Code::GOOD), snic_e::Ethernet);
+            return std::make_pair(rsc_e::GOOD, snic_e::Ethernet);
         }
     #elif defined(MODLINK_B)
         else if (nic == "wifi")
         {
-            return std::make_pair(Status(Status::Code::GOOD), snic_e::WiFi4);
+            return std::make_pair(rsc_e::GOOD, snic_e::WiFi4);
         }
     #endif
         else
         {
-            return std::make_pair(Status(Status::Code::BAD_ENCODING_ERROR), snic_e::LTE_CatM1);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, snic_e::LTE_CatM1);
         }
     }
 }}
