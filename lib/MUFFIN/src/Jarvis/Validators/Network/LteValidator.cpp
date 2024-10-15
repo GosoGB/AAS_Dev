@@ -38,48 +38,40 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    Status LteValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> LteValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
+        ASSERT((arrayCIN.isNull() == false), "INPUT PARAMETER <arrayCIN> CANNOT BE NULL");
+        ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
-        ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
-
-        Status ret(Status::Code::UNCERTAIN);
 
         switch (key)
         {
         case cfg_key_e::LTE_CatM1:
-            ret = validateLteCatM1(arrayCIN, outVector);
-            break;
+            return validateLteCatM1(arrayCIN, outVector);
         default:
-            ASSERT(false, "UNDEFINED SERIAL PORT CONFIGURATION");
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "UNDEFINED CONFIG KEY FOR LTE INTERFACE");
         };
-
-        return ret;
     }
 
-    Status LteValidator::validateLteCatM1(const JsonArray array, cin_vector* outVector)
+    std::pair<rsc_e, std::string> LteValidator::validateLteCatM1(const JsonArray array, cin_vector* outVector)
     {
         if (array.size() != 1)
         {
-            LOG_ERROR(logger, "INVALID LTE CONFIG: ONLY ONE LTE MODULE CAN BE CONFIGURED");
             ASSERT((array.size() == 1), "LTE CONFIG CANNOT BE GREATER THAN 1");
-            return Status(Status::Code::BAD_NOT_SUPPORTED);
+            return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, "INVALID WIFI CONFIG: ONLY ONE LTE MODULE CAN BE CONFIGURED");
         }
 
         JsonObject cin = array[0];
-        Status ret = validateMandatoryKeysLteCatM1(cin);
-        if (ret != Status::Code::GOOD)
+        rsc_e rsc = validateMandatoryKeysLteCatM1(cin);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID LTE Cat.M1: MANDATORY KEY CANNOT BE MISSING");
-            return ret;
+            return std::make_pair(rsc, "INVALID LTE Cat.M1: MANDATORY KEY CANNOT BE MISSING");
         }
 
-        ret = validateMandatoryValuesLteCatM1(cin);
-        if (ret != Status::Code::GOOD)
+        rsc = validateMandatoryValuesLteCatM1(cin);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID LTE Cat.M1: MANDATORY KEY'S VALUE CANNOT BE NULL");
-            return ret;
+            return std::make_pair(rsc, "INVALID LTE Cat.M1: MANDATORY KEY'S VALUE CANNOT BE NULL");
         }
 
         const std::string md    = cin["md"].as<std::string>();
@@ -88,40 +80,41 @@ namespace muffin { namespace jarvis {
         const auto retMD     = convertToLteModel(md);
         const auto retCtry   = convertToLteCountry(ctry);
 
-        if (retMD.first.ToCode() != Status::Code::GOOD)
+        if (retMD.first != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID LTE Cat.M1 Model: %s", md.c_str());
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            const std::string message = "INVALID LTE CAT.M1 MODEL: " + md;
+            return std::make_pair(rsc, message);
         }
 
-        if (retCtry.first.ToCode() != Status::Code::GOOD)
+        if (retCtry.first != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID LTE Cat.M1 Country: %s", ctry.c_str());
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            const std::string message = "INVALID LTE CAT.M1 COUNTRY: " + ctry;
+            return std::make_pair(rsc, message);
         }
 
         config::CatM1* catM1 = new(std::nothrow) config::CatM1();
         if (catM1 == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: LTE cat.M1");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR LTE CAT.M1 CONFIG");
         }
         catM1->SetModel(retMD.second);
         catM1->SetCounty(retCtry.second);
 
-        ret = emplaceCIN(static_cast<config::Base*>(catM1), outVector);
-        if (ret != Status::Code::GOOD)
+        rsc = emplaceCIN(static_cast<config::Base*>(catM1), outVector);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
-            return ret;
+            if (catM1 != nullptr)
+            {
+                delete catM1;
+                catM1 = nullptr;
+            }
+            return std::make_pair(rsc, "FAILED TO EMPLACE: LTE CAT.M1 CONFIG INSTANCE");
         }
 
-        LOG_VERBOSE(logger, "Valid LTE Cat.M1 config instance")
-        return Status(Status::Code::GOOD);
-        
+        return std::make_pair(rsc_e::GOOD, "GOOD"); 
     }
 
-    Status LteValidator::validateMandatoryKeysLteCatM1(const JsonObject json)
+    rsc_e LteValidator::validateMandatoryKeysLteCatM1(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json.containsKey("md");
@@ -129,15 +122,15 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status LteValidator::validateMandatoryValuesLteCatM1(const JsonObject json)
+    rsc_e LteValidator::validateMandatoryValuesLteCatM1(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json["md"].isNull()  == false;
@@ -148,64 +141,64 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status LteValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
+    rsc_e LteValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         try
         {
             outVector->emplace_back(cin);
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         catch(const std::bad_alloc& e)
         {
             LOG_ERROR(logger, "%s: CIN class: LTE Cat.M1, CIN address: %p", e.what(), cin);
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "%s: CIN class: LTE Cat.M1, CIN address: %p", e.what(), cin);
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+           return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }
 
-    std::pair<Status, md_e> LteValidator::convertToLteModel(const std::string model)
+    std::pair<rsc_e, md_e> LteValidator::convertToLteModel(const std::string model)
     {
         if (model == "LM5") 
         {
-            return std::make_pair(Status(Status::Code::GOOD), md_e::LM5);
+            return std::make_pair(rsc_e::GOOD, md_e::LM5);
         } 
         else if (model == "LCM300") 
         {
-            return std::make_pair(Status(Status::Code::GOOD), md_e::LCM300);
+            return std::make_pair(rsc_e::GOOD, md_e::LCM300);
         } 
         else 
         {
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), md_e::LM5);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, md_e::LM5);
         }
     }
 
-    std::pair<Status, ctry_e> LteValidator::convertToLteCountry(const std::string country)
+    std::pair<rsc_e, ctry_e> LteValidator::convertToLteCountry(const std::string country)
     {
         if (country == "KR") 
         {
-            return std::make_pair(Status(Status::Code::GOOD), ctry_e::KOREA);
+            return std::make_pair(rsc_e::GOOD, ctry_e::KOREA);
         } 
         else if (country == "USA") 
         {
-            return std::make_pair(Status(Status::Code::GOOD), ctry_e::USA);
+            return std::make_pair(rsc_e::GOOD, ctry_e::USA);
         } 
         else 
         {
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), ctry_e::KOREA);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, ctry_e::KOREA);
         }
     }
 }}

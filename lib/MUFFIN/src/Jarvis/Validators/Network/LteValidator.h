@@ -35,16 +35,16 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
-        Status validateLteCatM1(const JsonArray array, cin_vector* outVector);
-        Status validateMandatoryKeysLteCatM1(const JsonObject json);
-        Status validateMandatoryValuesLteCatM1(const JsonObject json);
+        std::pair<rsc_e, std::string> validateLteCatM1(const JsonArray array, cin_vector* outVector);
+        rsc_e validateMandatoryKeysLteCatM1(const JsonObject json);
+        rsc_e validateMandatoryValuesLteCatM1(const JsonObject json);
     private:
-        Status emplaceCIN(config::Base* cin, cin_vector* outVector);
+        rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        std::pair<Status, md_e> convertToLteModel(const std::string model);
-        std::pair<Status, ctry_e> convertToLteCountry(const std::string country);
+        std::pair<rsc_e, md_e> convertToLteModel(const std::string model);
+        std::pair<rsc_e, ctry_e> convertToLteCountry(const std::string country);
      
     };
 }}
