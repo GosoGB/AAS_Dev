@@ -66,10 +66,10 @@ namespace muffin { namespace jarvis {
         /*컨테이너 내부 키(key)를 비롯하여 모든 메타데이터는 유효합니다.*/
 
         const auto retEmplace = emplacePairsForCIN(mapCIN);
-        if (retEmplace.first != rsc_e::G)
+        if (retEmplace.first != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO VALIDATE: %s", ret.c_str());
-            return Status(Status::Code::BAD_INTERNAL_ERROR);
+            LOG_ERROR(logger, "%s", retEmplace.second.c_str());
+            return retEmplace;
         }
         /*NULL 값이 아닌 모든 키(key)에 대한 키-값 쌍이 <*mapCIN>에 생성되었습니다.*/
 
@@ -250,15 +250,27 @@ namespace muffin { namespace jarvis {
         return ret;
     }
 
-    rsc_e Validator::validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
         
         SerialPortValidator validator;
         Status ret = validator.Inspect(key, json, outputVector);
+        switch (ret.ToCode())
+        {
+        case Status::Code::GOOD:
+            return std::make_pair(rsc_e::GOOD, ret.c_str());
+        case Status::Code::BAD_NOT_SUPPORTED:
+            /* code */
+            break;
+        
+        default:
+            break;
+        }
         if (ret != Status(Status::Code::GOOD))
         {
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, ret.c_str());
             LOG_ERROR(logger, "INVALID SERIAL PORT CONFIG: %s", ret.c_str());
         }
         else

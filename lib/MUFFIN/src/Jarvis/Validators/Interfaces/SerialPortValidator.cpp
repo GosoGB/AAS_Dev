@@ -5,7 +5,7 @@
  * 
  * @brief 시리얼 포트에 대한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-15
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -62,26 +62,33 @@ namespace muffin { namespace jarvis {
         return ret;
     }
 
-    Status SerialPortValidator::validateRS232(const JsonArray array, cin_vector* outVector)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_OUT_OF_MEMORY
+     *      @li BAD_UNEXPECTED_ERROR
+     *      @li BAD_DATA_ENCODING_INVALID
+     *      @li BAD_UNSUPPORTED_CONFIGURATION
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    std::pair<rsc_e, std::string> SerialPortValidator::validateRS232(const JsonArray array, cin_vector* outVector)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        LOG_ERROR(logger, "RS-232 IS NOT SUPPORTED ON MODLINK-L OR MODLINK-ML10");
-        return Status(Status::Code::BAD_NOT_SUPPORTED);
-    #else
+    // #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    //     const std::string message = "RS-232 IS NOT SUPPORTED ON MODLINK-L OR MODLINK-ML10";
+    //     return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
+    // #else
         for (JsonObject cin : array)
         {
-            Status ret = validateMandatoryKeys(cin);
-            if (ret != Status::Code::GOOD)
+            rsc_e rsc = validateMandatoryKeys(cin);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID RS-232: MANDATORY KEY CANNOT BE MISSING");
-                return ret;
+                return std::make_pair(rsc, "INVALID RS-232: MANDATORY KEY CANNOT BE MISSING");
             }
 
-            ret = validateMandatoryValues(cin);
-            if (ret != Status::Code::GOOD)
+            rsc = validateMandatoryValues(cin);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID RS-232: MANDATORY KEY'S VALUE CANNOT BE NULL");
-                return ret;
+                return std::make_pair(rsc, "INVALID RS-232: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
 
             const uint8_t  prt    = cin["prt"].as<uint8_t>();
@@ -96,41 +103,40 @@ namespace muffin { namespace jarvis {
             const auto retPBIT    = convertToParityBit(pbit);
             const auto retSBIT    = convertToStopBit(sbit);
 
-            if (retPRT.first.ToCode() != Status::Code::GOOD)
+            if (retPRT.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID SERIAL PORT INDEX: %u", prt);
-                goto INVALID_RS232;
+                const std::string message = "INVALID SERIAL PORT INDEX: " + std::to_string(prt);
+                return std::make_pair(rsc, message);
             }
             
-            if (retBDR.first.ToCode() != Status::Code::GOOD)
+            if (retBDR.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID BAUD RATE: %u", bdr);
-                goto INVALID_RS232;
+                const std::string message = "INVALID BAUD RATE: " + std::to_string(bdr);
+                return std::make_pair(rsc, message);
             }
 
-            if (retDBIT.first.ToCode() != Status::Code::GOOD)
+            if (retDBIT.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID DATA BIT: %u", dbit);
-                goto INVALID_RS232;
+                const std::string message = "INVALID DATA BIT: " + std::to_string(dbit);
+                return std::make_pair(rsc, message);
             }
             
-            if (retPBIT.first.ToCode() != Status::Code::GOOD)
+            if (retPBIT.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID PARITY BIT: %u", pbit);
-                goto INVALID_RS232;
+                const std::string message = "INVALID PARITY BIT: " + std::to_string(pbit);
+                return std::make_pair(rsc, message);
             }
             
-            if (retSBIT.first.ToCode() != Status::Code::GOOD)
+            if (retSBIT.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID STOP BIT: %u", sbit);
-                goto INVALID_RS232;
+                const std::string message = "INVALID STOP BIT: " + std::to_string(sbit);
+                return std::make_pair(rsc, message);
             }
 
             config::Rs232* rs232 = new(std::nothrow) config::Rs232();
             if (rs232 == nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: RS-232");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR RS-232 CONFIG");
             }
 
             rs232->SetPortIndex(retPRT.second);
@@ -139,24 +145,32 @@ namespace muffin { namespace jarvis {
             rs232->SetParityBit(retPBIT.second);
             rs232->SetStopBit(retSBIT.second);
 
-            ret = emplaceCIN(static_cast<config::Base*>(rs232), outVector);
-            if (ret != Status::Code::GOOD)
+            rsc = emplaceCIN(static_cast<config::Base*>(rs232), outVector);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
-                delete rs232;
-                return ret;
+                if (rs232 != nullptr)
+                {
+                    delete rs232;
+                    rs232 = nullptr;
+                }
+                return std::make_pair(rsc, "FAILED TO EMPLACE: RS-232 CONFIG INSTANCE");
             }
         }
 
-        LOG_VERBOSE(logger, "Valid RS-232 config instance")
-        return Status(Status::Code::GOOD);
-    
-    INVALID_RS232:
-        return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+        return std::make_pair(rsc_e::GOOD, "GOOD");
     #endif
     }
 
-    Status SerialPortValidator::validateRS485(const JsonArray array, cin_vector* outVector)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_OUT_OF_MEMORY
+     *      @li BAD_UNEXPECTED_ERROR
+     *      @li BAD_DATA_ENCODING_INVALID
+     *      @li BAD_UNSUPPORTED_CONFIGURATION
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    rsc_e SerialPortValidator::validateRS485(const JsonArray array, cin_vector* outVector)
     {
         /**
          * @todo MODLINK-L의 경우에는 RS-485 포트가 한 개 뿐이기 때문에 
@@ -250,7 +264,12 @@ namespace muffin { namespace jarvis {
         return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
     }
 
-    Status SerialPortValidator::validateMandatoryKeys(const JsonObject json)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    rsc_e SerialPortValidator::validateMandatoryKeys(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json.containsKey("prt");
@@ -261,15 +280,20 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status SerialPortValidator::validateMandatoryValues(const JsonObject json)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    rsc_e SerialPortValidator::validateMandatoryValues(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json["prt"].isNull()  == false;
@@ -277,56 +301,77 @@ namespace muffin { namespace jarvis {
         isValid &= json["dbit"].isNull() == false;
         isValid &= json["pbit"].isNull() == false;
         isValid &= json["sbit"].isNull() == false;
+        isValid &= json["prt"].is<uint8_t>()  == false;
+        isValid &= json["bdr"].is<uint32_t>()  == false;
+        isValid &= json["dbit"].is<uint8_t>() == false;
+        isValid &= json["pbit"].is<uint8_t>() == false;
+        isValid &= json["sbit"].is<uint8_t>() == false;
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status SerialPortValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_OUT_OF_MEMORY
+     *      @li BAD_UNEXPECTED_ERROR
+     */
+    rsc_e SerialPortValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
         ASSERT((cin != nullptr), "INPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         try
         {
             outVector->emplace_back(cin);
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         catch(const std::bad_alloc& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: RS-232, CIN address: %p", e.what(), cin);
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            LOG_ERROR(logger, "%s", e.what());
+            return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: RS-232, CIN address: %p", e.what(), cin);
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            LOG_ERROR(logger, "%s", e.what());
+            return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }
 
-    std::pair<Status, prt_e> SerialPortValidator::convertToPortIndex(const uint8_t portIndex)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    std::pair<rsc_e, prt_e> SerialPortValidator::convertToPortIndex(const uint8_t portIndex)
     {
         switch (portIndex)
         {
         case 2:
-            return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_2);
+            return std::make_pair(rsc_e::GOOD, prt_e::PORT_2);
         
         #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
         case 3:
-            return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_3);
+            return std::make_pair(rsc_e::GOOD, prt_e::PORT_3);
         #endif
 
         default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), prt_e::PORT_2);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, prt_e::PORT_2);
         }
     }
 
-    std::pair<Status, bdr_e> SerialPortValidator::convertToBaudRate(const uint32_t baudRate)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    std::pair<rsc_e, bdr_e> SerialPortValidator::convertToBaudRate(const uint32_t baudRate)
     {
         switch (baudRate)
         {
@@ -334,13 +379,18 @@ namespace muffin { namespace jarvis {
         case 19200:
         case 38400:
         case 115200:
-            return std::make_pair(Status(Status::Code::GOOD), static_cast<bdr_e>(baudRate));
+            return std::make_pair(rsc_e::GOOD, static_cast<bdr_e>(baudRate));
         default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), bdr_e::BDR_9600);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, bdr_e::BDR_9600);
         }
     }
 
-    std::pair<Status, dbit_e> SerialPortValidator::convertToDataBit(const uint8_t dataBit)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    std::pair<rsc_e, dbit_e> SerialPortValidator::convertToDataBit(const uint8_t dataBit)
     {
         switch (dataBit)
         {
@@ -348,34 +398,44 @@ namespace muffin { namespace jarvis {
         case 6:
         case 7:
         case 8:
-            return std::make_pair(Status(Status::Code::GOOD), static_cast<dbit_e>(dataBit));
+            return std::make_pair(rsc_e::GOOD, static_cast<dbit_e>(dataBit));
         default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), dbit_e::DBIT_8);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, dbit_e::DBIT_8);
         }
     }
 
-    std::pair<Status, pbit_e> SerialPortValidator::convertToParityBit(const uint8_t parityBit)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    std::pair<rsc_e, pbit_e> SerialPortValidator::convertToParityBit(const uint8_t parityBit)
     {
         switch (parityBit)
         {
         case 0:
         case 1:
         case 2:
-            return std::make_pair(Status(Status::Code::GOOD), static_cast<pbit_e>(parityBit));
+            return std::make_pair(rsc_e::GOOD, static_cast<pbit_e>(parityBit));
         default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), pbit_e::NONE);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, pbit_e::NONE);
         }
     }
 
-    std::pair<Status, sbit_e> SerialPortValidator::convertToStopBit(const uint8_t stopBit)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     */
+    std::pair<rsc_e, sbit_e> SerialPortValidator::convertToStopBit(const uint8_t stopBit)
     {
         switch (stopBit)
         {
         case 1:
         case 2:
-            return std::make_pair(Status(Status::Code::GOOD), static_cast<sbit_e>(stopBit));
+            return std::make_pair(rsc_e::GOOD, static_cast<sbit_e>(stopBit));
         default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), sbit_e::SBIT_1);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, sbit_e::SBIT_1);
         }
     }
 }}
