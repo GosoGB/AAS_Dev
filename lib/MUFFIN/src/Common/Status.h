@@ -282,8 +282,20 @@ namespace muffin {
     public:
         explicit Status(Code code) : mCode(code) {}
         virtual ~Status() {}
-        void operator=(const Status& obj)  { mCode = obj.ToCode(); }
-        void operator=(const Code& obj)    { mCode = obj; }
+        Status& operator=(const Status& obj)
+        {
+            if (this != &obj)
+            {
+                mCode = obj.ToCode();
+            }
+
+            return *this;
+        }
+        Status& operator=(const Code& obj)
+        {
+            mCode = obj;
+            return *this;
+        }
         bool operator==(const Status& obj) { return mCode == obj.ToCode(); }
         bool operator!=(const Status& obj) { return mCode != obj.ToCode(); }
         bool operator==(const Code& obj)   { return mCode == obj; }

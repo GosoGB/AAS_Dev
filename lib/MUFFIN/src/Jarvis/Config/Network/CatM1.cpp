@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 모듈 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2024-09-05
+ * @date 2024-10-07
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -13,6 +13,7 @@
 
 
 
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "CatM1.h"
 
@@ -21,20 +22,29 @@
 namespace muffin { namespace jarvis { namespace config {
 
     CatM1::CatM1()
-        : Base("lte")
+        : Base(cfg_key_e::LTE_CatM1)
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     CatM1::~CatM1()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
-    void CatM1::operator=(const CatM1& obj)
+    CatM1& CatM1::operator=(const CatM1& obj)
     {
-        mModel   = obj.mModel;
-        mCountry = obj.mCountry;
+        if (this != &obj)
+        {
+            mModel   = obj.mModel;
+            mCountry = obj.mCountry;
+        }
+        
+        return *this;
     }
 
     bool CatM1::operator==(const CatM1& obj) const
@@ -47,47 +57,56 @@ namespace muffin { namespace jarvis { namespace config {
         return !(*this == obj);
     }
 
-    Status CatM1::SetModel(const std::string& model)
+    void CatM1::SetModel(const md_e model)
     {
-        assert(model == "LM5" || model == "LCM300");
+        mModel = model;
+        isModelSet = true;
+    }
 
-        if (model == "LM5")
+    void CatM1::SetCounty(const ctry_e country)
+    {
+        ASSERT((isModelSet == true), "MODEL MUST BE SET BEFOREHAND");
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mModel == md_e::LM5 && country == ctry_e::USA)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }()
+            ), "LM5 MODEL CAN ONLY OPERATE IN KR"
+        );
+
+        mCountry = country;
+        isCountrySet = true;
+    }
+
+    std::pair<Status, md_e> CatM1::GetModel() const
+    {
+        if (isModelSet)
         {
-            LOG_INFO(logger, "LM5 model is selected");
-            mModel = model_e::LM5;
+            return std::make_pair(Status(Status::Code::GOOD), mModel);
         }
         else
         {
-            LOG_INFO(logger, "LCM300 model is selected");
-            mModel = model_e::LCM300;
+            return std::make_pair(Status(Status::Code::BAD), mModel);
         }
-
-        return Status(Status::Code::GOOD);
     }
 
-    Status CatM1::SetCounty(const std::string& country)
+    std::pair<Status, ctry_e> CatM1::GetCountry() const
     {
-        assert(country == "KR" || country == "USA");
-
-        if (country == "KR")
+        if (isCountrySet)
         {
-            mCountry = country_e::KOREA;
+            return std::make_pair(Status(Status::Code::GOOD), mCountry);
         }
         else
         {
-            mCountry = country_e::USA;
+            return std::make_pair(Status(Status::Code::BAD), mCountry);
         }
-
-        return Status(Status::Code::GOOD);
-    }
-
-    CatM1::model_e CatM1::GetModel() const
-    {
-        return mModel;
-    }
-
-    CatM1::country_e CatM1::GetCountry() const
-    {
-        return mCountry;
     }
 }}}

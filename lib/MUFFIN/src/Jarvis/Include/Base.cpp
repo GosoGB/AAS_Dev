@@ -19,7 +19,7 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Base::Base(const std::string& category)
+    Base::Base(const cfg_key_e category)
         : mCategory(category)
     {
     }
@@ -28,7 +28,7 @@ namespace muffin { namespace jarvis { namespace config {
     {
     }
 
-    std::string Base::GetCategory() const
+    cfg_key_e Base::GetCategory() const
     {
         return mCategory;
     }

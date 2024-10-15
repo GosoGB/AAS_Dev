@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <string>
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
@@ -24,11 +24,15 @@ namespace muffin { namespace jarvis { namespace config {
     class Base
     {
     public:
-        explicit Base(const std::string& category);
+        explicit Base(const cfg_key_e category);
         virtual ~Base();
     public:
-        std::string GetCategory() const;
+        cfg_key_e GetCategory() const;
+        /**
+         * @todo 모든 config 클래스가 공통으로 지원하는 print 함수를 만들면 좋겠습니다.
+         */
+        // virtual const char* ToString() const = 0;
     private:
-        const std::string mCategory;
+        const cfg_key_e mCategory;
     };
 }}}

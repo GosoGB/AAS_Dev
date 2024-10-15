@@ -32,7 +32,7 @@ namespace muffin { namespace mqtt {
         BrokerInfo(const BrokerInfo&& obj) noexcept;
         virtual ~BrokerInfo();
     public:
-        void operator=(const BrokerInfo& obj);
+        BrokerInfo& operator=(const BrokerInfo& obj);
         bool operator==(const BrokerInfo& obj);
         bool operator!=(const BrokerInfo& obj);
     public:

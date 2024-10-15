@@ -91,9 +91,22 @@ namespace muffin { namespace mqtt {
     #endif
     }
 
-    void BrokerInfo::operator=(const BrokerInfo& obj)
+    BrokerInfo& BrokerInfo::operator=(const BrokerInfo& obj)
     {
-        *this = std::move(obj);
+        if (this != &obj)
+        {
+            mHost        = obj.mHost;
+            mPort        = obj.mPort;
+            mKeepAlive   = obj.mKeepAlive;
+            mSocketID    = obj.mSocketID;
+            mUsername    = obj.mUsername;
+            mPassword    = obj.mPassword;
+            mVersion     = obj.mVersion;
+            mClientID    = obj.mClientID;
+            mEnableSSL   = obj.mEnableSSL;
+        }
+
+        return *this;
     }
 
     bool BrokerInfo::operator==(const BrokerInfo& obj)
