@@ -158,6 +158,7 @@ namespace muffin { namespace jarvis {
     /**
      * @return rsc_e 
      *      @li GOOD
+     *      @li UNCERTAIN_CONFIG_INSTANCE
      *      @li BAD_OUT_OF_MEMORY
      *      @li BAD_UNEXPECTED_ERROR
      *      @li BAD_DATA_ENCODING_INVALID

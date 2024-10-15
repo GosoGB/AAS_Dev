@@ -57,6 +57,12 @@ namespace muffin { namespace jarvis {
         };
     }
 
+    /**
+     * @todo 상태 코드로 오류가 아닌 경고를 반환하도록 수정해야 합니다.
+     * @brief 크기가 1보다 클 때 첫번째 설정만 적용되고 나머지는 버려집니다.
+     *        이는 설정 형식 자체의 오류는 아니며, 일부는 적용되기 때문에
+     *        상태 코드로 오류가 아닌 경고를 반환하는 것이 적합합니다.
+     */
     std::pair<rsc_e, std::string> NetworkValidator::validateWiFi4(const JsonArray array, cin_vector* outVector)
     {
         if (array.size() != 1)
@@ -412,6 +418,12 @@ namespace muffin { namespace jarvis {
         }
     }
 
+    /**
+     * @todo 상태 코드로 오류가 아닌 경고를 반환하도록 수정해야 합니다.
+     * @brief 크기가 1보다 클 때 첫번째 설정만 적용되고 나머지는 버려집니다.
+     *        이는 설정 형식 자체의 오류는 아니며, 일부는 적용되기 때문에
+     *        상태 코드로 오류가 아닌 경고를 반환하는 것이 적합합니다.
+     */
     std::pair<rsc_e, std::string> NetworkValidator::validateEthernet(const JsonArray array, cin_vector* outVector)
     {
         if (array.size() != 1)
