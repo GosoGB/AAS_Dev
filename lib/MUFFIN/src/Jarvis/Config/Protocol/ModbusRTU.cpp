@@ -5,7 +5,7 @@
  * 
  * @brief Modbus RTU 프로토콜 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-07
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    ModbusRTU::ModbusRTU(const cfg_key_e category)
-        : Base(category)
+    ModbusRTU::ModbusRTU()
+        : Base(cfg_key_e::MODBUS_RTU)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::MODBUS_RTU), "CATEGORY DOES NOT MATCH");
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
@@ -86,7 +85,7 @@ namespace muffin { namespace jarvis { namespace config {
         mIsNodesSet = true;
     }
 
-    std::pair<Status, uint8_t> ModbusRTU::GetPort() const
+    std::pair<Status, prt_e> ModbusRTU::GetPort() const
     {
         if (mIsPortSet)
         {

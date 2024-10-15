@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    OperationTime::OperationTime(const cfg_key_e category)
-        : Base(category)
+    OperationTime::OperationTime()
+        : Base(cfg_key_e::OPERATION_TIME)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::OPERATION_TIME), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }
@@ -80,7 +79,7 @@ namespace muffin { namespace jarvis { namespace config {
         mIsTypeSet = true;
     }
 
-    void OperationTime::SetCriterion(const uint32_t criterion)
+    void OperationTime::SetCriterion(const int32_t criterion)
     {
         mCriterion = criterion;
         mIsCriterionSet = true;
@@ -116,7 +115,7 @@ namespace muffin { namespace jarvis { namespace config {
         }
     }
 
-    std::pair<Status, uint32_t> OperationTime::GetCriterion() const
+    std::pair<Status, int32_t> OperationTime::GetCriterion() const
     {
         if (mIsCriterionSet)
         {

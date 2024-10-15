@@ -28,7 +28,7 @@ namespace muffin { namespace jarvis { namespace config {
     class Alarm : public Base
     {
     public:
-        explicit Alarm(const cfg_key_e category);
+        Alarm();
         virtual ~Alarm() override;
     public:
         Alarm& operator=(const Alarm& obj);
@@ -41,7 +41,7 @@ namespace muffin { namespace jarvis { namespace config {
         void SetLclUID(const std::string& lclUID);
         void SetUCL(const float ucl);
         void SetUclUID(const std::string& uclUID);
-        void SetCondition(const std::vector<uint16_t>& condition);
+        void SetCondition(const std::vector<int16_t>& condition);
     public:
         std::pair<Status, std::string> GetNodeID() const;
         std::pair<Status, alarm_type_e> GetType() const;
@@ -49,7 +49,7 @@ namespace muffin { namespace jarvis { namespace config {
         std::pair<Status, std::string> GetLclUID() const;
         std::pair<Status, float> GetUCL() const;
         std::pair<Status, std::string> GetUclUID() const;
-        std::pair<Status, std::vector<uint16_t>> GetCondition() const;
+        std::pair<Status, std::vector<int16_t>> GetCondition() const;
     private:
         bool mIsNodeIdSet     = false;
         bool mIsTypeSet       = false;
@@ -65,6 +65,6 @@ namespace muffin { namespace jarvis { namespace config {
         std::string mLclUID;
         float mUCL = 0;
         std::string mUclUID;
-        std::vector<uint16_t> mCondition;
+        std::vector<int16_t> mCondition;
     };
 }}}

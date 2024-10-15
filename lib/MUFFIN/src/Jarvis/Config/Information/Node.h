@@ -30,7 +30,7 @@ namespace muffin { namespace jarvis { namespace config {
     class Node : public Base
     {
     public:
-        explicit Node(const cfg_key_e category);
+        Node();
         virtual ~Node() override;
     public:
         Node& operator=(const Node& obj);
@@ -47,7 +47,7 @@ namespace muffin { namespace jarvis { namespace config {
         void SetNumericOffset(const float offset);
         void SetMappingRules(const std::map<std::uint16_t, std::string>&& mappingRules) noexcept;
         void SetDataUnitOrders(const std::vector<DataUnitOrder>&& orders) noexcept;
-        void SetDataTypes(const std::vector<dt_e>& dt);
+        void SetDataTypes(const std::vector<dt_e>&& dt) noexcept;
         void SetFormatString(const std::string& format);
         void SetDeprecableUID(const std::string& uid);
         void SetDeprecableDisplayName(const std::string& displayName);

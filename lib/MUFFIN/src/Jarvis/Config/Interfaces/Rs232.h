@@ -26,7 +26,7 @@ namespace muffin { namespace jarvis { namespace config {
     class Rs232 : public Base
     {
     public:
-        explicit Rs232(const cfg_key_e category);
+        Rs232();
         virtual ~Rs232() override;
     public:
         Rs232& operator=(const Rs232& obj);

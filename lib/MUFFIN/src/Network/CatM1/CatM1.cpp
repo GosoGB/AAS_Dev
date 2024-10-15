@@ -85,15 +85,15 @@ namespace muffin {
     Status CatM1::Config(jarvis::config::Base* config)
     {
         assert(config != nullptr);
-        assert(config->GetCategory() == "lte");
+        assert(config->GetCategory() == jarvis::cfg_key_e::LTE_CatM1);
 
         mConfig = *static_cast<jarvis::config::CatM1*>(config);
 
-        if (mConfig.GetModel() == jarvis::config::CatM1::model_e::LM5)
+        if (mConfig.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, HIGH);
         }
-        else if (mConfig.GetModel() == jarvis::config::CatM1::model_e::LCM300)
+        else if (mConfig.GetModel().second == jarvis::md_e::LCM300)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -154,7 +154,7 @@ namespace muffin {
      */
     Status CatM1::Disconnect()
     {
-        if (mConfig.GetModel() == jarvis::config::CatM1::model_e::LM5)
+        if (mConfig.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -508,7 +508,7 @@ namespace muffin {
 
     void CatM1::resetModule()
     {
-        if (mConfig.GetModel() == jarvis::config::CatM1::model_e::LM5)
+        if (mConfig.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
             delay(110);

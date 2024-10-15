@@ -4,7 +4,7 @@
  * 
  * @brief JARVIS에서 사용하는 데이터 타입들을 정의합니다.
  * 
- * @date 2024-10-09
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -22,13 +22,44 @@
 
 namespace muffin { namespace jarvis {
 
+    typedef enum class ResponseStatusCodeEnum
+        : uint16_t
+    {
+        GOOD                                        = 0x0000,
+        GOOD_NO_DATA                                = 0x0001,
+        UNCERTAIN                                   = 0x4000,
+        UNCERTAIN_CONFIG_INSTANCE                   = 0x4460,
+        UNCERTAIN_CONFIG_INSTANCES                  = 0x44A0,
+        UNCERTAIN_VERSION_CONFIG_INSTANCE           = 0x4560,
+        UNCERTAIN_VERSION_CONFIG_INSTANCES          = 0x45A0,
+        BAD                                         = 0x8000,
+        BAD_UNEXPECTED_ERROR                        = 0x8218,
+        BAD_COMMUNICATION                           = 0x8240,
+        BAD_COMMUNICATION_TIMEOUT                   = 0x8250,
+        BAD_COMMUNICATION_CAPACITY_EXCEEDED         = 0x8260,
+        BAD_DECODING_ERROR                          = 0x8280,
+        BAD_DECODING_CAPACITY_EXCEEDED              = 0x82A0,
+        BAD_INVALID_FORMAT_CONFIG_INSTANCE          = 0x8450,
+        BAD_INVALID_FORMAT_CONFIG_INSTANCES         = 0x8490,
+        BAD_INVALID_PRECONDITION_OR_RELATION        = 0x84A0,
+        BAD_INVALID_VERSION                         = 0x8500,
+        BAD_INVALID_VERSION_CONFIG_INSTANCE         = 0x8550,
+        BAD_INVALID_VERSION_CONFIG_INSTANCES        = 0x8590,
+        BAD_INVALID_VERSION_PRECONDITION_RELATION   = 0x85A0,
+        BAD_INTERNAL_ERROR                          = 0x8810,
+        BAD_OUT_OF_MEMORY                           = 0x8820,
+        BAD_UNSUPPORTED_CONFIGURATION               = 0x8840,
+        BAD_TEMPORARY_UNAVAILABLE                   = 0x8880,
+        BAD_HARDWARE_FAILURE                        = 0x8900
+    } rsc_e;
+
     typedef enum class NodeAddressTypeEnum
         : uint8_t
     {
-        NUMERIC     = 1,
-        STRING      = 2,
-        BYTE_STRING = 3,
-        GUID        = 4
+        NUMERIC     = 0,
+        STRING      = 1,
+        BYTE_STRING = 2,
+        GUID        = 3
     } adtp_e;
 
     typedef union NodeAddressUnion
@@ -154,7 +185,7 @@ namespace muffin { namespace jarvis {
         ONLY_LCL      = 1,
         ONLY_UCL      = 2,
         LCL_AND_UCL   = 3,
-        ON_CONDITION  = 4
+        CONDITION     = 4
     } alarm_type_e;
 
     typedef enum class OperationTimeTypeEnum
@@ -208,9 +239,12 @@ namespace muffin { namespace jarvis {
 
     typedef enum class ServerNetworkInterfaceCardEnum
     {
-        WiFi4     = 0,
-        Ethernet  = 1,
-        LTE_CatM1 = 2
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        Ethernet,
+    #elif defined(MODLINK_B)
+        WiFi4,
+    #endif
+        LTE_CatM1
     } snic_e;
 
     typedef enum class DataUnitEnum
@@ -237,12 +271,15 @@ namespace muffin { namespace jarvis {
     } ord_t;
 
     typedef enum class FormatSpecifierEnum
+        : uint8_t
     {
         INTEGER_32,
+        INTEGER_64,
         UNSIGNED_INTEGER_32,
-        FLOATING_POINT_32,
-        STRING,
+        UNSIGNED_INTEGER_64,
+        FLOATING_POINT_64,
         CHARACTER,
+        STRING,
         HEX_LOWERCASE,
         HEX_UPPERCASE
     } fmt_spec_e;

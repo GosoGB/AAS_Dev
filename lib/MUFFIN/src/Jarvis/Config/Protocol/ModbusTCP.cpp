@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    ModbusTCP::ModbusTCP(const cfg_key_e category)
-        : Base(category)
+    ModbusTCP::ModbusTCP()
+        : Base(cfg_key_e::MODBUS_TCP)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::MODBUS_TCP), "CATEGORY DOES NOT MATCH");
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }

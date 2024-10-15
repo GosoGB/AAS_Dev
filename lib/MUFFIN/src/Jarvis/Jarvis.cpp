@@ -1,11 +1,10 @@
 /**
  * @file Jarvis.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
- * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief MODLINK 설정을 담당하는 JARVIS 클래스를 선언합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-15
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -29,11 +28,8 @@
 #include "Config/Operation/Operation.h"
 #include "Config/Protocol/ModbusRTU.h"
 #include "Config/Protocol/ModbusTCP.h"
-
 #include "Include/Helper.h"
-
 #include "Jarvis.h"
-
 #include "Validators/Validator.h"
 
 
@@ -53,10 +49,10 @@ namespace muffin {
         LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
-    
-    Status Jarvis::Validate(const JsonDocument& json)
+
+    jarvis::ValidationResult Jarvis::Validate(JsonDocument& json)
     {
         jarvis::Validator validator;
-        Status ret = validator.Inspect(json, &mMapCIN);
+        return validator.Inspect(json, &mMapCIN);
     }
 }

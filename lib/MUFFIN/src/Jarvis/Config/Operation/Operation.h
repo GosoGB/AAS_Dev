@@ -26,7 +26,7 @@ namespace muffin { namespace jarvis { namespace config {
     class Operation : public Base
     {
     public:
-        explicit Operation(const cfg_key_e category);
+        Operation();
         virtual ~Operation() override;
     public:
         Operation& operator=(const Operation& obj);

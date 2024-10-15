@@ -7,8 +7,6 @@
  * @date 2024-09-02
  * @version 0.0.1
  * 
- * @todo 생성자 매개변수를 std::string에서 enum class로 변경해야 합니다.
- * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
@@ -30,6 +28,10 @@ namespace muffin { namespace jarvis { namespace config {
         virtual ~Base();
     public:
         cfg_key_e GetCategory() const;
+        /**
+         * @todo 모든 config 클래스가 공통으로 지원하는 print 함수를 만들면 좋겠습니다.
+         */
+        // virtual const char* ToString() const = 0;
     private:
         const cfg_key_e mCategory;
     };

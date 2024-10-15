@@ -5,7 +5,7 @@
  * 
  * @brief Node 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-08
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -22,11 +22,10 @@
 
 namespace muffin { namespace jarvis { namespace config {
 
-    Node::Node(const cfg_key_e category)
-        : Base(category)
+    Node::Node()
+        : Base(cfg_key_e::NODE)
     {
     #if defined(DEBUG)
-        ASSERT((category != cfg_key_e::NODE), "CATEGORY DOES NOT MATCH");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
     #endif
     }
@@ -75,7 +74,7 @@ namespace muffin { namespace jarvis { namespace config {
             mNumericScale           == obj.mNumericScale            &&
             mNumericOffset          == obj.mNumericOffset           &&
             mMapMappingRules        == obj.mMapMappingRules         &&
-            mVectorDataUnitOrders   == obj.mVectorDataUnitOrders    &&
+            std::equal(mVectorDataUnitOrders.begin(), mVectorDataUnitOrders.end(), obj.mVectorDataUnitOrders.begin()) &&
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
             mDeprecableUID          == obj.mDeprecableUID           &&
@@ -142,7 +141,21 @@ namespace muffin { namespace jarvis { namespace config {
         // 데이터 타입 유효성 검사
         ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() == 1), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
-        ASSERT((mVectorDataUnitOrders.size() == 1), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE ALIGNMENT ORDER");
+        ASSERT(
+            (
+                [&]()
+                {
+                    if (mIsDataUnitOrdersSet == true)
+                    {
+                        if (mVectorDataUnitOrders.size() != 1)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }()
+            ), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE ALIGNMENT ORDER"
+        );
 
         // 함께 설정 불가능한 Node 속성에 대한 유효성 검사
         ASSERT((mIsAddressQuantitySet  == false), "BIT INDEX CAN ONLY BE APPLIED WHEN ADDRESS QUANTITY IS DISABLED");
@@ -268,7 +281,7 @@ namespace muffin { namespace jarvis { namespace config {
                         return true;
                     }
                 }()
-            ), "NUMERIC SCALE CANNOT BE APPLIED TO DATA WHICH ISSTRING OR BOOLEAN TYPE"
+            ), "NUMERIC SCALE CANNOT BE APPLIED TO DATA WHICH IS STRING OR BOOLEAN TYPE"
         );
         ASSERT((mIsBitIndexSet == false), "NUMERIC SCALE CANNOT BE SET WHEN BIT INDEX IS ENABLED");
 
@@ -352,7 +365,7 @@ namespace muffin { namespace jarvis { namespace config {
         mIsDataUnitOrdersSet = true;
     }
 
-    void Node::SetDataTypes(const std::vector<dt_e>& dt)
+    void Node::SetDataTypes(const std::vector<dt_e>&& dt) noexcept
     {
         ASSERT(
             (
@@ -378,7 +391,7 @@ namespace muffin { namespace jarvis { namespace config {
         );
         ASSERT((mIsBitIndexSet == false), "DATA TYPES CANNOT BE SET WHEN BIT INDEX IS ENABLED");
 
-        mVectorDataTypes = dt;
+        mVectorDataTypes = std::move(dt);
         mIsDataTypesSet = true;
     }
 
@@ -387,9 +400,7 @@ namespace muffin { namespace jarvis { namespace config {
         // 속성 간 의존성 검사
         ASSERT((mIsBitIndexSet == false), "FORMAT STRING CANNOT BE SET WHEN BIT INDEX IS ENABLED");
         ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
-        ASSERT((mIsDataUnitOrdersSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() > 0), "DATA TYPE CANNOT BE EMPTY ARRAY");
-        ASSERT((mVectorDataUnitOrders.size() == mVectorDataTypes.size()), "DATA UNIT ORDERS AND DATA TYPES MUST BE EQUAL IN LENGTH");
         
         // 데이터 타입 유효성 검사
         ASSERT(
@@ -421,8 +432,10 @@ namespace muffin { namespace jarvis { namespace config {
                             return true;
                         }
                     }
+
+                    return true;
                 }()
-            ), "FORMAT STRING CANNOT BE APPLIED TO DATA WHICH IS STRING, FP32 OR FP64 TYPE"
+            ), "FORMAT STRING CANNOT BE APPLIED TO DATA WHICH IS BOOLEAN TYPE"
         );
 
         // format 문자열 유효성 검사

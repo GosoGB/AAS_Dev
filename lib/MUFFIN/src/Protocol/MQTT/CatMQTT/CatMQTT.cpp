@@ -952,6 +952,11 @@ PATTERN_FOUND:
 
     Status CatMQTT::checkLastWill()
     {
+        if (strlen(mMessageLWT.GetPayload()) == 0)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        
         char command[32];
         memset(command, '\0', sizeof(command));
 

@@ -1,11 +1,10 @@
 /**
  * @file Jarvis.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
- * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief MODLINK 설정을 담당하는 JARVIS 클래스를 선언합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-15
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -34,8 +33,9 @@ namespace muffin {
         Jarvis();
         virtual ~Jarvis();
     public:
-        Status Validate(const JsonDocument& json);
+        jarvis::ValidationResult Validate(JsonDocument& json);
     private:
-        std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>> mMapCIN;// config instance
+        using vectorCIN = std::vector<jarvis::config::Base*>;
+        std::map<jarvis::cfg_key_e, vectorCIN> mMapCIN; // CIN stands for "config instance"
     };
 }

@@ -4,7 +4,7 @@
  * 
  * @brief Data unit 정렬 순서를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-09
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -38,6 +38,41 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
+    DataUnitOrder& DataUnitOrder::operator=(const DataUnitOrder& obj)
+    {
+        if (this != &obj)
+        {
+            mVectorOrder = obj.mVectorOrder;
+        }
+        
+        return *this;
+    }
+    
+    bool DataUnitOrder::operator==(const DataUnitOrder& obj) const
+    {
+        if (mVectorOrder.size() != obj.mVectorOrder.size())
+        {
+            return false;
+        }
+        
+        for (size_t i = 0; i < mVectorOrder.size(); ++i)
+        {
+            if ((mVectorOrder[i].ByteOrder != obj.mVectorOrder[i].ByteOrder) ||
+                (mVectorOrder[i].DataUnit  != obj.mVectorOrder[i].DataUnit)  ||
+                (mVectorOrder[i].Index     != obj.mVectorOrder[i].Index))
+            {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    bool DataUnitOrder::operator!=(const DataUnitOrder& obj) const
+    {
+        return !(*this == obj);
+    }
+    
     std::vector<ord_t>::iterator DataUnitOrder::begin()
     {
         return mVectorOrder.begin();
@@ -60,14 +95,14 @@ namespace muffin { namespace jarvis {
     
     uint8_t DataUnitOrder::GetSize() const
     {
-        ASSERT((mVectorOrder.size() <= UINT8_MAX), "");
+        ASSERT((mVectorOrder.size() <= UINT8_MAX), "THE NUMBER OF DATA UNIT ORDERS CANNOT EXCEED 255");
 
         return static_cast<uint8_t>(mVectorOrder.size());
     }
 
     uint8_t DataUnitOrder::GetCapacity() const
     {
-        ASSERT((mVectorOrder.capacity() <= UINT8_MAX), "");
+        ASSERT((mVectorOrder.capacity() <= UINT8_MAX), "CAPACITY OF DATA UNIT ORDERS CANNOT EXCEED 255");
 
         return static_cast<uint8_t>(mVectorOrder.capacity());
     }
@@ -100,7 +135,7 @@ namespace muffin { namespace jarvis {
         return ret;
     }
 
-    std::pair<Status, ord_t> DataUnitOrder::Retrieve(const uint8_t index)
+    std::pair<Status, ord_t> DataUnitOrder::Retrieve(const uint8_t index) const
     {
         if ((index + 1) > mVectorOrder.size())
         {
@@ -115,5 +150,19 @@ namespace muffin { namespace jarvis {
         {
             return std::make_pair(Status(Status::Code::GOOD), mVectorOrder[index]);
         }
+    }
+    
+    size_t DataUnitOrder::RetrieveTotalSize() const
+    {
+        ASSERT((mVectorOrder.size() != 0), "TOTAL SIZE CANNOT BE CALCULATED WHEN THERE IS NO DATA UNIT ORDER EMPLACED");
+
+        size_t sum = 0;
+
+        for (const auto& order : mVectorOrder)
+        {
+            sum += static_cast<uint8_t>(order.DataUnit);
+        }
+        
+        return sum;
     }
 }}
