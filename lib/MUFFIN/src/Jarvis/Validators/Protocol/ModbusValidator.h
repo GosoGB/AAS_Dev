@@ -34,21 +34,21 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
-        Status validateModbusRTU(const JsonArray array, cin_vector* outVector);
-        Status validateModbusTCP(const JsonArray array, cin_vector* outVector);
-        Status validateMandatoryKeysModbusRTU(const JsonObject json);
-        Status validateMandatoryValuesModbusRTU(const JsonObject json);
-        Status validateMandatoryKeysModbusTCP(const JsonObject json);
-        Status validateMandatoryValuesModbusTCP(const JsonObject json);
+        std::pair<rsc_e, std::string> validateModbusRTU(const JsonArray array, cin_vector* outVector);
+        std::pair<rsc_e, std::string> validateModbusTCP(const JsonArray array, cin_vector* outVector);
+        rsc_e validateMandatoryKeysModbusRTU(const JsonObject json);
+        rsc_e validateMandatoryValuesModbusRTU(const JsonObject json);
+        rsc_e validateMandatoryKeysModbusTCP(const JsonObject json);
+        rsc_e validateMandatoryValuesModbusTCP(const JsonObject json);
     private:
-        Status emplaceCIN(config::Base* cin, cin_vector* outVector);
+        rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        std::pair<Status, IPAddress> convertToIPv4(const std::string ip);
-        std::pair<Status, nic_e> convertToIface(const std::string iface);
-        std::pair<Status, std::vector<std::string>> convertToNodes(const JsonArray nodes);
-        std::pair<Status, prt_e> convertToPortIndex(const uint8_t portIndex);
-        std::pair<Status, uint8_t> convertToSlaveID(const uint8_t slaveID);
+        std::pair<rsc_e, IPAddress> convertToIPv4(const std::string ip);
+        std::pair<rsc_e, nic_e> convertToIface(const std::string iface);
+        std::pair<rsc_e, std::vector<std::string>> convertToNodes(const JsonArray nodes);
+        std::pair<rsc_e, prt_e> convertToPortIndex(const uint8_t portIndex);
+        std::pair<rsc_e, uint8_t> convertToSlaveID(const uint8_t slaveID);
     };
 }}

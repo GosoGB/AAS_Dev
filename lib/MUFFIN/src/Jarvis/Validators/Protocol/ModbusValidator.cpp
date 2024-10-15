@@ -38,49 +38,41 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    Status ModbusValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> ModbusValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
+        ASSERT((arrayCIN.isNull() == false), "INPUT PARAMETER <arrayCIN> CANNOT BE NULL");
+        ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
-        ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
-
-        Status ret(Status::Code::UNCERTAIN);
 
         switch (key)
         {
         case cfg_key_e::MODBUS_RTU:
-            ret = validateModbusRTU(arrayCIN, outVector);
-            break;
+            return validateModbusRTU(arrayCIN, outVector);
         case cfg_key_e::MODBUS_TCP:
-            ret = validateModbusTCP(arrayCIN, outVector);
-            break;
+            return validateModbusTCP(arrayCIN, outVector);
         default:
-            ASSERT(false, "UNDEFINED SERIAL PORT CONFIGURATION");
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "UNDEFINED CONFIG KEY FOR MODBUS INTERFACE");
         };
-
-        return ret;
     }
 
-    Status ModbusValidator::validateModbusTCP(const JsonArray array, cin_vector* outVector)
+    std::pair<rsc_e, std::string> ModbusValidator::validateModbusTCP(const JsonArray array, cin_vector* outVector)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        LOG_ERROR(logger, "MODBUS TCP IS NOT SUPPORTED ON MODLINK-L OR MODLINK-ML10");
-        return Status(Status::Code::BAD_NOT_SUPPORTED);
+        const std::string message = "MODBUS TCP IS NOT SUPPORTED ON MODLINK-L OR MODLINK-ML10";
+        return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
     #else
         for (JsonObject cin : array)
         {
-            Status ret = validateMandatoryKeysModbusTCP(cin);
-            if (ret != Status::Code::GOOD)
+            rsc_e rsc = validateMandatoryKeysModbusTCP(cin);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS TCP: MANDATORY KEY CANNOT BE MISSING");
-                return ret;
+                return std::make_pair(rsc, "INVALID MODBUS TCP: MANDATORY KEY CANNOT BE MISSING");
             }
 
-            ret = validateMandatoryValuesModbusTCP(cin);
-            if (ret != Status::Code::GOOD)
+            rsc = validateMandatoryValuesModbusTCP(cin);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS TCP: MANDATORY KEY'S VALUE CANNOT BE NULL");
-                return ret;
+                return std::make_pair(rsc, "INVALID MODBUS TCP: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
 
             const uint16_t prt      = cin["prt"].as<uint16_t>();
@@ -94,33 +86,32 @@ namespace muffin { namespace jarvis {
 
             if (prt == 0)
             {
-                LOG_ERROR(logger, "INVALID MODBUS TCP SERVER PORT NUMBER : %d", prt);
-                goto INVALID_MODBUS_TCP;
+                const std::string message = "INVALID MODBUS TCP SERVER PORT NUMBER: " + std::to_string(prt);
+                return std::make_pair(rsc, message);
             }
 
-            if (retIP.first.ToCode() != Status::Code::GOOD)
+            if (retIP.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS TCP IP : %s", ip.c_str());
-                goto INVALID_MODBUS_TCP;
+                const std::string message = "INVALID MODBUS TCP SERVER IP: " + ip;
+                return std::make_pair(rsc, message);
             }    
 
-            if (retIface.first.ToCode() != Status::Code::GOOD)
+            if (retIface.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS TCP IFACE : %s", iface.c_str());
-                goto INVALID_MODBUS_TCP;
+                const std::string message = "INVALID MODBUS TCP IFACE: " + iface;
+                return std::make_pair(rsc, message);
             }   
 
-            if (retNodes.first.ToCode() != Status::Code::GOOD)
+            if (retNodes.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS TCP NODES");
-                goto INVALID_MODBUS_TCP;
+                const std::string message = "INVALID MODBUS TCP NODES";
+                return std::make_pair(rsc, message);
             }   
 
             config::ModbusTCP* modbusTCP = new(std::nothrow) config::ModbusTCP();
             if (modbusTCP == nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: MODBUS TCP");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR MODBUS TCP CONFIG");
             }
 
             modbusTCP->SetIPv4(retIP.second);
@@ -129,38 +120,36 @@ namespace muffin { namespace jarvis {
             modbusTCP->SetNodes(std::move(retNodes.second));
 
             
-            Status ret = emplaceCIN(static_cast<config::Base*>(modbusTCP), outVector);
-            if (ret != Status::Code::GOOD)
+            rsc = emplaceCIN(static_cast<config::Base*>(modbusTCP), outVector);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
-                return ret;
+                if (modbusTCP != nullptr)
+                {
+                    delete modbusTCP;
+                    modbusTCP = nullptr;
+                }
+                return std::make_pair(rsc, "FAILED TO EMPLACE: MODBUS TCP CONFIG INSTANCE");
             }
         }
 
-        LOG_VERBOSE(logger, "Valid Modbus TCP config instance")
-        return Status(Status::Code::GOOD);
-    
-    INVALID_MODBUS_TCP:
-        return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+        return std::make_pair(rsc_e::GOOD, "GOOD"); 
     #endif
     }
 
-    Status ModbusValidator::validateModbusRTU(const JsonArray array, cin_vector* outVector)
+    std::pair<rsc_e, std::string> ModbusValidator::validateModbusRTU(const JsonArray array, cin_vector* outVector)
     {
         for (JsonObject cin : array)
         {
-            Status ret = validateMandatoryKeysModbusRTU(cin);
-            if (ret != Status::Code::GOOD)
+            rsc_e rsc = validateMandatoryKeysModbusRTU(cin);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS RTU: MANDATORY KEY CANNOT BE MISSING");
-                return ret;
+                return std::make_pair(rsc, "INVALID MODBUS RTU: MANDATORY KEY CANNOT BE MISSING");
             }
 
-            ret = validateMandatoryValuesModbusRTU(cin);
-            if (ret != Status::Code::GOOD)
+            rsc = validateMandatoryValuesModbusRTU(cin);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS RTU: MANDATORY KEY'S VALUE CANNOT BE NULL");
-                return ret;
+                return std::make_pair(rsc, "INVALID MODBUS RTU: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
 
             const uint8_t prt       = cin["prt"].as<uint8_t>();
@@ -171,51 +160,50 @@ namespace muffin { namespace jarvis {
             const auto retSID  = convertToSlaveID(sid);
             auto retNodes      = convertToNodes(nodes);
 
-            if (retPRT.first.ToCode() != Status::Code::GOOD)
+            if (retPRT.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS RTU SERIAL PORT INDEX: %u", prt);
-                goto INVALID_MODBUS_RTU;
+                const std::string message = "INVALID MODBUS RTU SERIAL PORT INDEX: " + std::to_string(prt);
+                return std::make_pair(rsc, message);
             }
             
-            if (retSID.first.ToCode() != Status::Code::GOOD)
+            if (retSID.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS RTU SLAVE ID: %u", sid);
-                goto INVALID_MODBUS_RTU;
+                const std::string message = "INVALID MODBUS RTU SLAVE ID: " + std::to_string(sid);
+                return std::make_pair(rsc, message);
             }
 
-            if (retNodes.first.ToCode() != Status::Code::GOOD)
+            if (retNodes.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS RTU NODES");
-                goto INVALID_MODBUS_RTU;
+                const std::string message = "INVALID MODBUS TCP NODES";
+                return std::make_pair(rsc, message);
             }
             
             config::ModbusRTU* modbusRTU = new(std::nothrow) config::ModbusRTU();
             if (modbusRTU == nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: MODBUS RTU");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR MODBUS RTU CONFIG");
             }
 
             modbusRTU->SetPort(retPRT.second);
             modbusRTU->SetSlaveID(retSID.second);
             modbusRTU->SetNodes(std::move(retNodes.second));
 
-            ret = emplaceCIN(static_cast<config::Base*>(modbusRTU), outVector);
-            if (ret != Status::Code::GOOD)
+            rsc = emplaceCIN(static_cast<config::Base*>(modbusRTU), outVector);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());
-                return ret;
+                if (modbusRTU != nullptr)
+                {
+                    delete modbusRTU;
+                    modbusRTU = nullptr;
+                }
+                return std::make_pair(rsc, "FAILED TO EMPLACE: MODBUS RTU CONFIG INSTANCE");
             }
         }
 
-        LOG_VERBOSE(logger, "Valid Modbus RTU config instance")
-        return Status(Status::Code::GOOD);
-    
-    INVALID_MODBUS_RTU:
-        return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+        return std::make_pair(rsc_e::GOOD, "GOOD");    
     }
 
-    Status ModbusValidator::validateMandatoryKeysModbusRTU(const JsonObject json)
+    rsc_e ModbusValidator::validateMandatoryKeysModbusRTU(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json.containsKey("prt");
@@ -224,15 +212,15 @@ namespace muffin { namespace jarvis {
        
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status ModbusValidator::validateMandatoryValuesModbusRTU(const JsonObject json)
+    rsc_e ModbusValidator::validateMandatoryValuesModbusRTU(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json["prt"].isNull()  == false;
@@ -244,15 +232,15 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status ModbusValidator::validateMandatoryKeysModbusTCP(const JsonObject json)
+    rsc_e ModbusValidator::validateMandatoryKeysModbusTCP(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json.containsKey("ip");
@@ -262,15 +250,15 @@ namespace muffin { namespace jarvis {
        
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status ModbusValidator::validateMandatoryValuesModbusTCP(const JsonObject json)
+    rsc_e ModbusValidator::validateMandatoryValuesModbusTCP(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json["ip"].isNull()  == false;
@@ -284,58 +272,58 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status ModbusValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
+    rsc_e ModbusValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         try
         {
             outVector->emplace_back(cin);
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         catch(const std::bad_alloc& e)
         {
             LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }
 
-    std::pair<Status, prt_e> ModbusValidator::convertToPortIndex(const uint8_t portIndex)
+    std::pair<rsc_e, prt_e> ModbusValidator::convertToPortIndex(const uint8_t portIndex)
     {
         switch (portIndex)
         {
         case 2:
-            return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_2);
+            return std::make_pair(rsc_e::GOOD, prt_e::PORT_2);
         
         #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
         case 3:
-            return std::make_pair(Status(Status::Code::GOOD), prt_e::PORT_3);
+            return std::make_pair(rsc_e::GOOD, prt_e::PORT_3);
         #endif
 
         default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), prt_e::PORT_2);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, prt_e::PORT_2);
         }
     }
 
-    std::pair<Status, std::vector<std::string>> ModbusValidator::convertToNodes(const JsonArray nodes)
+    std::pair<rsc_e, std::vector<std::string>> ModbusValidator::convertToNodes(const JsonArray nodes)
     {
         if (nodes.size() == 0)
         {
             LOG_ERROR(logger, "NODES REFERENCE LENGTH CANNOT BE 0");
-            return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), std::vector<std::string>());
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, std::vector<std::string>());
         }
         
         std::vector<std::string> vectorNode;
@@ -348,14 +336,14 @@ namespace muffin { namespace jarvis {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR NODES REFERENCES: %s", e.what());
 
             vectorNode.clear();
-            return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), vectorNode);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorNode);
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "FAILED TO RESERVE VECTOR FOR NODES REFERENCE: %s", e.what());
 
             vectorNode.clear();
-            return std::make_pair(Status(Status::Code::BAD_UNEXPECTED_ERROR), vectorNode);
+            return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, vectorNode);
         }
         
         for (JsonVariant node : nodes)
@@ -367,7 +355,7 @@ namespace muffin { namespace jarvis {
                 LOG_ERROR(logger, "DECODING ERROR: INVALID OR CORRUPTED NODE ID: %s", nodeID.c_str());
 
                 vectorNode.clear();
-                return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), std::move(vectorNode));
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, std::move(vectorNode));
             }
 
             try
@@ -379,57 +367,57 @@ namespace muffin { namespace jarvis {
                 LOG_ERROR(logger, "FAILED TO EMPLACE NODE REFERENCE: %s", e.what());
 
                 vectorNode.clear();
-                return std::make_pair(Status(Status::Code::BAD_UNEXPECTED_ERROR), vectorNode);
+                return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, vectorNode);
             }
         }    
         
-        return std::make_pair(Status(Status::Code::GOOD), std::move(vectorNode));
+        return std::make_pair(rsc_e::GOOD, std::move(vectorNode));
     }
 
-    std::pair<Status, nic_e> ModbusValidator::convertToIface(const std::string iface)
+    std::pair<rsc_e, nic_e> ModbusValidator::convertToIface(const std::string iface)
     {
         if (iface == "wifi")
         {
-            return std::make_pair(Status(Status::Code::GOOD), nic_e::WIFI4);
+            return std::make_pair(rsc_e::GOOD, nic_e::WIFI4);
         }
         else if (iface == "eth")
         {
-            return std::make_pair(Status(Status::Code::GOOD), nic_e::ETHERNET);
+            return std::make_pair(rsc_e::GOOD, nic_e::ETHERNET);
         }
         else if (iface == "lte")
         {
-            return std::make_pair(Status(Status::Code::GOOD), nic_e::LTE_CatM1);
+            return std::make_pair(rsc_e::GOOD, nic_e::LTE_CatM1);
         }
         else
         {
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), nic_e::ETHERNET);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, nic_e::ETHERNET);
         }        
     }
 
-    std::pair<Status, IPAddress> ModbusValidator::convertToIPv4(const std::string ip)
+    std::pair<rsc_e, IPAddress> ModbusValidator::convertToIPv4(const std::string ip)
     {
         IPAddress IPv4;
 
         if (IPv4.fromString(ip.c_str()))  // fromString 함수가 IP 변환에 성공했는지 확인
         {
-            return std::make_pair(Status(Status::Code::GOOD), IPv4);
+            return std::make_pair(rsc_e::GOOD, IPv4);
         }
         else
         {
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), IPAddress());
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, IPAddress());
         }
        
     }
 
-    std::pair<Status, uint8_t> ModbusValidator::convertToSlaveID(const uint8_t slaveID)
+    std::pair<rsc_e, uint8_t> ModbusValidator::convertToSlaveID(const uint8_t slaveID)
     {
         if (slaveID > 247 || slaveID == 0)
         {
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), 0);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 0);
         }
         else
         {
-            return std::make_pair(Status(Status::Code::GOOD), slaveID);
+            return std::make_pair(rsc_e::GOOD, slaveID);
         }
     }
 
