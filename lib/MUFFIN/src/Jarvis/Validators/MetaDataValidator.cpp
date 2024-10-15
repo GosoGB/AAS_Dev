@@ -5,7 +5,7 @@
  * 
  * @brief JARVIS 설정 정보의 메타데이터가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-15
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -26,7 +26,7 @@
 namespace muffin { namespace jarvis {
 
     MetaDataValidator::MetaDataValidator()
-        : mIsMetaDataValid(false)
+        : mHasNoError(false)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -40,40 +40,80 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    Status MetaDataValidator::Inspect(const JsonObject json)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD
+     *      @li BAD_INVALID_VERSION
+     *      @li BAD_INVALID_VERSION_CONFIG_INSTANCES
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCES
+     *      @li UNCERTAIN_VERSION_CONFIG_INSTANCES
+     */
+    std::pair<rsc_e, std::string> MetaDataValidator::Inspect(const JsonObject json)
     {
-        Status ret = validateVersion(json);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "INVALID VERSION: %s", ret.c_str());
-            return ret;
-        }
+        std::pair<bool, rsc_e> pairUncertainRSC = {false, rsc_e::UNCERTAIN};
 
-        ret = validateRequestID(json);
-        if (ret != Status::Code::GOOD)
+        rsc_e rsc = validateVersion(json);
+        if (rsc == rsc_e::BAD || rsc == rsc_e::BAD_INVALID_VERSION)
         {
-            LOG_ERROR(logger, "INVALID REQUEST ID: %s", ret.c_str());
-            return ret;
+            LOG_ERROR(logger, "%s", mResponseDescription.c_str());
+            return std::make_pair(rsc, mResponseDescription);
         }
-
-        ret = validateContainer(json);
-        if (ret != Status::Code::GOOD)
+        else if (rsc == rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES)
         {
-            LOG_ERROR(logger, "INVALID CONTAINER: %s", ret.c_str());
-            return ret;
+            pairUncertainRSC.first = true;
+            pairUncertainRSC.second = rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES;
         }
+        LOG_VERBOSE(logger, "Version: %s", mResponseDescription.c_str());
 
-        LOG_INFO(logger, "Valid JARVIS metadata");
-        mIsMetaDataValid = true;
-        return ret;
+        rsc = validateRequestID(json);
+        if (rsc != rsc_e::GOOD)
+        {
+            LOG_ERROR(logger, "%s", mResponseDescription.c_str());
+            return std::make_pair(rsc, mResponseDescription);
+        }
+        LOG_VERBOSE(logger, "Request ID: %s", mResponseDescription.c_str());
+
+        rsc = validateContainer(json);
+        if (rsc != rsc_e::GOOD && rsc != rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES)
+        {
+            LOG_ERROR(logger, "%s", mResponseDescription.c_str());
+            return std::make_pair(rsc, mResponseDescription);
+        }
+        else if (rsc == rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES)
+        {
+            pairUncertainRSC.first = true;
+            pairUncertainRSC.second = rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES;
+        }
+        LOG_VERBOSE(logger, "Container: %s", mResponseDescription.c_str());
+        mHasNoError = true;
+
+        if (pairUncertainRSC.first == false)
+        {
+            LOG_INFO(logger, "JARVIS metadata: %s", mResponseDescription.c_str());
+            return std::make_pair(rsc_e::GOOD, mResponseDescription);
+        }
+        else
+        {
+            LOG_WARNING(logger, "UNCERTAIN JARVIS METADATA: %X", static_cast<uint16_t>(pairUncertainRSC.second));
+            return std::make_pair(pairUncertainRSC.second, mResponseDescription);
+        }
     }
 
-    Status MetaDataValidator::validateVersion(const JsonObject& json)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD
+     *      @li BAD_INVALID_VERSION
+     *      @li UNCERTAIN_VERSION_CONFIG_INSTANCES
+     */
+    rsc_e MetaDataValidator::validateVersion(const JsonObject& json)
     {
         if (json.containsKey("ver") == false)
         {
-            LOG_ERROR(logger, "VERSION NOT FOUND");
-            return Status(Status::Code::BAD_NOT_FOUND);
+            mResponseDescription = "INVALID VERSION: KEY NOT FOUND";
+            return rsc_e::BAD;
         }
         
         std::smatch matches;
@@ -83,8 +123,8 @@ namespace muffin { namespace jarvis {
         
         if (hasMatch == false)
         {
-            LOG_ERROR(logger, "INVALID VERSION FORMAT");
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            mResponseDescription = "INVALID VERSION: UNDEFINED FORMAT";
+            return rsc_e::BAD;
         }
         
         const uint8_t intVersion = ConvertToUInt8(matches[1].str().c_str());
@@ -110,76 +150,114 @@ namespace muffin { namespace jarvis {
             if (SUPPORTED_VERSION[idx] == mVersion)
             {
                 mVersion = static_cast<prtcl_ver_e>(intVersion);
-                return Status(Status::Code::GOOD);
+                mResponseDescription = "GOOD";
+                return rsc_e::GOOD;
             }
         }
+        goto INVALID_VERSION;
     
+    INVALID_VERSION:
+        mResponseDescription = "INVALID VERSION: " + std::to_string(intVersion);
+        mVersionState = rsc_e::BAD_INVALID_VERSION;
+        return mVersionState;
+
     UNSUPPORTED_VERSION:
-        ASSERT(false, "UNDEFINED OR UNSUPPORTED VERSION: %u", intVersion);
-        LOG_ERROR(logger,"UNDEFINED OR UNSUPPORTED VERSION: %u", intVersion);
-        return Status(Status::Code::BAD_PROTOCOL_VERSION_UNSUPPORTED);
+        mResponseDescription = "UNSUPPORTED VERSION: " + std::to_string(intVersion);
+        mVersionState = rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES;
+        return mVersionState;
     }
 
-    Status MetaDataValidator::validateRequestID(const JsonObject& json)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD
+     */
+    rsc_e MetaDataValidator::validateRequestID(const JsonObject& json)
     {
         mRequestID.clear();
 
         if (json.containsKey("rqi") == false)
         {
-            LOG_VERBOSE(logger, "No request identifier");
-            return Status(Status::Code::GOOD);
+            mResponseDescription = "GOOD";
+            return rsc_e::GOOD;
         }
 
         if (json["rqi"].isNull() == false)
         {
-            mRequestID = json["rqi"].as<std::string>();
-            LOG_VERBOSE(logger, "Request identifier: %s", mRequestID.c_str());
-            return Status(Status::Code::GOOD);
+            if (json["rqi"].is<std::string>() == true)
+            {
+                mRequestID = json["rqi"].as<std::string>();
+                mResponseDescription = "GOOD: " + mRequestID;
+                return rsc_e::GOOD;
+            }
+            else
+            {
+                mResponseDescription = "INVALID REQUEST ID: MUST BE STRING";
+                return rsc_e::BAD;
+            }
         }
 
-        LOG_ERROR(logger, "REQUEST ID CANNOT BE NULL");
-        return Status(Status::Code::BAD_NOT_FOUND);
+        mResponseDescription = "INVALID REQUEST ID: NOT NULLABLE WHEN KEY EXISTS";
+        return rsc_e::BAD;
     }
 
-    Status MetaDataValidator::validateContainer(const JsonObject& json)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD
+     *      @li BAD_INVALID_VERSION_CONFIG_INSTANCES
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCES
+     *      @li UNCERTAIN_VERSION_CONFIG_INSTANCES
+     */
+    rsc_e MetaDataValidator::validateContainer(const JsonObject& json)
     {
         mContainerKeySet.clear();
 
         if (json.containsKey("cnt") == false)
         {
-            LOG_ERROR(logger, "CONTAINER NOT FOUND");
-            return Status(Status::Code::BAD_NO_ENTRY_EXISTS);
+            mResponseDescription = "INVALID CONTAINER: KEY NOT FOUND";
+            return rsc_e::BAD;
         }
 
         if (json["cnt"].is<JsonObject>() == false)
         {
-            LOG_ERROR(logger, "CONTAINER MUST BE A JSON OBJECT");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            mResponseDescription = "INVALID CONTAINER: MUST BE A JSON OBJECT";
+            return rsc_e::BAD;
         }
         
-        JsonObject container = json["cnt"];
+        JsonObject container = json["cnt"].as<JsonObject>();
         if (container.size() != mContainerLength)
         {
-            LOG_ERROR(logger, "INVALID CONTAINER LENGTH FOR THE PROTOCOL VERSION: %u", container.size());
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            if (mVersionState == rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES)
+            {
+                mResponseDescription = 
+                    "UNCERTAIN CONTAINER: VERSION DEFINES " + std::to_string(mContainerLength) + 
+                    " KEYS WHILE CONTAINER HAS ONLY " + std::to_string(container.size());
+                return mVersionState;
+            }
+            else
+            {
+                mResponseDescription = 
+                    "INVALID CONTAINER: LENGTH MUST BE " + std::to_string(mContainerLength) + 
+                    " FOR VERSION " + std::to_string(static_cast<uint8_t>(mVersion));
+                return rsc_e::BAD_INVALID_VERSION_CONFIG_INSTANCES;
+            }
         }
 
-        Status ret(Status::Code::UNCERTAIN);
         for (auto config : container)
         {
             if (config.value().is<JsonArray>() == false)
             {
-                LOG_ERROR(logger, "CONFIG INSTANCE MUST BE A JSON ARRAY: %s", config.key().c_str());
-                ret = Status::Code::BAD_ENCODING_ERROR;
-                goto INVALID_CONTAINER;
+                mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS NOT A JSON ARRAY";
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             }
             
             const auto retKey = ConvertToConfigKey(mVersion, config.key().c_str());
             if (retKey.first.ToCode() != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "CONTAINER HAS INVALID CONFIG KEY: %s", retKey.first.c_str());
-                ret = retKey.first;
-                goto INVALID_CONTAINER;
+                mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS NOT DEFINED";
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             }
 
             if (config.value().as<JsonArray>().size() == 0)
@@ -191,37 +269,54 @@ namespace muffin { namespace jarvis {
             const auto retEmplace = mContainerKeySet.emplace(retKey.second);
             if (retEmplace.second == false)
             {
-                LOG_ERROR(logger, "CONFIG KEY CANNOT BE DUPLICATED: %s", config.key().c_str());
-                ret = Status::Code::BAD_ENTRY_EXISTS;
-                goto INVALID_CONTAINER;
+                mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS DUPLICATED";
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCES;
             }
         }
         
-        return Status(Status::Code::GOOD);
-
-    INVALID_CONTAINER:
-        mContainerKeySet.clear();
-        return ret;
+        mResponseDescription = "GOOD";
+        return rsc_e::GOOD;
     }
 
-    prtcl_ver_e MetaDataValidator::RetrieveProtocolVersion() const
+    std::pair<Status, prtcl_ver_e> MetaDataValidator::RetrieveProtocolVersion() const
     {
-        ASSERT((mIsMetaDataValid == true), "CANNOT RETRIEVE INVALID PROTOCOL VERSION");
-
-        return mVersion;
+        if (mHasNoError == true)
+        {
+            LOG_VERBOSE(logger, "JARVIS Version: %u", static_cast<uint8_t>(mVersion));
+            return std::make_pair(Status(Status::Code::GOOD), mVersion);
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE: JARVIS METADATA INVALID");
+            return std::make_pair(Status(Status::Code::BAD), prtcl_ver_e::VERSEOIN_1);
+        }
     }
 
-    const std::string& MetaDataValidator::RetrieveRequestID() const
+    std::pair<Status, std::string> MetaDataValidator::RetrieveRequestID() const
     {
-        ASSERT((mIsMetaDataValid == true), "CANNOT RETRIEVE INVALID REQUEST ID");
-
-        return mRequestID;
+        if (mHasNoError == true)
+        {
+            LOG_VERBOSE(logger, "JARVIS Request ID: %s", mRequestID.c_str());
+            return std::make_pair(Status(Status::Code::GOOD), mRequestID);
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE: JARVIS METADATA INVALID");
+            return std::make_pair(Status(Status::Code::BAD), std::string());
+        }
     }
 
-    const std::set<cfg_key_e>& MetaDataValidator::RetrieveContainerKeys() const
+    std::pair<Status, std::set<cfg_key_e>> MetaDataValidator::RetrieveContainerKeys() const
     {
-        ASSERT((mIsMetaDataValid == true), "CANNOT RETRIEVE INVALID CONTAINER KEYS");
-
-        return mContainerKeySet;
+        if (mHasNoError == true)
+        {
+            LOG_VERBOSE(logger, "The size of container key set: %u", mContainerKeySet.size());
+            return std::make_pair(Status(Status::Code::GOOD), mContainerKeySet);
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE: JARVIS METADATA INVALID");
+            return std::make_pair(Status(Status::Code::BAD), std::set<cfg_key_e>());
+        }
     }
 }}

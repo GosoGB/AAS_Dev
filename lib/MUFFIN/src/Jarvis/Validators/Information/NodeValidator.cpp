@@ -129,7 +129,7 @@ namespace muffin { namespace jarvis {
             if (mAddressQuantity.first.ToCode() != Status::Code::GOOD && 
                 mAddressQuantity.first.ToCode() != Status::Code::GOOD_NO_DATA)
             {
-                LOG_ERROR(logger, "FAILED TO CONVERT TO """""": %s", mAddressQuantity.first.c_str());
+                LOG_ERROR(logger, "FAILED TO CONVERT TO ADDRESS QUANTITY: %s", mAddressQuantity.first.c_str());
                 return mAddressQuantity.first;
             }
 
@@ -137,7 +137,7 @@ namespace muffin { namespace jarvis {
             if (mNumericScale.first.ToCode() != Status::Code::GOOD && 
                 mNumericScale.first.ToCode() != Status::Code::GOOD_NO_DATA)
             {
-                LOG_ERROR(logger, "FAILED TO CONVERT TO """""": %s", mNumericScale.first.c_str());
+                LOG_ERROR(logger, "FAILED TO CONVERT TO NUMERIC SCALE: %s", mNumericScale.first.c_str());
                 return mNumericScale.first;
             }
 
@@ -145,7 +145,7 @@ namespace muffin { namespace jarvis {
             if (mNumericOffset.first.ToCode() != Status::Code::GOOD && 
                 mNumericOffset.first.ToCode() != Status::Code::GOOD_NO_DATA)
             {
-                LOG_ERROR(logger, "FAILED TO CONVERT TO """""": %s", mNumericOffset.first.c_str());
+                LOG_ERROR(logger, "FAILED TO CONVERT TO NUMERIC OFFSET: %s", mNumericOffset.first.c_str());
                 return mNumericOffset.first;
             }
 
@@ -153,7 +153,7 @@ namespace muffin { namespace jarvis {
             if (mMappingRules.first.ToCode() != Status::Code::GOOD && 
                 mMappingRules.first.ToCode() != Status::Code::GOOD_NO_DATA)
             {
-                LOG_ERROR(logger, "FAILED TO CONVERT TO """""": %s", mMappingRules.first.c_str());
+                LOG_ERROR(logger, "FAILED TO CONVERT TO MAPPING RULES: %s", mMappingRules.first.c_str());
                 return mMappingRules.first;
             }
 
@@ -161,7 +161,7 @@ namespace muffin { namespace jarvis {
             if (mDataUnitOrders.first.ToCode() != Status::Code::GOOD &&
                 mDataUnitOrders.first.ToCode() != Status::Code::GOOD_NO_DATA)
             {
-                LOG_ERROR(logger, "FAILED TO CONVERT TO """""": %s", mDataUnitOrders.first.c_str());
+                LOG_ERROR(logger, "FAILED TO CONVERT TO DATA UNIT ORDERS: %s", mDataUnitOrders.first.c_str());
                 return mDataUnitOrders.first;
             }
 
@@ -169,7 +169,7 @@ namespace muffin { namespace jarvis {
             if (mFormatString.first.ToCode() != Status::Code::GOOD &&
                 mFormatString.first.ToCode() != Status::Code::GOOD_NO_DATA)
             {
-                LOG_ERROR(logger, "FAILED TO CONVERT TO """""": %s", mFormatString.first.c_str());
+                LOG_ERROR(logger, "FAILED TO CONVERT TO FORMAT STRING: %s", mFormatString.first.c_str());
                 return mFormatString.first;
             }
 
@@ -299,13 +299,37 @@ namespace muffin { namespace jarvis {
             catch(const std::bad_alloc& e)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR NODE CIN: %s", e.what());
+
+                delete node;
+                outVector->clear();
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
             catch(const std::exception& e)
             {
                 LOG_ERROR(logger, "FAILED TO EMPLACE NODE CIN: %s", e.what());
+                
+                delete node;
+                outVector->clear();
                 return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
+
+            mNodeID.clear();
+            mAddressType      = std::make_pair(Status(Status::Code::UNCERTAIN), adtp_e::NUMERIC);
+            mAddress          = std::make_pair(Status(Status::Code::UNCERTAIN), addr_u());
+            mModbusArea       = std::make_pair(Status(Status::Code::UNCERTAIN), mb_area_e::COILS);
+            mBitIndex         = std::make_pair(Status(Status::Code::UNCERTAIN), 0);
+            mAddressQuantity  = std::make_pair(Status(Status::Code::UNCERTAIN), 0);
+            mNumericScale     = std::make_pair(Status(Status::Code::UNCERTAIN), scl_e::NEGATIVE_1);
+            mNumericOffset    = std::make_pair(Status(Status::Code::UNCERTAIN), 0.0f);
+            mMappingRules     = std::make_pair(Status(Status::Code::UNCERTAIN), std::map<uint16_t, std::string>());
+            mDataUnitOrders   = std::make_pair(Status(Status::Code::UNCERTAIN), std::vector<DataUnitOrder>());
+            mDataTypes        = std::make_pair(Status(Status::Code::UNCERTAIN), std::vector<muffin::jarvis::dt_e>());
+            mFormatString     = std::make_pair(Status(Status::Code::UNCERTAIN), std::string());
+            mUID.clear();
+            mDisplayName.clear();
+            mDisplayUnit.clear();
+            mIsEventType = false;
+            mVectorFormatSpecifier.clear();
         }
 
         return Status(Status::Code::GOOD);

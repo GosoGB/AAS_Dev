@@ -508,7 +508,7 @@ namespace muffin {
 
     void CatM1::resetModule()
     {
-        if (mConfig.GetModel() == jarvis::md_e::LM5)
+        if (mConfig.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
             delay(110);

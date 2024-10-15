@@ -1,6 +1,5 @@
 /**
  * @file Validator.h
- * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief JARVIS 설정 정보의 유효성을 검사하기 위한 모듈 클래스를 선언합니다.
@@ -45,23 +44,28 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        Status Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN);
+        std::pair<rsc_e, std::string> Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN);
     private:
-        Status emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN);
-        Status validateMetaData(const JsonObject json);
-        Status validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateOperation(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateNode(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateAlarm(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateOperationTime(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        Status validateProductionInfo(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateMetaData(const JsonObject json);
+        rsc_e validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateOperation(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateNode(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateAlarm(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateOperationTime(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        rsc_e validateProductionInfo(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+    private:
+        std::pair<rsc_e, std::string> emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN);
     private:
         /*Metadata*/
         prtcl_ver_e mProtocolVersion;
         std::string mRequestIdentifier;
         std::set<cfg_key_e> mContainerKeySet;
+    private:
+        bool mIsUncertain = false;
+        std::pair<rsc_e, std::string> mPairUncertainRSC;
+        std::string mResponseDescription;
     };
 }}

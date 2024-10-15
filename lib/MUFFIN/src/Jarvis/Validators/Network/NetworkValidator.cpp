@@ -1,7 +1,6 @@
 /**
  * @file NetworkValidator.cpp
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
- * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
@@ -13,14 +12,15 @@
 
 
 
-#include <regex> 
+#include <regex>
+
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "NetworkValidator.h"
 #include "Jarvis/Config/Network/CatM1.h"
 #include "Jarvis/Config/Network/Ethernet.h"
 #include "Jarvis/Config/Network/WiFi4.h"
 #include "Jarvis/Include/Helper.h"
+#include "NetworkValidator.h"
 
 
 
@@ -68,7 +68,6 @@ namespace muffin { namespace jarvis {
         if (array.size() != 1)
         {
             LOG_ERROR(logger, "INVALID WIFI CONFIG: ONLY ONE WIFI MODULE CAN BE CONFIGURED");
-            ASSERT((array.size() == 1), "WIFI CONFIG CANNOT BE GREATER THAN 1");
             return Status(Status::Code::BAD_NOT_SUPPORTED);
         }
 
@@ -277,11 +276,8 @@ namespace muffin { namespace jarvis {
             return ret;
         }
 
-    LOG_VERBOSE(logger, "Valid WiFi4 config instance")
-    return Status(Status::Code::GOOD);
-    
-INVALID_WIFI4:
-    return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+        LOG_VERBOSE(logger, "Valid WiFi4 config instance")
+        return Status(Status::Code::GOOD);
     }
 
     Status NetworkValidator::validateMandatoryKeysWiFi4(const JsonObject json)
@@ -470,11 +466,8 @@ INVALID_WIFI4:
             return ret;
         }
 
-    LOG_VERBOSE(logger, "Valid ethernet config instance")
-    return Status(Status::Code::GOOD);
-    
-INVALID_ETHERNET:
-    return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+        LOG_VERBOSE(logger, "Valid ethernet config instance")
+        return Status(Status::Code::GOOD);
     }
 
     Status NetworkValidator::validateMandatoryKeysEthernet(const JsonObject json)

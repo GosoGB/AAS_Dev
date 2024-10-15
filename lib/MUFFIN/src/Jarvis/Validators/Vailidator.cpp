@@ -1,11 +1,10 @@
 /**
  * @file Validator.cpp
- * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief JARVIS 설정 정보의 유효성을 검사하기 위한 모듈 클래스를 정의합니다.
  * 
- * @date 2024-10-06
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -45,28 +44,29 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    Status Validator::Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN)
+    std::pair<rsc_e, std::string> Validator::Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN)
     {
         ASSERT((mapCIN != nullptr), "OUTPUT PARAMETER <mapCIN> CANNOT BE A NULL POINTER");
         ASSERT((mapCIN->size() == 0), "OUTPUT PARAMETER <mapCIN> MUST BE EMPTY");
 
         if (jsonDocument.is<JsonObject>() == false)
         {
-            LOG_ERROR(logger, "JSON FOR JARVIS MUST HAVE KEY-VALUE PAIRS");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            mResponseDescription = "BAD: JSON DOCUMENT IS NOT JSON OBJECT";
+            LOG_ERROR(logger, "%s", mResponseDescription.c_str());
+            return std::make_pair(rsc_e::BAD, mResponseDescription);
         }
         
         JsonObject json = jsonDocument.as<JsonObject>();
-        Status ret = validateMetaData(json);
-        if (ret != Status::Code::GOOD)
+        const auto retMetaData = validateMetaData(json);
+        if (retMetaData.first > rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES)
         {
-            LOG_ERROR(logger, "INVALID JARVIS METADATA: %s", ret.c_str());
-            return ret;
+            LOG_ERROR(logger, "%s", retMetaData.second.c_str());
+            return retMetaData;
         }
         /*컨테이너 내부 키(key)를 비롯하여 모든 메타데이터는 유효합니다.*/
 
-        ret = emplacePairsForCIN(mapCIN);
-        if (ret != Status::Code::GOOD)
+        const auto retEmplace = emplacePairsForCIN(mapCIN);
+        if (retEmplace.first != rsc_e::G)
         {
             LOG_ERROR(logger, "FAILED TO VALIDATE: %s", ret.c_str());
             return Status(Status::Code::BAD_INTERNAL_ERROR);
@@ -136,69 +136,121 @@ namespace muffin { namespace jarvis {
         }
     }
 
-    Status Validator::emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD_OUT_OF_MEMORY
+     *      @li BAD_UNEXPECTED_ERROR
+     */
+    std::pair<rsc_e, std::string> Validator::emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN)
     {
-        Status ret(Status::Code::UNCERTAIN);
-        std::exception exception;
-        cfg_key_e cinKey;
+        std::pair<rsc_e, std::string> ret;
 
         for (const auto key : mContainerKeySet)
         {
             try
             {
-                auto result = mapCIN->emplace(key, std::vector<config::Base*>());
-                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
-                cinKey = key;
+                const auto result = mapCIN->emplace(key, std::vector<config::Base*>());
+                ASSERT((result.second == true),
+                    "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE"
+                );
             }
             catch(const std::bad_alloc& e)
             {
-                ret = Status::Code::BAD_OUT_OF_MEMORY;
-                exception = e;
+                ret = std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, e.what());
                 goto ON_FAIL;
             }
             catch(const std::exception& e)
             {
-                ret = Status::Code::BAD_UNEXPECTED_ERROR;
-                exception = e;
+                ret = std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, e.what());
                 goto ON_FAIL;
             }
         }
 
-        LOG_VERBOSE(logger, "Emplaced pairs for CIN map");
-        return Status(Status::Code::GOOD);
+        ret = std::make_pair(rsc_e::GOOD, "GOOD: Emplaced key-value pairs to CIN map");
+        return ret;
     
     ON_FAIL:
-        LOG_ERROR(logger, "%s: CIN class: %s", exception.what(), ConverKeyToString(cinKey));
+        /**
+         * @todo 동적으로 할당 된 CIN 개체들이 모두 정상적으로 소멸되었는지
+         *       확인해야 합니다. 정상적인 경우 개체는 소멸 로그를 남깁니다.
+         */
+        for (auto& pair : *mapCIN)
+        {
+            for (auto& cin : pair.second)
+            {
+                delete cin;
+            }
+        }
+        
         mapCIN->clear();
         return ret;
     }
 
-    Status Validator::validateMetaData(const JsonObject json)
+    /**
+     * @return rsc_e 
+     *      @li GOOD
+     *      @li BAD
+     *      @li BAD_INVALID_VERSION
+     *      @li BAD_INVALID_VERSION_CONFIG_INSTANCES
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCE
+     *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCES
+     *      @li BAD_INTERNAL_ERROR
+     *      @li UNCERTAIN_VERSION_CONFIG_INSTANCES
+     */
+    std::pair<rsc_e, std::string> Validator::validateMetaData(const JsonObject json)
     {
         MetaDataValidator validator;
-        Status ret = validator.Inspect(json);
-        if (ret != Status(Status::Code::GOOD))
+        const auto ret = validator.Inspect(json);
+        if (ret.first > rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES)
         {
             return ret;
         }
 
-        mProtocolVersion   = validator.RetrieveProtocolVersion();
-        mRequestIdentifier = validator.RetrieveRequestID();
-        mContainerKeySet   = validator.RetrieveContainerKeys();
-    
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "Protocol Version: v%u", static_cast<uint8_t>(mProtocolVersion));
-        LOG_DEBUG(logger, "Request Identifier: %s", mRequestIdentifier);
-        for (const auto& key : mContainerKeySet)
+        const auto retVersion = validator.RetrieveProtocolVersion();
+        if (retVersion.first.ToCode() == Status::Code::GOOD)
         {
-            LOG_DEBUG(logger, "Key: %s", ConverKeyToString(key));
+            mProtocolVersion = retVersion.second;
         }
-    #endif
-
+        else
+        {
+            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "FAILED TO RETRIEVE VERSION INFO");
+        }
+        
+        const auto retRequestID = validator.RetrieveRequestID();
+        if (retRequestID.first.ToCode() == Status::Code::GOOD)
+        {
+            mRequestIdentifier = retRequestID.second;
+        }
+        else
+        {
+            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "FAILED TO RETRIEVE REQUEST ID");
+        }
+        
+        const auto retContainerKeys = validator.RetrieveContainerKeys();
+        if (retContainerKeys.first.ToCode() == Status::Code::GOOD)
+        {
+            /**
+             * @todo std::pair 자료구조로 복사하여 값으로 전달할 때에도
+             *       MetaDataValidator의 멤버 변수 mContainerKeySet의
+             *       소유권이 이동되었는지 확인해야 합니다.
+             */
+            mContainerKeySet = std::move(retContainerKeys.second);
+        }
+        else
+        {
+            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "FAILED TO RETRIEVE CONTAINER KEYS");
+        }
+    
+        if (rsc_e::GOOD < ret.first && ret.first < rsc_e::BAD)
+        {
+            mIsUncertain = true;
+            mPairUncertainRSC = ret;
+        }
         return ret;
     }
 
-    Status Validator::validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    rsc_e Validator::validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
@@ -216,7 +268,7 @@ namespace muffin { namespace jarvis {
         return ret;
     }
 
-    Status Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    rsc_e Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
@@ -234,7 +286,7 @@ namespace muffin { namespace jarvis {
         return ret;
     }
 
-    Status Validator::validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    rsc_e Validator::validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");

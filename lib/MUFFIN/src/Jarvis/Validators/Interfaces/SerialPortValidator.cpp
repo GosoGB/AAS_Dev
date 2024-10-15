@@ -234,7 +234,7 @@ namespace muffin { namespace jarvis {
             rs485->SetParityBit(retPBIT.second);
             rs485->SetStopBit(retSBIT.second);
 
-            Status ret = emplaceCIN(static_cast<config::Base*>(rs485), outVector);
+            ret = emplaceCIN(static_cast<config::Base*>(rs485), outVector);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", ret.c_str());

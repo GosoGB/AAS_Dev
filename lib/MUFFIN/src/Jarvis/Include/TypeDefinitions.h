@@ -4,7 +4,7 @@
  * 
  * @brief JARVIS에서 사용하는 데이터 타입들을 정의합니다.
  * 
- * @date 2024-10-09
+ * @date 2024-10-14
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -21,6 +21,36 @@
 
 
 namespace muffin { namespace jarvis {
+
+    typedef enum class ResponseStatusCodeEnum
+        : uint16_t
+    {
+        GOOD                                        = 0x0000,
+        UNCERTAIN                                   = 0x4000,
+        UNCERTAIN_CONFIG_INSTANCE                   = 0x4460,
+        UNCERTAIN_CONFIG_INSTANCES                  = 0x44A0,
+        UNCERTAIN_VERSION_CONFIG_INSTANCE           = 0x4560,
+        UNCERTAIN_VERSION_CONFIG_INSTANCES          = 0x45A0,
+        BAD                                         = 0x8000,
+        BAD_UNEXPECTED_ERROR                        = 0x8218,
+        BAD_COMMUNICATION                           = 0x8240,
+        BAD_COMMUNICATION_TIMEOUT                   = 0x8250,
+        BAD_COMMUNICATION_CAPACITY_EXCEEDED         = 0x8260,
+        BAD_DECODING_ERROR                          = 0x8280,
+        BAD_DECODING_CAPACITY_EXCEEDED              = 0x82A0,
+        BAD_INVALID_FORMAT_CONFIG_INSTANCE          = 0x8450,
+        BAD_INVALID_FORMAT_CONFIG_INSTANCES         = 0x8490,
+        BAD_INVALID_PRECONDITION_OR_RELATION        = 0x84A0,
+        BAD_INVALID_VERSION                         = 0x8500,
+        BAD_INVALID_VERSION_CONFIG_INSTANCE         = 0x8550,
+        BAD_INVALID_VERSION_CONFIG_INSTANCES        = 0x8590,
+        BAD_INVALID_VERSION_PRECONDITION_RELATION   = 0x85A0,
+        BAD_INTERNAL_ERROR                          = 0x8810,
+        BAD_OUT_OF_MEMORY                           = 0x8820,
+        BAD_UNSUPPORTED_CONFIGURATION               = 0x8840,
+        BAD_TEMPORARY_UNAVAILABLE                   = 0x8880,
+        BAD_HARDWARE_FAILURE                        = 0x8900
+    } rsc_e;
 
     typedef enum class NodeAddressTypeEnum
         : uint8_t
