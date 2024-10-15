@@ -37,86 +37,93 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    Status AlarmValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> AlarmValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
-        ASSERT((key == cfg_key_e::OPERATION_TIME), "CONFIG CATEGORY DOES NOT MATCH");
+        ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
+        ASSERT((key == cfg_key_e::ALARM), "CONFIG CATEGORY DOES NOT MATCH");
 
         for (JsonObject json : arrayCIN)
         {
-            Status ret = validateMandatoryKeys(json);
-            if (ret != Status::Code::GOOD)
+            rsc_e rsc = validateMandatoryKeys(json);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "MANDATORY KEYS CANNOT BE MISSING");
-                return ret;
+                return std::make_pair(rsc, "INVALID ALARM: MANDATORY KEY CANNOT BE MISSING");
             }
 
-            ret = validateMandatoryValues(json);
-            if (ret != Status::Code::GOOD)
+            rsc = validateMandatoryValues(json);
+            if (rsc != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "MANDATORY KEY'S VALUE CANNOT BE NULL");
-                return ret;
+                return std::make_pair(rsc, "INVALID ALARM: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
 
             const std::string nodeID = json["nodeId"].as<std::string>();
             if (nodeID.length() != 4)
             {
-                LOG_ERROR(logger, "NODE ID LENGTH MUST BE EQUAL TO 4");
-                return Status(Status::Code::BAD_NODE_ID_INVALID);
+                const std::string message = "NODE ID LENGTH MUST BE EQUAL TO 4, NODEID: " + nodeID;
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
             const uint8_t type = json["type"].as<uint8_t>();
             const auto retType = convertToAlarmType(type);
-            if (retType.first.ToCode() != Status::Code::GOOD)
+            if (retType.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID ALARM TYPE: %u", type);
-                return retType.first;
+                const std::string message = "INVALID ALARM TYPE: " + std::to_string(type);
+                return std::make_pair(rsc, message);
             }
 
             config::Alarm* alarm = new(std::nothrow) config::Alarm();
             if (alarm == nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: ALARM");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR ALARM CONFIG");
             }
 
             alarm->SetNodeID(nodeID);
             alarm->SetType(retType.second);
 
+            std::pair<rsc_e, std::string> result = std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, "UNDEFINED ALARM TYPE");
+            
             switch (retType.second)
             {
             case alarm_type_e::ONLY_LCL:
-                ret = processLowerControlLimit(json, alarm);
+                result = processLowerControlLimit(json, alarm);
                 break;
             case alarm_type_e::ONLY_UCL:
-                ret = processUpperControlLimit(json, alarm);
+                result = processUpperControlLimit(json, alarm);
                 break;
             case alarm_type_e::LCL_AND_UCL:
-                ret = processControlLimits(json, alarm);
+                result = processControlLimits(json, alarm);
                 break;
             case alarm_type_e::CONDITION:
-                ret = processConditions(json, alarm);
+                result = processConditions(json, alarm);
                 break;
             default:
                 ASSERT(false, "UNDEFINED ALARM TYPE");
                 break;
             }
-
-            ret = emplaceCIN(static_cast<config::Base*>(alarm), outVector);
-            if (ret != Status::Code::GOOD)
+            
+            if ( result.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO EMPLACE ALARM CIN: %s", ret.c_str());
-                delete alarm;
-                return ret;
+                return result;
+            }
+            
+            rsc = emplaceCIN(static_cast<config::Base*>(alarm), outVector);
+            if (rsc != rsc_e::GOOD)
+            {
+                if (alarm != nullptr)
+                {
+                    delete alarm;
+                    alarm = nullptr;
+                }
+                return std::make_pair(rsc, "FAILED TO EMPLACE: ALARM CONFIG INSTANCE");
             }
         }
 
-        LOG_VERBOSE(logger, "Valid Alarm config instance");
-        return Status(Status::Code::GOOD);
+        return std::make_pair(rsc_e::GOOD, "GOOD");    
     }
 
-    Status AlarmValidator::validateMandatoryKeys(const JsonObject json)
+    rsc_e AlarmValidator::validateMandatoryKeys(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json.containsKey("nodeId");
@@ -129,15 +136,15 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status AlarmValidator::validateMandatoryValues(const JsonObject json)
+    rsc_e AlarmValidator::validateMandatoryValues(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json["nodeId"].isNull()  == false;
@@ -145,15 +152,15 @@ namespace muffin { namespace jarvis {
         
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status AlarmValidator::processLowerControlLimit(const JsonObject json, config::Alarm* cin)
+    std::pair<rsc_e, std::string> AlarmValidator::processLowerControlLimit(const JsonObject json, config::Alarm* cin)
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
@@ -161,15 +168,15 @@ namespace muffin { namespace jarvis {
         const bool isLclUidNull  = json["lcl-uid"].isNull();
         if (isLclNull == true || isLclUidNull == true)
         {
-            LOG_ERROR(logger, "LCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            const std::string message = "LCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         const bool isFloat = json["lcl"].is<float>();
         if (isFloat == false)
         {
-            LOG_ERROR(logger, "INVALID LCL: NOT A 32-BIT FLOATING POINT");
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            const std::string message = "INVALID LCL: NOT A 32-BIT FLOATING POINT";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         const int32_t lcl = json["lcl"].as<float>();
         
@@ -178,16 +185,17 @@ namespace muffin { namespace jarvis {
         const bool isUidValid = std::regex_match(uid, pattern);
         if (isUidValid == false)
         {
-            LOG_ERROR(logger, "INVALID LCL UID: %s", uid.c_str());
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            const std::string message = "INVALID LCL UID: "+ uid;
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         cin->SetLCL(lcl);
         cin->SetLclUID(uid);
-        return Status(Status::Code::GOOD);
+
+        return std::make_pair(rsc_e::GOOD, "GOOD");
     }
 
-    Status AlarmValidator::processUpperControlLimit(const JsonObject json, config::Alarm* cin)
+    std::pair<rsc_e, std::string> AlarmValidator::processUpperControlLimit(const JsonObject json, config::Alarm* cin)
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
@@ -195,15 +203,15 @@ namespace muffin { namespace jarvis {
         const bool isUclUidNull  = json["ucl-uid"].isNull();
         if (isUclNull == true || isUclUidNull == true)
         {
-            LOG_ERROR(logger, "UCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            const std::string message = "UCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         const bool isFloat = json["ucl"].is<float>();
         if (isFloat == false)
         {
-            LOG_ERROR(logger, "INVALID UCL: NOT A 32-BIT FLOATING POINT");
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            const std::string message = "INVALID UCL: NOT A 32-BIT FLOATING POINT";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         const int32_t ucl = json["ucl"].as<float>();
         
@@ -212,37 +220,36 @@ namespace muffin { namespace jarvis {
         const bool isUidValid = std::regex_match(uid, pattern);
         if (isUidValid == false)
         {
-            LOG_ERROR(logger, "INVALID UCL UID: %s", uid.c_str());
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+            const std::string message = "INVALID UCL UID: "+ uid;
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         cin->SetUCL(ucl);
         cin->SetUclUID(uid);
-        return Status(Status::Code::GOOD);
+
+        return std::make_pair(rsc_e::GOOD, "GOOD");
     }
 
-    Status AlarmValidator::processControlLimits(const JsonObject json, config::Alarm* cin)
+    std::pair<rsc_e, std::string> AlarmValidator::processControlLimits(const JsonObject json, config::Alarm* cin)
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
-
-        Status ret = processLowerControlLimit(json, cin);
-        if (ret != Status::Code::GOOD)
+        std::pair<rsc_e, std::string> rsc = processLowerControlLimit(json, cin);
+        
+        if (rsc.first != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID LOWER CONTROL LIMIT CONFIG");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc;
         }
 
-        ret = processUpperControlLimit(json, cin);
-        if (ret != Status::Code::GOOD)
+        rsc = processUpperControlLimit(json, cin);
+        if (rsc.first != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID UPPER CONTROL LIMIT CONFIG");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc;
         }
 
-        return Status(Status::Code::GOOD);
+        return std::make_pair(rsc_e::GOOD, "GOOD");   
     }
 
-    Status AlarmValidator::processConditions(const JsonObject json, config::Alarm* cin)
+    std::pair<rsc_e, std::string> AlarmValidator::processConditions(const JsonObject json, config::Alarm* cin)
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
@@ -250,8 +257,8 @@ namespace muffin { namespace jarvis {
         const bool isConditionEmpty = json["cnd"].size() == 0;
         if (isConditionNull == true || isConditionEmpty == true)
         {
-            LOG_ERROR(logger, "CONDITIONS CANNOT BE NULL OR EMPTY ARRAY");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            const std::string message = "CONDITIONS CANNOT BE NULL OR EMPTY ARRAY";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         std::vector<int16_t> vectorCondition;
@@ -262,12 +269,12 @@ namespace muffin { namespace jarvis {
         catch (const std::bad_alloc& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "ALLOC ERROR : BAD_OUT_OF_MEMORY");
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, "ALLOC ERROR : BAD_UNEXPECTED_ERROR");
         }
 
         JsonArray conditions = json["cnd"].as<JsonArray>();
@@ -275,52 +282,52 @@ namespace muffin { namespace jarvis {
         {
             if (condition.is<int16_t>() == false)
             {
-                LOG_ERROR(logger, "CONDITION MUST BE 16-BIT INTEGER");
-                return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+                const std::string message = "CONDITION MUST BE 16-BIT INTEGER";
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
             vectorCondition.emplace_back(condition.as<int16_t>());
         }
         
         cin->SetCondition(vectorCondition);
-        return Status(Status::Code::GOOD);
+        return std::make_pair(rsc_e::GOOD, "GOOD");
     }
 
-    Status AlarmValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
+    rsc_e AlarmValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
         ASSERT((cin != nullptr), "INPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         try
         {
             outVector->emplace_back(cin);
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         catch(const std::bad_alloc& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }
 
-    std::pair<Status, alarm_type_e> AlarmValidator::convertToAlarmType(const uint8_t type)
+    std::pair<rsc_e, alarm_type_e> AlarmValidator::convertToAlarmType(const uint8_t type)
     {
         switch (type)
         {
         case 1:
-            return std::make_pair(Status(Status::Code::GOOD), alarm_type_e::ONLY_LCL);
+            return std::make_pair(rsc_e::GOOD, alarm_type_e::ONLY_LCL);
         case 2:
-            return std::make_pair(Status(Status::Code::GOOD), alarm_type_e::ONLY_UCL);
+            return std::make_pair(rsc_e::GOOD, alarm_type_e::ONLY_UCL);
         case 3:
-            return std::make_pair(Status(Status::Code::GOOD), alarm_type_e::LCL_AND_UCL);
+            return std::make_pair(rsc_e::GOOD, alarm_type_e::LCL_AND_UCL);
         case 4:
-            return std::make_pair(Status(Status::Code::GOOD), alarm_type_e::CONDITION);
+            return std::make_pair(rsc_e::GOOD, alarm_type_e::CONDITION);
         default:
-            return std::make_pair(Status(Status::Code::BAD_DATA_ENCODING_INVALID), alarm_type_e::ONLY_LCL);
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, alarm_type_e::ONLY_LCL);
         }
     }
 }}

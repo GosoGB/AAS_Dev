@@ -34,11 +34,11 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
-        Status validateMandatoryKeys(const JsonObject json);
-        Status validateMandatoryValues(const JsonObject json);
-        Status emplaceCIN(config::Base* cin, cin_vector* outVector);
+        rsc_e validateMandatoryKeys(const JsonObject json);
+        std::pair<rsc_e, std::string> validateMandatoryValues(const JsonObject json);
+        rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
         bool mIsTotalNull   = false;
         bool mIsGoodNull    = false;

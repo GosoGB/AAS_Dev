@@ -34,13 +34,13 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
-        Status validateMandatoryKeys(const JsonObject json);
-        Status validateMandatoryValues(const JsonObject json);
-        Status emplaceCIN(config::Base* cin, cin_vector* outVector);
+        rsc_e validateMandatoryKeys(const JsonObject json);
+        rsc_e validateMandatoryValues(const JsonObject json);
+        rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        std::pair<Status, op_time_type_e> convertToOperationTimeType(const uint8_t type);
-        std::pair<Status, cmp_op_e> convertToLogicalOperator(const std::string& stringOperator);
+        std::pair<rsc_e, op_time_type_e> convertToOperationTimeType(const uint8_t type);
+        std::pair<rsc_e, cmp_op_e> convertToLogicalOperator(const std::string& stringOperator);
     };
 }}

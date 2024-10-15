@@ -23,17 +23,17 @@
 namespace muffin { namespace jarvis {
 
     NodeValidator::NodeValidator()
-        : mAddressType(Status(Status::Code::UNCERTAIN), adtp_e::NUMERIC)
-        , mAddress(Status(Status::Code::UNCERTAIN), addr_u())
-        , mModbusArea(Status(Status::Code::UNCERTAIN), mb_area_e::COILS)
-        , mBitIndex(Status(Status::Code::UNCERTAIN), 0)
-        , mAddressQuantity(Status(Status::Code::UNCERTAIN), 0)
-        , mNumericScale(Status(Status::Code::UNCERTAIN), scl_e::NEGATIVE_1)
-        , mNumericOffset(Status(Status::Code::UNCERTAIN), 0.0f)
-        , mMappingRules(Status(Status::Code::UNCERTAIN), std::map<uint16_t, std::string>())
-        , mDataUnitOrders(Status(Status::Code::UNCERTAIN), std::vector<DataUnitOrder>())
-        , mDataTypes(Status(Status::Code::UNCERTAIN), std::vector<muffin::jarvis::dt_e>())
-        , mFormatString(Status(Status::Code::UNCERTAIN), std::string())
+        : mAddressType(rsc_e::UNCERTAIN, adtp_e::NUMERIC)
+        , mAddress(rsc_e::UNCERTAIN, addr_u())
+        , mModbusArea(rsc_e::UNCERTAIN, mb_area_e::COILS)
+        , mBitIndex(rsc_e::UNCERTAIN, 0)
+        , mAddressQuantity(rsc_e::UNCERTAIN, 0)
+        , mNumericScale(rsc_e::UNCERTAIN, scl_e::NEGATIVE_1)
+        , mNumericOffset(rsc_e::UNCERTAIN, 0.0f)
+        , mMappingRules(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>())
+        , mDataUnitOrders(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>())
+        , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jarvis::dt_e>())
+        , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mPatternUID(std::regex(R"(^(?:(P|A|E)\d{3}|(?:DI|DO|MD)\d{2})$)"))
     {
     #if defined(DEBUG)
@@ -48,10 +48,12 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    Status NodeValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> NodeValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
+        ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
+        ASSERT((key == cfg_key_e::NODE), "CONFIG CATEGORY DOES NOT MATCH");
 
         for (JsonObject json : arrayCIN)
         {
@@ -314,17 +316,17 @@ namespace muffin { namespace jarvis {
             }
 
             mNodeID.clear();
-            mAddressType      = std::make_pair(Status(Status::Code::UNCERTAIN), adtp_e::NUMERIC);
-            mAddress          = std::make_pair(Status(Status::Code::UNCERTAIN), addr_u());
-            mModbusArea       = std::make_pair(Status(Status::Code::UNCERTAIN), mb_area_e::COILS);
-            mBitIndex         = std::make_pair(Status(Status::Code::UNCERTAIN), 0);
-            mAddressQuantity  = std::make_pair(Status(Status::Code::UNCERTAIN), 0);
-            mNumericScale     = std::make_pair(Status(Status::Code::UNCERTAIN), scl_e::NEGATIVE_1);
-            mNumericOffset    = std::make_pair(Status(Status::Code::UNCERTAIN), 0.0f);
-            mMappingRules     = std::make_pair(Status(Status::Code::UNCERTAIN), std::map<uint16_t, std::string>());
-            mDataUnitOrders   = std::make_pair(Status(Status::Code::UNCERTAIN), std::vector<DataUnitOrder>());
-            mDataTypes        = std::make_pair(Status(Status::Code::UNCERTAIN), std::vector<muffin::jarvis::dt_e>());
-            mFormatString     = std::make_pair(Status(Status::Code::UNCERTAIN), std::string());
+            mAddressType      = std::make_pair(rsc_e::UNCERTAIN, adtp_e::NUMERIC);
+            mAddress          = std::make_pair(rsc_e::UNCERTAIN, addr_u());
+            mModbusArea       = std::make_pair(rsc_e::UNCERTAIN, mb_area_e::COILS);
+            mBitIndex         = std::make_pair(rsc_e::UNCERTAIN, 0);
+            mAddressQuantity  = std::make_pair(rsc_e::UNCERTAIN, 0);
+            mNumericScale     = std::make_pair(rsc_e::UNCERTAIN, scl_e::NEGATIVE_1);
+            mNumericOffset    = std::make_pair(rsc_e::UNCERTAIN, 0.0f);
+            mMappingRules     = std::make_pair(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>());
+            mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
+            mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jarvis::dt_e>());
+            mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
             mUID.clear();
             mDisplayName.clear();
             mDisplayUnit.clear();

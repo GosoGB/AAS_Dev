@@ -36,10 +36,11 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    Status ProductionInfoValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> ProductionInfoValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
+        ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
         ASSERT((key == cfg_key_e::PRODUCTION_INFO), "CONFIG CATEGORY DOES NOT MATCH");
 
         /**
@@ -52,25 +53,22 @@ namespace muffin { namespace jarvis {
          */
         JsonObject json = arrayCIN[0].as<JsonObject>();
 
-        Status ret = validateMandatoryKeys(json);
-        if (ret != Status::Code::GOOD)
+        rsc_e rsc = validateMandatoryKeys(json);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "MANDATORY KEYS CANNOT BE MISSING");
-            return ret;
+            return std::make_pair(rsc, "INVALID PRODUCTION INFO: MANDATORY KEY CANNOT BE MISSING");
         }
 
-        ret = validateMandatoryValues(json);
-        if (ret != Status::Code::GOOD)
+        std::pair<rsc_e, std::string> result = validateMandatoryValues(json);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "MANDATORY KEY'S VALUE IS NULL OR INVALID NODE ID");
-            return ret;
+            return result;
         }
 
         config::Production* prod = new(std::nothrow) config::Production();
         if (prod == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR CIN: PRODUCTION");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR PRODUCTION INFO CONFIG");
         }
 
         if (mIsTotalNull == false)
@@ -89,26 +87,29 @@ namespace muffin { namespace jarvis {
         }
         /*생산실적 정보가 존재하는 모든 Node ID가 설정되었습니다.*/
 
-        ret = emplaceCIN(static_cast<config::Base*>(prod), outVector);
-        if (ret != Status::Code::GOOD)
+        rsc = emplaceCIN(static_cast<config::Base*>(prod), outVector);
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO EMPLACE PRODUCTION INFO CIN: %s", ret.c_str());
-            delete prod;
-            return ret;
+            if (prod != nullptr)
+            {
+                delete prod;
+                prod = nullptr;
+            }
+            return std::make_pair(rsc, "FAILED TO EMPLACE: PRODUCTION INFO CONFIG INSTANCE");
         }
 
         if (arrayCIN.size() > 1)
         {
-            LOG_WARNING(logger, "ONLY ONE PRODUCTION INFO CONFIG WILL BE APPLIED");
-            return Status(Status::Code::UNCERTAIN);
+            const std::string message = "ONLY ONE PRODUCTION INFO INFO CONFIG WILL BE APPLIED";
+            return std::make_pair(rsc_e::UNCERTAIN, message);
         }
         else
         {
-            return Status(Status::Code::GOOD);
+            return std::make_pair(rsc_e::GOOD, "GOOD");  
         }
     }
 
-    Status ProductionInfoValidator::validateMandatoryKeys(const JsonObject json)
+    rsc_e ProductionInfoValidator::validateMandatoryKeys(const JsonObject json)
     {
         bool isValid = true;
         isValid &= json.containsKey("tot");
@@ -117,23 +118,23 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
-    Status ProductionInfoValidator::validateMandatoryValues(const JsonObject json)
+    std::pair<rsc_e, std::string> ProductionInfoValidator::validateMandatoryValues(const JsonObject json)
     {
         mIsTotalNull  = json["tot"].isNull();
         mIsGoodNull   = json["ok"].isNull();
         mIsDefectNull = json["ng"].isNull();
         if (mIsTotalNull && mIsGoodNull && mIsDefectNull)
         {
-            LOG_ERROR(logger, "AT LEAST ONE KEY MUST NOT BE A NULL VALUE");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
+            const std::string message = "INVALID PRODUCTION INFO: AT LEAST ONE KEY MUST NOT BE A NULL VALUE";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         /*적어도 하나의 생산실적 정보에 대한 설정이 존재합니다.*/
 
@@ -144,31 +145,31 @@ namespace muffin { namespace jarvis {
             (mIsGoodNull   == false && mGoodNodeID.length()   != 4) ||
             (mIsDefectNull == false && mDefectNodeID.length() != 4))
         {
-            LOG_ERROR(logger, "NODE ID LENGTH MUST BE EQUAL TO 4");
-            return Status(Status::Code::BAD_NODE_ID_INVALID);
+            const std::string message = "INVALID PRODUCTION INFO: NODE ID LENGTH MUST BE EQUAL TO 4";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
-        return Status(Status::Code::GOOD);
+        return std::make_pair(rsc_e::GOOD, "GOOD");   
     }
 
-    Status ProductionInfoValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
+    rsc_e ProductionInfoValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
         ASSERT((cin != nullptr), "INPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         try
         {
             outVector->emplace_back(cin);
-            return Status(Status::Code::GOOD);
+            return rsc_e::GOOD;
         }
         catch(const std::bad_alloc& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "%s", e.what());
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }
 }}

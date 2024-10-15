@@ -35,16 +35,16 @@ namespace muffin { namespace jarvis {
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        Status Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
-        Status validateMandatoryKeys(const JsonObject json);
-        Status validateMandatoryValues(const JsonObject json);
-        Status processLowerControlLimit(const JsonObject json, config::Alarm* cin);
-        Status processUpperControlLimit(const JsonObject json, config::Alarm* cin);
-        Status processControlLimits(const JsonObject json, config::Alarm* cin);
-        Status processConditions(const JsonObject json, config::Alarm* cin);
-        Status emplaceCIN(config::Base* cin, cin_vector* outVector);
+        rsc_e validateMandatoryKeys(const JsonObject json);
+        rsc_e validateMandatoryValues(const JsonObject json);
+        std::pair<rsc_e, std::string> processLowerControlLimit(const JsonObject json, config::Alarm* cin);
+        std::pair<rsc_e, std::string> processUpperControlLimit(const JsonObject json, config::Alarm* cin);
+        std::pair<rsc_e, std::string> processControlLimits(const JsonObject json, config::Alarm* cin);
+        std::pair<rsc_e, std::string> processConditions(const JsonObject json, config::Alarm* cin);
+        rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        std::pair<Status, alarm_type_e> convertToAlarmType(const uint8_t type);
+        std::pair<rsc_e, alarm_type_e> convertToAlarmType(const uint8_t type);
     };
 }}
