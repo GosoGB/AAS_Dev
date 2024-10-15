@@ -42,26 +42,19 @@ namespace muffin { namespace jarvis {
 
     std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
-        ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
+        ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
+        ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
 
-        std::pair<rsc_e, std::string> ret;
-        
         switch (key)
         {
         case cfg_key_e::ETHERNET:
-            ret = validateEthernet(arrayCIN, outVector);
-            break;
+            return validateEthernet(arrayCIN, outVector);
         case cfg_key_e::WIFI4:
-            ret = validateWiFi4(arrayCIN, outVector);
-            break;
+            return validateWiFi4(arrayCIN, outVector);
         default:
-            ASSERT(false, "UNDEFINED NETWORK CONFIGURATION");
-            ret.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
-            ret.second = "UNDEFINED NETWORK CONFIGURATION";
-            return ret;
+            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "UNDEFINED CONFIG KEY FOR NETWORK INTERFACE");
         };
-        return ret;
     }
 
     std::pair<rsc_e, std::string> NetworkValidator::validateWiFi4(const JsonArray array, cin_vector* outVector)
@@ -93,85 +86,76 @@ namespace muffin { namespace jarvis {
         if (retAUTH.first != rsc_e::GOOD &&
             retAUTH.first != rsc_e::GOOD_NO_DATA)
         {
-            return std::make_pair(rsc, "INVALID WIFI AUTH: ");
+            return std::make_pair(rsc, "INVALID WIFI AUTH");
         }
 
         const auto retWpaAUTH = convertToWpaAuth(cin["wpa2auth"].as<JsonVariant>());
         if (retWpaAUTH.first != rsc_e::GOOD &&
             retWpaAUTH.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI EAP AUTH: %s", retWpaAUTH.first.c_str());
-            return retWpaAUTH.first;
+            return std::make_pair(rsc, "INVALID WIFI EAP AUTH");
         }
 
         const auto retSSID = convertToSSID(cin["ssid"].as<JsonVariant>());
         if (retSSID.first != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID WIFI SSID: %s", retAUTH.first.c_str());
-            return retAUTH.first;
+            const std::string message = "INVALID WIFI SSID: " + cin["ssid"].as<std::string>();
+            return std::make_pair(rsc, message);
         }
 
         const auto retPSK = convertToPSK(cin["psk"].as<JsonVariant>());
         if (retPSK.first != rsc_e::GOOD &&
             retPSK.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI PSK: %s", retPSK.first.c_str());
-            return retPSK.first;
+            return std::make_pair(rsc, "INVALID WIFI PSK");
         }
 
         const auto retEapID = convertToEapID(cin["id"].as<JsonVariant>());
         if (retEapID.first != rsc_e::GOOD &&
             retEapID.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI EAP ID: %s", retEapID.first.c_str());
-            return retEapID.first;
+            return std::make_pair(rsc, "INVALID WIFI EAP ID");
         }
 
         const auto retEapUser = convertToEapUser(cin["user"].as<JsonVariant>());
         if (retEapUser.first != rsc_e::GOOD &&
             retEapUser.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI EAP USER: %s", retEapUser.first.c_str());
-            return retEapUser.first;
+            return std::make_pair(rsc, "INVALID WIFI EAP USER");
         }
 
         const auto retEapPassword = convertToEapPassword(cin["pass"].as<JsonVariant>());
         if (retEapPassword.first != rsc_e::GOOD &&
             retEapPassword.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI EAP PASSWORD %s", retEapPassword.first.c_str());
-            return retEapPassword.first;
+            return std::make_pair(rsc, "INVALID WIFI EAP PASSWORD");
         }
 
         const auto retCaCertificate = convertToCaCertificate(cin["ca_cert"].as<JsonVariant>());
         if (retCaCertificate.first != rsc_e::GOOD &&
             retCaCertificate.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI CA CERTIFICATE %s", retCaCertificate.first.c_str());
-            return retCaCertificate.first;
+            return std::make_pair(rsc, "INVALID WIFI CA CERTIFICATE");
         }
 
         const auto retClientCertificate = convertToClientCertificate(cin["crt"].as<JsonVariant>());
         if (retClientCertificate.first != rsc_e::GOOD &&
             retClientCertificate.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI CLIENT CERTIFICATE %s", retClientCertificate.first.c_str());
-            return retClientCertificate.first;
+            return std::make_pair(rsc, "INVALID WIFI CLIENT CERTIFICATE");
         }
 
         const auto retClientKey = convertToClientKey(cin["key"].as<JsonVariant>());
         if (retClientKey.first != rsc_e::GOOD &&
             retClientKey.first != rsc_e::GOOD_NO_DATA)
         {
-            LOG_ERROR(logger, "INVALID WIFI CLIENT KEY %s", retClientKey.first.c_str());
-            return retClientKey.first;
+            return std::make_pair(rsc, "INVALID WIFI CLIENT KEY");
         }
 
         config::WiFi4* wifi4 = new (std::nothrow) config::WiFi4();
         if (wifi4 == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR WIFI REFERENCES");
-            return rsc_e::BAD_OUT_OF_MEMORY);
+            return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY WIFI CONFIG");
         }
         
         if (DHCP == false)
@@ -184,32 +168,32 @@ namespace muffin { namespace jarvis {
 
             if (retIP.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID WIFI IP %s", retIP.first.c_str());
-                return retIP.first;
+                const std::string message = "INVALID WIFI IP: " + cin["ip"].as<std::string>();
+                return std::make_pair(rsc, message);
             }
 
             if (retSVM.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID WIFI Subnetmask: %s",  retSVM.first.c_str());
-                return retSVM.first;
+                const std::string message = "INVALID WIFI SUBNETMASK: " + cin["snm"].as<std::string>();
+                return std::make_pair(rsc, message);
             }
 
             if (retGTW.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID WIFI Gateway: %s",  retGTW.first.c_str());
-                return retGTW.first;
+                const std::string message = "INVALID WIFI GATEWAY: " + cin["gtw"].as<std::string>();
+                return std::make_pair(rsc, message);
             }
 
             if (retDNS1.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID WIFI DNS1 %s",  retDNS1.first.c_str());
-                return retDNS1.first;
+                const std::string message = "INVALID WIFI DNS1: " + cin["dns1"].as<std::string>();
+                return std::make_pair(rsc, message);
             }
 
             if (retDNS2.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID WIFI DNS2 %s", retDNS2.first.c_str());
-                return retDNS2.first;
+                const std::string message = "INVALID WIFI DNS2: " + cin["dns2"].as<std::string>();
+                return std::make_pair(rsc, message);
             }
 
             wifi4->SetStaticIPv4(retIP.second);
@@ -223,60 +207,63 @@ namespace muffin { namespace jarvis {
         wifi4->SetEAP(EAP);
         wifi4->SetSSID(retSSID.second);
 
-        if (retAUTH.first.ToCode() == Status::Code::GOOD)
+        if (retAUTH.first == rsc_e::GOOD)
         {
             wifi4->SetAuthMode(retAUTH.second);
         }
 
-        if (retWpaAUTH.first.ToCode() == Status::Code::GOOD)
+        if (retWpaAUTH.first == rsc_e::GOOD)
         {
             wifi4->SetEapAuthMode(retWpaAUTH.second);
         }
 
-        if (retPSK.first.ToCode() == Status::Code::GOOD)
+        if (retPSK.first == rsc_e::GOOD)
         {
             wifi4->SetPSK(retPSK.second);
         }
 
-        if (retEapID.first.ToCode() == Status::Code::GOOD)
+        if (retEapID.first == rsc_e::GOOD)
         {
             wifi4->SetEapID(retEapID.second);
         }
 
-        if (retEapUser.first.ToCode() == Status::Code::GOOD)
+        if (retEapUser.first == rsc_e::GOOD)
         {
             wifi4->SetEapUserName(retEapUser.second);
         }
         
-        if (retEapPassword.first.ToCode() == Status::Code::GOOD)
+        if (retEapPassword.first == rsc_e::GOOD)
         {
             wifi4->SetEapPassword(retEapPassword.second);
         }
 
-        if (retCaCertificate.first.ToCode() == Status::Code::GOOD)
+        if (retCaCertificate.first == rsc_e::GOOD)
         {
             wifi4->SetEapCaCertificate(retCaCertificate.second);
         }
 
-        if (retClientCertificate.first.ToCode() == Status::Code::GOOD)
+        if (retClientCertificate.first == rsc_e::GOOD)
         {
             wifi4->SetEapClientCertificate(retClientCertificate.second);
         }
 
-        if (retClientKey.first.ToCode() == Status::Code::GOOD)
+        if (retClientKey.first == rsc_e::GOOD)
         {
             wifi4->SetEapClientKey(retClientKey.second);
         }
 
         rsc = emplaceCIN(static_cast<config::Base*>(wifi4), outVector);
-        if (rsc != Status::Code::GOOD)
+        if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO EMPLACE CONFIG INSTANCE: %s", rsc.c_str());
-            return rsc;
+            if (wifi4 != nullptr)
+            {
+                delete wifi4;
+                wifi4 = nullptr;
+            }
+            return std::make_pair(rsc, "FAILED TO EMPLACE: WIFI CONFIG INSTANCE");
         }
 
-        LOG_VERBOSE(logger, "Valid WiFi4 config instance")
-        return rsc_e::GOOD);
+        return std::make_pair(rsc_e::GOOD, "GOOD"); 
     }
 
     rsc_e NetworkValidator::validateMandatoryKeysWiFi4(const JsonObject json)
@@ -302,11 +289,11 @@ namespace muffin { namespace jarvis {
 
         if (isValid == true)
         {
-            return rsc_e::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return rsc_e::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
@@ -322,7 +309,7 @@ namespace muffin { namespace jarvis {
 
         if (isValid == false)
         {
-            return rsc_e::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     
         bool DHCP = json["dhcp"].as<bool>();
@@ -344,7 +331,7 @@ namespace muffin { namespace jarvis {
             if (isValid == false)
             {
                 LOG_ERROR(logger, "WIFI : STATIC IP SETTING ERROR");
-                return rsc_e::BAD_ENCODING_ERROR);
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             }
 
         }
@@ -355,7 +342,7 @@ namespace muffin { namespace jarvis {
             if (json["auth"].is<uint8_t>() == false)
             {
                 LOG_ERROR(logger, "'AUTH' IS NOT OF TYPE UNSIGNED INT 8");
-                return rsc_e::BAD_ENCODING_ERROR);
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             }
 
             bool EAP = json["eap"].as<bool>();
@@ -371,7 +358,7 @@ namespace muffin { namespace jarvis {
             if (isValid == false)
             {
                 LOG_ERROR(logger, "AUTH SETTING ERROR, CHECK PSK");
-                return rsc_e::BAD_ENCODING_ERROR);
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             }
         }
 
@@ -380,7 +367,7 @@ namespace muffin { namespace jarvis {
             if (json["wpa2auth"].is<uint8_t>() == false)
             {
                 LOG_ERROR(logger, "'EAP AUTH' IS NOT OF TYPE UNSIGNED INT 8");
-                return rsc_e::BAD_ENCODING_ERROR);
+                return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             }
 
             // WPA2AUTH 값이 0이 아닌 경우 EAP ID, EAP USERNAME, EAP PASSWORD 입력 필요
@@ -395,7 +382,7 @@ namespace muffin { namespace jarvis {
                 if (isValid == false)
                 {
                     LOG_ERROR(logger, "EAP AUTH SETTING ERROR, CHECK CLIENT CERTIFICATE,KEY");
-                    return rsc_e::BAD_ENCODING_ERROR);
+                    return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
                 }
             }
             else
@@ -410,18 +397,18 @@ namespace muffin { namespace jarvis {
                 if (isValid == false)
                 {
                     LOG_ERROR(logger, "EAP AUTH SETTING ERROR, CHECK EAP ID, USER, PASSWORD");
-                    return rsc_e::BAD_ENCODING_ERROR);
+                    return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
                 }
             }
         }
         
         if (isValid == true)
         {
-            return rsc_e::GOOD);
+            return rsc_e::GOOD;
         }
         else
         {
-            return rsc_e::BAD_ENCODING_ERROR);
+            return rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
         }
     }
 
