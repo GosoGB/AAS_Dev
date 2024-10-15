@@ -108,7 +108,7 @@ namespace muffin { namespace jarvis {
      *      @li BAD_INVALID_VERSION
      *      @li UNCERTAIN_VERSION_CONFIG_INSTANCES
      */
-    rsc_e MetaDataValidator::validateVersion(const JsonObject& json)
+    rsc_e MetaDataValidator::validateVersion(const JsonObject json)
     {
         if (json.containsKey("ver") == false)
         {
@@ -172,7 +172,7 @@ namespace muffin { namespace jarvis {
      *      @li GOOD
      *      @li BAD
      */
-    rsc_e MetaDataValidator::validateRequestID(const JsonObject& json)
+    rsc_e MetaDataValidator::validateRequestID(const JsonObject json)
     {
         mRequestID.clear();
 
@@ -210,7 +210,7 @@ namespace muffin { namespace jarvis {
      *      @li BAD_INVALID_FORMAT_CONFIG_INSTANCES
      *      @li UNCERTAIN_VERSION_CONFIG_INSTANCES
      */
-    rsc_e MetaDataValidator::validateContainer(const JsonObject& json)
+    rsc_e MetaDataValidator::validateContainer(const JsonObject json)
     {
         mContainerKeySet.clear();
 

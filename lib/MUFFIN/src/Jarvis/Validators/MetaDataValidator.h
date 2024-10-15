@@ -38,9 +38,9 @@ namespace muffin { namespace jarvis {
         std::pair<Status, std::string> RetrieveRequestID() const;
         std::pair<Status, std::set<cfg_key_e>> RetrieveContainerKeys() const;
     private:
-        rsc_e validateVersion(const JsonObject& json);
-        rsc_e validateRequestID(const JsonObject& json);
-        rsc_e validateContainer(const JsonObject& json);
+        rsc_e validateVersion(const JsonObject json);
+        rsc_e validateRequestID(const JsonObject json);
+        rsc_e validateContainer(const JsonObject json);
     private:
         /*Protocol Version*/
         static constexpr uint8_t SUPPORTED_VERSION_LENGTH = 1;
