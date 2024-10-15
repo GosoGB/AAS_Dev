@@ -47,7 +47,7 @@ namespace muffin { namespace jarvis {
         std::pair<rsc_e, std::string> Inspect(const JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN);
     private:
         std::pair<rsc_e, std::string> validateMetaData(const JsonObject json);
-        rsc_e validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
         rsc_e validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
         rsc_e validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
         rsc_e validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
