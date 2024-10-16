@@ -4,7 +4,7 @@
  * 
  * @brief ESP32 LittleFS 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-09-05
+ * @date 2024-09-16
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -22,14 +22,33 @@
 
 namespace muffin {
 
+    ESP32FS* ESP32FS::GetInstance()
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) ESP32FS();
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR ESP32 FS");
+                return nullptr;
+            }
+        }
+        
+        return mInstance;
+    }
+
     ESP32FS::ESP32FS()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     ESP32FS::~ESP32FS()
     {
+    #if defined(DEBUG)
         LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Status ESP32FS::Begin(const bool formatOnFail, const char* basePath, const uint8_t maxOpenFiles, const char* partitionLabel)

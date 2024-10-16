@@ -21,6 +21,34 @@
 
 
 namespace muffin { namespace http {
+
+
+    CatHTTP* CatHTTP::GetInstance(CatM1& catM1)
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) CatHTTP(catM1);
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatHTTP");
+                return nullptr;
+            }
+        }
+        
+        return mInstance;
+    }
+
+    CatHTTP* CatHTTP::GetInstance()
+    {
+        if (mInstance == nullptr)
+        {
+            ASSERT(false, "DEPENDANCY FOR CatM1 INSTANCE MUST BE INJECTED: CALL FUNCTION WITH CatM1 REFERENCE INSTEAD");
+            return nullptr;
+        }
+        
+        return mInstance;
+    }
+
     
     /**
      * @todo Information Model에 MODLINK 모델 및 펌웨어 버전과 같은 정보를 Node
@@ -958,4 +986,6 @@ namespace muffin { namespace http {
             assert(false);
         }
     }
+
+    CatHTTP* CatHTTP::mInstance = nullptr;
 }}

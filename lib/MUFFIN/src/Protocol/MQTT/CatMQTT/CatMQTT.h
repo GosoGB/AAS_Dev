@@ -49,9 +49,18 @@ namespace muffin { namespace mqtt {
     class CatMQTT
     {
     public:
+        CatMQTT(CatMQTT const&) = delete;
+        void operator=(CatMQTT const&) = delete;
+        static CatMQTT* GetInstance(CatM1& catM1, BrokerInfo& broker, Message& lwt);
+        static CatMQTT* GetInstance(CatM1& catM1, BrokerInfo& broker);
+        static CatMQTT* GetInstance();
+    private:
         CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt);
         CatMQTT(CatM1& catM1, BrokerInfo& broker);
         virtual ~CatMQTT();
+    private:
+        static CatMQTT* mInstance;
+
     public:
         Status Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl);
         Status Connect();

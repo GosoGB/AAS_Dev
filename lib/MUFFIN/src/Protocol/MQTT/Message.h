@@ -29,7 +29,7 @@ namespace muffin { namespace mqtt {
     class Message
     {
     public:
-        Message(topic_e topic, const std::string& payload, const socket_e socketID = socket_e::SOCKET_0, const uint16_t messageID = 0, const qos_e qos = qos_e::QoS_0, const bool isRetain = false);
+        Message(const std::string& mac, topic_e topic, const std::string& payload, const socket_e socketID = socket_e::SOCKET_0, const uint16_t messageID = 0, const qos_e qos = qos_e::QoS_0, const bool isRetain = false);
         Message(const Message& obj);
         Message(Message&& obj) noexcept;
         virtual ~Message();
@@ -41,18 +41,18 @@ namespace muffin { namespace mqtt {
         topic_e GetTopic() const;
         const char* GetTopicString() const;
         const char* GetPayload() const;
-        static topic_e Convert2Topic(const std::string& topic);
-        static topic_e Convert2Topic(const char* topic);
+        topic_e Convert2Topic(const std::string& topic);
+        topic_e Convert2Topic(const char* topic);
         const char* Convert2TopicString() const;
-        static const char* Convert2TopicString(const topic_e topic);
+        const char* Convert2TopicString(const topic_e topic);
     private:
+        const std::string& mMacAddress;
         const socket_e mSocketID;
         const uint16_t mMessageID;
         const MqttQoSEnum mQoS;
         const bool mRetainFlag;
         const topic_e mTopic;
         const std::string mPayload;
-        static const char* mArrayValidTopics[];
     };
 
     constexpr uint8_t QUEUE_LENGTH_RECEIVED_MESSAGE = 5;

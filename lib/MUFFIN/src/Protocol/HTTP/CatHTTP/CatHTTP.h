@@ -31,8 +31,16 @@ namespace muffin { namespace http {
     class CatHTTP
     {
     public:
+        CatHTTP(CatHTTP const&) = delete;
+        void operator=(CatHTTP const&) = delete;
+        static CatHTTP* GetInstance(CatM1& catM1);
+        static CatHTTP* GetInstance();
+    private:
         CatHTTP(CatM1& catM1);
         virtual ~CatHTTP();
+    private:
+        static CatHTTP* mInstance;
+
     public:
         Status Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader = true, const bool outputResponse = false);
         Status GET(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);

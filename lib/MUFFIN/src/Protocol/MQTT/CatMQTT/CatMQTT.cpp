@@ -23,6 +23,47 @@
 
 namespace muffin { namespace mqtt {
 
+    CatMQTT* CatMQTT::GetInstance(CatM1& catM1, BrokerInfo& broker, Message& lwt)
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) CatMQTT(catM1, broker, lwt);
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
+                return nullptr;
+            }
+        }
+        
+        return mInstance;
+    }
+
+    CatMQTT* CatMQTT::GetInstance(CatM1& catM1, BrokerInfo& broker)
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) CatMQTT(catM1, broker);
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
+                return nullptr;
+            }
+        }
+        
+        return mInstance;
+    }
+
+    CatMQTT* CatMQTT::GetInstance()
+    {
+        if (mInstance == nullptr)
+        {
+            ASSERT(false, "DEPENDANCY FOR CatM1 INSTANCE MUST BE INJECTED: CALL FUNCTION WITH CatM1 REFERENCE INSTEAD");
+            return nullptr;
+        }
+        
+        return mInstance;
+    }
+
     CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt)
         : mCatM1(catM1)
         , mBrokerInfo(std::move(broker))
@@ -40,7 +81,7 @@ namespace muffin { namespace mqtt {
     CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker)
         : mCatM1(catM1)
         , mBrokerInfo(std::move(broker))
-        , mMessageLWT(std::move(Message(topic_e::LAST_WILL_AND_TESTAMENT, "")))
+        , mMessageLWT(std::move(Message(mBrokerInfo.GetClientID(), topic_e::LAST_WILL, "")))
     {
         mInitFlags.reset();
         mInitFlags.reset(init_flag_e::ENABLE_LWT_MSG);
@@ -250,7 +291,7 @@ namespace muffin { namespace mqtt {
         for (const Message& message : messages)
         {
             memset(buffer, '\0', sizeof(buffer));
-            sprintf(buffer, ",\"%s\",%u", message.Convert2TopicString(), static_cast<uint8_t>(message.GetQoS()));
+            sprintf(buffer, ",\"%s\",%u", message.GetTopicString(), static_cast<uint8_t>(message.GetQoS()));
             ASSERT((strlen(buffer) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
             command.append(buffer);
         }
@@ -1448,4 +1489,7 @@ PATTERN_FOUND:
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
     }
+
+
+    CatMQTT* CatMQTT::mInstance = nullptr;
 }}

@@ -28,6 +28,22 @@ namespace muffin {
     std::bitset<6> CatM1::mConnFlags;
     uint32_t CatM1::mLastInterruptMillis = 0;
 
+
+    CatM1* CatM1::GetInstance()
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) CatM1();
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatM1");
+                return nullptr;
+            }
+        }
+        
+        return mInstance;
+    }
+
     CatM1::CatM1()
     {
         mInitFlags.reset();
@@ -633,4 +649,6 @@ namespace muffin {
             mState = state_e::SUCCEDDED_TO_START;
         }
     }
+
+    CatM1* CatM1::mInstance = nullptr;
 }
