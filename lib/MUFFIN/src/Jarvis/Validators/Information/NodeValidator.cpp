@@ -48,12 +48,11 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    std::pair<rsc_e, std::string> NodeValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> NodeValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
-        ASSERT((key == cfg_key_e::NODE), "CONFIG CATEGORY DOES NOT MATCH");
 
         for (JsonObject json : arrayCIN)
         {
@@ -860,6 +859,7 @@ namespace muffin { namespace jarvis {
         
         if (mDataUnitOrders.second.size() != mDataTypes.second.size())
         {
+            LOG_DEBUG(logger, "mDataUnitOrders: %d, mDataTypes : %d",mDataUnitOrders.second.size(),mDataTypes.second.size());
             const std::string message = "DATA UNIT ORDERS MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA TYPES";
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
@@ -870,6 +870,8 @@ namespace muffin { namespace jarvis {
 
             for (const auto& orderType : dataUnitOrder)
             {
+
+                LOG_INFO(logger, "DataUnit : %d ByteOrder : %d Index : %d ",orderType.DataUnit, orderType.ByteOrder, orderType.Index);
                 const auto result = setIndex.emplace(orderType.Index);
                 if (result.second == false)
                 {
@@ -976,7 +978,7 @@ namespace muffin { namespace jarvis {
                 }
                 const size_t totalRegisterSize = REGISTER_SIZE * mAddressQuantity.second;
                 size_t sumDataTypeSize = 0;
-
+                LOG_DEBUG(logger,"totalRegisterSize : %d , sumDataTypeSize: %d",totalRegisterSize, sumDataTypeSize);
                 for (const auto& dataType : mDataTypes.second)
                 {
                     switch (dataType)
@@ -1006,8 +1008,9 @@ namespace muffin { namespace jarvis {
                     }
                 }
 
-                if (totalRegisterSize != sumDataTypeSize)
+                if (totalRegisterSize > sumDataTypeSize)
                 {
+                    LOG_DEBUG(logger,"totalRegisterSize : %d , sumDataTypeSize: %d",totalRegisterSize, sumDataTypeSize);
                     const std::string message = "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES";
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
@@ -1207,6 +1210,7 @@ namespace muffin { namespace jarvis {
 
         JsonArray arrayDataUnitOrders = dataUnitOrders.as<JsonArray>();
         const size_t length = arrayDataUnitOrders.size();
+        LOG_DEBUG(logger, "ORDER SIZE : %d",length);
 
         if (length == 0)
         {
@@ -1236,6 +1240,7 @@ namespace muffin { namespace jarvis {
 
         for (auto subarrayDataUnitOrders : arrayDataUnitOrders)
         {
+            LOG_DEBUG(logger,"ORD DATA :%s" ,subarrayDataUnitOrders.as<std::string>().c_str() );
             if (subarrayDataUnitOrders.is<JsonArray>() == false)
             {
                 LOG_ERROR(logger, "ELEMENT ARRAY MUST A JSON ARRAY");
@@ -1246,7 +1251,7 @@ namespace muffin { namespace jarvis {
             
             JsonArray elementsArray = subarrayDataUnitOrders.as<JsonArray>();
             const size_t elementsLength = elementsArray.size();
-
+            LOG_DEBUG(logger, "elementsLength SIZE : %d",elementsLength);
             if (elementsLength == 0)
             {
                 LOG_ERROR(logger, "SUB-ARRAY OF DATA UNIT ORDERS CANNOT BE EMPTY");
@@ -1261,7 +1266,7 @@ namespace muffin { namespace jarvis {
                 vectorDataUnitOrder.clear();
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
             }
-            
+            LOG_DEBUG(logger, "after elementsLength SIZE : %d",elementsLength);
             DataUnitOrder dataUnitOrder(elementsLength);
             for (auto element : elementsArray)
             {
