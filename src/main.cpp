@@ -40,17 +40,6 @@ void loop()
 
 
 //     /***********************************************************/
-
-//     muffin::http::HttpHeader header1(
-//         muffin::rest_method_e::GET,
-//         muffin::http_scheme_e::HTTP,
-//         "ec2-3-38-208-214.ap-northeast-2.compute.amazonaws.com",
-//         5000,
-//         "/api/server/time",
-//         "MODLINK-L/0.0.1"
-//     );
-//     http.GET(header1);
-
 //     muffin::http::HttpHeader header2(
 //         muffin::rest_method_e::POST,
 //         muffin::http_scheme_e::HTTP,

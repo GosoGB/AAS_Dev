@@ -4,7 +4,7 @@
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-10-15
+ * @date 2024-10-16
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -40,6 +40,7 @@
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
+#include "Protocol/HTTP/Include/RequestHeader.h"
 
 #include "Storage/ESP32FS/ESP32FS.h"
 
@@ -203,8 +204,27 @@ namespace muffin {
             return ret;
         }
 
+    /*  JARVIS 없을 때 설정하는 건 CatMQTT 초기화까지만 하면 될 거 같음
+
         http::CatHTTP* catHTTP = http::CatHTTP::GetInstance(*catM1);
-        catHTTP->Init(muffin::network::lte::pdp_ctx_e::PDP_01, muffin::network::lte::ssl_ctx_e::SSL_0);
+        ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());
+            return ret;
+        }
+
+        http::RequestHeader header(
+            rest_method_e::GET,
+            http_scheme_e::HTTPS,
+            "api.mfm.edgecross.dev",
+            443,
+            "/api/mfm/device/write",
+            "MODLINK-L/0.0.1"
+        );
+
+        catHTTP->GET(header);
+    */
 
         return ret;
     }
