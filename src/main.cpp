@@ -14,30 +14,54 @@
 #include <Storage/ESP32FS/ESP32FS.h>
 #include <vector>
 #include <ArduinoJson.h>
-#include <Jarvis/Validators/Interfaces/SerialPortValidator.h>
+#include "Jarvis/Validators/Network/NetworkValidator.h"
+#include "Jarvis/Validators/Network/LteValidator.h"
+#include "Jarvis/Validators/Protocol/ModbusValidator.h"
+#include "Jarvis/Validators/Information/NodeValidator.h"
 
 
 
-static std::string PROGMEM JARVIS_DEFAULT = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"ptr":2,"sid":1,"nodes":["no01","no02"]}],"mbtcp":[],"op":[{"snic":"lte","exp":true,"intvPoll":1,"intvSrv":60,"ota":false}],"node":[{"id":"no01","adtp":0,"addr":0,"area":4,"bit":null,"qty":1,"scl":-1,"ofst":null,"dt":3,"map":null,"ord":null,"uid":"DI1","fmt":null,"name":"테스트","unit":"N/A","event":true},{"id":"no01","adtp":0,"addr":1,"area":4,"bit":3,"qty":null,"scl":null,"ofst":null,"dt":3,"map":{"0":"닫힘","1":"열림"},"ord":"nuill","uid":"DO1","name":"테스트","unit":"N/A","event":true}],"alarm":[],"optime":[],"prod":[]}})";
+
+static std::string PROGMEM JARVIS_DEFAULT = R"(
+{"ver":"v1","cnt":{"node":[
+{"id":"no01",
+"adtp":0,
+"addr":322,
+"area":1,
+"bit":null,
+"qty":null,
+"scl":null,
+"ofst":null,
+"map":{"1":"ON","1":"OFF","2":"OFF"},
+"ord":null,
+"dt":[0],
+"fmt":null,
+"uid":"DI01",
+"name":"테스트",
+"unit":"N/A",
+"event":false}}}
+)";
 
 void setup()
 {
     muffin::logger = new muffin::Logger();
-    muffin::JSON* json = new muffin::JSON();
+    // muffin::JSON* json = new muffin::JSON();
 
     using namespace muffin;
     using cin_vector = std::vector<jarvis::config::Base*>;
     Serial.println();
-    jarvis::SerialPortValidator* validator = new jarvis::SerialPortValidator();
+    jarvis::NodeValidator* validator = new jarvis::NodeValidator();
 
 
     JsonDocument doc;
 
     deserializeJson(doc, JARVIS_DEFAULT);
-    JsonArray rs485rray = doc["cnt"]["rs485"].as<JsonArray>();
+    JsonArray nodeArray = doc["cnt"]["node"].as<JsonArray>();
+
     cin_vector vector;
 
-    validator->Inspect(jarvis::cfg_key_e::RS485, rs485rray, &vector);
+    std::pair<jarvis::rsc_e, std::string> result = validator->Inspect(jarvis::cfg_key_e::NODE, nodeArray, &vector);
+    LOG_INFO(logger, "result : %s" , result.second.c_str());
     
 //     jarvis::config::Rs232* rs232 = new jarvis::config::Rs232("rs232");
 //     jarvis::Validator* AA = new jarvis::Validator();

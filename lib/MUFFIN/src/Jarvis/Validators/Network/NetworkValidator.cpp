@@ -163,6 +163,8 @@ namespace muffin { namespace jarvis {
         {
             return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY WIFI CONFIG");
         }
+
+        wifi4->SetDHCP(DHCP);
         
         if (DHCP == false)
         {
@@ -209,7 +211,7 @@ namespace muffin { namespace jarvis {
             wifi4->SetDNS2(retDNS2.second);
         }
         
-        wifi4->SetDHCP(DHCP);
+        
         wifi4->SetEAP(EAP);
         wifi4->SetSSID(retSSID.second);
 
