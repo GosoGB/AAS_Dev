@@ -48,11 +48,12 @@ namespace muffin { namespace jarvis {
     #endif
     }
 
-    std::pair<rsc_e, std::string> NodeValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> NodeValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
+        ASSERT((key == cfg_key_e::NODE), "CONFIG CATEGORY DOES NOT MATCH");
 
         for (JsonObject json : arrayCIN)
         {
@@ -99,7 +100,7 @@ namespace muffin { namespace jarvis {
             mUID = json["uid"].as<std::string>();
             if (std::regex_match(mUID, mPatternUID) == false)
             {
-                const std::string message = "INVALID UID" + mUID;
+                const std::string message = "INVALID UID : " + mUID;
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
@@ -187,7 +188,8 @@ namespace muffin { namespace jarvis {
             }
 
             result = validateAddressQuantity();
-            if (result.first != rsc_e::GOOD)
+            if (result.first != rsc_e::GOOD &&
+                result.first != rsc_e::GOOD_NO_DATA)
             {
                 LOG_ERROR(logger, "INVALID ADDRESS QUANTITY CONFIG");
                 return result;
@@ -484,7 +486,15 @@ namespace muffin { namespace jarvis {
         }
         else
         {
-            if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
+            if(mBitIndex.first == rsc_e::GOOD)
+            {
+                if (mAddressQuantity.first == rsc_e::GOOD)
+                {
+                    const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITH BOTH BIT INDEX AND ADDRESS QUANTITY";
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                }
+            }
+            else if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
             {
                 const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITHOUT ADDRESS QUANTITY";
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
@@ -622,13 +632,29 @@ namespace muffin { namespace jarvis {
             }
         }
         
-        if (mAddressType.second == adtp_e::NUMERIC)
+        if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
         {
-            if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
+            if (mBitIndex.first == rsc_e::GOOD)
             {
-                const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF ADDRESS TYPE IS NUMERIC";
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                return std::make_pair(rsc_e::GOOD_NO_DATA, "Address quantity is null by bit index config");
             }
+
+            if (mModbusArea.first == rsc_e::GOOD)
+            {
+                if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+                {
+                    return std::make_pair(rsc_e::GOOD_NO_DATA, "Address quantity is null by Modbus area config");
+                }
+                else
+                {   // WORD면 QTY가 있어야대
+                    const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF MODBUS AREA \"INPUT REGISTERS\" OR \"HOLDING REGISTERS\"";
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                }
+            }
+
+            // qty , bit , modbus area도 없는 애들은 여기로 빠진다.
+            const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF ADDRESS TYPE IS NUMERIC";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         if (mBitIndex.first == rsc_e::GOOD)
@@ -871,12 +897,6 @@ namespace muffin { namespace jarvis {
             return std::make_pair(rsc_e::GOOD, message);
         }
         
-        if (mBitIndex.first == rsc_e::GOOD)
-        {
-            const std::string message = "DATA TYPES CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED";
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
-        }
-        
         if (mDataUnitOrders.first == rsc_e::GOOD)
         {
             if (mDataTypes.second.size() != mDataUnitOrders.second.size())
@@ -949,6 +969,11 @@ namespace muffin { namespace jarvis {
             else
             {
                 constexpr uint8_t REGISTER_SIZE = 16;
+                if(mBitIndex.first == rsc_e::GOOD)
+                {
+                    constexpr uint8_t ONLY_SINGLE_REGISTER = 1;
+                    mAddressQuantity.second = ONLY_SINGLE_REGISTER;
+                }
                 const size_t totalRegisterSize = REGISTER_SIZE * mAddressQuantity.second;
                 size_t sumDataTypeSize = 0;
 
@@ -1503,7 +1528,6 @@ namespace muffin { namespace jarvis {
         for (auto rule : mappingRules)
         {
             uint16_t numericKey = 0;
-            
             try
             {
                 const int key = std::stoi(rule.key().c_str());
@@ -1534,6 +1558,7 @@ namespace muffin { namespace jarvis {
             try
             {
                 const auto rsc = mapMappingRules.emplace(numericKey, rule.value().as<std::string>());
+                
                 if (rsc.second == false)
                 {
                     LOG_ERROR(logger, "KEYS CANNOT BE DUPLICATED: %u", numericKey);
@@ -1554,6 +1579,10 @@ namespace muffin { namespace jarvis {
             }
         }
 
+
+        /**
+         * @todo Map 내부의 키 값이 중복되서 들어올 시, 에러를 반환해야 함
+         */
         return std::make_pair(rsc_e::GOOD, mapMappingRules);
     }
 
