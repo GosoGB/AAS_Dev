@@ -46,8 +46,5 @@ namespace muffin {
         Status initWithJARVIS();
     private:
         esp_reset_reason_t mResetReason;
-        std::string mMacAddressEthernet;
-        std::string mMacAddressWiFiClient;
-        std::string mMacAddressWiFiServer;
     };
 }
