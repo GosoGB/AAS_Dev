@@ -15,15 +15,39 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+
 #include "Core.h"
 #include "Include/Helper.h"
+
+#include "Jarvis/Config/Network/CatM1.h"
+#if defined(MODLINK_T2)
+    #include "Jarvis/Config/Network/Ethernet.h"
+#elif defined(MODLINK_B)
+    #include "Jarvis/Config/Network/Ethernet.h"
+    #include "Jarvis/Config/Network/WiFi4.h"
+#endif
+#include "Jarvis/Jarvis.h"
+
+#include "Network/CatM1/CatM1.h"
+#if defined(MODLINK_T2)
+    #include "Network/Ethernet/Ethernet.h"
+#elif defined(MODLINK_B)
+    #include "Network/Ethernet/Ethernet.h"
+    #include "Network/WiFi4/WiFi4.h"
+#endif
+
+#include "Protocol/MQTT/BrokerInfo.h"
+#include "Protocol/MQTT/CatMQTT/CatMQTT.h"
+
+#include "Protocol/HTTP/CatHTTP/CatHTTP.h"
+
 #include "Storage/ESP32FS/ESP32FS.h"
 
 
 
 namespace muffin {
 
-    Core& Core::GetInstance()
+    Core& Core::GetInstance() noexcept
     {
         if (mInstance == nullptr)
         {
@@ -95,11 +119,101 @@ namespace muffin {
             esp_restart();
         }
 
-
+        
+        if (esp32FS->DoesExist("/jarvis/config.json") != Status::Code::GOOD)
+        {
+            initWithoutJARVIS();
+        }
+        else
+        {
+            initWithJARVIS();
+        }
 
 
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
+
+    Status Core::initWithoutJARVIS()
+    {
+        /**
+         * @todo Option #1: MODLINK 모델 별로 기본 설정이 달라지는 부분을 고려해야 합니다.
+         * @todo Option #2: 블루투스를 이용해서 사용자가 설정할 수 있게 만들어야 합니다.
+         */
+        jarvis::config::CatM1* config = new(std::nothrow) jarvis::config::CatM1();
+        if (config == nullptr)
+        {
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        config->SetModel(jarvis::md_e::LM5);
+        config->SetCounty(jarvis::ctry_e::KOREA);
+
+
+        CatM1* catM1 = CatM1::GetInstance();
+        if (config == nullptr)
+        {
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        catM1->Config(config);
+        catM1->Init();
+
+        while (catM1->GetState() != CatM1::state_e::SUCCEDDED_TO_START)
+        {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+
+        while (catM1->Connect() != Status::Code::GOOD)
+        {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+
+        mqtt::BrokerInfo info(mMacAddressEthernet.c_str());
+    #if defined(DEBUG)
+        /**
+         * @brief DEBUGGING 환경에서 "일시적"으로 사용하기 때문에 
+         *        상태 코드를 확인 작업을 구현하지 않았습니다.
+         */
+        info.SetHost("mqtt.vitcon.iotops.opsnow.com");
+        info.SetUsername("vitcon");
+        info.SetPassword("tkfkdgo5!@#$");
+    #endif
+
+        mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::GetInstance(*catM1, info);
+        Status ret = catMQTT->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INIT CatMQTT: %s", ret.c_str());
+            return ret;
+        }
+        
+        while (catMQTT->Connect() != Status::Code::GOOD)
+        {
+            vTaskDelay(3000 / portTICK_PERIOD_MS);
+        }
+
+        std::vector<mqtt::Message> vec;
+        mqtt::Message message(mMacAddressEthernet, mqtt::topic_e::JARVIS_REQUEST, "");
+        /**
+         * @todo emplace_back에 대한 예외처리 구현해야 합니다.
+         */
+        vec.emplace_back(message);
+        ret = catMQTT->Subscribe(vec);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SUBSCRIBE JARVIS TOPIC: %s", ret.c_str());
+            return ret;
+        }
+
+        http::CatHTTP* catHTTP = http::CatHTTP::GetInstance(*catM1);
+        catHTTP->Init(muffin::network::lte::pdp_ctx_e::PDP_01, muffin::network::lte::ssl_ctx_e::SSL_0);
+
+        return ret;
+    }
+
+    Status Core::initWithJARVIS()
+    {
+        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+    }
+
 
     Core* Core::mInstance = nullptr;
 }

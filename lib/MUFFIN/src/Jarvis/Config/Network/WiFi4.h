@@ -21,8 +21,8 @@
 #pragma once
 
 #include <esp_wifi_types.h>
-#include <IPAddress.h>
 #include <IPv6Address.h>
+#include <IPAddress.h>
 #include <WiFiSTA.h>
 
 #include "Common/Status.h"

@@ -37,8 +37,14 @@ namespace muffin {
     class CatM1 : public INetwork
     {
     public:
+        CatM1(CatM1 const&) = delete;
+        void operator=(CatM1 const&) = delete;
+        static CatM1* GetInstance();
+    private:
         CatM1();
         virtual ~CatM1() override;
+    private:
+        static CatM1* mInstance;
 
     public:
         typedef enum class CatM1FiniteStateMachineEnum

@@ -24,11 +24,14 @@
 
 #pragma once
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 
 
 class MUFFIN
 {
-private:
+public:
     MUFFIN() {}
     virtual ~MUFFIN() {}
 public:

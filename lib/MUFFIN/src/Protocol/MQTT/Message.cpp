@@ -23,14 +23,9 @@
 
 namespace muffin { namespace mqtt {
 
-    const char* Message::mArrayValidTopics[] = {
-        "scautr/modlink/status/network/will", 
-        "write/param", 
-        "read/param"
-    };
-
-    Message::Message(topic_e topic, const std::string& payload, const socket_e socketID, const uint16_t messageID, const qos_e qos, const bool isRetain)
-        : mSocketID(socketID)
+    Message::Message(const std::string& mac, topic_e topic, const std::string& payload, const socket_e socketID, const uint16_t messageID, const qos_e qos, const bool isRetain)
+        : mMacAddress(mac)
+        , mSocketID(socketID)
         , mMessageID(messageID)
         , mQoS(qos)
         , mRetainFlag(isRetain)
@@ -52,7 +47,8 @@ namespace muffin { namespace mqtt {
     }
 
     Message::Message(const Message& obj)
-        : mSocketID(obj.mSocketID)
+        : mMacAddress(obj.mMacAddress)
+        , mSocketID(obj.mSocketID)
         , mMessageID(obj.mMessageID)
         , mQoS(obj.mQoS)
         , mRetainFlag(obj.mRetainFlag)
@@ -74,7 +70,8 @@ namespace muffin { namespace mqtt {
     }
 
     Message::Message(Message&& obj) noexcept
-        : mSocketID(std::move(obj.mSocketID))
+        : mMacAddress(std::move(obj.mMacAddress))
+        , mSocketID(std::move(obj.mSocketID))
         , mMessageID(std::move(obj.mMessageID))
         , mQoS(std::move(obj.mQoS))
         , mRetainFlag(std::move(obj.mRetainFlag))
@@ -129,7 +126,18 @@ namespace muffin { namespace mqtt {
 
     const char* Message::GetTopicString() const
     {
-        return mArrayValidTopics[static_cast<uint8_t>(mTopic)];
+        switch (mTopic)
+        {
+        case topic_e::LAST_WILL:
+            return "scautr/modlink/status/network/will";
+        case topic_e::JARVIS_REQUEST:
+            return static_cast<const char*>(strcat("mfm/", mMacAddress.c_str()));
+        case topic_e::JARVIS_RESPONSE:
+            return static_cast<const char*>(strcat("mfm/resp/", mMacAddress.c_str()));
+        default:
+            ASSERT(false, "UNDEFINED MQTT TOPIC");
+            return nullptr;
+        }
     }
 
     const char* Message::GetPayload() const
@@ -146,34 +154,24 @@ namespace muffin { namespace mqtt {
     {
         ASSERT(
             (
-                strcmp(topic, mArrayValidTopics[0]) == 0 || 
-                strcmp(topic, mArrayValidTopics[1]) == 0 || 
-                strcmp(topic, mArrayValidTopics[2]) == 0
+                strcmp(topic, "scautr/modlink/status/network/will") == 0 || 
+                strcmp(topic, strcat("mfm/", mMacAddress.c_str())) == 0 || 
+                strcmp(topic, strcat("mfm/resp/", mMacAddress.c_str())) == 0
             ),
             "INVALID TOPIC: %s", topic
         );
 
-        if (strcmp(topic, mArrayValidTopics[0]) == 0)
+        if (strcmp(topic, "scautr/modlink/status/network/will") == 0)
         {
-            return topic_e::LAST_WILL_AND_TESTAMENT;
+            return topic_e::LAST_WILL;
         }
-        else if (strcmp(topic, mArrayValidTopics[1]) == 0)
+        else if (strcmp(topic, strcat("mfm/", mMacAddress.c_str())) == 0)
         {
-            return topic_e::JARVIS_WRITE_PARAMETER;
+            return topic_e::JARVIS_REQUEST;
         }
         else
         {
-            return topic_e::JARVIS_READ_PARAMETER;
+            return topic_e::JARVIS_RESPONSE;
         }
-    }
-
-    const char* Message::Convert2TopicString() const
-    {
-        return mArrayValidTopics[static_cast<uint8_t>(mTopic)];
-    }
-
-    const char* Message::Convert2TopicString(const topic_e topic)
-    {
-        return mArrayValidTopics[static_cast<uint8_t>(topic)];
     }
 }}

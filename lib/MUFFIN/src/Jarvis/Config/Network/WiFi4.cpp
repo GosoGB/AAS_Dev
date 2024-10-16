@@ -248,11 +248,11 @@ namespace muffin { namespace jarvis { namespace config {
         ASSERT((mEnableEAP == false), "AUTH MODE CANNOT BE SET WHEN EAP IS ENABLED");
         ASSERT(
             (
-                auth != wifi_auth_mode_t::WIFI_AUTH_OPEN      &&
-                auth != wifi_auth_mode_t::WIFI_AUTH_WEP       &&
-                auth != wifi_auth_mode_t::WIFI_AUTH_WPA_PSK   &&
-                auth != wifi_auth_mode_t::WIFI_AUTH_WPA2_PSK  &&
-                auth != wifi_auth_mode_t::WIFI_AUTH_WPA_WPA2_PSK
+                auth == wifi_auth_mode_t::WIFI_AUTH_OPEN      ||
+                auth == wifi_auth_mode_t::WIFI_AUTH_WEP       ||
+                auth == wifi_auth_mode_t::WIFI_AUTH_WPA_PSK   ||
+                auth == wifi_auth_mode_t::WIFI_AUTH_WPA2_PSK  ||
+                auth == wifi_auth_mode_t::WIFI_AUTH_WPA_WPA2_PSK
             ),
             "UNSUPPORTED Wi-Fi AUTH MODE: %u", static_cast<uint8_t>(auth)
         );
