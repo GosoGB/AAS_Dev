@@ -25,7 +25,4 @@
 namespace muffin {
 
     void printResetReason(const esp_reset_reason_t reason);
-    Status readMacAddressEthernet(std::string* mac);
-    Status readMacAddressWiFiClient(std::string* mac);
-    Status readMacAddressWiFiServer(std::string* mac);
 }

@@ -17,6 +17,8 @@
 #include "Common/Logger/Logger.h"
 
 #include "Core.h"
+#include "IM/MacAddress/MacAddress.h"
+
 #include "Include/Helper.h"
 
 #include "Jarvis/Config/Network/CatM1.h"
@@ -95,15 +97,20 @@ namespace muffin {
         mResetReason = esp_reset_reason();
         printResetReason(mResetReason);
 
-        if (readMacAddressEthernet(&mMacAddressEthernet) != Status::Code::GOOD)
+        MacAddress* mac = MacAddress::GetInstance();
+        if (mac == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO READ ETHERNET MAC ADDRESS");
+            ASSERT(mac != nullptr, "FATAL ERROR OCCURED: FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
+            
+            LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
             esp_restart();
         }
 
         ESP32FS* esp32FS = ESP32FS::GetInstance();
         if (esp32FS == nullptr)
         {
+            ASSERT(esp32FS != nullptr, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
+
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
             esp_restart();
         }
@@ -116,20 +123,21 @@ namespace muffin {
          */
         if (esp32FS->Begin(true) != Status::Code::GOOD)
         {
+            ASSERT(false, "FATAL ERROR OCCURED: FAILED TO MOUNT ESP32 FILE SYSTEM TO OPERATING SYSTEM");
+
             LOG_ERROR(logger, "FAILED TO MOUNT ESP32 FILE SYSTEM TO THE OS");
             esp_restart();
         }
 
         
-        if (esp32FS->DoesExist("/jarvis/config.json") != Status::Code::GOOD)
-        {
-            initWithoutJARVIS();
-        }
-        else
+        if (esp32FS->DoesExist("/jarvis/config.json") == Status::Code::GOOD)
         {
             initWithJARVIS();
         }
-
+        else
+        {
+            initWithoutJARVIS();
+        }
 
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
