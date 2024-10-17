@@ -29,7 +29,7 @@ namespace muffin {
     uint32_t CatM1::mLastInterruptMillis = 0;
 
 
-    CatM1* CatM1::GetInstance()
+    CatM1* CatM1::GetInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {

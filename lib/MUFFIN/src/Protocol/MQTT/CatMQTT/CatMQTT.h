@@ -39,8 +39,8 @@
 #include "Common/Status.h"
 #include "Network/CatM1/CatM1.h"
 #include "Network/TypeDefinitions.h"
-#include "Protocol/MQTT/BrokerInfo.h"
-#include "Protocol/MQTT/Message.h"
+#include "Protocol/MQTT/Include/BrokerInfo.h"
+#include "Protocol/MQTT/Include/Message.h"
 
 
 
@@ -51,9 +51,9 @@ namespace muffin { namespace mqtt {
     public:
         CatMQTT(CatMQTT const&) = delete;
         void operator=(CatMQTT const&) = delete;
-        static CatMQTT* GetInstance(CatM1& catM1, BrokerInfo& broker, Message& lwt);
-        static CatMQTT* GetInstance(CatM1& catM1, BrokerInfo& broker);
-        static CatMQTT* GetInstance();
+        static CatMQTT* GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt);
+        static CatMQTT* GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker);
+        static CatMQTT& GetInstance();
     private:
         CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt);
         CatMQTT(CatM1& catM1, BrokerInfo& broker);

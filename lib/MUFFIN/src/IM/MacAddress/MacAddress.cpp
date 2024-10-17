@@ -21,10 +21,17 @@
 
 namespace muffin {
 
-    MacAddress* MacAddress::GetInstance()
+    MacAddress* MacAddress::GetInstanceOrNULL() noexcept
     {
         if (mInstance == nullptr)
         {
+            Status ret = readMacAddressesFromAllNIC();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS: %s", ret.c_str());
+                return mInstance;
+            }
+
             mInstance = new(std::nothrow) MacAddress();
             if (mInstance == nullptr)
             {
@@ -32,34 +39,14 @@ namespace muffin {
                 return mInstance;
             }
         }
-        /*개체 생성 완료*/
-        
-        if (mInstance->mHasMacAddresses == false)
-        {
-            Status::Code arrayReturn[3];
-            arrayReturn[0] = mInstance->readMacAddressEthernet().ToCode();
-            arrayReturn[1] = mInstance->readMacAddressWiFiClient().ToCode();
-            arrayReturn[2] = mInstance->readMacAddressWiFiServer().ToCode();
-            
-            for (uint8_t i = 0; i < 3; ++i)
-            {            
-                if (arrayReturn[i] != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS: %s", Status(arrayReturn[i]).c_str());
-
-                    mInstance->mEthernet.clear();
-                    mInstance->mWiFiClient.clear();
-                    mInstance->mWiFiServer.clear();
-
-                    return nullptr;
-                }
-            }
-
-            mInstance->mHasMacAddresses = true;
-        }
-        /*Ethernet, Wi-Fi 인터페이스의 MAC 주소 읽기 성공*/
 
         return mInstance;
+    }
+
+    MacAddress& MacAddress::GetInstance() noexcept
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
     
     MacAddress::MacAddress()
@@ -76,22 +63,22 @@ namespace muffin {
     #endif
     }
     
-    const std::string& MacAddress::GetEthernet() const
+    const char* MacAddress::GetEthernet()
     {
-        ASSERT((mInstance != nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
-        return mEthernet;
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return mEthernet.c_str();
     }
 
-    const std::string& MacAddress::GetWiFiClient() const
+    const char* MacAddress::GetWiFiClient()
     {
-        ASSERT((mInstance != nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
-        return mWiFiClient;
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return mWiFiClient.c_str();
     }
 
-    const std::string& MacAddress::GetWiFiServer() const
+    const char* MacAddress::GetWiFiServer()
     {
-        ASSERT((mInstance != nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
-        return mWiFiServer;
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return mWiFiServer.c_str();
     }
 
     esp_err_t readMacAddress(const esp_mac_type_t type, std::string* mac)
@@ -158,6 +145,33 @@ namespace muffin {
         }
     }
 
+    Status MacAddress::readMacAddressesFromAllNIC()
+    {
+        constexpr uint8_t INTERFACES_COUNT = 3;
+
+        Status::Code arrayStatusCode[INTERFACES_COUNT];
+        arrayStatusCode[0] = readMacAddressEthernet().ToCode();
+        arrayStatusCode[1] = readMacAddressWiFiClient().ToCode();
+        arrayStatusCode[2] = readMacAddressWiFiServer().ToCode();
+        
+        for (uint8_t i = 0; i < INTERFACES_COUNT; ++i)
+        {
+            if (arrayStatusCode[i] != Status::Code::GOOD)
+            {
+                mEthernet.clear();
+                mWiFiClient.clear();
+                mWiFiServer.clear();
+
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
 
     MacAddress* MacAddress::mInstance = nullptr;
+    std::string MacAddress::mEthernet;
+    std::string MacAddress::mWiFiClient;
+    std::string MacAddress::mWiFiServer;
 }

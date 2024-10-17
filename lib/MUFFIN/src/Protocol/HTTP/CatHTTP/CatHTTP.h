@@ -20,9 +20,9 @@
 #include "Common/Status.h"
 #include "Network/CatM1/CatM1.h"
 #include "Network/TypeDefinitions.h"
-#include "Protocol/HTTP/include/RequestBody.h"
-#include "Protocol/HTTP/include/RequestHeader.h"
-#include "Protocol/HTTP/include/RequestParameter.h"
+#include "Protocol/HTTP/Include/RequestBody.h"
+#include "Protocol/HTTP/Include/RequestHeader.h"
+#include "Protocol/HTTP/Include/RequestParameter.h"
 
 
 
@@ -33,8 +33,8 @@ namespace muffin { namespace http {
     public:
         CatHTTP(CatHTTP const&) = delete;
         void operator=(CatHTTP const&) = delete;
-        static CatHTTP* GetInstance(CatM1& catM1);
-        static CatHTTP* GetInstance();
+        static CatHTTP* GetInstanceOrNULL(CatM1& catM1);
+        static CatHTTP* GetInstanceOrNULL();
     private:
         CatHTTP(CatM1& catM1);
         virtual ~CatHTTP();

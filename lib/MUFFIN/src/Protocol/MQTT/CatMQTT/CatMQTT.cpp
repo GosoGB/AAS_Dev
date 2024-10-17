@@ -17,13 +17,13 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Network/Helper.h"
-#include "Protocol/MQTT/Helper.h"
+#include "Protocol/MQTT/Include/Helper.h"
 
 
 
 namespace muffin { namespace mqtt {
 
-    CatMQTT* CatMQTT::GetInstance(CatM1& catM1, BrokerInfo& broker, Message& lwt)
+    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt)
     {
         if (mInstance == nullptr)
         {
@@ -38,7 +38,7 @@ namespace muffin { namespace mqtt {
         return mInstance;
     }
 
-    CatMQTT* CatMQTT::GetInstance(CatM1& catM1, BrokerInfo& broker)
+    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker)
     {
         if (mInstance == nullptr)
         {
@@ -53,15 +53,10 @@ namespace muffin { namespace mqtt {
         return mInstance;
     }
 
-    CatMQTT* CatMQTT::GetInstance()
+    CatMQTT& CatMQTT::GetInstance()
     {
-        if (mInstance == nullptr)
-        {
-            ASSERT(false, "DEPENDANCY FOR CatM1 INSTANCE MUST BE INJECTED: CALL FUNCTION WITH CatM1 REFERENCE INSTEAD");
-            return nullptr;
-        }
-        
-        return mInstance;
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
 
     CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt)
@@ -81,7 +76,7 @@ namespace muffin { namespace mqtt {
     CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker)
         : mCatM1(catM1)
         , mBrokerInfo(std::move(broker))
-        , mMessageLWT(std::move(Message(mBrokerInfo.GetClientID(), topic_e::LAST_WILL, "")))
+        , mMessageLWT(Message(topic_e::LAST_WILL, std::string()))
     {
         mInitFlags.reset();
         mInitFlags.reset(init_flag_e::ENABLE_LWT_MSG);

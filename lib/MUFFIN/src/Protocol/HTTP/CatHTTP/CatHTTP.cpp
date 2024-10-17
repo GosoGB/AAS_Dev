@@ -16,14 +16,14 @@
 #include "CatHTTP.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Protocol/HTTP/include/Helper.h"
+#include "Protocol/HTTP/Include/Helper.h"
 
 
 
 namespace muffin { namespace http {
 
 
-    CatHTTP* CatHTTP::GetInstance(CatM1& catM1)
+    CatHTTP* CatHTTP::GetInstanceOrNULL(CatM1& catM1)
     {
         if (mInstance == nullptr)
         {
@@ -38,7 +38,7 @@ namespace muffin { namespace http {
         return mInstance;
     }
 
-    CatHTTP* CatHTTP::GetInstance()
+    CatHTTP* CatHTTP::GetInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {

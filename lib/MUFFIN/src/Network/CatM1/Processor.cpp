@@ -15,6 +15,9 @@
 
 #include "Common/Logger/Logger.h"
 #include "Processor.h"
+#include "Protocol/MQTT/CIA.h"
+#include "Protocol/MQTT/Include/Message.h"
+#include "Protocol/MQTT/Include/Topic.h"
 
 
 
@@ -434,36 +437,30 @@ namespace muffin {
             }
         }
 
+        /**
+         * @todo 토픽과 페이로드를 감싸는 쌍따옴표와 <CR><LF> 문자열 처리 과정을 개선해야 합니다.
+         *       지금은 문자열 길이도 확인 안 하서 문제될 수 있을 것 같습니다.
+         */
+    #if defined(DEBUG)
         for (size_t i = 0; i < vectorToken.size(); ++i)
         {
             LOG_DEBUG(logger, "Token [%u]: %s", (i + 1), vectorToken[i].c_str());
         }
-        
+    #endif
+        vectorToken[2].erase(0, 1);
+        vectorToken[2].erase(vectorToken[2].length() - 1, 1);
+        vectorToken[3].erase(0, 1);
+        vectorToken[3].erase(vectorToken[3].length() - 3, 3);
 
-        // Send the message to the FreeRTOS queue
-        uint8_t numItemsInQueue = uxQueueMessagesWaiting(QUEUE_MQTT_MESSAGE);
-        LOG_VERBOSE(logger, "Number of items in queue: %u", numItemsInQueue);
-
-        MqttMessage* message = new(std::nothrow) MqttMessage(
-            socket, msgID, topic, payload.c_str()
-        );
-        if (message == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-
-        xQueueSend(QUEUE_MQTT_MESSAGE, &message, portMAX_DELAY);
-        LOG_VERBOSE(logger, "Sent the message to the queue");
-
-        numItemsInQueue = uxQueueMessagesWaiting(QUEUE_MQTT_MESSAGE);
-        LOG_VERBOSE(logger, "Number of items in queue: %u", numItemsInQueue);
-
-        rxd->erase(posStart, posEnd);
-        removeLeadingCRLF(rxd);
-        
-        LOG_VERBOSE(logger, "Remained: %s", rxd->c_str());
-        void triggerCallbackQMTRECV();
+        /**
+         * @todo 오류나 예외가 없는지 더 꼼꼼하게 체크하는 작업을 추가해야 합니다.
+         * @todo 소켓과 메시지 식별자 정보의 처리도 추가해야 합니다.
+         */
+        const mqtt::topic_e topicCode = mqtt::Topic::ToCode(vectorToken[2]).second;
+        const std::string payload = vectorToken[3];
+        mqtt::Message message(topicCode, payload);
+        mqtt::CIA::Store(message);
+        // void triggerCallbackQMTRECV();
     }
 
 /*

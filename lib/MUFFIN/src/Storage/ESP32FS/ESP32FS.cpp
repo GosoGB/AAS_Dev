@@ -22,7 +22,7 @@
 
 namespace muffin {
 
-    ESP32FS* ESP32FS::GetInstance()
+    ESP32FS* ESP32FS::GetInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {

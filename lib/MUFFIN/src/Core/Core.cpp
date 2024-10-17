@@ -38,7 +38,9 @@
     #include "Network/WiFi4/WiFi4.h"
 #endif
 
-#include "Protocol/MQTT/BrokerInfo.h"
+#include "Protocol/MQTT/CIA.h"
+#include "Protocol/MQTT/Include/BrokerInfo.h"
+#include "Protocol/MQTT/Include/Topic.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
@@ -46,7 +48,7 @@
 
 #include "Storage/ESP32FS/ESP32FS.h"
 
-
+#include <Arduino.h>
 
 namespace muffin {
 
@@ -99,21 +101,23 @@ namespace muffin {
         mResetReason = esp_reset_reason();
         printResetReason(mResetReason);
 
-        MacAddress* mac = MacAddress::GetInstance();
+        MacAddress* mac = MacAddress::GetInstanceOrNULL();
         if (mac == nullptr)
         {
             ASSERT((mac != nullptr), "FATAL ERROR OCCURED: FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
             LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
             esp_restart();
         }
+        ASSERT((mac != nullptr), "[FATAL ERROR] MAC ADDRESS REQUIRED AS IDENTIFIERS FOR MODLINK MUST BE INSTANTIATED");
 
-        ESP32FS* esp32FS = ESP32FS::GetInstance();
+        ESP32FS* esp32FS = ESP32FS::GetInstanceOrNULL();
         if (esp32FS == nullptr)
         {
             ASSERT((esp32FS != nullptr), "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
             esp_restart();
         }
+        ASSERT((esp32FS != nullptr), "[FATAL ERROR] ESP32FS REQUIRED AS A BASE FILE SYSTEM FOR MODLINK MUST BE INSTANTIATED");
         
         /**
          * @todo LittleFS 파티션의 포맷 여부를 로우 레벨 API로 확인해야 합니다.
@@ -121,13 +125,16 @@ namespace muffin {
          *          코드를 작성하였습니다. 다만, 일시적인 하드웨어 실패가 발생한
          *          경우에도 파티션이 포맷되는 문제가 있습니다.
          */
-        if (esp32FS->Begin(true) != Status::Code::GOOD)
+        Status ret = esp32FS->Begin(true);
+        if (ret != Status::Code::GOOD)
         {
             ASSERT(false, "FATAL ERROR OCCURED: FAILED TO MOUNT ESP32 FILE SYSTEM TO OPERATING SYSTEM");
 
             LOG_ERROR(logger, "FAILED TO MOUNT ESP32 FILE SYSTEM TO THE OS");
             esp_restart();
         }
+        ASSERT((ret == Status::Code::GOOD), "[FATAL ERROR] ESP32FS REQUIRED AS A BASE FILE SYSTEM FOR MODLINK MUST BE MOUNTED");
+        /*MUFFIN 프레임워크가 동작하기 위한 최소한의 조건이 만족되었습니다.*/
 
         
         if (esp32FS->DoesExist("/jarvis/config.json") == Status::Code::GOOD)
@@ -157,7 +164,7 @@ namespace muffin {
         config->SetCounty(jarvis::ctry_e::KOREA);
 
 
-        CatM1* catM1 = CatM1::GetInstance();
+        CatM1* catM1 = CatM1::GetInstanceOrNULL();
         if (config == nullptr)
         {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
@@ -177,8 +184,7 @@ namespace muffin {
         }
 
 
-        MacAddress* mac = MacAddress::GetInstance();
-        mqtt::BrokerInfo info(mac->GetEthernet().c_str());
+        mqtt::BrokerInfo info(MacAddress::GetEthernet());
     #if defined(DEBUG)
         /**
          * @brief DEBUGGING 환경에서 "일시적"으로 사용하기 때문에 
@@ -190,7 +196,21 @@ namespace muffin {
     #endif
 
 
-        mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::GetInstance(*catM1, info);
+        if (mqtt::Topic::CreateTopic(MacAddress::GetEthernet()) == false)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT TOPIC");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+
+        mqtt::CIA* cia = mqtt::CIA::GetInstanceOrNULL();
+        if (cia == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT CIA");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        
+
+        mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::GetInstanceOrNULL(*catM1, info);
         Status ret = catMQTT->Init(
             network::lte::pdp_ctx_e::PDP_01, 
             network::lte::ssl_ctx_e::SSL_0
@@ -209,7 +229,7 @@ namespace muffin {
 
 
         std::vector<mqtt::Message> vec;
-        mqtt::Message message(mac->GetEthernet(), mqtt::topic_e::JARVIS_REQUEST, "");
+        mqtt::Message message(mqtt::topic_e::JARVIS_REQUEST, "");
         /**
          * @todo emplace_back에 대한 예외처리 구현해야 합니다.
          */
@@ -221,6 +241,27 @@ namespace muffin {
             return ret;
         }
 
+        while (true)
+        {
+            const uint8_t count = cia->Count();
+            LOG_DEBUG(logger, "Remained: %u", ESP.getFreeHeap());
+
+            if (count > 0)
+            {
+                auto ret = cia->Retrieve();
+                LOG_DEBUG(logger, "Count: %u", count);
+                if (ret.first == Status::Code::GOOD)
+                {
+                    LOG_DEBUG(logger, "Socket:  %u", (uint8_t)ret.second.GetSocketID());
+                    LOG_DEBUG(logger, "MsgID: %u", ret.second.GetMessageID());
+                    LOG_DEBUG(logger, "Topic: %s", mqtt::Topic::ToString(ret.second.GetTopicCode()));
+                    LOG_DEBUG(logger, "Payload: %s", ret.second.GetPayload());
+                }
+            }
+
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+        
 
         // http::CatHTTP* catHTTP = http::CatHTTP::GetInstance(*catM1);
         // ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
