@@ -14,48 +14,12 @@
 #include <Storage/ESP32FS/ESP32FS.h>
 #include <vector>
 #include <ArduinoJson.h>
-#include "Jarvis/Validators/Network/NetworkValidator.h"
-#include "Jarvis/Validators/Network/LteValidator.h"
-#include "Jarvis/Validators/Protocol/ModbusValidator.h"
-#include "Jarvis/Validators/Information/NodeValidator.h"
-#include "Jarvis/Validators/Information/AlarmValidator.h"
-#include "Jarvis/Validators/Information/OperationTimeValidator.h"
-#include "Jarvis/Validators/Information/ProductionInfoValidator.h"
-#include "Jarvis/Validators/Operation/OperationValidator.h"
+#include "Jarvis/Validators/Validator.h"
 
 
 
-static std::string PROGMEM JARVIS_DEFAULT = R"(
-{
-"ver":"v1","cnt":{
-"prod":[{"tot":"no11","ok":null,"ng":null}],
-"optime":[{
-"nodeId":"no11",
-"type":1,
-"crit":1,
-"op":"=="}],
-"op":[{
-"snic":"lte",
-"exp":false,
-"intvPoll":1,
-"intvSrv":1,
-"ota":false}],
-"alarm":[{
-"nodeId":"no11",
-"type":4,
-"lcl":null,
-"lclUid":null, 
-"ucl":null,
-"uclUid":null,
-"cnd":[1,2,55]]},
-{
-"nodeId":"no12",
-"type":1,
-"lcl":36,
-"lclUid":"P001", 
-"ucl":13.5,
-"uclUid":"P002",
-"cnd":[1,2,55]]}]}})";
+
+static std::string PROGMEM JARVIS_DEFAULT = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[],"wifi":[],"eth":[],"catm1":[],"mbrtu":[],"mbtcp":[],"op":[],"node":[],"alarm":[],"optime":[],"prod":[]}})";
 
 void setup()
 {
@@ -65,32 +29,17 @@ void setup()
     using namespace muffin;
     using cin_vector = std::vector<jarvis::config::Base*>;
     Serial.println();
-    jarvis::OperationTimeValidator* OPvalidator = new jarvis::OperationTimeValidator();
-    jarvis::AlarmValidator* Alarmvalidator = new jarvis::AlarmValidator();
-    jarvis::OperationValidator* Operationvalidator = new jarvis::OperationValidator();
-    jarvis::ProductionInfoValidator* ProductionInfovalidator = new jarvis::ProductionInfoValidator();
-
+    jarvis::Validator* validator = new jarvis::Validator();
+    
     JsonDocument doc;
 
     deserializeJson(doc, JARVIS_DEFAULT);
-    JsonArray opArray = doc["cnt"]["optime"].as<JsonArray>();
-    JsonArray alarmArray = doc["cnt"]["alarm"].as<JsonArray>();
-    JsonArray OperationArray = doc["cnt"]["op"].as<JsonArray>();
-    JsonArray ProductionArray = doc["cnt"]["prod"].as<JsonArray>();
 
-    cin_vector vector;
+    std::map<jarvis::cfg_key_e, cin_vector> vector;
 
-    std::pair<jarvis::rsc_e, std::string> result = OPvalidator->Inspect(opArray, &vector);
-    LOG_INFO(logger, "OP result : %s" , result.second.c_str());
+    jarvis::ValidationResult result = validator->Inspect(doc, &vector);
+    LOG_INFO(logger, "OP result : %s" , result.GetDescription().c_str());
 
-    result = Alarmvalidator->Inspect(alarmArray, &vector);
-    LOG_INFO(logger, "ALARM result : %s" , result.second.c_str());
-
-    result = Operationvalidator->Inspect(OperationArray, &vector);
-    LOG_INFO(logger, "Operation result : %s" , result.second.c_str());
-
-    result = ProductionInfovalidator->Inspect(ProductionArray, &vector);
-    LOG_INFO(logger, "ProductionInfo result : %s" , result.second.c_str());
     
 //     jarvis::config::Rs232* rs232 = new jarvis::config::Rs232("rs232");
 //     jarvis::Validator* AA = new jarvis::Validator();
