@@ -870,6 +870,10 @@ namespace muffin { namespace jarvis {
 
             for (const auto& orderType : dataUnitOrder)
             {
+                if(orderType.DataUnit == data_unit_e::BYTE)
+                {
+                    continue;
+                }
 
                 LOG_INFO(logger, "DataUnit : %d ByteOrder : %d Index : %d ",orderType.DataUnit, orderType.ByteOrder, orderType.Index);
                 const auto result = setIndex.emplace(orderType.Index);
@@ -893,12 +897,12 @@ namespace muffin { namespace jarvis {
      */
     std::pair<rsc_e, std::string> NodeValidator::validateDataTypes()
     {
-        if (mDataTypes.first == rsc_e::GOOD_NO_DATA)
+        if (mDataTypes.second.size() == 1 && mDataTypes.second.at(0) == dt_e::STRING)
         {
-            const std::string message = "Data types are not enabled";
-            return std::make_pair(rsc_e::GOOD, message);
+            LOG_VERBOSE(logger, "Configured data types");
+            return std::make_pair(rsc_e::GOOD, "GOOD");
         }
-        
+
         if (mDataUnitOrders.first == rsc_e::GOOD)
         {
             if (mDataTypes.second.size() != mDataUnitOrders.second.size())
@@ -924,8 +928,10 @@ namespace muffin { namespace jarvis {
                         return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "DATA TYPE \"BOOLEAN\" CANNOT BE CONFIGURED WITH DATA UNIT ORDER");
                     case dt_e::INT8:
                     case dt_e::UINT8:
-                    case dt_e::STRING:
                         dataTypeSize = 8;
+                        break;
+                    case dt_e::STRING:
+                        dataTypeSize = mDataUnitOrders.second.at(i).RetrieveTotalSize();
                         break;
                     case dt_e::INT16:
                     case dt_e::UINT16:
@@ -944,7 +950,8 @@ namespace muffin { namespace jarvis {
                     default:
                         return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, "BAD_UNEXPECTED_ERROR");
                 }
-            
+
+                LOG_DEBUG(logger,"dataTypeSize : %d , sumOrderSize: %d",dataTypeSize, sumOrderSize);
                 if (dataTypeSize != sumOrderSize)
                 {
                     const std::string message = "DATA TYPE SIZE DOES NOT MATCH WITH THE SUM OF DATA UNIT ORDERS";
@@ -952,8 +959,8 @@ namespace muffin { namespace jarvis {
                 }
             }
         }
-
-        if (mModbusArea.first == rsc_e::GOOD)
+        
+        if (mModbusArea.first == rsc_e::GOOD && mDataUnitOrders.first != rsc_e::GOOD)
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
@@ -979,9 +986,9 @@ namespace muffin { namespace jarvis {
                 const size_t totalRegisterSize = REGISTER_SIZE * mAddressQuantity.second;
                 size_t sumDataTypeSize = 0;
                 LOG_DEBUG(logger,"totalRegisterSize : %d , sumDataTypeSize: %d",totalRegisterSize, sumDataTypeSize);
-                for (const auto& dataType : mDataTypes.second)
+                for (uint8_t i = 0; i < mDataTypes.second.size(); ++i)
                 {
-                    switch (dataType)
+                    switch (mDataTypes.second.at(i))
                     {
                         case dt_e::INT8:
                         case dt_e::UINT8:
@@ -1010,9 +1017,22 @@ namespace muffin { namespace jarvis {
 
                 if (totalRegisterSize > sumDataTypeSize)
                 {
+                    
                     LOG_DEBUG(logger,"totalRegisterSize : %d , sumDataTypeSize: %d",totalRegisterSize, sumDataTypeSize);
                     const std::string message = "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES";
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                }
+                else if (totalRegisterSize < sumDataTypeSize)
+                {
+                    /**
+                     * @todo 오류는 아니지만 경고 메시지를 만들어야함
+                     */
+                    const std::string message = "";
+                    return std::make_pair(rsc_e::UNCERTAIN_CONFIG_INSTANCE, message);
+                }
+                else
+                {
+                    //정상 조건
                 }
             }
         }
@@ -1028,6 +1048,15 @@ namespace muffin { namespace jarvis {
      */
     std::pair<rsc_e, std::string> NodeValidator::validateFormatString()
     {
+        if (mDataTypes.second.size() > 1)
+        {
+            if (mFormatString.first != rsc_e::GOOD)
+            {
+                const std::string message = "FORMAT STRING MUST BE CONFIGURED IF DATA TYPE SIZE IS 2 OR MORE";
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+            }
+        }
+
         if (mFormatString.first == rsc_e::GOOD_NO_DATA)
         {
             const std::string message = "Format string is not enabled";
@@ -1055,11 +1084,12 @@ namespace muffin { namespace jarvis {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
+        LOG_INFO(logger," mVectorFormatSpecifier.size() : %d",mVectorFormatSpecifier.size());
         for (uint8_t i = 0; i < mVectorFormatSpecifier.size(); ++i)
         {
             fmt_spec_e specifier = mVectorFormatSpecifier[i];
             dt_e dataType = mDataTypes.second[i];
-
+            LOG_INFO(logger," specifier : %d dataType: %d",  mVectorFormatSpecifier[i], mDataTypes.second[i]);
             switch (specifier)
             {
             case fmt_spec_e::INTEGER_32:

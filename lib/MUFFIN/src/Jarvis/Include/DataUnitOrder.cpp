@@ -23,8 +23,7 @@ namespace muffin { namespace jarvis {
 
     DataUnitOrder::DataUnitOrder(const uint8_t sizeOfOrder)
     {
-        // ASSERT((sizeOfOrder == 0), "THE SIZE OF ORDER CANNOT BE 0");
-        LOG_DEBUG(logger,"sizeOfOrder : %d", sizeOfOrder);
+        ASSERT((sizeOfOrder != 0), "THE SIZE OF ORDER CANNOT BE 0");
         mVectorOrder.reserve(sizeOfOrder);
 
     #if defined(DEBUG)
