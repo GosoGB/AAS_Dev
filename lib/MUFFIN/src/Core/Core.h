@@ -42,9 +42,6 @@ namespace muffin {
     public:
         Status Init();
     private:
-        Status initWithoutJARVIS();
-        Status initWithJARVIS();
-    private:
         esp_reset_reason_t mResetReason;
     };
 }

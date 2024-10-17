@@ -22,8 +22,6 @@
 
 namespace muffin { namespace http {
 
-    uint32_t ConvertStringToUInt32(const char* str);
-    int32_t ConvertStringToInt32(const char* str);
     http_rsc_e ConvertInt32ToRSC(const int32_t intRSC);
     const char* ConvertRscToString(const http_rsc_e rsc);
     std::string ConvertMethodToString(const rest_method_e method);

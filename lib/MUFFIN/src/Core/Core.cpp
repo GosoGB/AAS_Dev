@@ -15,40 +15,16 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-
 #include "Core.h"
-#include "IM/MacAddress/MacAddress.h"
-
 #include "Include/Helper.h"
+#include "Initializer/Initializer.h"
 
-#include "Jarvis/Config/Network/CatM1.h"
-#if defined(MODLINK_T2)
-    #include "Jarvis/Config/Network/Ethernet.h"
-#elif defined(MODLINK_B)
-    #include "Jarvis/Config/Network/Ethernet.h"
-    #include "Jarvis/Config/Network/WiFi4.h"
-#endif
-#include "Jarvis/Jarvis.h"
 
-#include "Network/CatM1/CatM1.h"
-#if defined(MODLINK_T2)
-    #include "Network/Ethernet/Ethernet.h"
-#elif defined(MODLINK_B)
-    #include "Network/Ethernet/Ethernet.h"
-    #include "Network/WiFi4/WiFi4.h"
-#endif
+// #include "IM/MacAddress/MacAddress.h"
 
-#include "Protocol/MQTT/CIA.h"
-#include "Protocol/MQTT/Include/BrokerInfo.h"
-#include "Protocol/MQTT/Include/Topic.h"
-#include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 
-#include "Protocol/HTTP/CatHTTP/CatHTTP.h"
-#include "Protocol/HTTP/Include/RequestHeader.h"
 
-#include "Storage/ESP32FS/ESP32FS.h"
 
-#include <Arduino.h>
 
 namespace muffin {
 
@@ -85,7 +61,7 @@ namespace muffin {
     Core::~Core()
     {
     #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
@@ -101,193 +77,19 @@ namespace muffin {
         mResetReason = esp_reset_reason();
         printResetReason(mResetReason);
 
-        MacAddress* mac = MacAddress::GetInstanceOrNULL();
-        if (mac == nullptr)
-        {
-            ASSERT((mac != nullptr), "FATAL ERROR OCCURED: FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
-            LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
-            esp_restart();
-        }
-        ASSERT((mac != nullptr), "[FATAL ERROR] MAC ADDRESS REQUIRED AS IDENTIFIERS FOR MODLINK MUST BE INSTANTIATED");
+        Initializer initializer;
+        initializer.StartOrCrash();
 
-        ESP32FS* esp32FS = ESP32FS::GetInstanceOrNULL();
-        if (esp32FS == nullptr)
-        {
-            ASSERT((esp32FS != nullptr), "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
-            esp_restart();
-        }
-        ASSERT((esp32FS != nullptr), "[FATAL ERROR] ESP32FS REQUIRED AS A BASE FILE SYSTEM FOR MODLINK MUST BE INSTANTIATED");
-        
-        /**
-         * @todo LittleFS 파티션의 포맷 여부를 로우 레벨 API로 확인해야 합니다.
-         * @details 현재는 파티션 마운트에 실패할 경우 파티션을 자동으로 포맷하게
-         *          코드를 작성하였습니다. 다만, 일시적인 하드웨어 실패가 발생한
-         *          경우에도 파티션이 포맷되는 문제가 있습니다.
-         */
-        Status ret = esp32FS->Begin(true);
+        Status ret = initializer.Configure();
         if (ret != Status::Code::GOOD)
         {
-            ASSERT(false, "FATAL ERROR OCCURED: FAILED TO MOUNT ESP32 FILE SYSTEM TO OPERATING SYSTEM");
-
-            LOG_ERROR(logger, "FAILED TO MOUNT ESP32 FILE SYSTEM TO THE OS");
-            esp_restart();
-        }
-        ASSERT((ret == Status::Code::GOOD), "[FATAL ERROR] ESP32FS REQUIRED AS A BASE FILE SYSTEM FOR MODLINK MUST BE MOUNTED");
-        /*MUFFIN 프레임워크가 동작하기 위한 최소한의 조건이 만족되었습니다.*/
-
-        
-        if (esp32FS->DoesExist("/jarvis/config.json") == Status::Code::GOOD)
-        {
-            initWithJARVIS();
-        }
-        else
-        {
-            initWithoutJARVIS();
-        }
-
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-    }
-
-    Status Core::initWithoutJARVIS()
-    {
-        /**
-         * @todo Option #1: MODLINK 모델 별로 기본 설정이 달라지는 부분을 고려해야 합니다.
-         * @todo Option #2: 블루투스를 이용해서 사용자가 설정할 수 있게 만들어야 합니다.
-         */
-        jarvis::config::CatM1* config = new(std::nothrow) jarvis::config::CatM1();
-        if (config == nullptr)
-        {
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-        config->SetModel(jarvis::md_e::LM5);
-        config->SetCounty(jarvis::ctry_e::KOREA);
-
-
-        CatM1* catM1 = CatM1::GetInstanceOrNULL();
-        if (config == nullptr)
-        {
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-        catM1->Config(config);
-        catM1->Init();
-
-
-        while (catM1->GetState() != CatM1::state_e::SUCCEDDED_TO_START)
-        {
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-
-        while (catM1->Connect() != Status::Code::GOOD)
-        {
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-
-
-        mqtt::BrokerInfo info(MacAddress::GetEthernet());
-    #if defined(DEBUG)
-        /**
-         * @brief DEBUGGING 환경에서 "일시적"으로 사용하기 때문에 
-         *        상태 코드를 확인 작업을 구현하지 않았습니다.
-         */
-        info.SetHost("mqtt.vitcon.iotops.opsnow.com");
-        info.SetUsername("vitcon");
-        info.SetPassword("tkfkdgo5!@#$");
-    #endif
-
-
-        if (mqtt::Topic::CreateTopic(MacAddress::GetEthernet()) == false)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT TOPIC");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-
-        mqtt::CIA* cia = mqtt::CIA::GetInstanceOrNULL();
-        if (cia == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT CIA");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", ret.c_str());
+            성공할 때까지 다시 한 번 시도합니다.
+            아니면 그냥 디바이스를 리셋하는 게 나을지도 모릅니다...
         }
         
 
-        mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::GetInstanceOrNULL(*catM1, info);
-        Status ret = catMQTT->Init(
-            network::lte::pdp_ctx_e::PDP_01, 
-            network::lte::ssl_ctx_e::SSL_0
-        );
 
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO INIT CatMQTT: %s", ret.c_str());
-            return ret;
-        }
-        
-        while (catMQTT->Connect() != Status::Code::GOOD)
-        {
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
-        }
-
-
-        std::vector<mqtt::Message> vec;
-        mqtt::Message message(mqtt::topic_e::JARVIS_REQUEST, "");
-        /**
-         * @todo emplace_back에 대한 예외처리 구현해야 합니다.
-         */
-        vec.emplace_back(message);
-        ret = catMQTT->Subscribe(vec);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO SUBSCRIBE JARVIS TOPIC: %s", ret.c_str());
-            return ret;
-        }
-
-        while (true)
-        {
-            const uint8_t count = cia->Count();
-            LOG_DEBUG(logger, "Remained: %u", ESP.getFreeHeap());
-
-            if (count > 0)
-            {
-                auto ret = cia->Retrieve();
-                LOG_DEBUG(logger, "Count: %u", count);
-                if (ret.first == Status::Code::GOOD)
-                {
-                    LOG_DEBUG(logger, "Socket:  %u", (uint8_t)ret.second.GetSocketID());
-                    LOG_DEBUG(logger, "MsgID: %u", ret.second.GetMessageID());
-                    LOG_DEBUG(logger, "Topic: %s", mqtt::Topic::ToString(ret.second.GetTopicCode()));
-                    LOG_DEBUG(logger, "Payload: %s", ret.second.GetPayload());
-                }
-            }
-
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-        
-
-        // http::CatHTTP* catHTTP = http::CatHTTP::GetInstance(*catM1);
-        // ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
-        // if (ret != Status::Code::GOOD)
-        // {
-        //     LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());
-        //     return ret;
-        // }
-
-    /*  Init에서는 CatHTTP 개체 초기화까지만!
-        http::RequestHeader header(
-            rest_method_e::GET,
-            http_scheme_e::HTTPS,
-            "api.mfm.edgecross.dev",
-            443,
-            "/api/mfm/device/write",
-            "MODLINK-L/0.0.1"
-        );
-        catHTTP->GET(header);
-    */
-
-        return ret;
-    }
-
-    Status Core::initWithJARVIS()
-    {
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 

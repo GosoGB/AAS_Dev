@@ -17,6 +17,7 @@
 #include <pins_arduino.h>
 
 #include "CatM1.h"
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 
 
@@ -42,6 +43,12 @@ namespace muffin {
         }
         
         return mInstance;
+    }
+
+    CatM1& CatM1::GetInstance() noexcept
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
 
     CatM1::CatM1()
@@ -115,7 +122,7 @@ namespace muffin {
         }
 
         mState = state_e::SUCCEDDED_TO_CONFIGURE;
-        return Status(Status::Code::GOOD_ENTRY_REPLACED);
+        return Status(Status::Code::GOOD);
     }
 
     Status CatM1::Connect()

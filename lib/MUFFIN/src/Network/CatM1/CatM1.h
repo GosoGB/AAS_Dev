@@ -40,6 +40,7 @@ namespace muffin {
         CatM1(CatM1 const&) = delete;
         void operator=(CatM1 const&) = delete;
         static CatM1* GetInstanceOrNULL();
+        static CatM1& GetInstance() noexcept;
     private:
         CatM1();
         virtual ~CatM1() override;

@@ -16,6 +16,7 @@
 #include <LittleFS.h>
 
 #include "ESP32FS.h"
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 
 
@@ -35,6 +36,12 @@ namespace muffin {
         }
         
         return mInstance;
+    }
+
+    ESP32FS& ESP32FS::GetInstance()
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
 
     ESP32FS::ESP32FS()

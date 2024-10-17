@@ -16,6 +16,7 @@
 #include "CatHTTP.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
 #include "Protocol/HTTP/Include/Helper.h"
 
 
@@ -228,11 +229,11 @@ namespace muffin { namespace http {
             "" : 
             rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
 
-        const int32_t rxdCME = ConvertStringToInt32(strCME.c_str());
-        const http_rsc_e rxdRSC = ConvertInt32ToRSC(ConvertStringToInt32(strRSC.c_str()));
+        const int32_t rxdCME = Convert.ToInt32(strCME.c_str());
+        const http_rsc_e rxdRSC = ConvertInt32ToRSC(Convert.ToInt32(strRSC.c_str()));
         const int32_t rxdLen = strLen == "" ? 
             -1 : 
-            ConvertStringToInt32(strLen.c_str());
+            Convert.ToInt32(strLen.c_str());
 
         if (rxdCME == INT32_MAX || rxdRSC == http_rsc_e::UNDEFINED_RSC || rxdLen == INT32_MAX)
         {
@@ -373,11 +374,11 @@ namespace muffin { namespace http {
             "" : 
             rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
 
-        const int32_t rxdCME = ConvertStringToInt32(strCME.c_str());
-        const http_rsc_e rxdRSC = ConvertInt32ToRSC(ConvertStringToInt32(strRSC.c_str()));
+        const int32_t rxdCME = Convert.ToInt32(strCME.c_str());
+        const http_rsc_e rxdRSC = ConvertInt32ToRSC(Convert.ToInt32(strRSC.c_str()));
         const int32_t rxdLen = strLen == "" ? 
             -1 : 
-            ConvertStringToInt32(strLen.c_str());
+            Convert.ToInt32(strLen.c_str());
 
         if (rxdCME == INT32_MAX || rxdRSC == http_rsc_e::UNDEFINED_RSC || rxdLen == INT32_MAX)
         {
@@ -474,7 +475,7 @@ namespace muffin { namespace http {
         }
         
         length = rxd.find("\r", pos) - pos - 1;
-        errorCode = ConvertStringToUInt32(rxd.substr(pos + 1, length).c_str());
+        errorCode = Convert.ToUInt32(rxd.substr(pos + 1, length).c_str());
         if (errorCode == UINT32_MAX)
         {
             LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
@@ -678,7 +679,7 @@ namespace muffin { namespace http {
         }
 
         length = rxd.find("\r", pos) - pos - 1;
-        errorCode = ConvertStringToUInt32(rxd.substr(pos + 1, length).c_str());
+        errorCode = Convert.ToUInt32(rxd.substr(pos + 1, length).c_str());
         if (errorCode == UINT32_MAX)
         {
             LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
@@ -879,7 +880,7 @@ namespace muffin { namespace http {
 
         const size_t cmeErrorCodeLength = cmeFinishPosition - cmeStartPosition;
         const std::string cmeErrorCodeString = rxd.substr(cmeStartPosition, cmeErrorCodeLength);
-        const uint32_t cmeErrorCode = ConvertStringToUInt32(cmeErrorCodeString.c_str());
+        const uint32_t cmeErrorCode = Convert.ToUInt32(cmeErrorCodeString.c_str());
         return convertErrorCode(cmeErrorCode);
     }
 

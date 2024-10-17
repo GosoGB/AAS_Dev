@@ -59,7 +59,7 @@ namespace muffin {
     MacAddress::~MacAddress()
     {
     #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
     
