@@ -445,7 +445,7 @@ namespace muffin { namespace mqtt {
         for (const Message& message : messages)
         {
             memset(buffer, '\0', sizeof(buffer));
-            sprintf(buffer, ",\"%s\"", message.Convert2TopicString());
+            sprintf(buffer, ",\"%s\"", message.GetTopicString());
             ASSERT((strlen(buffer) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
             command.append(buffer);
         }

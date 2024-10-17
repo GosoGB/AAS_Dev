@@ -57,12 +57,14 @@ namespace muffin {
             logger = new(std::nothrow) muffin::Logger();
             if (logger == nullptr)
             {
+                ASSERT(false, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR LOGGER");
                 esp_restart();
             }
             
             mInstance = new(std::nothrow) Core();
             if (mInstance == nullptr)
             {
+                ASSERT(false, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR MUFFIN CORE");
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR MUFFIN CORE");
                 esp_restart();
             }
@@ -77,7 +79,7 @@ namespace muffin {
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
-    
+
     Core::~Core()
     {
     #if defined(DEBUG)
@@ -100,8 +102,7 @@ namespace muffin {
         MacAddress* mac = MacAddress::GetInstance();
         if (mac == nullptr)
         {
-            ASSERT(mac != nullptr, "FATAL ERROR OCCURED: FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
-            
+            ASSERT((mac != nullptr), "FATAL ERROR OCCURED: FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
             LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS DUE TO MEMORY OR DEVICE FAILURE");
             esp_restart();
         }
@@ -109,8 +110,7 @@ namespace muffin {
         ESP32FS* esp32FS = ESP32FS::GetInstance();
         if (esp32FS == nullptr)
         {
-            ASSERT(esp32FS != nullptr, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
-
+            ASSERT((esp32FS != nullptr), "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
             esp_restart();
         }
@@ -165,6 +165,7 @@ namespace muffin {
         catM1->Config(config);
         catM1->Init();
 
+
         while (catM1->GetState() != CatM1::state_e::SUCCEDDED_TO_START)
         {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -175,7 +176,9 @@ namespace muffin {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
 
-        mqtt::BrokerInfo info(mMacAddressEthernet.c_str());
+
+        MacAddress* mac = MacAddress::GetInstance();
+        mqtt::BrokerInfo info(mac->GetEthernet().c_str());
     #if defined(DEBUG)
         /**
          * @brief DEBUGGING 환경에서 "일시적"으로 사용하기 때문에 
@@ -186,8 +189,13 @@ namespace muffin {
         info.SetPassword("tkfkdgo5!@#$");
     #endif
 
+
         mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::GetInstance(*catM1, info);
-        Status ret = catMQTT->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+        Status ret = catMQTT->Init(
+            network::lte::pdp_ctx_e::PDP_01, 
+            network::lte::ssl_ctx_e::SSL_0
+        );
+
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO INIT CatMQTT: %s", ret.c_str());
@@ -199,8 +207,9 @@ namespace muffin {
             vTaskDelay(3000 / portTICK_PERIOD_MS);
         }
 
+
         std::vector<mqtt::Message> vec;
-        mqtt::Message message(mMacAddressEthernet, mqtt::topic_e::JARVIS_REQUEST, "");
+        mqtt::Message message(mac->GetEthernet(), mqtt::topic_e::JARVIS_REQUEST, "");
         /**
          * @todo emplace_back에 대한 예외처리 구현해야 합니다.
          */
@@ -212,16 +221,16 @@ namespace muffin {
             return ret;
         }
 
-    /*  JARVIS 없을 때 설정하는 건 CatMQTT 초기화까지만 하면 될 거 같음
 
-        http::CatHTTP* catHTTP = http::CatHTTP::GetInstance(*catM1);
-        ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());
-            return ret;
-        }
+        // http::CatHTTP* catHTTP = http::CatHTTP::GetInstance(*catM1);
+        // ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+        // if (ret != Status::Code::GOOD)
+        // {
+        //     LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());
+        //     return ret;
+        // }
 
+    /*  Init에서는 CatHTTP 개체 초기화까지만!
         http::RequestHeader header(
             rest_method_e::GET,
             http_scheme_e::HTTPS,
@@ -230,7 +239,6 @@ namespace muffin {
             "/api/mfm/device/write",
             "MODLINK-L/0.0.1"
         );
-
         catHTTP->GET(header);
     */
 

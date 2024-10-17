@@ -55,7 +55,7 @@ namespace muffin {
                 }
             }
 
-            mInstance->mHasMacAddresses == true;
+            mInstance->mHasMacAddresses = true;
         }
         /*Ethernet, Wi-Fi 인터페이스의 MAC 주소 읽기 성공*/
 
@@ -78,19 +78,19 @@ namespace muffin {
     
     const std::string& MacAddress::GetEthernet() const
     {
-        ASSERT((mInstance == nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
+        ASSERT((mInstance != nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
         return mEthernet;
     }
 
     const std::string& MacAddress::GetWiFiClient() const
     {
-        ASSERT((mInstance == nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
+        ASSERT((mInstance != nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
         return mWiFiClient;
     }
 
     const std::string& MacAddress::GetWiFiServer() const
     {
-        ASSERT((mInstance == nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
+        ASSERT((mInstance != nullptr), "CALL FUNCTION \"GetInstance()\" BEFORE CALLING GETTER");
         return mWiFiServer;
     }
 

@@ -29,9 +29,28 @@ namespace muffin { namespace mqtt {
         , mMessageID(messageID)
         , mQoS(qos)
         , mRetainFlag(isRetain)
-        , mTopic(topic)
+        , mTopicCode(topic)
         , mPayload(payload)
     {
+        /**
+         * @todo  기존과 달리 MAC 주소가 포함된 Topic 구조에 맞게 기존에 작성한 코드를 수정해야 합니다.
+         */
+        switch (mTopicCode)
+        {
+        case topic_e::LAST_WILL:
+            mTopicString = "scautr/modlink/status/network/will";
+            break;
+        case topic_e::JARVIS_REQUEST:
+            mTopicString = "mfm/" + mMacAddress;
+            break;
+        case topic_e::JARVIS_RESPONSE:
+            mTopicString = "mfm/resp/" + mMacAddress;
+            break;
+        default:
+            ASSERT(false, "UNDEFINED MQTT TOPIC");
+            break;
+        }
+
     #if defined(DEBUG)
         LOG_DEBUG(logger, "--------------------------------------------------");
         LOG_DEBUG(logger, "Constructed at address: %p", this);
@@ -52,20 +71,21 @@ namespace muffin { namespace mqtt {
         , mMessageID(obj.mMessageID)
         , mQoS(obj.mQoS)
         , mRetainFlag(obj.mRetainFlag)
-        , mTopic(obj.mTopic)
+        , mTopicCode(obj.mTopicCode)
         , mPayload(obj.mPayload)
+        , mTopicString(obj.mTopicString)
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "Constructed by Copy from %p to %p", &obj, this);
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "SocketID: %u", GetSocketID());
-        LOG_DEBUG(logger, "MessageID: %u", GetMessageID());
-        LOG_DEBUG(logger, "QoS Level: %u", GetQoS());
-        LOG_DEBUG(logger, "Retain: %s", IsRetain() ? "true" : "false");
-        LOG_DEBUG(logger, "Topic: %s", GetTopicString());
-        LOG_DEBUG(logger, "Payload: %s", GetPayload());
-        LOG_DEBUG(logger, "--------------------------------------------------\n\n");
+        LOG_VERBOSE(logger, "--------------------------------------------------");
+        LOG_VERBOSE(logger, "Constructed by Copy from %p to %p", &obj, this);
+        LOG_VERBOSE(logger, "--------------------------------------------------");
+        LOG_VERBOSE(logger, "SocketID: %u", GetSocketID());
+        LOG_VERBOSE(logger, "MessageID: %u", GetMessageID());
+        LOG_VERBOSE(logger, "QoS Level: %u", GetQoS());
+        LOG_VERBOSE(logger, "Retain: %s", IsRetain() ? "true" : "false");
+        LOG_VERBOSE(logger, "Topic: %s", GetTopicString());
+        LOG_VERBOSE(logger, "Payload: %s", GetPayload());
+        LOG_VERBOSE(logger, "--------------------------------------------------\n\n");
     #endif
     }
 
@@ -75,8 +95,9 @@ namespace muffin { namespace mqtt {
         , mMessageID(std::move(obj.mMessageID))
         , mQoS(std::move(obj.mQoS))
         , mRetainFlag(std::move(obj.mRetainFlag))
-        , mTopic(std::move(obj.mTopic))
+        , mTopicCode(std::move(obj.mTopicCode))
         , mPayload(std::move(obj.mPayload))
+        , mTopicString(std::move(obj.mTopicString))
     {
     #if defined(DEBUG)
         LOG_DEBUG(logger, "--------------------------------------------------");
@@ -95,7 +116,7 @@ namespace muffin { namespace mqtt {
     Message::~Message()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
@@ -121,57 +142,16 @@ namespace muffin { namespace mqtt {
 
     topic_e Message::GetTopic() const
     {
-        return mTopic;
+        return mTopicCode;
     }
 
     const char* Message::GetTopicString() const
     {
-        switch (mTopic)
-        {
-        case topic_e::LAST_WILL:
-            return "scautr/modlink/status/network/will";
-        case topic_e::JARVIS_REQUEST:
-            return static_cast<const char*>(strcat("mfm/", mMacAddress.c_str()));
-        case topic_e::JARVIS_RESPONSE:
-            return static_cast<const char*>(strcat("mfm/resp/", mMacAddress.c_str()));
-        default:
-            ASSERT(false, "UNDEFINED MQTT TOPIC");
-            return nullptr;
-        }
+        return mTopicString.c_str();
     }
 
     const char* Message::GetPayload() const
     {
         return mPayload.c_str();
-    }
-
-    topic_e Message::Convert2Topic(const std::string& topic)
-    {
-        return Convert2Topic(topic.c_str());
-    }
-
-    topic_e Message::Convert2Topic(const char* topic)
-    {
-        ASSERT(
-            (
-                strcmp(topic, "scautr/modlink/status/network/will") == 0 || 
-                strcmp(topic, strcat("mfm/", mMacAddress.c_str())) == 0 || 
-                strcmp(topic, strcat("mfm/resp/", mMacAddress.c_str())) == 0
-            ),
-            "INVALID TOPIC: %s", topic
-        );
-
-        if (strcmp(topic, "scautr/modlink/status/network/will") == 0)
-        {
-            return topic_e::LAST_WILL;
-        }
-        else if (strcmp(topic, strcat("mfm/", mMacAddress.c_str())) == 0)
-        {
-            return topic_e::JARVIS_REQUEST;
-        }
-        else
-        {
-            return topic_e::JARVIS_RESPONSE;
-        }
     }
 }}

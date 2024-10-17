@@ -202,4 +202,7 @@ namespace muffin {
     {
         return RemoveDirectory(path.c_str());
     }
+
+
+    ESP32FS* ESP32FS::mInstance = nullptr;
 }

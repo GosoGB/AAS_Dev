@@ -41,18 +41,15 @@ namespace muffin { namespace mqtt {
         topic_e GetTopic() const;
         const char* GetTopicString() const;
         const char* GetPayload() const;
-        topic_e Convert2Topic(const std::string& topic);
-        topic_e Convert2Topic(const char* topic);
-        const char* Convert2TopicString() const;
-        const char* Convert2TopicString(const topic_e topic);
     private:
         const std::string& mMacAddress;
         const socket_e mSocketID;
         const uint16_t mMessageID;
         const MqttQoSEnum mQoS;
         const bool mRetainFlag;
-        const topic_e mTopic;
+        const topic_e mTopicCode;
         const std::string mPayload;
+        std::string mTopicString;
     };
 
     constexpr uint8_t QUEUE_LENGTH_RECEIVED_MESSAGE = 5;

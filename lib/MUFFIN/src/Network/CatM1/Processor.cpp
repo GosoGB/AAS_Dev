@@ -82,7 +82,7 @@ namespace muffin {
      *      - <topic>       The topic that received from MQTT server.
      *      - <payload>     The payload that relates to the topic name.
      */
-    const std::string urcQMTRECV("+QMTRECV: ");
+    const std::string urcQMTRECV("\r\n+QMTRECV: ");
     const std::string urcQMTSTAT("+QMTSTAT");
     const std::string errorCodeCME("+CME ERROR: ");
     const std::string errorCode("\r\r\nERROR\r\n");
@@ -280,7 +280,7 @@ namespace muffin {
             parseCPIN();
             parseQIND();
             parseAPPRDY();
-            // parseQMTRECV(&rxd);
+            parseQMTRECV();
             // parseQMTSTAT(&rxd);
 
             xSemaphoreGive(xSemaphore);
@@ -375,70 +375,70 @@ namespace muffin {
         }
     }
 
-/*
-    void Processor::parseQMTRECV(std::string* rxd)
+    void Processor::parseQMTRECV()
     {
-        assert(rxd != nullptr);
-
-        if (rxd->find(urcQMTRECV) == std::string::npos)
+        if (mRxBuffer.HasPattern(urcQMTRECV) == false)
         {
             return;
         }
+        
+        std::vector<uint8_t> vectorRxD = mRxBuffer.ReadBetweenPatterns(urcQMTRECV, "}\"\r\n");
+        std::vector<std::string> vectorToken;
+        std::string currentToken;
+        bool isFirstToken = true;
 
-        const size_t posStart = rxd->find(urcQMTRECV) + urcQMTRECV.length();
-        const size_t posEnd   = rxd->rfind("}\"");
-
-        if (posStart == std::string::npos || posEnd == std::string::npos)
+        for (const uint8_t byte : vectorRxD)
         {
-            LOG_ERROR(logger, "INVALID MQTT MESSAGE HAS BEEN FORWARDED");
-            rxd->erase(rxd->find(urcQMTRECV), urcQMTRECV.length());
-            LOG_DEBUG(logger, "REM: %s", rxd->c_str());
+            if ((byte == ',') && (vectorToken.size() < 3))
+            {
+                if (currentToken.empty() == false)
+                {
+                    if (isFirstToken == true)
+                    {
+                        currentToken.erase(0, urcQMTRECV.length());
+                        isFirstToken = false;
+                    }
 
-            assert(posStart != std::string::npos);
-            assert(posEnd != std::string::npos);
-            return;
+                    try
+                    {
+                        vectorToken.emplace_back(currentToken);
+                    }
+                    catch(const std::exception& e)
+                    {
+                        LOG_ERROR(logger, "FAILED TO EMPLACE: %s", e.what());
+                    }
+                    
+                    currentToken.clear();
+                }
+            }
+            else
+            {
+                currentToken += static_cast<char>(byte);
+            }
+        }
+        
+        if (currentToken.empty() == false)
+        {
+            if (isFirstToken == true)
+            {
+                currentToken.erase(0, urcQMTRECV.length());
+            }
+
+            try
+            {
+                vectorToken.emplace_back(currentToken);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO EMPLACE: %s", e.what());
+            }
         }
 
-        const size_t posSocket   = rxd->find(",",   posStart);
-        const size_t posMsgID    = rxd->find(",",   posSocket + 1);
-        const size_t posTopic    = rxd->find(",",   posMsgID  + 1);
-        const size_t posPayload  = posEnd;
-
-        if (posSocket == std::string::npos || posMsgID == std::string::npos ||
-            posTopic == std::string::npos  || posPayload == std::string::npos)
+        for (size_t i = 0; i < vectorToken.size(); ++i)
         {
-            LOG_ERROR(logger, "INVALID URC STRUCTURE: DELIMITER NOT FOUND");
-            rxd->erase(posStart, posEnd);
-            LOG_DEBUG(logger, "REM: %s", rxd->c_str());
-
-            assert(posSocket != std::string::npos);
-            assert(posMsgID != std::string::npos);
-            assert(posTopic != std::string::npos);
-            assert(posPayload != std::string::npos);
-            return;
+            LOG_DEBUG(logger, "Token [%u]: %s", (i + 1), vectorToken[i].c_str());
         }
-
-        size_t length = posSocket - posStart;
-        std::string token = rxd->substr(posStart, length);
-        LOG_VERBOSE(logger, "%s", token.c_str());
-        const uint8_t socket = std::stoi(token);
-        LOG_VERBOSE(logger, "socket: %u", socket);
-
-        length = posMsgID - posSocket;
-        token = rxd->substr(posSocket + 1, length);
-        LOG_VERBOSE(logger, "%s", token.c_str());
-        const uint16_t msgID = std::stoi(token);
-        LOG_VERBOSE(logger, "msgID: %u", msgID);
-
-        length = posTopic - posMsgID - 3;
-        const std::string strTopic = rxd->substr(posMsgID + 2, length);
-        LOG_VERBOSE(logger, "%s", strTopic.c_str());
-        const MqttTopicEnum topic = StringToTopic(strTopic.c_str());
-
-        length = posEnd - posTopic - 1;
-        LOG_VERBOSE(logger, "End: %u   Topic: %u", posEnd, posTopic);
-        const std::string payload = rxd->substr(posTopic + 2, length);
-        LOG_VERBOSE(logger, "%s", payload.c_str());
+        
 
         // Send the message to the FreeRTOS queue
         uint8_t numItemsInQueue = uxQueueMessagesWaiting(QUEUE_MQTT_MESSAGE);
@@ -465,7 +465,6 @@ namespace muffin {
         LOG_VERBOSE(logger, "Remained: %s", rxd->c_str());
         void triggerCallbackQMTRECV();
     }
-*/
 
 /*
     void Processor::parseQMTSTAT(std::string* rxd)
