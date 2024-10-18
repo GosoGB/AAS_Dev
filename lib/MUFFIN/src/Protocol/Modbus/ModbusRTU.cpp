@@ -53,7 +53,7 @@ namespace muffin {
     
     void ModbusRTU::SetPort(HardwareSerial& port)
     {
-        mRS485 = new RS485Class(port, 17, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN);
+        mRS485 = new RS485Class(port, TX_PIN_NUMBER, DE_PIN_NUMBER, RE_PIN_NUMBER);
         ModbusRTUClient.begin(*mRS485, 9600, SERIAL_8N1);
     }
 

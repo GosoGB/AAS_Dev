@@ -7,11 +7,7 @@
  * @date 2024-10-03
  * @version 0.0.1
  * 
- * 
- * @todo merge 할 수 없는 주소들은 set에 추가되지 않는 버그가 있습니다.
- *       Modbus 주소만 따로 관리하는 클래스를 추가하는 게 좋아보입니다.
- *       기본적으로 메모리 영역별로 주소 값을 관리하는 것이 좋아보입니다.
- *       또한 향후 여러 슬레이브를 사용할 때를 대비하는 게 좋겠습니다.
+ * @todo 김병우 수석께 DE/RE 핀 번호가 4/5번인지 확인을 받아야 합니다.
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -69,5 +65,9 @@ namespace muffin {
         modbus::NodeTable mNodeTable;
         modbus::AddressTable mAddressTable;
         modbus::PolledDataTable mPolledDataTable;
+    private:
+        static constexpr uint8_t DE_PIN_NUMBER =  4;
+        static constexpr uint8_t RE_PIN_NUMBER =  5;
+        static constexpr uint8_t TX_PIN_NUMBER = 17;
     };
 }
