@@ -65,7 +65,7 @@ namespace muffin {
     #endif
     }
 
-    Status Core::Init()
+    void Core::Init()
     {
         /**
          * @todo Reset 사유에 따라 자동으로 초기화 하는 기능의 개발이 필요합니다.
@@ -80,17 +80,34 @@ namespace muffin {
         Initializer initializer;
         initializer.StartOrCrash();
 
-        Status ret = initializer.Configure();
-        if (ret != Status::Code::GOOD)
+        constexpr uint8_t MAX_RETRY_COUNT = 5;
+        constexpr uint16_t SECOND_IN_MILLIS = 1000;
+        /**
+         * @todo 설정이 정상적이지 않을 때 어떻게 처리할 것인지 결정해야 합니다.
+         * @details 현재는 설정에 실패했을 때, 최대 5번까지 다시 시도하게 되어 있습니다.
+         *          설정에 성공했다면 루프를 빠져나가게 됩니다.
+         */
+        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
         {
-            LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", ret.c_str());
-            성공할 때까지 다시 한 번 시도합니다.
-            아니면 그냥 디바이스를 리셋하는 게 나을지도 모릅니다...
+            Status ret = initializer.Configure();
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger, "MUFFIN is configured and ready to go!");
+                break;
+            }
+            else
+            {
+                if ((i + 1) < MAX_RETRY_COUNT)
+                {
+                    LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", i, ret.c_str());
+                }
+                else
+                {
+                    LOG_WARNING(logger, "[TRIAL: #%u] CONFIGURATION WAS UNSUCCESSFUL: %s", i, ret.c_str());
+                }
+                vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
+            }
         }
-        
-
-
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
 

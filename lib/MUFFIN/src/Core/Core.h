@@ -40,7 +40,7 @@ namespace muffin {
         static Core* mInstance;
 
     public:
-        Status Init();
+        void Init();
     private:
         esp_reset_reason_t mResetReason;
     };
