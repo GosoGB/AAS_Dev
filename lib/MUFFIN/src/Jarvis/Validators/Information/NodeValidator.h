@@ -7,6 +7,8 @@
  * @date 2024-10-14
  * @version 0.0.1
  * 
+ * @todo 설정 값 별로 unit test 작성할 것
+ * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
 

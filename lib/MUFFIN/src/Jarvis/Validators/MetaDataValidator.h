@@ -44,10 +44,7 @@ namespace muffin { namespace jarvis {
     private:
         /*Protocol Version*/
         static constexpr uint8_t SUPPORTED_VERSION_LENGTH = 1;
-        static constexpr prtcl_ver_e SUPPORTED_VERSION[SUPPORTED_VERSION_LENGTH] =
-        {
-            prtcl_ver_e::VERSEOIN_1
-        };
+        static prtcl_ver_e SUPPORTED_VERSION[SUPPORTED_VERSION_LENGTH];
         prtcl_ver_e mVersion;
         rsc_e mVersionState;
     private:

@@ -1017,7 +1017,6 @@ namespace muffin { namespace jarvis {
 
                 if (totalRegisterSize > sumDataTypeSize)
                 {
-                    
                     LOG_DEBUG(logger,"totalRegisterSize : %d , sumDataTypeSize: %d",totalRegisterSize, sumDataTypeSize);
                     const std::string message = "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES";
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
@@ -1631,6 +1630,9 @@ namespace muffin { namespace jarvis {
     {
         std::string stringIndex;
         ord_t dataUnitOrder;
+        dataUnitOrder.DataUnit = data_unit_e::BYTE;
+        dataUnitOrder.ByteOrder = byte_order_e::LOWER;
+        dataUnitOrder.Index = 0;
 
         const char dataUnit = value.at(0);
         if (dataUnit == 'W')

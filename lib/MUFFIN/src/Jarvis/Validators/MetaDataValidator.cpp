@@ -328,4 +328,10 @@ namespace muffin { namespace jarvis {
             return std::make_pair(Status(Status::Code::BAD), std::set<cfg_key_e>());
         }
     }
+
+
+    prtcl_ver_e MetaDataValidator::SUPPORTED_VERSION[SUPPORTED_VERSION_LENGTH] =
+    {
+        prtcl_ver_e::VERSEOIN_1
+    };
 }}
