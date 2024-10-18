@@ -16,7 +16,11 @@
 #include <cerrno>
 #include <map>
 
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
+#include "Jarvis/Include/TypeDefinitions.h"
+#include "Network/CatM1/CatM1.h"
 #include "TimeUtils.h"
 
 
@@ -39,7 +43,7 @@ namespace muffin {
 
 	Status SetSystemTime(const time_t& ts)
 	{
-		assert(ts > static_cast<time_t>(BUILD_TIME));
+		ASSERT((ts >= BUILD_TIME), "TIMESTAMP SMALLER THAN BUILD TIME: %u > %u", Convert.ToUInt32(ts), BUILD_TIME);
 		
 		struct timeval now = {
             .tv_sec = ts, 
@@ -66,13 +70,13 @@ namespace muffin {
 			}
 		}
 		
-		LOG_DEBUG(logger, "System time is set to %lu", now.tv_sec);
+		LOG_INFO(logger, "System time is set to %lu", now.tv_sec);
 		return Status(Status::Code::GOOD);
 	}
 
 	Status SetTimezone(const std::string& tz)
 	{
-		assert(MapPTZS.find(tz) != MapPTZS.end());
+		ASSERT((MapPTZS.find(tz) != MapPTZS.end()), "UNDEFINED OR UNSUPPORTED TIMEZONE: %s", tz.c_str());
 
 		const std::string pts = MapPTZS.at(tz); // POSIX timezone string
 		const int isSet = setenv("TZ", pts.c_str(), 1);
@@ -92,8 +96,8 @@ namespace muffin {
 					return Status(Status::Code::UNCERTAIN);
 			}
 		}
-
 		tzset();
+
 		LOG_INFO(logger, "Timezone is successfully set to \"%s\"", tz.c_str());
 		return Status(Status::Code::GOOD);
 	}
@@ -126,5 +130,32 @@ namespace muffin {
 		char dateTime[20] = {0};
 		strftime(dateTime, 20, "%Y-%m-%dT%H:%M:%S", localTime);
 		return std::string(dateTime);
+	}
+
+    Status SyncWithNTP(const jarvis::snic_e snic)
+	{
+		switch (snic)
+		{
+		case jarvis::snic_e::LTE_CatM1:
+			{
+				CatM1& catM1 = CatM1::GetInstance();
+				return catM1.SyncWithNTP();
+			}
+	#if defined(MODLINK_T2) || defined(MODLINK_B)
+		case jarvis::snic_e::Ethernet,:
+			{
+				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+			}
+    #elif defined(MODLINK_B)
+		case jarvis::snic_e::Ethernet,:
+			{
+				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+			}
+        case jarvis::snic_e::WiFi4,:
+			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
+	#endif
+		default:
+			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+		}
 	}
 }

@@ -243,7 +243,7 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::IsConnected()
     {
-        ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"IsConnected()\"");
+        ASSERT((mState >= state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"IsConnected()\"");
 
         switch (mState)
         {

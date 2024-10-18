@@ -22,6 +22,7 @@
 #include <esp_system.h>
 
 #include "Common/Status.h"
+#include "Protocol/MQTT/Include/Message.h"
 
 
 
@@ -41,6 +42,7 @@ namespace muffin {
 
     public:
         void Init();
+        void HandleMqttMessage(const mqtt::Message& message);
     private:
         esp_reset_reason_t mResetReason;
     };

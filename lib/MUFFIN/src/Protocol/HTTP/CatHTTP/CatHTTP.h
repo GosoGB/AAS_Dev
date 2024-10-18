@@ -34,7 +34,7 @@ namespace muffin { namespace http {
         CatHTTP(CatHTTP const&) = delete;
         void operator=(CatHTTP const&) = delete;
         static CatHTTP* GetInstanceOrNULL(CatM1& catM1);
-        static CatHTTP* GetInstanceOrNULL();
+        static CatHTTP& GetInstance();
     private:
         CatHTTP(CatM1& catM1);
         virtual ~CatHTTP();

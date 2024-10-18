@@ -33,6 +33,7 @@ namespace muffin {
         static uint8_t ToUInt8(const std::string& input);
         static uint16_t ToUInt16(const std::string& input);
         static uint32_t ToUInt32(const std::string& input);
+        static uint32_t ToUInt32(const time_t input);
         static uint64_t ToUInt64(const std::string& input);
     public:
         static float ToFloat(const std::string& input);

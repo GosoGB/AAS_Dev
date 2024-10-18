@@ -43,7 +43,7 @@ namespace muffin { namespace http {
         mPropertyFlags.reset(static_cast<uint8_t>(property_flag_e::CONTENT_LENGTH));
         mPropertyFlags.reset(static_cast<uint8_t>(property_flag_e::CONTENT_TYPE));
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
         LOG_INFO(logger, "HTTP Header:\n%s", c_str());
     #endif
     }
@@ -51,7 +51,7 @@ namespace muffin { namespace http {
     RequestHeader::~RequestHeader()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 

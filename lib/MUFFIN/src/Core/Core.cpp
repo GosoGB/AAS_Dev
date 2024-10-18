@@ -15,12 +15,14 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 #include "Core.h"
+#include "DataFormat/JSON/JSON.h"
 #include "Include/Helper.h"
 #include "Initializer/Initializer.h"
-
-
-// #include "IM/MacAddress/MacAddress.h"
+#include "Protocol/MQTT/CatMQTT/CatMQTT.h"
+#include "Task/MqttTask.h"
+#include "Task/JarvisTask.h"
 
 
 
@@ -67,6 +69,8 @@ namespace muffin {
 
     void Core::Init()
     {
+        SetSystemTime(BUILD_TIME);
+
         /**
          * @todo Reset 사유에 따라 자동으로 초기화 하는 기능의 개발이 필요합니다.
          * @details JARVIS 설정으로 인해 런타임에 크래시 같은 문제가 있을 수 있습니다.
@@ -97,9 +101,10 @@ namespace muffin {
             }
             else
             {
-                if ((i + 1) < MAX_RETRY_COUNT)
+                if ((i + 1) == MAX_RETRY_COUNT)
                 {
-                    LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", i, ret.c_str());
+                    LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", ret.c_str());
+                    esp_restart();
                 }
                 else
                 {
@@ -108,6 +113,47 @@ namespace muffin {
                 vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
             }
         }
+
+        StartTaskMQTT();
+    }
+
+    void Core::HandleMqttMessage(const mqtt::Message& message)
+    {
+        const mqtt::topic_e topic = message.GetTopicCode();
+        const std::string payload = message.GetPayload();
+        
+        JSON json;
+        JsonDocument doc;
+        Status retJSON = json.Deserialize(payload, &doc);
+        if (retJSON != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
+        }
+
+        mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+        switch (topic)
+        {
+        case mqtt::topic_e::JARVIS_REQUEST:
+            if (retJSON != Status::Code::GOOD)
+            {
+                mqtt::Message responseMessage;
+                responseMessage.SetTopic(mqtt::topic_e::JARVIS_RESPONSE);
+                responseMessage.SetPayload(CreateDecodingErrorPayload(retJSON.c_str()));
+                catMqtt.Publish(responseMessage);
+                LOG_DEBUG(logger, "Pub Message: %s", responseMessage.GetPayload());
+            }
+            else
+            {
+                doc = FetchJarvis();
+                mqtt::Message reportMessage = JarvisTask(doc);
+                catMqtt.Publish(reportMessage);
+                LOG_DEBUG(logger, "Pub Message: %s", reportMessage.GetPayload());
+            }
+            break;
+        default:
+            break;
+        }
+        
     }
 
 
