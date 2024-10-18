@@ -9,3 +9,16 @@
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
+
+
+
+
+#pragma once
+
+
+
+namespace muffin {
+
+    void StartTaskMQTT();
+    void implMqttTask(void* pvParameter);
+}

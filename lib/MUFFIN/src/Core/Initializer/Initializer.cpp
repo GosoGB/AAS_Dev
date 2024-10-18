@@ -257,7 +257,7 @@ namespace muffin {
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
 
-            Status ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+            Status ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());

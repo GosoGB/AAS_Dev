@@ -39,15 +39,10 @@ namespace muffin { namespace http {
         return mInstance;
     }
 
-    CatHTTP* CatHTTP::GetInstanceOrNULL()
+    CatHTTP& CatHTTP::GetInstance()
     {
-        if (mInstance == nullptr)
-        {
-            ASSERT(false, "DEPENDANCY FOR CatM1 INSTANCE MUST BE INJECTED: CALL FUNCTION WITH CatM1 REFERENCE INSTEAD");
-            return nullptr;
-        }
-        
-        return mInstance;
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
 
     

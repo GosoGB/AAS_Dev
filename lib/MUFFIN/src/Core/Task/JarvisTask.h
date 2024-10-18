@@ -9,3 +9,21 @@
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
+
+
+
+
+#pragma once
+
+#include <ArduinoJson.h>
+
+#include "Protocol/MQTT/Include/Message.h"
+
+
+
+namespace muffin {
+
+    mqtt::Message JarvisTask(JsonDocument& json);
+    JsonDocument FetchJarvis();
+    std::string CreateDecodingErrorPayload(const char* reason);
+}
