@@ -29,7 +29,8 @@ namespace muffin {
     public:
         ESP32FS(ESP32FS const&) = delete;
         void operator=(ESP32FS const&) = delete;
-        static ESP32FS* GetInstance();
+        static ESP32FS* GetInstanceOrNULL();
+        static ESP32FS& GetInstance();
     private:
         ESP32FS();
         virtual ~ESP32FS() override;

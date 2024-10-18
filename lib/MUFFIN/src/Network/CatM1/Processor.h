@@ -89,7 +89,7 @@ namespace muffin {
         void parseCPIN();
         void parseQIND();
         void parseAPPRDY();
-        // void parseQMTRECV();
+        void parseQMTRECV();
         // void parseQMTSTAT();
     private:
         typedef enum LteModuleProcessorInitializationFlagEnum

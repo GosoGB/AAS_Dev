@@ -21,8 +21,6 @@
 
 namespace muffin { namespace mqtt {
 
-    uint32_t ConvertStringToUInt32(const char* str);
-    int32_t ConvertStringToInt32(const char* str);
     const char* ConvertVersionToString(const version_e version);
     version_e ConvertUInt32ToVersion(const uint32_t integer);
 }}

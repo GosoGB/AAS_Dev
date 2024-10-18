@@ -23,62 +23,6 @@
 
 namespace muffin { namespace http {
 
-    uint32_t ConvertStringToUInt32(const char* str)
-    {
-        char* endPointer;
-        errno = 0;
-
-        uint32_t value = strtoul(str, &endPointer, 10);
-        
-        if (endPointer == str)
-        {
-            LOG_ERROR(logger, "NONCONVERTIBLE STRING: %s", str);
-            return UINT32_MAX;
-        }
-        else if (*endPointer != '\0')
-        {
-            LOG_ERROR(logger, "PARTIALLY CONVERTED: %s", endPointer);
-            return UINT32_MAX;
-        }
-        else if (errno == ERANGE)
-        {
-            LOG_ERROR(logger, "OUT OF RANGE: %s", str);
-            return UINT32_MAX;
-        }
-        else
-        {
-            return value;
-        }
-    }
-
-    int32_t ConvertStringToInt32(const char* str)
-    {
-        char* endPointer;
-        errno = 0;
-
-        int32_t value = strtol(str, &endPointer, 10);
-        
-        if (endPointer == str)
-        {
-            LOG_ERROR(logger, "NONCONVERTIBLE STRING: %s", str);
-            return INT32_MAX;
-        }
-        else if (*endPointer != '\0')
-        {
-            LOG_ERROR(logger, "PARTIALLY CONVERTED: %s", endPointer);
-            return INT32_MAX;
-        }
-        else if (errno == ERANGE)
-        {
-            LOG_ERROR(logger, "OUT OF RANGE: %s", str);
-            return INT32_MAX;
-        }
-        else
-        {
-            return value;
-        }
-    }
-
     http_rsc_e ConvertInt32ToRSC(const int32_t intRSC)
     {
         switch (intRSC)

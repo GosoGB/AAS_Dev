@@ -87,7 +87,7 @@ namespace muffin { namespace mqtt {
     BrokerInfo::~BrokerInfo()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 

@@ -16,14 +16,15 @@
 #include "CatMQTT.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
 #include "Network/Helper.h"
-#include "Protocol/MQTT/Helper.h"
+#include "Protocol/MQTT/Include/Helper.h"
 
 
 
 namespace muffin { namespace mqtt {
 
-    CatMQTT* CatMQTT::GetInstance(CatM1& catM1, BrokerInfo& broker, Message& lwt)
+    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt)
     {
         if (mInstance == nullptr)
         {
@@ -38,7 +39,7 @@ namespace muffin { namespace mqtt {
         return mInstance;
     }
 
-    CatMQTT* CatMQTT::GetInstance(CatM1& catM1, BrokerInfo& broker)
+    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker)
     {
         if (mInstance == nullptr)
         {
@@ -53,15 +54,10 @@ namespace muffin { namespace mqtt {
         return mInstance;
     }
 
-    CatMQTT* CatMQTT::GetInstance()
+    CatMQTT& CatMQTT::GetInstance()
     {
-        if (mInstance == nullptr)
-        {
-            ASSERT(false, "DEPENDANCY FOR CatM1 INSTANCE MUST BE INJECTED: CALL FUNCTION WITH CatM1 REFERENCE INSTEAD");
-            return nullptr;
-        }
-        
-        return mInstance;
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
 
     CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt)
@@ -81,7 +77,7 @@ namespace muffin { namespace mqtt {
     CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker)
         : mCatM1(catM1)
         , mBrokerInfo(std::move(broker))
-        , mMessageLWT(std::move(Message(mBrokerInfo.GetClientID(), topic_e::LAST_WILL, "")))
+        , mMessageLWT(Message(topic_e::LAST_WILL, std::string()))
     {
         mInitFlags.reset();
         mInitFlags.reset(init_flag_e::ENABLE_LWT_MSG);
@@ -360,9 +356,9 @@ namespace muffin { namespace mqtt {
         const std::string strSocketID  = rxd.substr(*it + 1, *(it + 1) - *it - 1);
         const std::string strMessageID = rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
         const std::string strResult    = rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
-        const int32_t rxdSocketID  = ConvertStringToInt32(strSocketID.c_str());
-        const int32_t rxdMessageID = ConvertStringToInt32(strMessageID.c_str());
-        const int32_t rxdResult    = ConvertStringToInt32(strResult.c_str());
+        const int32_t rxdSocketID  = Convert.ToInt32(strSocketID.c_str());
+        const int32_t rxdMessageID = Convert.ToInt32(strMessageID.c_str());
+        const int32_t rxdResult    = Convert.ToInt32(strResult.c_str());
 
         if (rxdSocketID == INT32_MAX || rxdMessageID == INT32_MAX || rxdResult == INT32_MAX)
         {
@@ -387,7 +383,7 @@ namespace muffin { namespace mqtt {
             for (size_t i = 0; i < arraySize; i++)
             {
                 const std::string str = rxd.substr(*(++it) + 1, *(it + 1) - *it - 1);
-                const int32_t val = ConvertStringToInt32(str.c_str());
+                const int32_t val = Convert.ToInt32(str.c_str());
                 if (val == INT32_MAX)
                 {
                     LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
@@ -445,7 +441,7 @@ namespace muffin { namespace mqtt {
         for (const Message& message : messages)
         {
             memset(buffer, '\0', sizeof(buffer));
-            sprintf(buffer, ",\"%s\"", message.Convert2TopicString());
+            sprintf(buffer, ",\"%s\"", message.GetTopicString());
             ASSERT((strlen(buffer) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
             command.append(buffer);
         }
@@ -514,9 +510,9 @@ namespace muffin { namespace mqtt {
         const std::string strSocketID  = rxd.substr(*it + 1, *(it + 1) - *it - 1);
         const std::string strMessageID = rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
         const std::string strResult    = rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
-        const int32_t rxdSocketID  = ConvertStringToInt32(strSocketID.c_str());
-        const int32_t rxdMessageID = ConvertStringToInt32(strMessageID.c_str());
-        const int32_t rxdResult    = ConvertStringToInt32(strResult.c_str());
+        const int32_t rxdSocketID  = Convert.ToInt32(strSocketID.c_str());
+        const int32_t rxdMessageID = Convert.ToInt32(strMessageID.c_str());
+        const int32_t rxdResult    = Convert.ToInt32(strResult.c_str());
 
         if (rxdSocketID == INT32_MAX || rxdMessageID == INT32_MAX || rxdResult == INT32_MAX)
         {
@@ -694,10 +690,10 @@ PATTERN_FOUND:
         const std::string strResult    = rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
         const std::string strRetrans   = (it + 1) == vecDelimiter.end() ?
             "" : rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
-        const int32_t rxdSocketID  = ConvertStringToInt32(strSocketID.c_str());
-        const int32_t rxdMessageID = ConvertStringToInt32(strMessageID.c_str());
-        const int32_t rxdResult    = ConvertStringToInt32(strResult.c_str());
-        const int32_t rxdRetrans   = strRetrans == "" ? 0 : ConvertStringToInt32(strResult.c_str());
+        const int32_t rxdSocketID  = Convert.ToInt32(strSocketID.c_str());
+        const int32_t rxdMessageID = Convert.ToInt32(strMessageID.c_str());
+        const int32_t rxdResult    = Convert.ToInt32(strResult.c_str());
+        const int32_t rxdRetrans   = strRetrans == "" ? 0 : Convert.ToInt32(strResult.c_str());
 
         if (rxdSocketID == INT32_MAX || rxdMessageID == INT32_MAX || rxdResult == INT32_MAX || rxdRetrans == INT32_MAX)
         {
@@ -969,7 +965,7 @@ PATTERN_FOUND:
         }
 
         const char* strVersion = rxd.substr(delimiter + 1, 1).c_str();
-        const uint32_t intVersion = ConvertStringToUInt32(strVersion);
+        const uint32_t intVersion = Convert.ToUInt32(strVersion);
         version_e convertedVersion = ConvertUInt32ToVersion(intVersion);
         if (convertedVersion == version_e::UNDEFINED)
         {
@@ -1036,21 +1032,21 @@ PATTERN_FOUND:
         }
 
         const std::string strEnableFlag = rxd.substr(delimiter1 + 1, delimiter2 - delimiter1 - 1);
-        if (static_cast<uint8_t>(mInitFlags.test(ENABLE_LWT_MSG)) != ConvertStringToUInt32(strEnableFlag.c_str()))
+        if (static_cast<uint8_t>(mInitFlags.test(ENABLE_LWT_MSG)) != Convert.ToUInt32(strEnableFlag.c_str()))
         {
             LOG_ERROR(logger, "[ENABLE FLAG] CONFIG: %s  QUERY: %s", mInitFlags.test(ENABLE_LWT_MSG) ? "true" : "false", strEnableFlag.c_str());
             return Status(Status::Code::BAD_CONFIGURATION_ERROR);
         }
 
         const std::string strQoS = rxd.substr(delimiter2 + 1, delimiter3 - delimiter2 - 1);
-        if (static_cast<uint8_t>(mMessageLWT.GetQoS()) != ConvertStringToUInt32(strQoS.c_str()))
+        if (static_cast<uint8_t>(mMessageLWT.GetQoS()) != Convert.ToUInt32(strQoS.c_str()))
         {
             LOG_ERROR(logger, "[QoS LEVEL] CONFIG: %u  QUERY: %s", static_cast<uint8_t>(mMessageLWT.GetQoS()), strQoS.c_str());
             return Status(Status::Code::BAD_CONFIGURATION_ERROR);
         }
 
         const std::string strRetainFlag = rxd.substr(delimiter3 + 1, delimiter4 - delimiter3 - 1);
-        if (static_cast<uint8_t>(mMessageLWT.IsRetain()) != ConvertStringToUInt32(strRetainFlag.c_str()))
+        if (static_cast<uint8_t>(mMessageLWT.IsRetain()) != Convert.ToUInt32(strRetainFlag.c_str()))
         {
             LOG_ERROR(logger, "[RETAIN FLAG] CONFIG: %s  QUERY: %s", mMessageLWT.IsRetain() ? "true" : "false", strRetainFlag.c_str());
             return Status(Status::Code::BAD_CONFIGURATION_ERROR);
@@ -1133,8 +1129,8 @@ PATTERN_FOUND:
 
         const std::string strSocketID = rxd.substr(delimiter1 + 1, delimiter2 - delimiter1 - 1);
         const std::string strResult   = rxd.substr(delimiter2 + 1, delimiter3 - delimiter2 - 1);
-        const int32_t rxdSocketID = ConvertStringToInt32(strSocketID.c_str());
-        const int32_t rxdResult   = ConvertStringToInt32(strResult.c_str());
+        const int32_t rxdSocketID = Convert.ToInt32(strSocketID.c_str());
+        const int32_t rxdResult   = Convert.ToInt32(strResult.c_str());
         if (rxdSocketID == INT32_MAX || rxdResult == INT32_MAX)
         {
             LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
@@ -1240,9 +1236,9 @@ PATTERN_FOUND:
         const std::string strReturn   = delimiter3 == std::string::npos ?
             "" : rxd.substr(delimiter3 + 1, delimiter4 - delimiter3 - 1);
         
-        const int32_t rxdSocketID = ConvertStringToInt32(strSocketID.c_str());
-        const int32_t rxdResult   = ConvertStringToInt32(strResult.c_str());
-        const int32_t rxdReturn   = strReturn == "" ? -1 : ConvertStringToInt32(strResult.c_str());
+        const int32_t rxdSocketID = Convert.ToInt32(strSocketID.c_str());
+        const int32_t rxdResult   = Convert.ToInt32(strResult.c_str());
+        const int32_t rxdReturn   = strReturn == "" ? -1 : Convert.ToInt32(strResult.c_str());
 
         if (rxdSocketID == INT32_MAX || rxdResult == INT32_MAX)
         {
@@ -1373,7 +1369,7 @@ PATTERN_FOUND:
 
         const size_t cmeErrorCodeLength = cmeFinishPosition - cmeStartPosition;
         const std::string cmeErrorCodeString = rxd.substr(cmeStartPosition, cmeErrorCodeLength);
-        const uint32_t cmeErrorCode = ConvertStringToUInt32(cmeErrorCodeString.c_str());
+        const uint32_t cmeErrorCode = Convert.ToUInt32(cmeErrorCodeString.c_str());
         switch (cmeErrorCode)
         {
         case 0:

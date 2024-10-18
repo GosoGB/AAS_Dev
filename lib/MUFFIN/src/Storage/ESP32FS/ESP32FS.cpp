@@ -16,13 +16,14 @@
 #include <LittleFS.h>
 
 #include "ESP32FS.h"
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 
 
 
 namespace muffin {
 
-    ESP32FS* ESP32FS::GetInstance()
+    ESP32FS* ESP32FS::GetInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {
@@ -35,6 +36,12 @@ namespace muffin {
         }
         
         return mInstance;
+    }
+
+    ESP32FS& ESP32FS::GetInstance()
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
 
     ESP32FS::ESP32FS()
@@ -202,4 +209,7 @@ namespace muffin {
     {
         return RemoveDirectory(path.c_str());
     }
+
+
+    ESP32FS* ESP32FS::mInstance = nullptr;
 }

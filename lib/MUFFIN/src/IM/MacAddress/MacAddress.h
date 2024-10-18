@@ -30,7 +30,8 @@ namespace muffin {
     public:
         MacAddress(const MacAddress&) = delete;
         void operator=(const MacAddress&) = delete;
-        static MacAddress* GetInstance();
+        static MacAddress* GetInstanceOrNULL() noexcept;
+        static MacAddress& GetInstance() noexcept;
     private:
         MacAddress();
         virtual ~MacAddress();
@@ -38,17 +39,17 @@ namespace muffin {
         static MacAddress* mInstance;
 
     public:
-        const std::string& GetEthernet() const;
-        const std::string& GetWiFiClient() const;
-        const std::string& GetWiFiServer() const;
+        static const char* GetEthernet();
+        static const char* GetWiFiClient();
+        static const char* GetWiFiServer();
     private:
-        Status readMacAddressEthernet();
-        Status readMacAddressWiFiClient();
-        Status readMacAddressWiFiServer();
+        static Status readMacAddressEthernet();
+        static Status readMacAddressWiFiClient();
+        static Status readMacAddressWiFiServer();
+        static Status readMacAddressesFromAllNIC();
     private:
-        bool mHasMacAddresses = false;
-        std::string mEthernet;
-        std::string mWiFiClient;
-        std::string mWiFiServer;
+        static std::string mEthernet;
+        static std::string mWiFiClient;
+        static std::string mWiFiServer;
     };
 }

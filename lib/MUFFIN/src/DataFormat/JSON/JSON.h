@@ -19,7 +19,6 @@
 
 #include <ArduinoJson.h>
 
-#include "Common/Logger/Logger.h"
 #include "Common/Status.h"
 
 
