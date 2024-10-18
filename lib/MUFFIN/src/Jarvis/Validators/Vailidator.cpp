@@ -198,18 +198,10 @@ namespace muffin { namespace jarvis {
             if (responseCode >= rsc_e::BAD)
             {
                 result.EmplaceKeyWithNG(key);
-
-                if (result.GetEmplacedKeyNum() == 0)
-                {
-                    result.SetRSC(responseCode);
-                    result.SetDescription(description);
-                }
+                result.SetRSC(responseCode);
+                result.SetDescription(description);
+                return result;
             }
-        }
-
-        if (result.GetEmplacedKeyNum() > 0)
-        {
-            return result;
         }
         /* 오류 코드가 없으니 경고 코드가 있는지 확인합니다. */
 
@@ -222,31 +214,23 @@ namespace muffin { namespace jarvis {
             if (rsc_e::UNCERTAIN <= responseCode && responseCode < rsc_e::BAD)
             {
                 result.EmplaceKeyWithNG(key);
-
-                if (result.GetEmplacedKeyNum() == 0)
-                {
-                    result.SetRSC(responseCode);
-                    result.SetDescription(description);
-                }
+                result.SetRSC(responseCode);
+                result.SetDescription(description);
+                return result;
             }
         }
-        
-        if (result.GetEmplacedKeyNum() > 0)
-        {
-            return result;
-        }
-        else if (mIsUncertain == true)
-        {
+        /* 설졍 형식에는 오류와 경고 코드가 없습니다. */
+    
+        if (mIsUncertain == true)
+        {/* 메타데이터에 경고가 있었습니다. */
             result.SetRSC(mPairUncertainRSC.first);
             result.SetDescription(mPairUncertainRSC.second);
-
             return result;
         }
         else
         {
             result.SetRSC(rsc_e::GOOD);
             result.SetDescription("GOOD");
-
             return result;
         }
     }

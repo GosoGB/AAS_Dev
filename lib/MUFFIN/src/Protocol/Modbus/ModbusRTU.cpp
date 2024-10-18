@@ -45,10 +45,16 @@ namespace muffin {
         LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
+
+    void ModbusRTU::InitTest()
+    {
+        // ModbusRTUClient.begin(*mRS485, 9600, SERIAL_8N1);
+    }
     
     void ModbusRTU::SetPort(HardwareSerial& port)
     {
-        mRS485 = new RS485Class(port, RS485_DEFAULT_TX_PIN, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN);
+        mRS485 = new RS485Class(port, 17, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN);
+        ModbusRTUClient.begin(*mRS485, 9600, SERIAL_8N1);
     }
 
     Status ModbusRTU::AddNodeReference(const uint8_t slaveID, im::Node& node)
@@ -154,8 +160,8 @@ namespace muffin {
                 switch (area)
                 {
                 case modbus::area_e::COIL:
-                    // ret = pollCoil(slaveID, addressSetToPoll);
-                    ret = pollCoilTest(slaveID, addressSetToPoll);
+                    ret = pollCoil(slaveID, addressSetToPoll);
+                    // ret = pollCoilTest(slaveID, addressSetToPoll);
                     break;
                 // case modbus::area_e::DISCRETE_INPUT:
                 //     ret = pollDiscreteInput(slaveID, addressSetToPoll);
@@ -253,8 +259,9 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            
-            ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
+            LOG_INFO(logger,"slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
+            int pollResult = ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
+     
             const char* lastError = ModbusRTUClient.lastError();
 
             if (lastError != nullptr)

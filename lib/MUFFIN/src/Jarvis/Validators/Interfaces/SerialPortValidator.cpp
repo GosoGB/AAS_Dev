@@ -100,31 +100,31 @@ namespace muffin { namespace jarvis {
             if (retPRT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID SERIAL PORT INDEX: " + std::to_string(prt);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retPRT.first, message);
             }
             
             if (retBDR.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID BAUD RATE: " + std::to_string(bdr);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retBDR.first, message);
             }
 
             if (retDBIT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID DATA BIT: " + std::to_string(dbit);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retDBIT.first, message);
             }
             
             if (retPBIT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID PARITY BIT: " + std::to_string(pbit);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retPBIT.first, message);
             }
             
             if (retSBIT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID STOP BIT: " + std::to_string(sbit);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retSBIT.first, message);
             }
 
             config::Rs232* rs232 = new(std::nothrow) config::Rs232();
@@ -206,31 +206,31 @@ namespace muffin { namespace jarvis {
             if (retPRT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID SERIAL PORT INDEX: " + std::to_string(prt);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retPRT.first, message);
             }
             
             if (retBDR.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID BAUD RATE: " + std::to_string(bdr);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retBDR.first, message);
             }
 
             if (retDBIT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID DATA BIT: " + std::to_string(dbit);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retDBIT.first, message);
             }
             
             if (retPBIT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID PARITY BIT: " + std::to_string(pbit);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retPBIT.first, message);
             }
             
             if (retSBIT.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID STOP BIT: " + std::to_string(sbit);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retSBIT.first, message);
             }
 
             config::Rs485* rs485 = new(std::nothrow) config::Rs485();
