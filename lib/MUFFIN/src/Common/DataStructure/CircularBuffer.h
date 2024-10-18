@@ -38,12 +38,16 @@ namespace muffin {
         CircularBuffer(const size_t capacity)
             : mCapacity(capacity)
         {
-            LOG_DEBUG(logger, "Constructed at address: %p", this);
+        #if defined(DEBUG)
+            LOG_VERBOSE(logger, "Constructed at address: %p", this);
+        #endif
         }
 
         ~CircularBuffer()
         {
-            LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        #if defined(DEBUG)
+            LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+        #endif
         }
 
         void Write(const uint8_t value)

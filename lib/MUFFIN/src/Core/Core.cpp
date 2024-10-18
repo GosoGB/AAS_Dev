@@ -15,6 +15,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 #include "Core.h"
 #include "DataFormat/JSON/JSON.h"
 #include "Include/Helper.h"
@@ -68,6 +69,8 @@ namespace muffin {
 
     void Core::Init()
     {
+        SetSystemTime(BUILD_TIME);
+
         /**
          * @todo Reset 사유에 따라 자동으로 초기화 하는 기능의 개발이 필요합니다.
          * @details JARVIS 설정으로 인해 런타임에 크래시 같은 문제가 있을 수 있습니다.
@@ -98,9 +101,10 @@ namespace muffin {
             }
             else
             {
-                if ((i + 1) < MAX_RETRY_COUNT)
+                if ((i + 1) == MAX_RETRY_COUNT)
                 {
                     LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", ret.c_str());
+                    esp_restart();
                 }
                 else
                 {

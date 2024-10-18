@@ -55,16 +55,21 @@ namespace muffin { namespace mqtt {
         , mPayload(payload)
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "SocketID: %u", GetSocketID());
-        LOG_DEBUG(logger, "MessageID: %u", GetMessageID());
-        LOG_DEBUG(logger, "QoS Level: %u", GetQoS());
-        LOG_DEBUG(logger, "Retain: %s", IsRetain() ? "true" : "false");
-        LOG_DEBUG(logger, "Topic: %s", GetTopicString());
-        LOG_DEBUG(logger, "Payload: %s", GetPayload());
-        LOG_DEBUG(logger, "--------------------------------------------------\n\n");
+        char buffer[1024] = {0};
+        sprintf(buffer, "\n \
+--------------------------------------------------\n \
+Constructed at address: %p\n \
+--------------------------------------------------\n \
+SocketID: %u\n \
+MessageID: %u\n \
+QoS Level: %u\n \
+Retain: %s\n \
+Topic: %s\n \
+Payload: %s\n \
+--------------------------------------------------\n\n"
+, this, static_cast<uint8_t>(GetSocketID()), GetMessageID(), static_cast<uint8_t>(GetQoS()),
+IsRetain() ? "true" : "false", GetTopicString(), GetPayload());
+        LOG_VERBOSE(logger, "%s", buffer);
     #endif
     }
 
@@ -83,16 +88,21 @@ namespace muffin { namespace mqtt {
         , mPayload(obj.mPayload)
     {
     #if defined(DEBUG)
-        LOG_VERBOSE(logger, "--------------------------------------------------");
-        LOG_VERBOSE(logger, "Constructed by Copy from %p to %p", &obj, this);
-        LOG_VERBOSE(logger, "--------------------------------------------------");
-        LOG_VERBOSE(logger, "SocketID: %u", mSocketID);
-        LOG_VERBOSE(logger, "MessageID: %u", mMessageID);
-        LOG_VERBOSE(logger, "QoS Level: %u", mQoS);
-        LOG_VERBOSE(logger, "Retain: %s", mRetainFlag ? "true" : "false");
-        LOG_VERBOSE(logger, "Topic: %s", Topic::ToString(mTopicCode));
-        LOG_VERBOSE(logger, "Payload: %s", mPayload.c_str());
-        LOG_VERBOSE(logger, "--------------------------------------------------\n\n");
+        char buffer[1024] = {0};
+        sprintf(buffer, "\n \
+--------------------------------------------------\n \
+Constructed by Copy from %p to %p\n \
+--------------------------------------------------\n \
+SocketID: %u\n \
+MessageID: %u\n \
+QoS Level: %u\n \
+Retain: %s\n \
+Topic: %s\n \
+Payload: %s\n \
+--------------------------------------------------\n\n"
+, &obj, this, static_cast<uint8_t>(GetSocketID()), GetMessageID(), static_cast<uint8_t>(GetQoS()),
+IsRetain() ? "true" : "false", GetTopicString(), GetPayload());
+        LOG_VERBOSE(logger, "%s", buffer);
     #endif
     }
 

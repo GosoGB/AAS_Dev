@@ -85,6 +85,11 @@ namespace muffin {
         return static_cast<uint32_t>(ToUInt64(input));
     }
 
+    uint32_t ConvertClass::ToUInt32(const time_t input)
+    {
+        return static_cast<uint32_t>(input);
+    }
+
     uint64_t ConvertClass::ToUInt64(const std::string& input)
     {
         char* endPointer;

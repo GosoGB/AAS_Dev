@@ -59,14 +59,14 @@ namespace muffin { namespace http {
     {
         mInitFlags.reset();
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
 
     CatHTTP::~CatHTTP()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
@@ -618,7 +618,7 @@ namespace muffin { namespace http {
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret == Status::Code::GOOD)
         {
-            LOG_INFO(logger, "Set response header output: %s", turnOff ? "TURNED OFF" : "TURNED ON");
+            LOG_INFO(logger, "Set response header output: %s", turnOff == false ? "TURNED OFF" : "TURNED ON");
             mEnableResponseHeaderOutput = turnOff;
             return ret;
         }

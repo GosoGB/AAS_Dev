@@ -102,12 +102,16 @@ namespace muffin {
         , mTaskInterval(50)
     {
         mInitFlags.reset();
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     Processor::~Processor()
     {
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Status Processor::Init()

@@ -27,14 +27,14 @@ namespace muffin { namespace jarvis {
         mVectorOrder.reserve(sizeOfOrder);
 
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p, Size of Order: %u", this, sizeOfOrder);
+        LOG_VERBOSE(logger, "Constructed at address: %p, Size of Order: %u", this, sizeOfOrder);
     #endif
     }
     
     DataUnitOrder::~DataUnitOrder()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 

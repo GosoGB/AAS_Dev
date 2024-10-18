@@ -15,6 +15,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
 #include "IM/MacAddress/MacAddress.h"
@@ -178,6 +179,13 @@ namespace muffin {
             while (catM1->IsConnected() == false)
             {
                 vTaskDelay(500 / portTICK_PERIOD_MS);
+            }
+
+            ret = SyncWithNTP(jarvis::snic_e::LTE_CatM1);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER: %s", ret.c_str());
+                return ret;
             }
 
             mIsCatM1Connected = true;
