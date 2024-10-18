@@ -59,7 +59,7 @@ namespace muffin { namespace jarvis {
         }
 
         std::pair<rsc_e, std::string> result = validateMandatoryValues(json);
-        if (rsc != rsc_e::GOOD)
+        if (result.first != rsc_e::GOOD)
         {
             return result;
         }

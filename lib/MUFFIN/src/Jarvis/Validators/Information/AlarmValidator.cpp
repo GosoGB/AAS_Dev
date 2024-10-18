@@ -130,8 +130,8 @@ namespace muffin { namespace jarvis {
         isValid &= json.containsKey("lcl");
         isValid &= json.containsKey("ucl");
         isValid &= json.containsKey("cnd");
-        isValid &= json.containsKey("lcl-uid");
-        isValid &= json.containsKey("ucl-uid");
+        isValid &= json.containsKey("lclUid");
+        isValid &= json.containsKey("uclUid");
 
         if (isValid == true)
         {
@@ -164,7 +164,7 @@ namespace muffin { namespace jarvis {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         const bool isLclNull     = json["lcl"].isNull();
-        const bool isLclUidNull  = json["lcl-uid"].isNull();
+        const bool isLclUidNull  = json["lclUid"].isNull();
         if (isLclNull == true || isLclUidNull == true)
         {
             const std::string message = "LCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1";
@@ -179,8 +179,8 @@ namespace muffin { namespace jarvis {
         }
         const int32_t lcl = json["lcl"].as<float>();
         
-        const std::string uid = json["lcl-uid"].as<std::string>();
-        const std::regex pattern("^P\\d{4}$");
+        const std::string uid = json["lclUid"].as<std::string>();
+        const std::regex pattern("^P\\d{3}$");
         const bool isUidValid = std::regex_match(uid, pattern);
         if (isUidValid == false)
         {
@@ -199,7 +199,7 @@ namespace muffin { namespace jarvis {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
         const bool isUclNull     = json["ucl"].isNull();
-        const bool isUclUidNull  = json["ucl-uid"].isNull();
+        const bool isUclUidNull  = json["uclUid"].isNull();
         if (isUclNull == true || isUclUidNull == true)
         {
             const std::string message = "UCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1";
@@ -214,8 +214,8 @@ namespace muffin { namespace jarvis {
         }
         const int32_t ucl = json["ucl"].as<float>();
         
-        const std::string uid = json["ucl-uid"].as<std::string>();
-        const std::regex pattern("^P\\d{4}$");
+        const std::string uid = json["uclUid"].as<std::string>();
+        const std::regex pattern("^P\\d{3}$");
         const bool isUidValid = std::regex_match(uid, pattern);
         if (isUidValid == false)
         {

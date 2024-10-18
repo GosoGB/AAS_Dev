@@ -99,7 +99,7 @@ namespace muffin { namespace jarvis {
             mUID = json["uid"].as<std::string>();
             if (std::regex_match(mUID, mPatternUID) == false)
             {
-                const std::string message = "INVALID UID" + mUID;
+                const std::string message = "INVALID UID: " + mUID;
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
@@ -187,7 +187,8 @@ namespace muffin { namespace jarvis {
             }
 
             result = validateAddressQuantity();
-            if (result.first != rsc_e::GOOD)
+            if (result.first != rsc_e::GOOD &&
+                result.first != rsc_e::GOOD_NO_DATA)
             {
                 LOG_ERROR(logger, "INVALID ADDRESS QUANTITY CONFIG");
                 return result;
@@ -484,7 +485,15 @@ namespace muffin { namespace jarvis {
         }
         else
         {
-            if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
+            if(mBitIndex.first == rsc_e::GOOD)
+            {
+                if (mAddressQuantity.first == rsc_e::GOOD)
+                {
+                    const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITH BOTH BIT INDEX AND ADDRESS QUANTITY";
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                }
+            }
+            else if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
             {
                 const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITHOUT ADDRESS QUANTITY";
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
@@ -622,13 +631,29 @@ namespace muffin { namespace jarvis {
             }
         }
         
-        if (mAddressType.second == adtp_e::NUMERIC)
+        if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
         {
-            if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
+            if (mBitIndex.first == rsc_e::GOOD)
             {
-                const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF ADDRESS TYPE IS NUMERIC";
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                return std::make_pair(rsc_e::GOOD_NO_DATA, "Address quantity is null by bit index config");
             }
+
+            if (mModbusArea.first == rsc_e::GOOD)
+            {
+                if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+                {
+                    return std::make_pair(rsc_e::GOOD_NO_DATA, "Address quantity is null by Modbus area config");
+                }
+                else
+                {
+                    const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF MODBUS AREA \"INPUT REGISTERS\" OR \"HOLDING REGISTERS\"";
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                }
+            }
+
+            // qty , bit , modbus area도 없는 애들은 여기로 빠진다.
+            const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF ADDRESS TYPE IS NUMERIC";
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         if (mBitIndex.first == rsc_e::GOOD)
@@ -844,6 +869,11 @@ namespace muffin { namespace jarvis {
 
             for (const auto& orderType : dataUnitOrder)
             {
+                if(orderType.DataUnit == data_unit_e::BYTE)
+                {
+                    continue;
+                }
+
                 const auto result = setIndex.emplace(orderType.Index);
                 if (result.second == false)
                 {
@@ -865,18 +895,12 @@ namespace muffin { namespace jarvis {
      */
     std::pair<rsc_e, std::string> NodeValidator::validateDataTypes()
     {
-        if (mDataTypes.first == rsc_e::GOOD_NO_DATA)
+        if (mDataTypes.second.size() == 1 && mDataTypes.second.at(0) == dt_e::STRING)
         {
-            const std::string message = "Data types are not enabled";
-            return std::make_pair(rsc_e::GOOD, message);
+            LOG_VERBOSE(logger, "Configured data types");
+            return std::make_pair(rsc_e::GOOD, "GOOD");
         }
-        
-        if (mBitIndex.first == rsc_e::GOOD)
-        {
-            const std::string message = "DATA TYPES CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED";
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
-        }
-        
+
         if (mDataUnitOrders.first == rsc_e::GOOD)
         {
             if (mDataTypes.second.size() != mDataUnitOrders.second.size())
@@ -902,8 +926,10 @@ namespace muffin { namespace jarvis {
                         return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "DATA TYPE \"BOOLEAN\" CANNOT BE CONFIGURED WITH DATA UNIT ORDER");
                     case dt_e::INT8:
                     case dt_e::UINT8:
-                    case dt_e::STRING:
                         dataTypeSize = 8;
+                        break;
+                    case dt_e::STRING:
+                        dataTypeSize = mDataUnitOrders.second.at(i).RetrieveTotalSize();
                         break;
                     case dt_e::INT16:
                     case dt_e::UINT16:
@@ -930,8 +956,8 @@ namespace muffin { namespace jarvis {
                 }
             }
         }
-
-        if (mModbusArea.first == rsc_e::GOOD)
+        
+        if (mModbusArea.first == rsc_e::GOOD && mDataUnitOrders.first != rsc_e::GOOD)
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
@@ -949,12 +975,18 @@ namespace muffin { namespace jarvis {
             else
             {
                 constexpr uint8_t REGISTER_SIZE = 16;
+                if(mBitIndex.first == rsc_e::GOOD)
+                {
+                    constexpr uint8_t ONLY_SINGLE_REGISTER = 1;
+                    mAddressQuantity.second = ONLY_SINGLE_REGISTER;
+                }
+
                 const size_t totalRegisterSize = REGISTER_SIZE * mAddressQuantity.second;
                 size_t sumDataTypeSize = 0;
 
-                for (const auto& dataType : mDataTypes.second)
+                for (uint8_t i = 0; i < mDataTypes.second.size(); ++i)
                 {
-                    switch (dataType)
+                    switch (mDataTypes.second.at(i))
                     {
                         case dt_e::INT8:
                         case dt_e::UINT8:
@@ -981,10 +1013,22 @@ namespace muffin { namespace jarvis {
                     }
                 }
 
-                if (totalRegisterSize != sumDataTypeSize)
+                if (totalRegisterSize > sumDataTypeSize)
                 {
                     const std::string message = "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES";
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                }
+                else if (totalRegisterSize < sumDataTypeSize)
+                {
+                    /**
+                     * @todo 오류는 아니지만 경고 메시지를 만들어야함
+                     */
+                    const std::string message = "";
+                    return std::make_pair(rsc_e::UNCERTAIN_CONFIG_INSTANCE, message);
+                }
+                else
+                {
+                    //정상 조건
                 }
             }
         }
@@ -1000,6 +1044,15 @@ namespace muffin { namespace jarvis {
      */
     std::pair<rsc_e, std::string> NodeValidator::validateFormatString()
     {
+        if (mDataTypes.second.size() > 1)
+        {
+            if (mFormatString.first != rsc_e::GOOD)
+            {
+                const std::string message = "FORMAT STRING MUST BE CONFIGURED IF DATA TYPE SIZE IS 2 OR MORE";
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+            }
+        }
+
         if (mFormatString.first == rsc_e::GOOD_NO_DATA)
         {
             const std::string message = "Format string is not enabled";
@@ -1031,7 +1084,6 @@ namespace muffin { namespace jarvis {
         {
             fmt_spec_e specifier = mVectorFormatSpecifier[i];
             dt_e dataType = mDataTypes.second[i];
-
             switch (specifier)
             {
             case fmt_spec_e::INTEGER_32:
@@ -1221,7 +1273,6 @@ namespace muffin { namespace jarvis {
             
             JsonArray elementsArray = subarrayDataUnitOrders.as<JsonArray>();
             const size_t elementsLength = elementsArray.size();
-
             if (elementsLength == 0)
             {
                 LOG_ERROR(logger, "SUB-ARRAY OF DATA UNIT ORDERS CANNOT BE EMPTY");
@@ -1554,6 +1605,10 @@ namespace muffin { namespace jarvis {
             }
         }
 
+
+        /**
+         * @todo Map 내부의 키 값이 중복되서 들어올 시, 에러를 반환해야 함
+         */
         return std::make_pair(rsc_e::GOOD, mapMappingRules);
     }
 
@@ -1567,6 +1622,9 @@ namespace muffin { namespace jarvis {
     {
         std::string stringIndex;
         ord_t dataUnitOrder;
+        dataUnitOrder.DataUnit = data_unit_e::BYTE;
+        dataUnitOrder.ByteOrder = byte_order_e::LOWER;
+        dataUnitOrder.Index = 0;
 
         const char dataUnit = value.at(0);
         if (dataUnit == 'W')

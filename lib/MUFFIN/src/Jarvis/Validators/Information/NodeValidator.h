@@ -7,6 +7,8 @@
  * @date 2024-10-14
  * @version 0.0.1
  * 
+ * @todo Node 설정 유형별로 테스트 케이스를 설계한 다음 다음 유닛 테스트를 작성할 것
+ * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
 

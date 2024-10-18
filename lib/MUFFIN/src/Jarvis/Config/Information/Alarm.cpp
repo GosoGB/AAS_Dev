@@ -101,7 +101,7 @@ namespace muffin { namespace jarvis { namespace config {
             (
                 [&]()
                 {
-                    const std::regex pattern("^P\\d{4}$");
+                    const std::regex pattern("^P\\d{3}$");
                     return std::regex_match(lclUID, pattern);
                 }()
             ), "INVALID LCL UID: %s", lclUID.c_str()
@@ -123,7 +123,7 @@ namespace muffin { namespace jarvis { namespace config {
             (
                 [&]()
                 {
-                    const std::regex pattern("^P\\d{4}$");
+                    const std::regex pattern("^P\\d{3}$");
                     return std::regex_match(uclUID, pattern);
                 }()
             ), "INVALID UCL UID: %s", uclUID.c_str()
