@@ -35,9 +35,10 @@ namespace muffin { namespace mqtt {
                 return false;
             }
             
-            mLastWill = "scautr/modlink/status/network/will";
-            mJarvisRequest = "mfm/" + macAddress;
-            mJarvisResponse = "mfm/resp/" + macAddress;    
+            mLastWill         = "scautr/modlink/status/network/will";
+            mJarvisRequest    = "mfm/" + macAddress;
+            mJarvisResponse   = "mfm/resp/" + macAddress;
+            mRemoteControl    = "scautr/req/" + macAddress;
         }
 
         return true;
@@ -73,6 +74,8 @@ namespace muffin { namespace mqtt {
             return mJarvisRequest.c_str();
         case topic_e::JARVIS_RESPONSE:
             return mJarvisResponse.c_str();
+        case topic_e::REMOTE_CONTROL:
+            return mRemoteControl.c_str();
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));
             return nullptr;
@@ -81,17 +84,21 @@ namespace muffin { namespace mqtt {
 
     std::pair<bool, topic_e> Topic::ToCode(const std::string& topicString)
     {
-        if (topicString == "scautr/modlink/status/network/will")
-        {
-            return std::make_pair(true, topic_e::LAST_WILL);
-        }
-        else if (topicString == ToString(topic_e::JARVIS_REQUEST))
+        if (topicString == mJarvisRequest)
         {
             return std::make_pair(true, topic_e::JARVIS_REQUEST);
         }
-        else if (topicString == ToString(topic_e::JARVIS_RESPONSE))
+        else if (topicString == mJarvisResponse)
         {
             return std::make_pair(true, topic_e::JARVIS_RESPONSE);
+        }
+        else if (topicString == mRemoteControl)
+        {
+            return std::make_pair(true, topic_e::REMOTE_CONTROL);
+        }
+        else if (topicString == mLastWill)
+        {
+            return std::make_pair(true, topic_e::LAST_WILL);
         }
         else
         {
@@ -104,4 +111,5 @@ namespace muffin { namespace mqtt {
     std::string Topic::mLastWill;
     std::string Topic::mJarvisRequest;
     std::string Topic::mJarvisResponse;
+    std::string Topic::mRemoteControl;
 }}

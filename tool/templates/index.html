@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO Counts</title>
+</head>
+<body>
+    <h1>TODO Counts</h1>
+    <ul>
+        {% for folder, data in todo_counts.items() %}
+            <li>{{ folder }}: {{ data.count }}
+                <ul>
+                    {% for file, file_data in data.files.items() %}
+                        <li>{{ file }}: {{ file_data.count }}</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

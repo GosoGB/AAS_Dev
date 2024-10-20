@@ -4,7 +4,7 @@
  * 
  * @brief 단일 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-03
+ * @date 2024-10-20
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -43,7 +43,7 @@ namespace muffin { namespace modbus {
     #endif
     }
 
-    Status Address::Update(const area_e area, const AddressRange& range)
+    Status Address::Update(const jarvis::mb_area_e area, const AddressRange& range)
     {
         Status ret(Status::Code::UNCERTAIN);
 
@@ -132,7 +132,7 @@ namespace muffin { namespace modbus {
         return ret;
     }
 
-    Status Address::emplaceAddressRange(const area_e area, const AddressRange& range, AddressRangeSet* ranges)
+    Status Address::emplaceAddressRange(const jarvis::mb_area_e area, const AddressRange& range, AddressRangeSet* ranges)
     {
         std::exception exception;
         Status::Code retCode;
@@ -158,7 +158,7 @@ namespace muffin { namespace modbus {
         return Status(retCode);
     }
 
-    Status Address::updateConsecutiveRanges(const area_e area, AddressRangeSet* ranges)
+    Status Address::updateConsecutiveRanges(const jarvis::mb_area_e area, AddressRangeSet* ranges)
     {
         ASSERT((ranges != nullptr), "ADDRESS RANGE SET CANNOT BE A NULL POINTER");
         
@@ -191,7 +191,7 @@ namespace muffin { namespace modbus {
         return ret;
     }
 
-    Status Address::Remove(const area_e area, const AddressRange& range)
+    Status Address::Remove(const jarvis::mb_area_e area, const AddressRange& range)
     {
         auto& addressRangeSet = mMapAddressByArea.find(area)->second;
         if (addressRangeSet.size() == 0)
@@ -270,14 +270,14 @@ namespace muffin { namespace modbus {
         return Status(Status::Code::GOOD_NO_DATA);
     }
 
-    std::pair<Status, std::set<area_e>> Address::RetrieveArea() const
+    std::pair<Status, std::set<jarvis::mb_area_e>> Address::RetrieveArea() const
     {
         std::exception exception;
         Status::Code retCode;
 
         try
         {
-            std::set<area_e> areas;
+            std::set<jarvis::mb_area_e> areas;
             for (const auto& pair : mMapAddressByArea)
             {
                 areas.emplace(pair.first);
@@ -296,10 +296,10 @@ namespace muffin { namespace modbus {
         }
         
         LOG_ERROR(logger, "%s", exception.what());
-        return std::make_pair(Status(retCode), std::set<area_e>());
+        return std::make_pair(Status(retCode), std::set<jarvis::mb_area_e>());
     }
 
-    const std::set<im::NumericAddressRange>& Address::RetrieveAddressRange(const area_e area) const
+    const std::set<im::NumericAddressRange>& Address::RetrieveAddressRange(const jarvis::mb_area_e area) const
     {
         return mMapAddressByArea.find(area)->second;
     }

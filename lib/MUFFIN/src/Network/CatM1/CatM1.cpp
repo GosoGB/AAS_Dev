@@ -298,11 +298,16 @@ namespace muffin {
         rxd = rxd.substr(0, 19);
         std::replace(rxd.begin(), rxd.end(), ',', ' ');
 
-        std::tm tm = {};
+        std::tm timeInfo = {};
         std::istringstream ss(rxd);
-        ss >> std::get_time(&tm, "%Y/%m/%d %H:%M:%S");
-        time_t epochTime = mktime(&tm);
-        
+        ss >> std::get_time(&timeInfo, "%Y/%m/%d %H:%M:%S");
+        if (ss.fail())
+        {
+            LOG_ERROR(logger, "FAILED TO PARSE TIME INFO: %s", rxd.c_str());
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        std::time_t epochTime = std::mktime(&timeInfo);
         ret = SetSystemTime(epochTime);
         if (ret != Status::Code::GOOD)
         {
@@ -310,14 +315,15 @@ namespace muffin {
             return ret;
         }
         
-        ret = SetTimezone("Asia/Seoul");
+        const std::string tz = "Asia/Seoul";
+        ret = SetTimezone(tz);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
             return ret;
         }
 
-        LOG_INFO(logger, "Synchronized system time with NTP in Asia/Seoul timezone");
+        LOG_INFO(logger, "Synchronized with NTP in timezone: %s", tz.c_str());
         return Status(Status::Code::GOOD);
     }
 

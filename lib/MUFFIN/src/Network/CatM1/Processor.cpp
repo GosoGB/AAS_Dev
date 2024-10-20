@@ -406,6 +406,9 @@ namespace muffin {
                         isFirstToken = false;
                     }
 
+                    /**
+                     * @todo vector emplace 작업에 Core 모듈에 정의된 EmPlaceBack 함수로 교체할 것
+                     */
                     try
                     {
                         vectorToken.emplace_back(currentToken);
@@ -431,6 +434,9 @@ namespace muffin {
                 currentToken.erase(0, urcQMTRECV.length());
             }
 
+            /**
+             * @todo vector emplace 작업에 Core 모듈에 정의된 EmPlaceBack 함수로 교체할 것
+             */
             try
             {
                 vectorToken.emplace_back(currentToken);
@@ -459,8 +465,16 @@ namespace muffin {
         /**
          * @todo 오류나 예외가 없는지 더 꼼꼼하게 체크하는 작업을 추가해야 합니다.
          * @todo 소켓과 메시지 식별자 정보의 처리도 추가해야 합니다.
+         * @todo 올바르지 않은 토픽인 경우에 서버에 이를 알리는 방법을 고민해야 합니다.
          */
-        const mqtt::topic_e topicCode = mqtt::Topic::ToCode(vectorToken[2]).second;
+        const auto retTopic = mqtt::Topic::ToCode(vectorToken[2]);
+        if (retTopic.first == false)
+        {
+            LOG_ERROR(logger, "INVALID TOPIC: %s", vectorToken[2]);
+            return;
+        }
+        
+        const mqtt::topic_e topicCode = retTopic.second;
         const std::string payload = vectorToken[3];
         mqtt::Message message(topicCode, payload);
         mqtt::CIA::Store(message);

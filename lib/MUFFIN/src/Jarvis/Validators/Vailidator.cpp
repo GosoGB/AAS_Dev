@@ -15,9 +15,9 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
 #include "Jarvis/Config/Interfaces/Rs232.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
-#include "Jarvis/Include/Helper.h"
 #include "Jarvis/Validators/Information/AlarmValidator.h"
 #include "Jarvis/Validators/Information/NodeValidator.h"
 #include "Jarvis/Validators/Information/OperationTimeValidator.h"
@@ -111,7 +111,7 @@ namespace muffin { namespace jarvis {
         for (auto config : container)
         {
             const char* strKey = config.key().c_str();
-            const cfg_key_e key = ConvertToConfigKey(mProtocolVersion, strKey).second;
+            const cfg_key_e key = Convert.ToJarvisKey(mProtocolVersion, strKey).second;
             const JsonArray cinArray = config.value().as<JsonArray>();
             cin_vector& outputVector = mapCIN->at(key);
             std::pair<rsc_e, std::string> ret;
@@ -261,7 +261,7 @@ namespace muffin { namespace jarvis {
         for (auto config : container)
         {
             const char* strKey = config.key().c_str();
-            cfg_key_e key = ConvertToConfigKey(mProtocolVersion, strKey).second;
+            cfg_key_e key = Convert.ToJarvisKey(mProtocolVersion, strKey).second;
             const bool isNotFound = mContainerKeySet.find(key) == mContainerKeySet.end();
             if (isNotFound == true)
             {

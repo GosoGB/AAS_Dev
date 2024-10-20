@@ -16,6 +16,7 @@
 #pragma once
 
 #include "Common/Status.h"
+#include "Jarvis/Config/Information/Node.h"
 #include "Method.h"
 #include "Variable.h"
 
@@ -26,18 +27,16 @@ namespace muffin { namespace im {
     class Node
     {
     public:
-        /* @todo jarvis config 인스턴스로 대체해야 함 */
-        Node(const std::string& nodeID, const std::string& uid, const std::string& pid, const data_type_e dataType);
+        explicit Node(const jarvis::config::Node* cin);
         virtual ~Node();
+    public:
+        const std::string& GetNodeID() const;
+        const std::string& GetUID() const;
     private:
         const std::string mNodeID;
-        const std::string mUID;
-        const std::string mPID;
+        const std::string mDeprecableUID;
     public:
         Variable VariableNode;
         Method MethodNode;
-
-    public:
-        const std::string& GetNodeID() const;
     };
 }}

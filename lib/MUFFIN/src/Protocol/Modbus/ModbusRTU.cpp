@@ -4,7 +4,7 @@
  * 
  * @brief Modbus RTU 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-10-03
+ * @date 2024-10-20
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -17,6 +17,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 #include "Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "ModbusRTU.h"
 
@@ -66,7 +67,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        const modbus::area_e area = node.VariableNode.GetModbusArea();
+        const jarvis::mb_area_e area = node.VariableNode.GetModbusArea();
         const AddressRange range = createAddressRange(node);
 
         ret = mAddressTable.Update(slaveID, area, range);
@@ -89,7 +90,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        const modbus::area_e area = node.VariableNode.GetModbusArea();
+        const jarvis::mb_area_e area = node.VariableNode.GetModbusArea();
         const AddressRange range = createAddressRange(node);
 
         ret = mAddressTable.Remove(slaveID, area, range);
@@ -105,7 +106,7 @@ namespace muffin {
 
     im::NumericAddressRange ModbusRTU::createAddressRange(im::Node& node) const
     {
-        const uint16_t address  = node.VariableNode.GetAddress();
+        const uint16_t address  = node.VariableNode.GetAddress().Numeric;
         const uint16_t quantity = node.VariableNode.GetQuantity();
         return AddressRange(address, quantity);
     }
@@ -159,17 +160,17 @@ namespace muffin {
                 const auto& addressSetToPoll = retrievedAddressInfo.second.RetrieveAddressRange(area);
                 switch (area)
                 {
-                case modbus::area_e::COIL:
+                case jarvis::mb_area_e::COILS:
                     ret = pollCoil(slaveID, addressSetToPoll);
                     // ret = pollCoilTest(slaveID, addressSetToPoll);
                     break;
-                // case modbus::area_e::DISCRETE_INPUT:
+                // case jarvis::mb_area_e::DISCRETE_INPUT:
                 //     ret = pollDiscreteInput(slaveID, addressSetToPoll);
                 //     break;
-                // case modbus::area_e::INPUT_REGISTER:
+                // case jarvis::mb_area_e::INPUT_REGISTER:
                 //     ret = pollInputRegister(slaveID, addressSetToPoll);
                 //     break;
-                // case modbus::area_e::HOLDING_REGISTER:
+                // case jarvis::mb_area_e::HOLDING_REGISTER:
                 //     ret = pollHoldingRegister(slaveID, addressSetToPoll);
                 //     break;
                 default:
@@ -198,6 +199,7 @@ namespace muffin {
             return Status(Status::Code::BAD_NOT_FOUND);
         }
 
+        const uint64_t timestampInMillis = GetTimestampInMillis();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
             const auto retrievedNodeInfo = mNodeTable.RetrieveNodeBySlaveID(slaveID);
@@ -209,36 +211,42 @@ namespace muffin {
 
             for (auto& node : retrievedNodeInfo.second)
             {
-                modbus::area_e area = node->VariableNode.GetModbusArea();
-                const uint16_t address = node->VariableNode.GetAddress();
+                jarvis::mb_area_e area = node->VariableNode.GetModbusArea();
+                const uint16_t address = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
 
                 modbus::datum_t datum;
-                im::var_data_t variableData;
+                im::poll_data_t polledData;
+                polledData.AddressType = jarvis::adtp_e::NUMERIC;
+                polledData.Address.Numeric = address;
+                polledData.Timestamp = timestampInMillis;
 
+                /**
+                 * @todo ModbusRTU 클래스에서 얻은 상태 코드에 따라서 
+                 *       MUFFIN 상태 코드로 변환하는 작업이 필요합니다.
+                 */
                 switch (area)
                 {
-                case modbus::area_e::COIL:
+                case jarvis::mb_area_e::COILS:
+                case jarvis::mb_area_e::DISCRETE_INPUT:
                     datum = mPolledDataTable.RetrieveCoil(slaveID, address);
                     if (datum.IsOK == false)
                     {
-                        variableData.StatusCode = Status::Code::BAD;
-                        variableData.Value.Boolean = datum.Value == 1 ? true : false;
+                        polledData.StatusCode = Status::Code::BAD;
+                        polledData.Value.Boolean = datum.Value == 1 ? true : false;
                     }
                     else
                     {
-                        variableData.Value.Boolean = datum.Value == 1 ? true : false;
-                        variableData.StatusCode = Status::Code::GOOD;
+                        polledData.StatusCode = Status::Code::GOOD;
+                        polledData.Value.Boolean = datum.Value == 1 ? true : false;
                     }
-                    ret = node->VariableNode.UpdateData(variableData);
+                    polledData.ValueType = jarvis::dt_e::BOOLEAN;
+                    node->VariableNode.Update(polledData);
                     break;
-                case modbus::area_e::DISCRETE_INPUT:
+                case jarvis::mb_area_e::INPUT_REGISTER:
                     /* code */
                     break;
-                case modbus::area_e::INPUT_REGISTER:
-                    /* code */
-                    break;
-                case modbus::area_e::HOLDING_REGISTER:
+                case jarvis::mb_area_e::HOLDING_REGISTER:
                     /* code */
                     break;
                 default:

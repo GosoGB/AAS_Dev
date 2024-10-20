@@ -16,10 +16,10 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
 #include "SerialPortValidator.h"
 #include "Jarvis/Config/Interfaces/Rs232.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
-#include "Jarvis/Include/Helper.h"
 
 
 

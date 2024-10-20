@@ -4,7 +4,7 @@
  * 
  * @brief 단일 Modbus 슬레이브로부터 수집한 데이터를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-02
+ * @date 2024-10-20
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -39,12 +39,12 @@ namespace muffin { namespace modbus {
 
     Status PolledData::UpdateCoil(const uint16_t address, const int8_t value)
     {
-        auto itArea = mMapDatumByArea.find(area_e::COIL);
+        auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::COILS);
         if (itArea == mMapDatumByArea.end())
         {
             try
             {
-                auto result = mMapDatumByArea.emplace(area_e::COIL, std::vector<datum_t>());
+                auto result = mMapDatumByArea.emplace(jarvis::mb_area_e::COILS, std::vector<datum_t>());
                 itArea = result.first;
                 ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
             }
@@ -85,7 +85,7 @@ namespace muffin { namespace modbus {
         {
             try
             {
-                mMapDatumByArea[area_e::COIL].emplace_back(datum);
+                mMapDatumByArea[jarvis::mb_area_e::COILS].emplace_back(datum);
                 return Status(Status::Code::GOOD);
             }
             catch(const std::bad_alloc& e)
@@ -111,7 +111,7 @@ namespace muffin { namespace modbus {
     {
         std::vector<datum_t>::const_iterator itDatum;
 
-        auto itArea = mMapDatumByArea.find(area_e::COIL);
+        auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::COILS);
         if (itArea == mMapDatumByArea.end())
         {
             goto BAD_NO_DATA;

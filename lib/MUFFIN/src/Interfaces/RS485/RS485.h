@@ -16,11 +16,17 @@
 
 
 
+#if defined(MODLINK_L) || defined(MODLINK_ML10)
+
+
 #pragma once
 
 #include <HardwareSerial.h>
 #include <Stream.h>
 #include <sys/_stdint.h>
+
+#include "Common/Status.h"
+#include "Jarvis/Config/Interfaces/Rs485.h"
 
 
 
@@ -29,11 +35,23 @@ namespace muffin {
     class RS485 : public Stream
     {
     public:
+        RS485(RS485 const&) = delete;
+        void operator=(RS485 const&) = delete;
+        static RS485* GetInstanceOrNull();
+        static RS485& GetInstance();
+    private:
         RS485();
         virtual ~RS485();
+
+
+    public:
+        Status Config(jarvis::config::Rs485* config);
     private:
         static constexpr uint8_t DE_PIN_NUMBER =  4;
         static constexpr uint8_t RE_PIN_NUMBER =  5;
         static constexpr uint8_t TX_PIN_NUMBER = 17;
     };
 }
+
+
+#endif
