@@ -40,8 +40,9 @@ namespace muffin { namespace modbus {
     Status PolledData::UpdateCoil(const uint16_t address, const int8_t value)
     {
         auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::COILS);
+        
         if (itArea == mMapDatumByArea.end())
-        {
+        {   
             try
             {
                 auto result = mMapDatumByArea.emplace(jarvis::mb_area_e::COILS, std::vector<datum_t>());
@@ -62,9 +63,11 @@ namespace muffin { namespace modbus {
 
         auto itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
         {
+            // LOG_DEBUG(logger, "datum2find.Address : %u , address : %u",datum2find.Address, address);
             return datum2find.Address == address;
         });
 
+        // LOG_DEBUG(logger, "22datum2find.Address : %u ", address);
         datum_t datum;
         datum.Address = address;
 

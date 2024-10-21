@@ -26,7 +26,7 @@ namespace muffin { namespace im {
     Variable::Variable()
         : mModbusArea(false, jarvis::mb_area_e::COILS)
         , mBitIndex(false, 0)
-        , mAddressQuantity(false, 0)
+        , mAddressQuantity(false, 1)
         , mNumericScale(false, jarvis::scl_e::NEGATIVE_1)
         , mNumericOffset(false, 0.0f)
         , mMapMappingRules(false, std::map<std::uint16_t, std::string>())
@@ -263,6 +263,25 @@ namespace muffin { namespace im {
         return history;
     }
 
+    jarvis::addr_u Variable::GetAddress() const
+    {
+        return mAddress;
+    }
+
+    uint8_t Variable::GetQuantity() const
+    {
+        return mAddressQuantity.second;
+    }
+
+    uint16_t Variable::GetBitIndex() const
+    {
+        return mBitIndex.second;
+    }
+
+    jarvis::mb_area_e Variable::GetModbusArea() const
+    {
+        return mModbusArea.second;
+    }
 
     uint32_t Variable::mSamplingIntervalInMillis = 1000;
 }}

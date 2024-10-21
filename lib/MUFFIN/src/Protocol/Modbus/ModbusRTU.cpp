@@ -192,7 +192,10 @@ namespace muffin {
     {
         Status ret(Status::Code::UNCERTAIN);
 
-        const auto retrievedSlaveInfo = mNodeTable.RetrieveEntireSlaveID();
+        const auto retrievedSlaveInfo = std::move(mNodeTable.RetrieveEntireSlaveID());
+
+        LOG_INFO(logger, "retrievedSlaveInfo SIZE : %d",retrievedSlaveInfo.second.size());
+
         if (retrievedSlaveInfo.first.ToCode() != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE SLAVE ID FOR NODE UPDATE: %s", retrievedSlaveInfo.first.c_str());
@@ -202,6 +205,7 @@ namespace muffin {
         const uint64_t timestampInMillis = GetTimestampInMillis();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
+            LOG_INFO(logger, "slaveID  : %d", slaveID);
             const auto retrievedNodeInfo = mNodeTable.RetrieveNodeBySlaveID(slaveID);
             if (retrievedNodeInfo.first.ToCode() != Status::Code::GOOD)
             {
@@ -255,7 +259,7 @@ namespace muffin {
             }
         }
 
-        return ret;
+        return Status(Status::Code::GOOD);
     }
 
     Status ModbusRTU::pollCoil(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
@@ -268,7 +272,7 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
             LOG_INFO(logger,"slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
-            int pollResult = ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
+            ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
      
             const char* lastError = ModbusRTUClient.lastError();
 
@@ -285,15 +289,17 @@ namespace muffin {
             }
             LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
+
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
                 const int8_t value = ModbusRTUClient.read();
-
+                
                 switch (value)
                 {
                 case 1:
                 case 0:
+                    // LOG_DEBUG(logger, "read value : %d, address : %d ", value, address);
                     mPolledDataTable.UpdateCoil(slaveID, address, value);
                     continue;
                 default:

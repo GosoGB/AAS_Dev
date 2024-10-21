@@ -1,3 +1,18 @@
+/**
+ * @file main.cpp
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
+ * @brief MUFFIN 프레임워크가 적용된 펌웨어의 진입점입니다.
+ * 
+ * @date 2024-10-16
+ * @version 0.0.1
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
+ */
+
+
+
+
 #include <Arduino.h>
 #include <Jarvis/Config/Network/CatM1.h>
 #include <Jarvis/Config/Interfaces/Rs232.h>
@@ -11,23 +26,32 @@
 #include <Network/WiFi4/WiFi4.h>
 #include <Network/TypeDefinitions.h>
 #include <Protocol/MQTT/CatMQTT/CatMQTT.h>
+#include <Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h>
+#include <Protocol/Modbus/Include/ArduinoRS485/src/RS485.h>
+#include <Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h>
 #include <Storage/ESP32FS/ESP32FS.h>
 #include <vector>
 #include <ArduinoJson.h>
 #include "Jarvis/Validators/Validator.h"
+#include "Protocol/Modbus/ModbusRTU.h"
+#include "IM/Node/Node.h"
+#include "IM/Node/Variable.h"
+
+#include <MUFFIN.h>
 
 
-
-
-static std::string PROGMEM JARVIS_DEFAULT = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[],"wifi":[],"eth":[],"catm1":[],"mbrtu":[],"mbtcp":[],"op":[],"node":[],"alarm":[],"optime":[],"prod":[]}})";
+static std::string PROGMEM JARVIS_DEFAULT = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":3,"sid":1,"nodes":["no01","no02"]}],"mbtcp":[],"op":[],"node":[{"id":"no01","adtp":0,"addr":0,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI01","name":"테스트","unit":"N/A","event":false},{"id":"no02","adtp":0,"addr":1,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI02","name":"테스트2","unit":"N/A","event":false}],"alarm":[],"optime":[{"nodeId":"no11","type":2,"crit":1,"op":"=="}],"prod":[]}})";
 
 void setup()
 {
+    MUFFIN muffin;
+    muffin.Start();
     muffin::logger = new muffin::Logger();
     // muffin::JSON* json = new muffin::JSON();
 
     using namespace muffin;
     using cin_vector = std::vector<jarvis::config::Base*>;
+    using namespace im;
     Serial.println();
     jarvis::Validator* validator = new jarvis::Validator();
     
@@ -38,93 +62,57 @@ void setup()
     std::map<jarvis::cfg_key_e, cin_vector> vector;
 
     jarvis::ValidationResult result = validator->Inspect(doc, &vector);
-    LOG_INFO(logger, "OP result : %s" , result.GetDescription().c_str());
+    LOG_INFO(logger, "result : %s" , result.GetDescription().c_str());
 
+
+    ModbusRTU modbus;
+    Serial2.begin(9600);
+   
+
+    modbus.SetPort(Serial2);
     
-//     jarvis::config::Rs232* rs232 = new jarvis::config::Rs232("rs232");
-//     jarvis::Validator* AA = new jarvis::Validator();
+    for (const auto& pair : vector) 
+    {
+        if (pair.first == jarvis::cfg_key_e::NODE) 
+        {
+            for (const auto& nodeVector : pair.second)
+            {
+                jarvis::config::Node* nodeConfig = static_cast<jarvis::config::Node*>(nodeVector);
+                LOG_DEBUG(logger, "GetAddressType : %d", nodeConfig->GetAddressType().second);
+                LOG_DEBUG(logger, "GetAddrress :    %d", nodeConfig->GetAddrress().second.Numeric);
+                LOG_DEBUG(logger, "GetDataTypes : %d", nodeConfig->GetDataTypes().second);
+                LOG_DEBUG(logger, "GetNumericAddressQuantity : %d", nodeConfig->GetNumericAddressQuantity().second);
 
-//     JsonDocument doc;
-//     json->Deserialize(JARVIS_DEFAULT,&doc);
+                Node node(nodeConfig);
+                modbus.AddNodeReference(1,node);
+            }
+            
+        }
+    }
+        
+    
+    while (true)
+    {
+        delay(1000);
+        Status ret = modbus.Poll();
+        LOG_INFO(logger," ret : %s", ret.ToString().c_str());
+        LOG_INFO(logger," HEAP MEMORY : %lu", esp_get_free_heap_size());
+        LOG_DEBUG(logger, "[TASK: loop] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+    }
 
-//     Status ret = AA->VailidateJsonFomat(doc);
-//     if(ret == muffin::Status::Code::GOOD)
-//     {
-//         LOG_DEBUG(logger,"GOOD!!!!!!!!");
-//     }
-
-//     muffin::jarvis::config::CatM1 config;
-//     config.SetCounty("KR");
-//     config.SetModel("LM5");
-
-//     muffin::CatM1 catM1;
-//     catM1.Config(&config);
-//     catM1.Init();
-
-//     while (catM1.GetState() != muffin::CatM1::state_e::SUCCEDDED_TO_START)
-//     {
-//         vTaskDelay(1000 / portTICK_PERIOD_MS);
-//     }
-
-//     while (catM1.Connect() != muffin::Status::Code::GOOD)
-//     {
-//         vTaskDelay(1000 / portTICK_PERIOD_MS);
-//     }
-
-//     /***********************************************************/
-
-//     muffin::mqtt::BrokerInfo info("test_id_mac_modlink_l");
-//     muffin::mqtt::CatMQTT mqtt(catM1, info);
-//     mqtt.Init(muffin::network::lte::pdp_ctx_e::PDP_01, muffin::network::lte::ssl_ctx_e::SSL_0);
-//     while (mqtt.Connect() != muffin::Status::Code::GOOD)
-//     {
-//         vTaskDelay(3000 / portTICK_PERIOD_MS);
-//     }
-
-//     std::vector<muffin::mqtt::Message> vec;
-//     muffin::mqtt::Message message(
-//         muffin::mqtt::topic_e::JARVIS_READ_PARAMETER,
-//         ""
-//     );
-//     vec.emplace_back(message);
-//     mqtt.Subscribe(vec);
-
-//     /***********************************************************/
-
-//     muffin::http::CatHTTP http(catM1);
-//     LOG_INFO(muffin::logger, "HTTP Init: %s",
-//         http.Init(muffin::network::lte::pdp_ctx_e::PDP_01,
-//                   muffin::network::lte::ssl_ctx_e::SSL_0
-//         ).c_str()
-//     );
-
-//     muffin::http::HttpHeader header1(
-//         muffin::rest_method_e::GET,
-//         muffin::http_scheme_e::HTTP,
-//         "ec2-3-38-208-214.ap-northeast-2.compute.amazonaws.com",
-//         5000,
-//         "/api/server/time",
-//         "MODLINK-L/0.0.1"
-//     );
-//     http.GET(header1);
-
-//     muffin::http::HttpHeader header2(
-//         muffin::rest_method_e::POST,
-//         muffin::http_scheme_e::HTTP,
-//         "ec2-3-38-208-214.ap-northeast-2.compute.amazonaws.com",
-//         5000,
-//         "/api/firmware/version",
-//         "MODLINK-L/0.0.1"
-//     );
-
-//     muffin::http::HttpBody body("application/x-www-form-urlencoded");
-//     body.AddProperty("cp", "1000");
-//     body.AddProperty("md", "TEST");
-//     http.POST(header2, body);
-//     delay(UINT32_MAX);
 }
 
 void loop()
 {
+    /**
+     * @brief Arduino ESP32 Core 프레임워크의 "main.cpp" 파일에 정의된 "loopTask"를 정지합니다.
+     */
+    vTaskDelete(NULL);
+
+    /**
+     * @todo "HardwareSerial Serial(0)" 포트의 RxD로 데이터를 쓸 때, ESP32에서의 처리를 구현해야 합니다.
+     * @details "loopTask" 내부에는 "HardwareSerial Serial(0)" 포트로 데이터가 들어오면 비록 비어있긴
+     *          해도 "serialEvent(void)" 함수를 호출하고 있습니다. 
+     */
     // put your main code here, to run repeatedly:
 }
