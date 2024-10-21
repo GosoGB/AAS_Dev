@@ -36,11 +36,18 @@ namespace muffin {
     class ModbusRTU
     {
     public:
+        ModbusRTU(ModbusRTU const&) = delete;
+        void operator=(ModbusRTU const&) = delete;
+        static ModbusRTU* CreateInstanceOrNULL();
+        static ModbusRTU& GetInstance();
+    private:
         ModbusRTU();
         virtual ~ModbusRTU();
     private:
-        using AddressRange = im::NumericAddressRange;
+        static ModbusRTU* mInstance;
     
+    private:
+        using AddressRange = im::NumericAddressRange;
     public:
         Status Config(jarvis::config::ModbusRTU* config, jarvis::config::Rs485* portConfig);
     private:
@@ -68,9 +75,5 @@ namespace muffin {
         modbus::NodeTable mNodeTable;
         modbus::AddressTable mAddressTable;
         modbus::PolledDataTable mPolledDataTable;
-    private:
-        static constexpr uint8_t DE_PIN_NUMBER =  4;
-        static constexpr uint8_t RE_PIN_NUMBER =  5;
-        static constexpr uint8_t TX_PIN_NUMBER = 17;
     };
 }

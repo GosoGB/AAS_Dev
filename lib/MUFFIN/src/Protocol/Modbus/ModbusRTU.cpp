@@ -27,6 +27,27 @@
 
 namespace muffin {
 
+    ModbusRTU* ModbusRTU::CreateInstanceOrNULL()
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) ModbusRTU();
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MODBUS RTU");
+                return mInstance;
+            }
+        }
+
+        return mInstance;
+    }
+
+    ModbusRTU& ModbusRTU::GetInstance()
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"CreateInstanceOrNULL\" INSTEAD");
+        return *mInstance;
+    }
+
     ModbusRTU::ModbusRTU()
     {
     #if defined(DEBUG)

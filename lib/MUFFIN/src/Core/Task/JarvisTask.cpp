@@ -19,6 +19,7 @@
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Core/Task/NetworkTask.h"
+#include "Core/Task/ModbusTask.h"
 #include "DataFormat/JSON/JSON.h"
 #include "Jarvis/Jarvis.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
@@ -26,6 +27,7 @@
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
+#include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "IM/MacAddress/MacAddress.h"
@@ -426,5 +428,35 @@ namespace muffin {
          * @todo 상태 코드에 따라 적절한 처리를 수행하도록 코드를 수정해야 합니다.
          */
         StartCatM1Task();
+    }
+
+    void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, std::vector<jarvis::config::Base*>& vectorRS485CIN)
+    {
+        ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
+        if (modbusRTU == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
+            return;
+        }
+        
+        if (vectorRS485CIN.size() == 0)
+        {
+            return;
+        }
+        jarvis::config::Rs485* cinRS485 = Convert.ToRS485CIN(vectorRS485CIN[0]);
+
+        for (auto& modbusRTUCIN : vectorModbusRTUCIN)
+        {
+            jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
+            Status ret = modbusRTU->Config(cin, cinRS485);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
+                return;
+            }
+        }
+        LOG_INFO(logger, "Configured Modbus RTU protocol");
+        
+        StartModbusTask();
     }
 }

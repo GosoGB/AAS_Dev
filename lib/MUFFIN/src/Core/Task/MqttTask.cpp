@@ -27,7 +27,7 @@
 
 namespace muffin {
 
-    TaskHandle_t xTaskMqttHandle;
+    TaskHandle_t xTaskMqttHandle = NULL;
 
     void StartTaskMQTT()
     {
