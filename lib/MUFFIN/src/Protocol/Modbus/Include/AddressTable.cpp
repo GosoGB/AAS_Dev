@@ -124,6 +124,7 @@ namespace muffin { namespace modbus {
                 slaveIDs.emplace(pair.first);
             }
 
+            LOG_DEBUG(logger , "slaveIDs size: %d, mMapAddressBySlave size : %d", slaveIDs.size(), mMapAddressBySlave.size());
             return std::make_pair(Status(Status::Code::GOOD), slaveIDs);
         }
         catch(const std::bad_alloc& e)

@@ -31,11 +31,13 @@ namespace muffin { namespace modbus {
         virtual ~PolledDataTable();
     public:
         Status UpdateCoil(const uint8_t slaveID, const uint16_t address, const int8_t value);
-        void UpdateDiscreteInput(const uint8_t slaveID, const uint16_t address, const bool value);
-        void UpdateInputRegister(const uint8_t slaveID, const uint16_t address, const uint16_t value);
+        Status UpdateDiscreteInput(const uint8_t slaveID, const uint16_t address, const int8_t value);
+        // void UpdateInputRegister(const uint8_t slaveID, const uint16_t address, const uint16_t value);
         void UpdateHoldingRegister(const uint8_t slaveID, const uint16_t address, const uint16_t value);
     public:
         datum_t RetrieveCoil(const uint8_t slaveID, const uint16_t address) const;
+        datum_t RetrieveDiscreteInput(const uint8_t slaveID, const uint16_t address) const;
+        datum_t RetrieveHoldingRegister(const uint8_t slaveID, const uint16_t address) const;
     private:
         std::map<uint8_t, PolledData> mMapPolledDataBySlave;
     };

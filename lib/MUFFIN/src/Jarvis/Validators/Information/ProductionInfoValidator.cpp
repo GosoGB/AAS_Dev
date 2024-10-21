@@ -130,13 +130,14 @@ namespace muffin { namespace jarvis {
         mIsTotalNull  = json["tot"].isNull();
         mIsGoodNull   = json["ok"].isNull();
         mIsDefectNull = json["ng"].isNull();
-        if (mIsTotalNull && mIsGoodNull && mIsDefectNull)
+        
+        if(mIsTotalNull && mIsGoodNull && mIsDefectNull)
         {
             const std::string message = "INVALID PRODUCTION INFO: AT LEAST ONE KEY MUST NOT BE A NULL VALUE";
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
-        /*적어도 하나의 생산실적 정보에 대한 설정이 존재합니다.*/
 
+        /*적어도 하나의 생산실적 정보에 대한 설정이 존재합니다.*/
         mTotalNodeID   = json["tot"].as<std::string>();
         mGoodNodeID    = json["ok"].as<std::string>();
         mDefectNodeID  = json["ng"].as<std::string>();
