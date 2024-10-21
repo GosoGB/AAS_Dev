@@ -21,12 +21,12 @@
 
 namespace muffin { namespace im {
 
-    Node::Node(const std::string& nodeID, const std::string& uid, const std::string& pid, const data_type_e dataType)
-        : mNodeID(nodeID)
-        , mUID(uid)
-        , mPID(pid)
-        , VariableNode(dataType)
+    Node::Node(const jarvis::config::Node* cin)
+        : mNodeID(cin->GetNodeID().second)
+        , mDeprecableUID(cin->GetDeprecableUID().second)
     {
+        VariableNode.Init(cin);
+        
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
@@ -42,5 +42,10 @@ namespace muffin { namespace im {
     const std::string& Node::GetNodeID() const
     {
         return mNodeID;
+    }
+
+    const std::string& Node::GetUID() const
+    {
+        return mDeprecableUID;
     }
 }}

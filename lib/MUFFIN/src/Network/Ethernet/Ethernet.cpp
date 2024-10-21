@@ -25,12 +25,16 @@ namespace muffin {
     {
         memset(mMacAddress, '\0', sizeof(mMacAddress));
         memset(mHostname,   '\0', sizeof(mHostname));
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
     }
     
     Ethernet::~Ethernet()
     {
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Status Ethernet::Init()

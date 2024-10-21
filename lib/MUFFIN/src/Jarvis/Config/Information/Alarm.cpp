@@ -30,14 +30,14 @@ namespace muffin { namespace jarvis { namespace config {
         : Base(cfg_key_e::ALARM)
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
 
     Alarm::~Alarm()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
@@ -111,6 +111,22 @@ namespace muffin { namespace jarvis { namespace config {
         mIsLclUidSet = true;
     }
 
+    void Alarm::SetLclAlarmUID(const std::string& lclAlarmUID)
+    {
+        ASSERT(
+            (
+                [&]()
+                {
+                    const std::regex pattern("^A\\d{3}$");
+                    return std::regex_match(lclAlarmUID, pattern);
+                }()
+            ), "INVALID LCL UID: %s", lclAlarmUID.c_str()
+        );
+
+        mLclAlarmUID = lclAlarmUID;
+        mIsLclAlarmUidSet = true;
+    }
+
     void Alarm::SetUCL(const float ucl)
     {
         mUCL = ucl;
@@ -131,6 +147,22 @@ namespace muffin { namespace jarvis { namespace config {
 
         mUclUID = uclUID;
         mIsUclUidSet = true;
+    }
+
+    void Alarm::SetUclAlarmUID(const std::string& uclAlarmUID)
+    {
+        ASSERT(
+            (
+                [&]()
+                {
+                    const std::regex pattern("^A\\d{3}$");
+                    return std::regex_match(uclAlarmUID, pattern);
+                }()
+            ), "INVALID LCL UID: %s", uclAlarmUID.c_str()
+        );
+
+        mUclAlarmUID = uclAlarmUID;
+        mIsUclAlarmUidSet = true;
     }
 
     void Alarm::SetCondition(const std::vector<int16_t>& condition)
@@ -189,6 +221,18 @@ namespace muffin { namespace jarvis { namespace config {
         }
     }
 
+    std::pair<Status, std::string> Alarm::GetLclAlarmUID() const
+    {
+        if (mIsLclAlarmUidSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mLclAlarmUID);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mLclAlarmUID);
+        }
+    }
+
     std::pair<Status, float> Alarm::GetUCL() const
     {
         if (mIsUclSet)
@@ -210,6 +254,18 @@ namespace muffin { namespace jarvis { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mUclUID);
+        }
+    }
+
+    std::pair<Status, std::string> Alarm::GetUclAlarmUID() const
+    {
+        if (mIsUclAlarmUidSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mUclAlarmUID);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mUclAlarmUID);
         }
     }
 

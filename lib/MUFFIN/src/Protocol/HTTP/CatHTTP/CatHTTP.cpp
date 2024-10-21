@@ -39,15 +39,10 @@ namespace muffin { namespace http {
         return mInstance;
     }
 
-    CatHTTP* CatHTTP::GetInstanceOrNULL()
+    CatHTTP& CatHTTP::GetInstance()
     {
-        if (mInstance == nullptr)
-        {
-            ASSERT(false, "DEPENDANCY FOR CatM1 INSTANCE MUST BE INJECTED: CALL FUNCTION WITH CatM1 REFERENCE INSTEAD");
-            return nullptr;
-        }
-        
-        return mInstance;
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
     }
 
     
@@ -64,14 +59,14 @@ namespace muffin { namespace http {
     {
         mInitFlags.reset();
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
 
     CatHTTP::~CatHTTP()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
@@ -623,7 +618,7 @@ namespace muffin { namespace http {
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret == Status::Code::GOOD)
         {
-            LOG_INFO(logger, "Set response header output: %s", turnOff ? "TURNED OFF" : "TURNED ON");
+            LOG_INFO(logger, "Set response header output: %s", turnOff == false ? "TURNED OFF" : "TURNED ON");
             mEnableResponseHeaderOutput = turnOff;
             return ret;
         }

@@ -69,7 +69,7 @@ namespace muffin { namespace jarvis {
             if (retType.first != rsc_e::GOOD)
             {
                 const std::string message = "INVALID ALARM TYPE: " + std::to_string(type);
-                return std::make_pair(rsc, message);
+                return std::make_pair(retType.first, message);
             }
 
             config::Alarm* alarm = new(std::nothrow) config::Alarm();

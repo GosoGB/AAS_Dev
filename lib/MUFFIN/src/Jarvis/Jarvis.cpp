@@ -28,14 +28,29 @@
 #include "Config/Operation/Operation.h"
 #include "Config/Protocol/ModbusRTU.h"
 #include "Config/Protocol/ModbusTCP.h"
-#include "Include/Helper.h"
 #include "Jarvis.h"
 #include "Validators/Validator.h"
 
 
 
 namespace muffin {
+
+    Jarvis* Jarvis::GetInstanceOrCrash()
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new Jarvis();
+        }
         
+        return mInstance;
+    }
+
+    Jarvis& Jarvis::GetInstance()
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        return *mInstance;
+    }
+
     Jarvis::Jarvis()
     {
     #if defined(DEBUG)
@@ -55,4 +70,27 @@ namespace muffin {
         jarvis::Validator validator;
         return validator.Inspect(json, &mMapCIN);
     }
+    
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator Jarvis::begin()
+    {
+        return mMapCIN.begin();
+    }
+
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator Jarvis::end()
+    {
+        return mMapCIN.end();
+    }
+
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::const_iterator Jarvis::begin() const
+    {
+        return mMapCIN.cbegin();
+    }
+
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::const_iterator Jarvis::end() const
+    {
+        return mMapCIN.cend();
+    }
+
+
+    Jarvis* Jarvis::mInstance = nullptr;
 }

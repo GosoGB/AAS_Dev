@@ -1,0 +1,42 @@
+/**
+ * @file NodeStore.h
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
+ * @brief Node 개체를 관리하는 백엔드 클래스를 선언합니다.
+ * 
+ * @date 2024-10-20
+ * @version 0.0.1
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
+ */
+
+
+
+
+#pragma once
+
+#include <map>
+#include <string>
+
+#include "Common/Status.h"
+#include "Jarvis/Config/Information/Node.h"
+#include "Node.h"
+
+
+
+namespace muffin { namespace im {
+
+    class NodeStore
+    {
+    public:
+        NodeStore();
+        virtual ~NodeStore();
+    public:
+        Status Create(const jarvis::config::Node* cin);
+        Status Remove(const std::string& nodeID);
+        Status Clear();
+        Status Get(const std::string& nodeID);
+    private:
+        std::map<std::string, Node> mMapNode;
+    };
+}}

@@ -40,19 +40,25 @@ namespace muffin { namespace mqtt {
         ASSERT((0 < strlen(clientID) && strlen(clientID) < 24), "CLIENT ID IS INVALID");
 
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "Host: %s", GetHost());
-        LOG_DEBUG(logger, "Port: %u", GetPort());
-        LOG_DEBUG(logger, "KeepAlive: %u", GetKeepAlive());
-        LOG_DEBUG(logger, "User: %s", GetUsername());
-        LOG_DEBUG(logger, "Pass: %s", GetPassword());
-        LOG_DEBUG(logger, "Version: %s", GetVersion() == version_e::Ver_3_1_0 ? "3.1.0" : "3.1.1");
-        LOG_DEBUG(logger, "Client ID: %s", GetClientID());
-        LOG_DEBUG(logger, "SSL Enabled: %s", IsSslEnabled() ? "true" : "false");
-        LOG_DEBUG(logger, "Socket ID: %u", GetSocketID());
-        LOG_DEBUG(logger, "--------------------------------------------------\n\n");
+        char buffer[1024] = {0};
+        sprintf(buffer, "\n \
+--------------------------------------------------\n \
+Constructed at address: %p\n \
+--------------------------------------------------\n \
+Host: %s\n \
+Port: %u\n \
+KeepAlive: %u\n \
+User: %s\n \
+Pass: %s\n \
+Version: %s\n \
+Client ID: %s\n \
+SSL Enabled: %s\n \
+Socket ID: %u\n \
+--------------------------------------------------\n\n"
+, this, GetHost(), GetPort(), GetKeepAlive(), GetUsername(), GetPassword(), 
+GetVersion() == version_e::Ver_3_1_0 ? "3.1.0" : "3.1.1",
+GetClientID(), IsSslEnabled() ? "true" : "false", static_cast<uint8_t>(GetSocketID()));
+        LOG_VERBOSE(logger, "%s", buffer);
     #endif
     }
 
@@ -68,19 +74,25 @@ namespace muffin { namespace mqtt {
         , mEnableSSL(std::move(obj.mEnableSSL))
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "Constructed by Move from %p to %p", &obj, this);
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "Host: %s", GetHost());
-        LOG_DEBUG(logger, "Port: %u", GetPort());
-        LOG_DEBUG(logger, "KeepAlive: %u", GetKeepAlive());
-        LOG_DEBUG(logger, "User: %s", GetUsername());
-        LOG_DEBUG(logger, "Pass: %s", GetPassword());
-        LOG_DEBUG(logger, "Version: %s", GetVersion() == version_e::Ver_3_1_0 ? "3.1.0" : "3.1.1");
-        LOG_DEBUG(logger, "Client ID: %s", GetClientID());
-        LOG_DEBUG(logger, "SSL Enabled: %s", IsSslEnabled() ? "true" : "false");
-        LOG_DEBUG(logger, "Socket ID: %u", GetSocketID());
-        LOG_DEBUG(logger, "--------------------------------------------------\n\n");
+        char buffer[1024] = {0};
+        sprintf(buffer, "\n \
+--------------------------------------------------\n \
+Constructed by Move from %p to %p\n \
+--------------------------------------------------\n \
+Host: %s\n \
+Port: %u\n \
+KeepAlive: %u\n \
+User: %s\n \
+Pass: %s\n \
+Version: %s\n \
+Client ID: %s\n \
+SSL Enabled: %s\n \
+Socket ID: %u\n \
+--------------------------------------------------\n\n"
+, &obj, this, GetHost(), GetPort(), GetKeepAlive(), GetUsername(), GetPassword(), 
+GetVersion() == version_e::Ver_3_1_0 ? "3.1.0" : "3.1.1",
+GetClientID(), IsSslEnabled() ? "true" : "false", static_cast<uint8_t>(GetSocketID()));
+        LOG_VERBOSE(logger, "%s", buffer);
     #endif
     }
 

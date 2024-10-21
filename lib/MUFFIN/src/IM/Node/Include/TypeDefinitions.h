@@ -4,7 +4,7 @@
  * 
  * @brief Node와 관련된 데이터 타입들을 선언합니다.
  * 
- * @date 2024-09-23
+ * @date 2024-10-20
  * @version 0.0.1
  * 
  * @todo 향후 GUID, ByteString 형식의 Node ID를 구현해야 합니다.
@@ -21,6 +21,7 @@
 #include <sys/_stdint.h>
 
 #include "Common/Status.h"
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
@@ -66,10 +67,21 @@ namespace muffin { namespace im {
         string_t String;
     } var_value_u;
 
+    typedef struct PolledDataType
+    {
+        Status::Code StatusCode;
+        jarvis::adtp_e AddressType;
+        jarvis::addr_u Address;
+        uint64_t Timestamp;
+        jarvis::dt_e ValueType;
+        var_value_u Value;
+    } poll_data_t;
+
     typedef struct VariableDataType
     {
         Status::Code StatusCode;
-        time_t Timestamp;
+        uint64_t Timestamp;
+        jarvis::dt_e DataType;
         var_value_u Value;
         bool HasValue     : 1;
         bool HasStatus    : 1;

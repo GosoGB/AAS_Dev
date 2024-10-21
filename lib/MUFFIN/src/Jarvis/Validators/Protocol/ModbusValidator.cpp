@@ -16,7 +16,6 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "ModbusValidator.h"
-#include "Jarvis/Include/Helper.h"
 #include "Jarvis/Config/Protocol/ModbusRTU.h"
 #include "Jarvis/Config/Protocol/ModbusTCP.h"
 

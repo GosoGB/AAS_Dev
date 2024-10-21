@@ -25,6 +25,7 @@
 
 #include "Common/Status.h"
 #include "Include/TypeDefinitions.h"
+#include "Jarvis/Config/Information/Node.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
 
 
@@ -34,38 +35,46 @@ namespace muffin { namespace im {
     class Variable
     {
     public:
-        /* @todo jarvis config 인스턴스로 대체해야 함 */
-        explicit Variable(const data_type_e dataType);
+        Variable();
         virtual ~Variable();
     public:
-        Status UpdateData(const var_data_t& data);
-        var_data_t RetrieveData() const;
+        void Init(const jarvis::config::Node* cin);
     public:
+        void Update(const poll_data_t& polledData);
+        void Update(const std::vector<poll_data_t>& polledData);
+    private:
+        // void processStatusCode(const poll_data_t& polledData);
+        void processStringData(const poll_data_t& polledData, var_data_t* outputData);
+        void processNumericData(const poll_data_t& polledData, var_data_t* outputData);
+        string_t ToMuffinString(const std::string& stdString);
+
+    public:
+        var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
     public:
-        /**
-         * @todo node cin 속성에 따라 데이터 처리하는 함수 작성해야 합니다.
-         */
-        void SetAddress(const uint16_t address) { mAddress = address; }
-        void SetQuantity(const uint16_t quantity) { mQuantity = quantity; }
-        void SetModbusArea(const modbus::area_e area) { mModbusArea = area; }
-    public:
-        uint16_t GetAddress() const { return mAddress; }
-        uint16_t GetQuantity() const { return mQuantity; }
-        uint16_t GetBitIndex() const { return mBitIndex; }
-        modbus::area_e GetModbusArea() const { return mModbusArea; }
+        jarvis::addr_u GetAddress() const;
+        uint8_t GetQuantity() const;
+        uint16_t GetBitIndex() const;
+        jarvis::mb_area_e GetModbusArea() const;
     private:
-        /**
-         * @todo node cin 을 이동 생성자로 가지고 오는 게 좋습니다.
-         */
-        uint16_t mAddress;
-        uint16_t mQuantity;
-        uint16_t mBitIndex;
-        modbus::area_e mModbusArea;
+        jarvis::adtp_e mAddressType;
+        jarvis::addr_u mAddress;
+        std::vector<jarvis::dt_e> mVectorDataTypes;
+        bool mHasAttributeEvent;
+        std::string mDeprecableDisplayName;
+        std::string mDeprecableDisplayUnit;
+        std::pair<bool, jarvis::mb_area_e> mModbusArea;
+        std::pair<bool, uint8_t> mBitIndex;
+        std::pair<bool, uint8_t> mAddressQuantity;
+        std::pair<bool, jarvis::scl_e> mNumericScale;
+        std::pair<bool, float> mNumericOffset;
+        std::pair<bool, std::map<std::uint16_t, std::string>> mMapMappingRules;
+        std::pair<bool, std::vector<jarvis::DataUnitOrder>> mVectorDataUnitOrders;
+        std::pair<bool, std::string> mFormatString;
     private:
-        const data_type_e mDataType;
+        jarvis::dt_e mDataType;
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;
-        const uint8_t mMaxHistorySize = 5;
+        uint8_t mMaxHistorySize = 5;
     };
 }}

@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-09-08
+ * @date 2024-10-18
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -14,11 +14,14 @@
 
 
 #include <esp32-hal-gpio.h>
+#include <iomanip>
 #include <pins_arduino.h>
+#include <sstream>
 
 #include "CatM1.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 
 
 
@@ -55,12 +58,17 @@ namespace muffin {
     {
         mInitFlags.reset();
         mConnFlags.reset();
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
     }
 
     CatM1::~CatM1()
     {
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Status CatM1::Init()
@@ -127,12 +135,29 @@ namespace muffin {
 
     Status CatM1::Connect()
     {
-        if (isModemAvailable() != Status::Code::GOOD)
+        constexpr uint8_t MAX_RETRY_COUNT = 5;
+        constexpr uint16_t SECOND_IN_MILLIS = 1000;
+
+        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
         {
-            LOG_ERROR(logger, "FAILED TO COMMUNICATE WITH MODEM");
-            return Status(Status::Code::BAD);
+            if (isModemAvailable() == Status::Code::GOOD)
+            {
+                break;
+            }
+            else
+            {
+                LOG_WARNING(logger, "LTE Cat.M1 MODEM IS NOT AVAILABLE");
+            }
+            
+            if ((i + 1) == MAX_RETRY_COUNT)
+            {
+                LOG_ERROR(logger, "FAILED TO COMMUNICATE WITH THE MODEM");
+                return Status(Status::Code::BAD_NO_COMMUNICATION);
+            }
+
+            vTaskDelay(2 * SECOND_IN_MILLIS / portTICK_PERIOD_MS);
         }
-        
+
         if (mConnFlags.test(conn_flags_e::PDP_CONFIGURED) == false &&
             configurePdpContext() != Status::Code::GOOD)
         {
@@ -231,6 +256,75 @@ namespace muffin {
     CatM1::state_e CatM1::GetState() const
     {
         return mState;
+    }
+
+    Status CatM1::SyncWithNTP()
+    {
+        const std::string command = "AT+QLTS=1";
+        const std::string expected = "+QLTS: ";
+        const uint32_t timeoutMillis = 300;
+        const uint32_t startMillis = millis();
+        std::string rxd;
+
+        Status ret = mProcessor.Write(command);
+        if (ret == Status::Code::BAD_TOO_MANY_OPERATIONS)
+        {
+            LOG_WARNING(logger, "THE MODEM IS BUSY. TRY LATER");
+            return ret;
+        }
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (mProcessor.GetAvailableBytes() > 0)
+            {
+                rxd += mProcessor.Read();
+            }
+            
+            if (rxd.find(expected) != std::string::npos)
+            {
+                goto FOUND_EXPECTED_RESPONSE;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        return Status(Status::Code::BAD_NO_COMMUNICATION);
+
+    FOUND_EXPECTED_RESPONSE:
+        rxd = rxd.substr(rxd.find("\"") + 1);
+        rxd = rxd.substr(0, rxd.find("\""));
+        rxd = rxd.substr(0, 19);
+        std::replace(rxd.begin(), rxd.end(), ',', ' ');
+
+        std::tm timeInfo = {};
+        std::istringstream ss(rxd);
+        ss >> std::get_time(&timeInfo, "%Y/%m/%d %H:%M:%S");
+        if (ss.fail())
+        {
+            LOG_ERROR(logger, "FAILED TO PARSE TIME INFO: %s", rxd.c_str());
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        std::time_t epochTime = std::mktime(&timeInfo);
+        ret = SetSystemTime(epochTime);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET SYSTEM TIME: %s", ret.c_str());
+            return ret;
+        }
+        
+        const std::string tz = "Asia/Seoul";
+        ret = SetTimezone(tz);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
+            return ret;
+        }
+
+        LOG_INFO(logger, "Synchronized with NTP in timezone: %s", tz.c_str());
+        return Status(Status::Code::GOOD);
     }
 
     Status CatM1::Execute(const std::string& command)

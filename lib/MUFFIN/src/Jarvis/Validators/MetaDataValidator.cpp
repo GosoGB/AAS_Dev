@@ -18,7 +18,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Jarvis/Include/Helper.h"
+#include "Common/Convert/ConvertClass.h"
 #include "MetaDataValidator.h"
 
 
@@ -127,7 +127,7 @@ namespace muffin { namespace jarvis {
             return rsc_e::BAD;
         }
         
-        const uint8_t intVersion = ConvertToUInt8(matches[1].str().c_str());
+        const uint8_t intVersion = Convert.ToUInt8(matches[1].str().c_str());
         switch (intVersion)
         {
         case static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_1):
@@ -247,7 +247,7 @@ namespace muffin { namespace jarvis {
 
         for (auto config : container)
         {
-            const auto retKey = ConvertToConfigKey(mVersion, config.key().c_str());
+            const auto retKey = Convert.ToJarvisKey(mVersion, config.key().c_str());
             if (retKey.first.ToCode() != Status::Code::GOOD)
             {
                 mResponseDescription = "INVALID CONTAINER: \"" + std::string(config.key().c_str()) + "\" IS NOT DEFINED";

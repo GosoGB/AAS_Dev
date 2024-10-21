@@ -15,6 +15,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Core/Include/Helper.h"
 #include "RequestParameter.h"
 
 
@@ -24,14 +25,14 @@ namespace muffin { namespace http {
     RequestParameter::RequestParameter()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
     
     RequestParameter::~RequestParameter()
     {
     #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
     
@@ -64,7 +65,11 @@ namespace muffin { namespace http {
         return param;
     }
 
-    void RequestParameter::AddParameter(const std::string& key, const std::string& value)
+    /**
+     * @todo emplace 호출 시 발생 가능한 예외를 처리하도록 수정해야 합니다.
+     * @todo Add 함수 호출자에게 처리 결과를 반환하도록 수정해야 합니다.
+     */
+    void RequestParameter::Add(const std::string& key, const std::string& value)
     {
         mMapParameters.emplace(key, value);
     }

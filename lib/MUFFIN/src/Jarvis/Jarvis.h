@@ -31,10 +31,23 @@ namespace muffin {
     class Jarvis
     {
     public:
+        Jarvis(Jarvis const&) = delete;
+        void operator=(Jarvis const&) = delete;
+        static Jarvis* GetInstanceOrCrash();
+        static Jarvis& GetInstance();
+    private:
         Jarvis();
         virtual ~Jarvis();
+    private:
+        static Jarvis* mInstance;
+    
     public:
         jarvis::ValidationResult Validate(JsonDocument& json);
+    public:
+        std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator begin();
+        std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator end();
+        std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::const_iterator begin() const;
+        std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::const_iterator end() const;
     private:
         using vectorCIN = std::vector<jarvis::config::Base*>;
         std::map<jarvis::cfg_key_e, vectorCIN> mMapCIN; // CIN stands for "config instance"

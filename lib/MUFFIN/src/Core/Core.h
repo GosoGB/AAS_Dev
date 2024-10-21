@@ -20,8 +20,12 @@
 #pragma once
 
 #include <esp_system.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "Common/Status.h"
+#include "Protocol/MQTT/Include/Message.h"
+#include "Jarvis/Validators/ValidationResult.h"
 
 
 
@@ -40,8 +44,19 @@ namespace muffin {
         static Core* mInstance;
 
     public:
-        Status Init();
+        void Init();
+    
+    public:
+        void RouteMqttMessage(const mqtt::Message& message);
+    private:
+        void startJarvisTask(const std::string& payload);
+        static void onJarvisValidationResult(jarvis::ValidationResult* result);
+    private:
+        static jarvis::ValidationResult mJarvisValidationResult;
     private:
         esp_reset_reason_t mResetReason;
+        static constexpr uint8_t MAX_RETRY_COUNT = 5;
+        static constexpr uint16_t SECOND_IN_MILLIS = 1000;
+        static constexpr uint16_t KILLOBYTE = 1024;
     };
 }

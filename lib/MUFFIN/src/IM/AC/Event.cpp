@@ -1,0 +1,91 @@
+/**
+ * @file Event.cpp
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
+ * @brief MUFFIN 프레임워크에서 발생시키는 이벤트에 대한 기본 클래스를 정의합니다.
+ * 
+ * @date 2024-10-19
+ * @version 0.0.1
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
+ */
+
+
+
+
+#include "Common/Assert.h"
+#include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
+#include "Event.h"
+
+
+
+namespace muffin { namespace im {
+
+    Event::Event()
+        : mEventID(generateEventID())
+        , mReceiveTime(GetTimestampInMillis())
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
+    }
+    
+    Event::Event(const std::string& sourceNodeID)
+        : mEventID(generateEventID())
+        , mSourceNodeID(sourceNodeID)
+        , mReceiveTime(GetTimestampInMillis())
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
+    }
+    
+    Event::Event(const std::string& sourceNodeID, const std::string& eventMessage)
+        : mEventID(generateEventID())
+        , mSourceNodeID(sourceNodeID)
+        , mEventMessage(eventMessage)
+        , mReceiveTime(GetTimestampInMillis())
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
+    }
+    
+    Event::~Event()
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
+    }
+
+    void Event::SetSourceNodeID(const std::string& nodeID)
+    {
+        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+    }
+
+    void Event::SetEventMessage(const std::string& message)
+    {
+        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+    }
+
+    std::string Event::GetEventID() const
+    {
+        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+    }
+
+    std::string Event::GetEventMessage() const
+    {
+        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+    }
+
+    std::string Event::GetSourceNodeID() const
+    {
+        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+    }
+
+    uint64_t Event::GetReceiveTime() const
+    {
+        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+    }
+}}

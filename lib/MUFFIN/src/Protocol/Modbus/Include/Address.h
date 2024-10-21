@@ -4,7 +4,7 @@
  * 
  * @brief 단일 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-03
+ * @date 2024-10-20
  * @version 0.0.1
  * 
  * @todo Update 함수에서 연속된 주소 범위의 길이를 제한하는 기능을 추가해야 합니다.
@@ -23,6 +23,7 @@
 #include <set>
 
 #include "IM/Node/Include/NumericAddressRange.h"
+#include "Jarvis/Include/TypeDefinitions.h"
 #include "TypeDefinitions.h"
 
 
@@ -39,15 +40,15 @@ namespace muffin { namespace modbus {
         using AddressRange = im::NumericAddressRange;
         using AddressRangeSet = std::set<AddressRange>;
     public:
-        Status Update(const area_e area, const AddressRange& range);
-        Status Remove(const area_e area, const AddressRange& range);
+        Status Update(const jarvis::mb_area_e area, const AddressRange& range);
+        Status Remove(const jarvis::mb_area_e area, const AddressRange& range);
     private:
-        Status emplaceAddressRange(const area_e area, const AddressRange& range, AddressRangeSet* ranges);
-        Status updateConsecutiveRanges(const area_e area, AddressRangeSet* ranges);
+        Status emplaceAddressRange(const jarvis::mb_area_e area, const AddressRange& range, AddressRangeSet* ranges);
+        Status updateConsecutiveRanges(const jarvis::mb_area_e area, AddressRangeSet* ranges);
     public:
-        std::pair<Status, std::set<area_e>> RetrieveArea() const;
-        const std::set<AddressRange>& RetrieveAddressRange(const area_e area) const;
+        std::pair<Status, std::set<jarvis::mb_area_e>> RetrieveArea() const;
+        const std::set<AddressRange>& RetrieveAddressRange(const jarvis::mb_area_e area) const;
     private:
-        std::map<area_e, std::set<AddressRange>> mMapAddressByArea;
+        std::map<jarvis::mb_area_e, std::set<AddressRange>> mMapAddressByArea;
     };
 }}

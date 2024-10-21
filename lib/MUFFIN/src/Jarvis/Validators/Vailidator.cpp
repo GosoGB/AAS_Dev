@@ -15,9 +15,9 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
 #include "Jarvis/Config/Interfaces/Rs232.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
-#include "Jarvis/Include/Helper.h"
 #include "Jarvis/Validators/Information/AlarmValidator.h"
 #include "Jarvis/Validators/Information/NodeValidator.h"
 #include "Jarvis/Validators/Information/OperationTimeValidator.h"
@@ -111,7 +111,7 @@ namespace muffin { namespace jarvis {
         for (auto config : container)
         {
             const char* strKey = config.key().c_str();
-            const cfg_key_e key = ConvertToConfigKey(mProtocolVersion, strKey).second;
+            const cfg_key_e key = Convert.ToJarvisKey(mProtocolVersion, strKey).second;
             const JsonArray cinArray = config.value().as<JsonArray>();
             cin_vector& outputVector = mapCIN->at(key);
             std::pair<rsc_e, std::string> ret;
@@ -198,18 +198,10 @@ namespace muffin { namespace jarvis {
             if (responseCode >= rsc_e::BAD)
             {
                 result.EmplaceKeyWithNG(key);
-
-                if (result.GetEmplacedKeyNum() == 0)
-                {
-                    result.SetRSC(responseCode);
-                    result.SetDescription(description);
-                }
+                result.SetRSC(responseCode);
+                result.SetDescription(description);
+                return result;
             }
-        }
-
-        if (result.GetEmplacedKeyNum() > 0)
-        {
-            return result;
         }
         /* 오류 코드가 없으니 경고 코드가 있는지 확인합니다. */
 
@@ -222,31 +214,23 @@ namespace muffin { namespace jarvis {
             if (rsc_e::UNCERTAIN <= responseCode && responseCode < rsc_e::BAD)
             {
                 result.EmplaceKeyWithNG(key);
-
-                if (result.GetEmplacedKeyNum() == 0)
-                {
-                    result.SetRSC(responseCode);
-                    result.SetDescription(description);
-                }
+                result.SetRSC(responseCode);
+                result.SetDescription(description);
+                return result;
             }
         }
-        
-        if (result.GetEmplacedKeyNum() > 0)
-        {
-            return result;
-        }
-        else if (mIsUncertain == true)
-        {
+        /* 설졍 형식에는 오류와 경고 코드가 없습니다. */
+    
+        if (mIsUncertain == true)
+        {/* 메타데이터에 경고가 있었습니다. */
             result.SetRSC(mPairUncertainRSC.first);
             result.SetDescription(mPairUncertainRSC.second);
-
             return result;
         }
         else
         {
             result.SetRSC(rsc_e::GOOD);
             result.SetDescription("GOOD");
-
             return result;
         }
     }
@@ -277,7 +261,7 @@ namespace muffin { namespace jarvis {
         for (auto config : container)
         {
             const char* strKey = config.key().c_str();
-            cfg_key_e key = ConvertToConfigKey(mProtocolVersion, strKey).second;
+            cfg_key_e key = Convert.ToJarvisKey(mProtocolVersion, strKey).second;
             const bool isNotFound = mContainerKeySet.find(key) == mContainerKeySet.end();
             if (isNotFound == true)
             {

@@ -15,6 +15,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
 #include "IM/MacAddress/MacAddress.h"
@@ -180,6 +181,13 @@ namespace muffin {
                 vTaskDelay(500 / portTICK_PERIOD_MS);
             }
 
+            ret = SyncWithNTP(jarvis::snic_e::LTE_CatM1);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER: %s", ret.c_str());
+                return ret;
+            }
+
             mIsCatM1Connected = true;
         }
         /*LTE Cat.M1 모뎀이 인터넷에 연결되었으며 사용 가능합니다.*/
@@ -257,7 +265,7 @@ namespace muffin {
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
 
-            Status ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+            Status ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());

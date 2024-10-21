@@ -6,10 +6,9 @@
  * @details 현재는 Quectel 사의 BG96 칩셋을 사용한 LTE Cat.M1 모듈만을 대상으로 
  * 개발했습니다. 향후 향지에 따라서 별도의 칩셋을 사용한다면 추가 개발이 필요합니다.
  * 
- * @date 2024-09-08
+ * @date 2024-10-18
  * @version 0.0.1
  * 
- * @todo NTP 서버로부터 시간 정보를 가져오는 것이 필요합니다.
  * @todo 추후 버전 개발 시 FSM 수정 및 재적용이 필요함
  * @todo IPv6만 할당되고 있기 떄문에 인터페이스 수정이 필요함
  * @todo timeout 에러 발생 이후 RxD가 들어온다면 그건 또 어떻게 처리할지 결정해야 합니다.
@@ -97,6 +96,8 @@ namespace muffin {
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
         state_e GetState() const;
+        Status SyncWithNTP();
+    public:
         Status Execute(const std::string& command);
         size_t GetAvailableBytes();
         int16_t Read();

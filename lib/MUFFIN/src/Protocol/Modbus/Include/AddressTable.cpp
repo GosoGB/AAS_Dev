@@ -4,7 +4,7 @@
  * 
  * @brief 다중 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-03
+ * @date 2024-10-20
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -37,7 +37,7 @@ namespace muffin { namespace modbus {
     #endif
     }
 
-    Status AddressTable::Update(const uint8_t slaveID, const area_e area, const AddressRange& range)
+    Status AddressTable::Update(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range)
     {
         Status ret(Status::Code::UNCERTAIN);
 
@@ -80,7 +80,7 @@ namespace muffin { namespace modbus {
         return ret;
     }
 
-    Status AddressTable::Remove(const uint8_t slaveID, const area_e area, const AddressRange& range)
+    Status AddressTable::Remove(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range)
     {
         auto it = mMapAddressBySlave.find(slaveID);
         if (it == mMapAddressBySlave.end())
@@ -205,9 +205,9 @@ namespace muffin { namespace modbus {
             for (const auto& area : retrieved.second)
             {
                 const auto& ranges = address.RetrieveAddressRange(area);
-                const char* strArea = area == area_e::COIL             ? "COIL" :
-                                        area == area_e::DISCRETE_INPUT ? "D.I." :
-                                        area == area_e::INPUT_REGISTER ? "I.R." : "H.R.";
+                const char* strArea = area == jarvis::mb_area_e::COILS          ? "COIL" :
+                                      area == jarvis::mb_area_e::DISCRETE_INPUT ? "D.I." :
+                                      area == jarvis::mb_area_e::INPUT_REGISTER ? "I.R." : "H.R.";
                 
                 for (const auto& range : ranges)
                 {

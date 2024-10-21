@@ -99,7 +99,7 @@ namespace muffin { namespace jarvis {
             mUID = json["uid"].as<std::string>();
             if (std::regex_match(mUID, mPatternUID) == false)
             {
-                const std::string message = "INVALID UID : " + mUID;
+                const std::string message = "INVALID UID: " + mUID;
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
@@ -645,7 +645,7 @@ namespace muffin { namespace jarvis {
                     return std::make_pair(rsc_e::GOOD_NO_DATA, "Address quantity is null by Modbus area config");
                 }
                 else
-                {   // WORD면 QTY가 있어야대
+                {
                     const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF MODBUS AREA \"INPUT REGISTERS\" OR \"HOLDING REGISTERS\"";
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
@@ -859,7 +859,6 @@ namespace muffin { namespace jarvis {
         
         if (mDataUnitOrders.second.size() != mDataTypes.second.size())
         {
-            LOG_DEBUG(logger, "mDataUnitOrders: %d, mDataTypes : %d",mDataUnitOrders.second.size(),mDataTypes.second.size());
             const std::string message = "DATA UNIT ORDERS MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA TYPES";
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
@@ -875,7 +874,6 @@ namespace muffin { namespace jarvis {
                     continue;
                 }
 
-                LOG_INFO(logger, "DataUnit : %d ByteOrder : %d Index : %d ",orderType.DataUnit, orderType.ByteOrder, orderType.Index);
                 const auto result = setIndex.emplace(orderType.Index);
                 if (result.second == false)
                 {
@@ -950,8 +948,7 @@ namespace muffin { namespace jarvis {
                     default:
                         return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, "BAD_UNEXPECTED_ERROR");
                 }
-
-                LOG_DEBUG(logger,"dataTypeSize : %d , sumOrderSize: %d",dataTypeSize, sumOrderSize);
+            
                 if (dataTypeSize != sumOrderSize)
                 {
                     const std::string message = "DATA TYPE SIZE DOES NOT MATCH WITH THE SUM OF DATA UNIT ORDERS";
@@ -983,9 +980,10 @@ namespace muffin { namespace jarvis {
                     constexpr uint8_t ONLY_SINGLE_REGISTER = 1;
                     mAddressQuantity.second = ONLY_SINGLE_REGISTER;
                 }
+
                 const size_t totalRegisterSize = REGISTER_SIZE * mAddressQuantity.second;
                 size_t sumDataTypeSize = 0;
-                LOG_DEBUG(logger,"totalRegisterSize : %d , sumDataTypeSize: %d",totalRegisterSize, sumDataTypeSize);
+
                 for (uint8_t i = 0; i < mDataTypes.second.size(); ++i)
                 {
                     switch (mDataTypes.second.at(i))
@@ -1017,7 +1015,6 @@ namespace muffin { namespace jarvis {
 
                 if (totalRegisterSize > sumDataTypeSize)
                 {
-                    LOG_DEBUG(logger,"totalRegisterSize : %d , sumDataTypeSize: %d",totalRegisterSize, sumDataTypeSize);
                     const std::string message = "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES";
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
@@ -1083,12 +1080,10 @@ namespace muffin { namespace jarvis {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
-        LOG_INFO(logger," mVectorFormatSpecifier.size() : %d",mVectorFormatSpecifier.size());
         for (uint8_t i = 0; i < mVectorFormatSpecifier.size(); ++i)
         {
             fmt_spec_e specifier = mVectorFormatSpecifier[i];
             dt_e dataType = mDataTypes.second[i];
-            LOG_INFO(logger," specifier : %d dataType: %d",  mVectorFormatSpecifier[i], mDataTypes.second[i]);
             switch (specifier)
             {
             case fmt_spec_e::INTEGER_32:
@@ -1239,7 +1234,6 @@ namespace muffin { namespace jarvis {
 
         JsonArray arrayDataUnitOrders = dataUnitOrders.as<JsonArray>();
         const size_t length = arrayDataUnitOrders.size();
-        LOG_DEBUG(logger, "ORDER SIZE : %d",length);
 
         if (length == 0)
         {
@@ -1269,7 +1263,6 @@ namespace muffin { namespace jarvis {
 
         for (auto subarrayDataUnitOrders : arrayDataUnitOrders)
         {
-            LOG_DEBUG(logger,"ORD DATA :%s" ,subarrayDataUnitOrders.as<std::string>().c_str() );
             if (subarrayDataUnitOrders.is<JsonArray>() == false)
             {
                 LOG_ERROR(logger, "ELEMENT ARRAY MUST A JSON ARRAY");
@@ -1280,7 +1273,6 @@ namespace muffin { namespace jarvis {
             
             JsonArray elementsArray = subarrayDataUnitOrders.as<JsonArray>();
             const size_t elementsLength = elementsArray.size();
-            LOG_DEBUG(logger, "elementsLength SIZE : %d",elementsLength);
             if (elementsLength == 0)
             {
                 LOG_ERROR(logger, "SUB-ARRAY OF DATA UNIT ORDERS CANNOT BE EMPTY");
@@ -1295,7 +1287,7 @@ namespace muffin { namespace jarvis {
                 vectorDataUnitOrder.clear();
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
             }
-            LOG_DEBUG(logger, "after elementsLength SIZE : %d",elementsLength);
+            
             DataUnitOrder dataUnitOrder(elementsLength);
             for (auto element : elementsArray)
             {
@@ -1562,6 +1554,7 @@ namespace muffin { namespace jarvis {
         for (auto rule : mappingRules)
         {
             uint16_t numericKey = 0;
+            
             try
             {
                 const int key = std::stoi(rule.key().c_str());
@@ -1592,7 +1585,6 @@ namespace muffin { namespace jarvis {
             try
             {
                 const auto rsc = mapMappingRules.emplace(numericKey, rule.value().as<std::string>());
-                
                 if (rsc.second == false)
                 {
                     LOG_ERROR(logger, "KEYS CANNOT BE DUPLICATED: %u", numericKey);

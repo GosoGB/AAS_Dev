@@ -4,7 +4,7 @@
  * 
  * @brief 다중 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-03
+ * @date 2024-10-20
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -20,6 +20,7 @@
 
 #include "Address.h"
 #include "Common/Status.h"
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
@@ -33,8 +34,8 @@ namespace muffin { namespace modbus {
     private:
         using AddressRange = im::NumericAddressRange;
     public:
-        Status Update(const uint8_t slaveID, const area_e area, const AddressRange& range);
-        Status Remove(const uint8_t slaveID, const area_e area, const AddressRange& range);
+        Status Update(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range);
+        Status Remove(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range);
     public:
         std::pair<Status, std::set<uint8_t>> RetrieveEntireSlaveID() const;
         std::pair<Status, Address> RetrieveAddressBySlaveID(const uint8_t slaveID) const;

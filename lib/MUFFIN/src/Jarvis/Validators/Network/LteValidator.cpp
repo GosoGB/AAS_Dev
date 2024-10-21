@@ -18,7 +18,6 @@
 #include "Common/Logger/Logger.h"
 #include "LteValidator.h"
 #include "Jarvis/Config/Network/CatM1.h"
-#include "Jarvis/Include/Helper.h"
 
 
 
@@ -83,13 +82,13 @@ namespace muffin { namespace jarvis {
         if (retMD.first != rsc_e::GOOD)
         {
             const std::string message = "INVALID LTE CAT.M1 MODEL: " + md;
-            return std::make_pair(rsc, message);
+            return std::make_pair(retMD.first, message);
         }
 
         if (retCtry.first != rsc_e::GOOD)
         {
             const std::string message = "INVALID LTE CAT.M1 COUNTRY: " + ctry;
-            return std::make_pair(rsc, message);
+            return std::make_pair(retCtry.first, message);
         }
 
         config::CatM1* catM1 = new(std::nothrow) config::CatM1();

@@ -26,10 +26,18 @@ extern "C" {
 
 #include <Arduino.h>
 
-#define COILS             0
-#define DISCRETE_INPUTS   1
-#define HOLDING_REGISTERS 2
-#define INPUT_REGISTERS   3
+/**
+ * @note 원 라이브러리의 Modbus 메모리 영역 값이 MACRO로 선언되어 있어서
+ *       jarvis::mb_area_e 안의 COILS 값과 충돌되기 때문에 수정하였습니다.
+ */
+static constexpr uint8_t COILS = 0;
+static constexpr uint8_t DISCRETE_INPUTS = 1;
+static constexpr uint8_t HOLDING_REGISTERS = 2;
+static constexpr uint8_t INPUT_REGISTERS = 3;
+// #define COILS             0
+// #define DISCRETE_INPUTS   1
+// #define HOLDING_REGISTERS 2
+// #define INPUT_REGISTERS   3
 
 class ModbusClient {
 

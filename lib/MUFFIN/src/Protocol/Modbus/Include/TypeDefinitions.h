@@ -26,14 +26,6 @@
 
 namespace muffin { namespace modbus {
 
-    typedef enum class ModbusAreaEnum
-        : uint8_t
-    {
-        COIL              = 1,
-        DISCRETE_INPUT    = 2,
-        INPUT_REGISTER    = 3,
-        HOLDING_REGISTER  = 4
-    } area_e;
 
     typedef struct ModbusPolledDatumType  /* 32 bits */
     {
