@@ -54,13 +54,9 @@ namespace muffin {
         Status implementPolling();
         Status updateVariableNodes();
         Status pollCoil(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-        // Status pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
+        Status pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         // Status pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         // Status pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-    private:
-        Status pollCoilTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-        Status pollDiscreteInputTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-
     private:
         RS485Class* mRS485;
         modbus::NodeTable mNodeTable;

@@ -40,14 +40,14 @@
 #include <MUFFIN.h>
 
 
-static std::string PROGMEM JARVIS_DEFAULT = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":3,"sid":1,"nodes":["no01","no02"]}],"mbtcp":[],"op":[],"node":[{"id":"no01","adtp":0,"addr":0,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI01","name":"테스트","unit":"N/A","event":false},{"id":"no02","adtp":0,"addr":1,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI02","name":"테스트2","unit":"N/A","event":false}],"alarm":[],"optime":[{"nodeId":"no11","type":2,"crit":1,"op":"=="}],"prod":[]}})";
+static std::string PROGMEM JARVIS_DEFAULT = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":3,"sid":1,"nodes":["no01","no02","no03"]}],"mbtcp":[],"op":[],"node":[{"id":"no01","adtp":0,"addr":0,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI01","name":"테스트","unit":"N/A","event":false},{"id":"no02","adtp":0,"addr":1,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI02","name":"테스트2","unit":"N/A","event":false},{"id":"no03","adtp":0,"addr":3,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI03","name":"테스트3","unit":"N/A","event":false}],"alarm":[],"optime":[{"nodeId":"no11","type":2,"crit":1,"op":"=="}],"prod":[]}})";
 
 void setup()
 {
     MUFFIN muffin;
-    muffin.Start();
+    // muffin.Start();
     muffin::logger = new muffin::Logger();
-    // muffin::JSON* json = new muffin::JSON();
+    muffin::JSON* json = new muffin::JSON();
 
     using namespace muffin;
     using cin_vector = std::vector<jarvis::config::Base*>;
@@ -78,10 +78,6 @@ void setup()
             for (const auto& nodeVector : pair.second)
             {
                 jarvis::config::Node* nodeConfig = static_cast<jarvis::config::Node*>(nodeVector);
-                LOG_DEBUG(logger, "GetAddressType : %d", nodeConfig->GetAddressType().second);
-                LOG_DEBUG(logger, "GetAddrress :    %d", nodeConfig->GetAddrress().second.Numeric);
-                LOG_DEBUG(logger, "GetDataTypes : %d", nodeConfig->GetDataTypes().second);
-                LOG_DEBUG(logger, "GetNumericAddressQuantity : %d", nodeConfig->GetNumericAddressQuantity().second);
 
                 Node node(nodeConfig);
                 modbus.AddNodeReference(1,node);
@@ -95,9 +91,7 @@ void setup()
     {
         delay(1000);
         Status ret = modbus.Poll();
-        LOG_INFO(logger," ret : %s", ret.ToString().c_str());
-        LOG_INFO(logger," HEAP MEMORY : %lu", esp_get_free_heap_size());
-        LOG_DEBUG(logger, "[TASK: loop] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+
     }
 
 }

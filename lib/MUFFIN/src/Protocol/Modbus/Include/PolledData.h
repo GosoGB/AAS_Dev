@@ -33,7 +33,10 @@ namespace muffin { namespace modbus {
         virtual ~PolledData();
     public:
         Status UpdateCoil(const uint16_t address, const int8_t value);
+        Status UpdateDiscreteInput(const uint16_t address, const int8_t value);
+    public:
         datum_t RetrieveCoil(const uint16_t address) const;
+        datum_t RetrieveDiscreteInput(const uint16_t address) const;
     private:
         std::map<jarvis::mb_area_e, std::vector<datum_t>> mMapDatumByArea;
     };

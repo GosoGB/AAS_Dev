@@ -63,6 +63,34 @@ namespace muffin { namespace modbus {
         return it->second.UpdateCoil(address, value);
     }
 
+    Status PolledDataTable::UpdateDiscreteInput(const uint8_t slaveID, const uint16_t address, const int8_t value)
+    {
+        Status ret(Status::Code::UNCERTAIN);
+
+        auto it = mMapPolledDataBySlave.find(slaveID);
+        if (it == mMapPolledDataBySlave.end())
+        {
+            try
+            {
+                auto result = mMapPolledDataBySlave.emplace(slaveID, PolledData());
+                it = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), slaveID);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), slaveID);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+
+        return it->second.UpdateDiscreteInput(address, value);
+    }
+
     datum_t PolledDataTable::RetrieveCoil(const uint8_t slaveID, const uint16_t address) const
     {
         auto it = mMapPolledDataBySlave.find(slaveID);
@@ -73,5 +101,17 @@ namespace muffin { namespace modbus {
         }
         
         return it->second.RetrieveCoil(address);
+    }
+
+    datum_t PolledDataTable::RetrieveDiscreteInput(const uint8_t slaveID, const uint16_t address) const
+    {
+        auto it = mMapPolledDataBySlave.find(slaveID);
+        if (it == mMapPolledDataBySlave.end())
+        {
+            datum_t datum { .Address = address, .Value = false, .IsOK = false };
+            return datum;
+        }
+        
+        return it->second.RetrieveDiscreteInput(address);
     }
 }}
