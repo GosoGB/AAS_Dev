@@ -75,32 +75,38 @@ namespace muffin {
         if (s_IsCatM1Connected == false)
         {
             CatM1& catM1 = CatM1::GetInstance();
-            Status ret = catM1.Init();
-            if (ret != Status::Code::GOOD)
+            if (catM1.IsConnected() == false)
             {
-                LOG_ERROR(logger, "FAILED TO INIT CatM1 MODULE");
-                return ret;
-            }
+                Status ret = catM1.Init();
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO INIT CatM1 MODULE");
+                    return ret;
+                }
 
-            ret = catM1.Connect();
-            if (ret != Status::Code::GOOD)
+                ret = catM1.Connect();
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO CONNECT CatM1 MODULE TO ISP");
+                    return ret;
+                }
+
+                while (catM1.IsConnected() == false)
+                {
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                }
+
+                ret = SyncWithNTP(jarvis::snic_e::LTE_CatM1);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER: %s", ret.c_str());
+                    return ret;
+                }
+            }
+            else
             {
-                LOG_ERROR(logger, "FAILED TO CONNECT CatM1 MODULE TO ISP");
-                return ret;
+                LOG_DEBUG(logger, "CatM1 is already initialized");
             }
-
-            while (catM1.IsConnected() == false)
-            {
-                vTaskDelay(500 / portTICK_PERIOD_MS);
-            }
-
-            ret = SyncWithNTP(jarvis::snic_e::LTE_CatM1);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER: %s", ret.c_str());
-                return ret;
-            }
-
             s_IsCatM1Connected = true;
         }
         /*LTE Cat.M1 모뎀이 인터넷에 연결되었으며 사용 가능합니다.*/
@@ -124,44 +130,50 @@ namespace muffin {
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
 
-            Status ret = catMQTT->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
-            if (ret != Status::Code::GOOD)
+            if (catMQTT->IsConnected() != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO INIT CatMQTT: %s", ret.c_str());
-                return ret;
-            }
-            
-            ret = catMQTT->Connect();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
-                return ret;
-            }
+                Status ret = catMQTT->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO INIT CatMQTT: %s", ret.c_str());
+                    return ret;
+                }
 
-            while (catMQTT->IsConnected() != Status::Code::GOOD)
-            {
-                vTaskDelay(500 / portTICK_PERIOD_MS);
-            }
+                while (catMQTT->IsConnected() != Status::Code::GOOD)
+                {
+                    ret = catMQTT->Connect();
+                    if (ret != Status::Code::GOOD)
+                    {
+                        LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
+                        return ret;
+                    }
+                
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                }
 
-            mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
-            /**
-             * @todo 원격제어를 포함해 구독해야 하는 모든 토픽을 추가해야 합니다.
-             */
-            std::vector<mqtt::Message> vectorTopicsToSubscribe;
-            ret = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s", ret.c_str());
-                return ret;
-            }
+                mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
+                /**
+                 * @todo 원격제어를 포함해 구독해야 하는 모든 토픽을 추가해야 합니다.
+                 */
+                std::vector<mqtt::Message> vectorTopicsToSubscribe;
+                ret = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s", ret.c_str());
+                    return ret;
+                }
 
-            ret = catMQTT->Subscribe(vectorTopicsToSubscribe);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
-                return ret;
+                ret = catMQTT->Subscribe(vectorTopicsToSubscribe);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
+                    return ret;
+                }
             }
-
+            else
+            {
+                LOG_DEBUG(logger, "CatMQTT is already initialized");
+            }
             s_IsCatMQTTConnected = true;
         }
         /*LTE Cat.M1 모뎀이 MQTT 브로커에 연결되었으며 사용 가능합니다.*/
@@ -178,13 +190,19 @@ namespace muffin {
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
 
-            Status ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
-            if (ret != Status::Code::GOOD)
+            if (catHTTP->IsInitialized() != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());
-                return ret;
+                Status ret = catHTTP->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());
+                    return ret;
+                }
             }
-
+            else
+            {
+                LOG_DEBUG(logger, "CatHTTP is already initialized");
+            }
             s_IsCatHTTPConfigured = true;
         }
         /*LTE Cat.M1 모뎀의 HTTP 프로토콜 기능이 설정되었으며 사용 가능합니다.*/

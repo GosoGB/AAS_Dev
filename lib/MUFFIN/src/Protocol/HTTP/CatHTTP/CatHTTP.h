@@ -47,6 +47,7 @@ namespace muffin { namespace http {
         Status POST(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
         Status Retrieve(std::string* response);
         void SetSinkToCatFS(const bool save2CatFS);
+        Status IsInitialized() const;
     private:
         Status setPdpContext(const network::lte::pdp_ctx_e pdp);
         Status setSslContext(const network::lte::ssl_ctx_e ssl);

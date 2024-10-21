@@ -21,6 +21,7 @@
 #include "Core/Task/NetworkTask.h"
 #include "Core/Task/ModbusTask.h"
 #include "DataFormat/JSON/JSON.h"
+#include "IM/Node/NodeStore.h"
 #include "Jarvis/Jarvis.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
 #include "JarvisTask.h"
@@ -220,7 +221,8 @@ namespace muffin {
 #endif
             
 
-            ret = catHttp.Retrieve(&s_JarvisApiPayload);
+            // ret = catHttp.Retrieve(&s_JarvisApiPayload);
+            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["no01","no02","no03"]}],"mbtcp":[],"op":[],"node":[{"id":"no01","adtp":0,"addr":0,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI01","name":"콤프 상태","unit":"N/A","event":false},{"id":"no02","adtp":0,"addr":1,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI02","name":"제상 상태","unit":"N/A","event":false},{"id":"no03","adtp":0,"addr":3,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI03","name":"경보","unit":"N/A","event":false}],"alarm":[],"optime":[],"prod":[]}})";
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][RESPONSE RETRIEVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
@@ -334,6 +336,17 @@ namespace muffin {
         for (auto& pair : jarvis)
         {
             const jarvis::cfg_key_e key = pair.first;
+            if (key == jarvis::cfg_key_e::NODE)
+            {
+                applyNodeCIN(pair.second);
+                break;
+            }
+        }
+        
+
+        for (auto& pair : jarvis)
+        {
+            const jarvis::cfg_key_e key = pair.first;
 
             switch (key)
             {
@@ -341,7 +354,6 @@ namespace muffin {
                 applyAlarmCIN(pair.second);
                 break;
             case jarvis::cfg_key_e::NODE:
-                applyNodeCIN(pair.second);
                 break;
             case jarvis::cfg_key_e::OPERATION_TIME:
                 applyOperationTimeCIN(pair.second);
@@ -366,6 +378,17 @@ namespace muffin {
             case jarvis::cfg_key_e::OPERATION:
                 break;
             case jarvis::cfg_key_e::MODBUS_RTU:
+                {
+                    for (auto cin : jarvis)
+                    {
+                        if (cin.first == jarvis::cfg_key_e::RS485)
+                        {
+                            jarvis::config::Rs485* rs485CIN = static_cast<jarvis::config::Rs485*>(cin.second[0]);
+                            applyModbusRtuCIN(pair.second, rs485CIN);
+                            break;
+                        }
+                    }
+                }
                 break;
 
             case jarvis::cfg_key_e::ETHERNET:
@@ -385,9 +408,17 @@ namespace muffin {
     
     void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN)
     {
-        for (auto nodeCIN : vectorNodeCIN)
+        im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
+        if (nodeStore == nullptr)
         {
-            ;
+            LOG_ERROR(logger, "FAILED TO CRAETE NODE STORE");
+            return;
+        }        
+
+        for (auto& baseCIN : vectorNodeCIN)
+        {
+            jarvis::config::Node* nodeCIN = static_cast<jarvis::config::Node*>(baseCIN);
+            nodeStore->Create(nodeCIN);
         }
     }
     
@@ -422,6 +453,7 @@ namespace muffin {
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
     {
         ASSERT((vectorLteCatM1CIN.size() == 1), "THERE MUST BE ONLY ONE LTE Cat.M1 CIN");
+        LOG_INFO(logger, "Start to apply LTE Cat.M1 configuration");
 
         jarvis::config::CatM1* cin = Convert.ToCatM1CIN(vectorLteCatM1CIN[0]);
 
@@ -439,7 +471,7 @@ namespace muffin {
         StartCatM1Task();
     }
 
-    void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, std::vector<jarvis::config::Base*>& vectorRS485CIN)
+    void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN)
     {
         ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
         if (modbusRTU == nullptr)
@@ -447,17 +479,13 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
             return;
         }
-        
-        if (vectorRS485CIN.size() == 0)
-        {
-            return;
-        }
-        jarvis::config::Rs485* cinRS485 = Convert.ToRS485CIN(vectorRS485CIN[0]);
+
+        modbusRTU->SetPort(rs485CIN);
 
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
             jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
-            Status ret = modbusRTU->Config(cin, cinRS485);
+            Status ret = modbusRTU->Config(cin);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");

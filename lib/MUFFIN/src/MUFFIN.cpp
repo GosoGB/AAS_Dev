@@ -20,6 +20,6 @@
 
 void MUFFIN::Start()
 {
-    // muffin::Core& core = muffin::Core::GetInstance();
-    // core.Init();
+    muffin::Core& core = muffin::Core::GetInstance();
+    core.Init();
 }

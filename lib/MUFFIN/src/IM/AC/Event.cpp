@@ -72,20 +72,24 @@ namespace muffin { namespace im {
     std::string Event::GetEventID() const
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+        return std::string();
     }
 
     std::string Event::GetEventMessage() const
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+        return std::string();
     }
 
     std::string Event::GetSourceNodeID() const
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+        return std::string();
     }
 
     uint64_t Event::GetReceiveTime() const
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+        return 0;
     }
 }}

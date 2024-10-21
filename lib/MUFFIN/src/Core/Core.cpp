@@ -264,24 +264,24 @@ namespace muffin {
         RetrieveJarvisRequestPayload(&jarvisPayload);
 
 
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
-        /** 
-         * @todo string이 아니라 enum class와 ConvertClass를 사용하도록 코드를 수정해야 합니다.
-         */
-        File file = esp32FS.Open("/jarvis/config.json", "w", true);
+        // ESP32FS& esp32FS = ESP32FS::GetInstance();
+        // /** 
+        //  * @todo string이 아니라 enum class와 ConvertClass를 사용하도록 코드를 수정해야 합니다.
+        //  */
+        // File file = esp32FS.Open("/jarvis/config.json", "w", true);
 
-        /**
-         * @todo 성능 향상을 위해 속도가 더 빠른 buffered IO 방식으로 코드를 수정해야 합니다.
-         */
-        for (size_t i = 0; i < jarvisPayload.length(); ++i)
-        {
-            file.write(jarvisPayload[i]);
-        }
+        // /**
+        //  * @todo 성능 향상을 위해 속도가 더 빠른 buffered IO 방식으로 코드를 수정해야 합니다.
+        //  */
+        // for (size_t i = 0; i < jarvisPayload.length(); ++i)
+        // {
+        //     file.write(jarvisPayload[i]);
+        // }
 
-        /**
-         * @todo 저장 성공 유무를 확인할 수 있는 기능을 추가해야 합니다.
-         */
-        file.close();
+        // /**
+        //  * @todo 저장 성공 유무를 확인할 수 있는 기능을 추가해야 합니다.
+        //  */
+        // file.close();
 
         /**
          * @todo 설정 정보가 올바르게 설정되었는지 확인하는 기능을 추가해야 합니다.

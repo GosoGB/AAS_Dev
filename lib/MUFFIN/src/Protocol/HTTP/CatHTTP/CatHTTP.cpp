@@ -72,7 +72,11 @@ namespace muffin { namespace http {
 
     Status CatHTTP::Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader, const bool outputResponse)
     {
-        ASSERT((mState != state_e::INITIALIZED), "REINITIALIZATION IS FORBIDDEN");
+        /**
+         * @todo 임시로 assert를 해제해두었습니다. 
+         *       향후에 다시 로직을 구성할 예정입니다. 
+         */
+        // ASSERT((mState != state_e::INITIALIZED), "REINITIALIZATION IS FORBIDDEN");
 
         Status ret = Status(Status::Code::UNCERTAIN);
 
@@ -495,6 +499,18 @@ namespace muffin { namespace http {
     void CatHTTP::SetSinkToCatFS(const bool save2CatFS)
     {
         mSetSinkToCatFS = save2CatFS;
+    }
+
+    Status CatHTTP::IsInitialized() const
+    {
+        if (mState == state_e::INITIALIZED)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD);
+        }
     }
 
     Status CatHTTP::setPdpContext(const network::lte::pdp_ctx_e pdp)

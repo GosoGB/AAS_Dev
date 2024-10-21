@@ -173,7 +173,7 @@ namespace muffin { namespace mqtt {
 
         LOG_INFO(logger, "Initialized successfully");
         mInitFlags.set(init_flag_e::INITIALIZED_ALL);
-        mState = state_e::INITIALIZED;
+        mState = (mState == state_e::CONNECTED) ? state_e::CONNECTED : state_e::INITIALIZED;
         return Status(Status::Code::GOOD);
 
     INIT_FAILED:

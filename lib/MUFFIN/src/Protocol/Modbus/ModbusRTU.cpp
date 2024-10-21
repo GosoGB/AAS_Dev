@@ -62,17 +62,22 @@ namespace muffin {
     #endif
     }
 
-    Status ModbusRTU::Config(jarvis::config::ModbusRTU* config, jarvis::config::Rs485* portConfig)
+    Status ModbusRTU::SetPort(jarvis::config::Rs485* portConfig)
     {
-        const jarvis::prt_e portIndex = config->GetPort().second;
+        const jarvis::prt_e portIndex = portConfig->GetPortIndex().second;
         Status ret = configurePort(portIndex, portConfig);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONFIGURE RS-485 PORT: %s", ret.c_str());
             return ret;
         }
-        
-        ;
+        return ret;
+    }
+
+    Status ModbusRTU::Config(jarvis::config::ModbusRTU* config)
+    {
+        const uint8_t slaveID = config->GetSlaveID().second;
+        addNodeReferences(slaveID, config->GetNodes().second);
         return Status(Status::Code::GOOD);
     }
 
@@ -486,4 +491,6 @@ namespace muffin {
     //     return ret;
     // }
 
+
+    ModbusRTU* ModbusRTU::mInstance = nullptr;
 }

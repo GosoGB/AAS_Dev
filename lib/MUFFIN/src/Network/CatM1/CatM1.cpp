@@ -129,7 +129,9 @@ namespace muffin {
             digitalWrite(mPinReset, LOW);
         }
 
-        mState = state_e::SUCCEDDED_TO_CONFIGURE;
+        mState = (mState == state_e::SUCCEDDED_TO_GET_IP) ? 
+            state_e::SUCCEDDED_TO_GET_IP : 
+            state_e::SUCCEDDED_TO_CONFIGURE;
         return Status(Status::Code::GOOD);
     }
 

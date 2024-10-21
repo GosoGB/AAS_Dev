@@ -49,7 +49,8 @@ namespace muffin {
     private:
         using AddressRange = im::NumericAddressRange;
     public:
-        Status Config(jarvis::config::ModbusRTU* config, jarvis::config::Rs485* portConfig);
+        Status SetPort(jarvis::config::Rs485* portConfig);
+        Status Config(jarvis::config::ModbusRTU* config);
     private:
         SerialConfig convert2SerialConfig(const jarvis::dbit_e dataBit, const jarvis::sbit_e stopBit, const jarvis::pbit_e parityBit);
         Status configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig);
