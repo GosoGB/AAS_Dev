@@ -19,13 +19,15 @@
 
 #include <vector>
 
-#include "Include/ArduinoRS485/src/RS485.h"
 #include "Common/Status.h"
 #include "Include/AddressTable.h"
 #include "Include/NodeTable.h"
 #include "Include/PolledDataTable.h"
 #include "Include/TypeDefinitions.h"
+#include "Jarvis/Config/Interfaces/Rs485.h"
+#include "Jarvis/Config/Protocol/ModbusRTU.h"
 #include "Jarvis/Include/TypeDefinitions.h"
+#include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 
 
 
@@ -40,11 +42,12 @@ namespace muffin {
         using AddressRange = im::NumericAddressRange;
     
     public:
-        void InitTest();
-        // Status Config(jarvis::config::Base* config);
-        void SetPort(HardwareSerial& port);
-        Status AddNodeReference(const uint8_t slaveID, im::Node& node);
-        Status RemoveReferece(const uint8_t slaveID, im::Node& node);
+        Status Config(jarvis::config::ModbusRTU* config, jarvis::config::Rs485* portConfig);
+    private:
+        SerialConfig convert2SerialConfig(const jarvis::dbit_e dataBit, const jarvis::sbit_e stopBit, const jarvis::pbit_e parityBit);
+        Status configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig);
+        Status addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID);
+        // Status removeNodeReference(const uint8_t slaveID, im::Node& node);
     private:
         im::NumericAddressRange createAddressRange(im::Node& node) const;
 
@@ -62,7 +65,6 @@ namespace muffin {
         Status pollDiscreteInputTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
 
     private:
-        RS485Class* mRS485;
         modbus::NodeTable mNodeTable;
         modbus::AddressTable mAddressTable;
         modbus::PolledDataTable mPolledDataTable;

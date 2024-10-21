@@ -4,7 +4,7 @@
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-10-20
+ * @date 2024-10-21
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -133,8 +133,10 @@ namespace muffin {
          * @todo 원격제어 명령 수신 토픽에 대한 처리 작업을 구현해야 합니다.
          */
         case mqtt::topic_e::REMOTE_CONTROL:
+            ASSERT(false, "UNIMPLEMENTED ERROR: REMOTE CONTROL TOPIC IS NOT SUPPORTED");
             break;
         default:
+            ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
             break;
         }
         

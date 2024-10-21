@@ -20,11 +20,12 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Core/Task/NetworkTask.h"
 #include "DataFormat/JSON/JSON.h"
-#include "Interfaces/RS485/RS485.h"
 #include "Jarvis/Jarvis.h"
+#include "Jarvis/Config/Interfaces/Rs485.h"
 #include "JarvisTask.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
+#include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "IM/MacAddress/MacAddress.h"
@@ -41,6 +42,10 @@ namespace muffin {
      */
     void ProcessJarvisRequestTask(void* pvParameters)
     {
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][TCB CREATED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+
         void (*callback)(jarvis::ValidationResult*) = (void (*)(jarvis::ValidationResult*))((uintptr_t*)pvParameters)[0];
         ASSERT((callback != nullptr), "INVALID CALLBACK: FUNCTION POINTER CANNOT BE A NULL POINTER");
 
@@ -50,6 +55,9 @@ namespace muffin {
         jarvis::ValidationResult* validationResult = (jarvis::ValidationResult*)((uintptr_t *)pvParameters)[2];
         ASSERT((validationResult != nullptr), "INVALID OUTPUT PARAMETER: JARVIS VALIDATION RESULT CANNOT BE A NULL POINTER");
 
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][PARAMS RECEIVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
 
         {/* JARVIS 설정 태스크는 한 번에 하나의 요청만 처리하도록 설계되어 있습니다. */
             if (s_IsJarvisTaskRunning == true)
@@ -64,11 +72,19 @@ namespace muffin {
         }
         s_IsJarvisTaskRunning = true;
 
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+
 
         {/* JARVIS 설정 요청 메시지가 JSON 형식인 경우에만 태스크를 이어가도록 설계되어 있습니다. */
             JSON json;
             JsonDocument doc;
             Status retJSON = json.Deserialize(*payload, &doc);
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+
             if (retJSON != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
@@ -93,6 +109,10 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
             ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][MQTT DECODED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+
 
 
             const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
@@ -106,6 +126,9 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
             ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][VERSION CHECKED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
 
 
             const uint64_t timeDifference = GetTimestampInMillis() - doc["ts"].as<uint64_t>();
@@ -119,6 +142,9 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
             ASSERT((timeDifference <= 60), "TIMESTAMPS MUST DIFFER BY LESS THAN OR EQUAL TO 60 SECONDS");
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][TIME CHECKED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
 
 
             if (doc.containsKey("rqi") == true)
@@ -137,6 +163,9 @@ namespace muffin {
             }
         }
         ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][RQI CHECKED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
         
         
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
@@ -148,6 +177,9 @@ namespace muffin {
             http::RequestParameter parameters;
             parameters.Add("mac", MacAddress::GetEthernet());
 
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
             Status ret = catHttp.GET(header, parameters);
             if (ret != Status::Code::GOOD)
             {
@@ -177,9 +209,15 @@ namespace muffin {
                 s_IsJarvisTaskRunning = false;
                 vTaskDelete(NULL);
             }
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
             
 
             ret = catHttp.Retrieve(&s_JarvisApiPayload);
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][RESPONSE RETRIEVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
@@ -242,11 +280,20 @@ namespace muffin {
             }
             ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
         }
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][RESPONSE DECODED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
     
 
         {/* JARVIS 설정 정보의 유효성을 검증한 다음 그 결과를 호출자에게 전달합니다. */
             Jarvis& jarvis = Jarvis::GetInstance();
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][VALIDATE JARVIS] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
             *validationResult = std::move(jarvis.Validate(jsonDocument));
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][JARVIS VALIDATED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
 
             callback(validationResult);
             s_IsJarvisTaskRunning = false;
@@ -266,8 +313,9 @@ namespace muffin {
         s_JarvisApiPayload.clear();
     }
 
-
-
+    /**
+     * @todo 상태 코드를 반환하도록 코드를 수정해야 합니다.
+     */
     void ApplyJarvisTask()
     {
         Jarvis& jarvis = Jarvis::GetInstance();
@@ -291,13 +339,15 @@ namespace muffin {
                 applyProductionInfoCIN(pair.second);
                 break;
             case jarvis::cfg_key_e::RS232:
-            /*** @todo ATmega2560 MCU 버전의 MUFFIN을 개발할 때 RS-232 설정 개체에 대한 구현이 필요합니다. */
+            /**
+             * @todo ATmega2560 MCU 버전의 MUFFIN을 개발할 때 RS-232 
+             *       설정 개체에 대한 구현이 필요합니다.
+             */
                 LOG_ERROR(logger, "UNSUPPORTED CONFIG INSTANCE: RS-232");
                 break;
             case jarvis::cfg_key_e::RS485:
                 applyRS485CIN(pair.second);
                 break;
-
             case jarvis::cfg_key_e::LTE_CatM1:
                 applyLteCatM1CIN(pair.second);
                 break;
@@ -324,7 +374,10 @@ namespace muffin {
     
     void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN)
     {
-        ASSERT(false, "APPLYING NODE CIN IS NOT IMPLEMENTED");
+        for (auto nodeCIN : vectorNodeCIN)
+        {
+            ;
+        }
     }
     
     void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN)
@@ -337,9 +390,6 @@ namespace muffin {
         ASSERT(false, "APPLYING PRODUCTION INFO CIN IS NOT IMPLEMENTED");
     }
 
-    /**
-     * @todo 상태 코드를 반환하도록 코드를 수정해야 합니다.
-     */
     void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
@@ -347,15 +397,14 @@ namespace muffin {
     #endif
 
         jarvis::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
-
-        RS485* rs485 = RS485::GetInstanceOrNull();
-        if (rs485 == nullptr)
+        if (cin->GetPortIndex().second == jarvis::prt_e::PORT_2)
         {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS-485 INTERFACE");
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            RS485 = new(std::nothrow) RS485Class(Serial2, 17, -1, -1);
+            if (RS485 == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
+            }
         }
-
-        rs485->Config(cin);
         // return Status(Status::Code::GOOD);
     }
     

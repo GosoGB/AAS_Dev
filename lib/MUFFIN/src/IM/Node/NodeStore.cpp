@@ -21,6 +21,27 @@
 
 namespace muffin { namespace im {
 
+    NodeStore* NodeStore::CreateInstanceOrNULL()
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) NodeStore();
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR NODE STORE");
+                return mInstance;
+            }
+        }
+
+        return mInstance;
+    }
+
+    NodeStore& NodeStore::GetInstance()
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"CreateInstanceOrNULL\" INSTEAD");
+        return *mInstance;
+    }
+
     NodeStore::NodeStore()
     {
     #if defined(DEBUG)
@@ -67,9 +88,20 @@ namespace muffin { namespace im {
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
-    Status NodeStore::Get(const std::string& nodeID)
+    std::pair<Status, Node*> NodeStore::GetNodeReference(const std::string& nodeID)
     {
-        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        const auto it = mMapNode.find(nodeID);
+        if (it == mMapNode.end())
+        {
+            LOG_WARNING(logger, "NO REFERENCE: NODE WITH GIVEN ID NOT FOUND");
+            return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), nullptr);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::GOOD), &(it->second));
+        }
     }
+
+
+    NodeStore* NodeStore::mInstance = nullptr;
 }}

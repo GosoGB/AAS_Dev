@@ -29,13 +29,21 @@ namespace muffin { namespace im {
     class NodeStore
     {
     public:
+        NodeStore(NodeStore const&) = delete;
+        void operator=(NodeStore const&) = delete;
+        static NodeStore* CreateInstanceOrNULL();
+        static NodeStore& GetInstance();
+    private:
         NodeStore();
         virtual ~NodeStore();
+    private:
+        static NodeStore* mInstance;
+    
     public:
         Status Create(const jarvis::config::Node* cin);
         Status Remove(const std::string& nodeID);
         Status Clear();
-        Status Get(const std::string& nodeID);
+        std::pair<Status, Node*> GetNodeReference(const std::string& nodeID);
     private:
         std::map<std::string, Node> mMapNode;
     };

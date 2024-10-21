@@ -106,4 +106,6 @@ class RS485Class : public Stream {
     uint16_t _config;
 };
 
+extern RS485Class* RS485;
+
 #endif

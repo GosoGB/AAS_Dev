@@ -4,7 +4,7 @@
  * 
  * @brief Modbus RTU 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-10-20
+ * @date 2024-10-21
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -18,6 +18,8 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
+#include "Common/Convert/ConvertClass.h"
+#include "IM/Node/NodeStore.h"
 #include "Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "ModbusRTU.h"
 
@@ -26,7 +28,6 @@
 namespace muffin {
 
     ModbusRTU::ModbusRTU()
-        : mRS485(nullptr)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -34,54 +35,100 @@ namespace muffin {
     }
     
     ModbusRTU::~ModbusRTU()
-    {
-        if (mRS485 != nullptr)
-        {
-            delete mRS485;
-            mRS485 = nullptr;
-            LOG_VERBOSE(logger, "Destroyed RS485 instance at address: %p");
-        }
-        
+    {   
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
-    void ModbusRTU::InitTest()
+    Status ModbusRTU::Config(jarvis::config::ModbusRTU* config, jarvis::config::Rs485* portConfig)
     {
-        // ModbusRTUClient.begin(*mRS485, 9600, SERIAL_8N1);
-    }
-    
-    void ModbusRTU::SetPort(HardwareSerial& port)
-    {
-        mRS485 = new RS485Class(port, TX_PIN_NUMBER, DE_PIN_NUMBER, RE_PIN_NUMBER);
-        ModbusRTUClient.begin(*mRS485, 9600, SERIAL_8N1);
-    }
-
-    Status ModbusRTU::AddNodeReference(const uint8_t slaveID, im::Node& node)
-    {
-        Status ret = mNodeTable.Update(slaveID, node);
+        const jarvis::prt_e portIndex = config->GetPort().second;
+        Status ret = configurePort(portIndex, portConfig);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO UPDATE NODE REFERENCE: %s", ret.c_str());
-            return Status(Status::Code::BAD);
-        }
-
-        const jarvis::mb_area_e area = node.VariableNode.GetModbusArea();
-        const AddressRange range = createAddressRange(node);
-
-        ret = mAddressTable.Update(slaveID, area, range);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO UPDATE ADDRESS TABLE: %s", ret.c_str());
-            return Status(Status::Code::BAD);
+            LOG_ERROR(logger, "FAILED TO CONFIGURE RS-485 PORT: %s", ret.c_str());
+            return ret;
         }
         
-        LOG_VERBOSE(logger, "Updated node reference: %s", node.GetNodeID().c_str());
+        ;
         return Status(Status::Code::GOOD);
     }
 
-    Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
+    SerialConfig ModbusRTU::convert2SerialConfig(const jarvis::dbit_e dbit, const jarvis::sbit_e sbit, const jarvis::pbit_e pbit)
+    {
+        const uint8_t dataBits    = (static_cast<uint8_t>(dbit) - 0x05) << 0x2;
+        const uint8_t stopBits    = (sbit == jarvis::sbit_e::SBIT_1 ? 0x01 : 0x03) << 0x4;        
+        const uint8_t parityBits  = pbit == jarvis::pbit_e::NONE ? 0x00 : 
+                                    pbit == jarvis::pbit_e::EVEN ? 0x02 :
+                                    0x03;
+
+        const uint32_t config = 0x8000000 | dataBits | stopBits | parityBits;
+        LOG_DEBUG(logger, "Serial Config: 0x%X", config);
+        LOG_DEBUG(logger, "Serial Config: %s", config == SERIAL_8N1 ? "SERIAL_8N1" : "INVALID!");
+        return static_cast<SerialConfig>(config);
+    }
+
+    Status ModbusRTU::configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig)
+    {
+        if (portIndex == jarvis::prt_e::PORT_2)
+        {
+            const jarvis::bdr_e baudrate   = portConfig->GetBaudRate().second;
+            const jarvis::dbit_e dataBit   = portConfig->GetDataBit().second;
+            const jarvis::pbit_e parityBit = portConfig->GetParityBit().second;
+            const jarvis::sbit_e stopBit   = portConfig->GetStopBit().second;
+
+            SerialConfig serialConfig = convert2SerialConfig(dataBit, stopBit, parityBit);
+            ModbusRTUClient.begin(*RS485, Convert.ToUInt32(baudrate), serialConfig);
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            ASSERT(false, "UNDEFINED OR UNSUPPORTED CONFIGURATION");
+            return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        }
+    }
+
+    Status ModbusRTU::addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID)
+    {
+        Status ret(Status::Code::UNCERTAIN);
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+
+        for (auto& nodeID : vectorNodeID)
+        {
+            const auto result = nodeStore.GetNodeReference(nodeID);
+            if (result.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO GET A REFERENCE TO NODE: %s", nodeID.c_str())
+                return result.first;
+            }
+            
+            im::Node* reference = result.second;
+            ret = mNodeTable.Update(slaveID, *reference);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE NODE RERENCE TABLE: %s", nodeID.c_str());
+                return ret;
+            }
+
+            const jarvis::mb_area_e area = reference->VariableNode.GetModbusArea();
+            const AddressRange range = createAddressRange(*reference);
+
+            ret = mAddressTable.Update(slaveID, area, range);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE ADDRESS TABLE: %s", ret.c_str());
+                return Status(Status::Code::BAD);
+            }
+            
+            LOG_DEBUG(logger, "Updated node reference: %s", nodeID.c_str());
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+/** * @brief 향후 개발 예정입니다.  Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
+     Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
     {
         Status ret = mNodeTable.Remove(slaveID, node);
         if (ret != Status::Code::GOOD)
@@ -103,7 +150,13 @@ namespace muffin {
         LOG_VERBOSE(logger, "Removed node reference: %s", node.GetNodeID().c_str());
         return Status(Status::Code::GOOD);
     }
+ */
 
+
+    /**
+     * @todo node 개체 말고 필요한 정보만 매개변수로 넘기도록 수정해야 합니다.
+     * @author 김주성
+     */
     im::NumericAddressRange ModbusRTU::createAddressRange(im::Node& node) const
     {
         const uint16_t address  = node.VariableNode.GetAddress().Numeric;

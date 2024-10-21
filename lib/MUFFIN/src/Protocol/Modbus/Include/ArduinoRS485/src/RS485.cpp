@@ -202,3 +202,6 @@ void RS485Class::setDelays(int predelay, int postdelay)
   _predelay = predelay;
   _postdelay = postdelay;
 }
+
+
+RS485Class* RS485 = nullptr;

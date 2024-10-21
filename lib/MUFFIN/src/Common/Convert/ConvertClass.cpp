@@ -117,6 +117,11 @@ namespace muffin {
         return static_cast<uint32_t>(input);
     }
 
+    uint32_t ConvertClass::ToUInt32(const jarvis::bdr_e input)
+    {
+        return static_cast<uint32_t>(input);
+    }
+
     uint64_t ConvertClass::ToUInt64(const std::string& input)
     {
         char* endPointer;
