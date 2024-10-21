@@ -17,11 +17,19 @@
 
 #include <ArduinoJson.h>
 
+#include "Jarvis/Validators/ValidationResult.h"
 #include "Protocol/MQTT/Include/Message.h"
 
 
 
 namespace muffin {
+
+    typedef struct JarvisTaskParameters
+    {
+        void (*Callback)(muffin::jarvis::ValidationResult);
+        std::string RequestPayload;
+        jarvis::ValidationResult Result;
+    } jarvis_task_params;
 
     void ProcessJarvisRequestTask(void* pvParameters);
     void RetrieveJarvisRequestPayload(std::string* outputpayload);

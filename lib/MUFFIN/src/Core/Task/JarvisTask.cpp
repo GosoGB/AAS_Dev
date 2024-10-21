@@ -48,14 +48,18 @@ namespace muffin {
     LOG_DEBUG(logger, "[TASK: JARVIS][TCB CREATED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
 
-        void (*callback)(jarvis::ValidationResult*) = (void (*)(jarvis::ValidationResult*))((uintptr_t*)pvParameters)[0];
+        jarvis_task_params* params = (jarvis_task_params*)pvParameters;
+
+        void (*callback)(jarvis::ValidationResult) = params->Callback;
         ASSERT((callback != nullptr), "INVALID CALLBACK: FUNCTION POINTER CANNOT BE A NULL POINTER");
 
-        std::string* payload = (std::string*)((uintptr_t *)pvParameters)[1];
-        ASSERT((payload != nullptr), "INVALID INPUT PARAMETER: JARVIS PAYLOAD CANNOT BE A NULL POINTER");
+        std::string payload = params->RequestPayload;
+        LOG_DEBUG(logger, "payload: %s", payload.c_str());
+        // ASSERT((payload != nullptr), "INVALID INPUT PARAMETER: JARVIS PAYLOAD CANNOT BE A NULL POINTER");
 
-        jarvis::ValidationResult* validationResult = (jarvis::ValidationResult*)((uintptr_t *)pvParameters)[2];
-        ASSERT((validationResult != nullptr), "INVALID OUTPUT PARAMETER: JARVIS VALIDATION RESULT CANNOT BE A NULL POINTER");
+        jarvis::ValidationResult validationResult = params->Result;
+        LOG_DEBUG(logger, "payload: %u", static_cast<uint16_t>(validationResult.GetRSC()));
+        // ASSERT((validationResult != nullptr), "INVALID OUTPUT PARAMETER: JARVIS VALIDATION RESULT CANNOT BE A NULL POINTER");
 
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][PARAMS RECEIVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
@@ -64,8 +68,8 @@ namespace muffin {
         {/* JARVIS 설정 태스크는 한 번에 하나의 요청만 처리하도록 설계되어 있습니다. */
             if (s_IsJarvisTaskRunning == true)
             {
-                validationResult->SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
-                validationResult->SetDescription("UNAVAILABLE DUE TO JARVIS TASK BEING ALREADY RUNNING OR BLOCKED");
+                validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
+                validationResult.SetDescription("UNAVAILABLE DUE TO JARVIS TASK BEING ALREADY RUNNING OR BLOCKED");
 
                 callback(validationResult);
                 vTaskDelete(NULL);
@@ -82,7 +86,7 @@ namespace muffin {
         {/* JARVIS 설정 요청 메시지가 JSON 형식인 경우에만 태스크를 이어가도록 설계되어 있습니다. */
             JSON json;
             JsonDocument doc;
-            Status retJSON = json.Deserialize(*payload, &doc);
+            Status retJSON = json.Deserialize(payload, &doc);
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
@@ -99,8 +103,8 @@ namespace muffin {
                 switch (retJSON.ToCode())
                 {
                 case Status::Code::BAD_END_OF_STREAM:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult->SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
                     break;
                 default:
                     break;
@@ -120,8 +124,8 @@ namespace muffin {
             const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
             if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
             {
-                validationResult->SetRSC(jarvis::rsc_e::BAD_INVALID_VERSION);
-                validationResult->SetDescription("INVALID OR UNSUPPORTED PROTOCOL VERSION");
+                validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_VERSION);
+                validationResult.SetDescription("INVALID OR UNSUPPORTED PROTOCOL VERSION");
                 
                 callback(validationResult);
                 s_IsJarvisTaskRunning = false;
@@ -134,16 +138,16 @@ namespace muffin {
 
 
             const uint64_t timeDifference = GetTimestampInMillis() - doc["ts"].as<uint64_t>();
-            if (timeDifference > 60)
+            if (timeDifference > (60 * 1000))
             {
-                validationResult->SetRSC(jarvis::rsc_e::BAD);
-                validationResult->SetDescription("INVALID TIMESTAMP: DIFFERS BY MORE THAN 60 SECONDS");
+                validationResult.SetRSC(jarvis::rsc_e::BAD);
+                validationResult.SetDescription("INVALID TIMESTAMP: DIFFERS BY MORE THAN 60 SECONDS");
                 
                 callback(validationResult);
                 s_IsJarvisTaskRunning = false;
                 vTaskDelete(NULL);
             }
-            ASSERT((timeDifference <= 60), "TIMESTAMPS MUST DIFFER BY LESS THAN OR EQUAL TO 60 SECONDS");
+            ASSERT((timeDifference <= (60 * 1000)), "TIMESTAMPS MUST DIFFER BY LESS THAN OR EQUAL TO 60 SECONDS");
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][TIME CHECKED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
@@ -154,8 +158,8 @@ namespace muffin {
                 const char* rqi = doc["rqi"].as<const char*>();
                 if (rqi == nullptr || strlen(rqi) == 0)
                 {
-                    validationResult->SetRSC(jarvis::rsc_e::BAD);
-                    validationResult->SetDescription("INVALID REQUEST ID: CANNOT BE NULL OR EMPTY");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD);
+                    validationResult.SetDescription("INVALID REQUEST ID: CANNOT BE NULL OR EMPTY");
                     
                     callback(validationResult);
                     s_IsJarvisTaskRunning = false;
@@ -190,20 +194,20 @@ namespace muffin {
                 switch (ret.ToCode())
                 {
                 case Status::Code::BAD_TIMEOUT:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
-                    validationResult->SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
                     break;
                 case Status::Code::BAD_NO_COMMUNICATION:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult->SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
                     break;
                 case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
-                    validationResult->SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
                     break;
                 default:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult->SetDescription("FAILED TO FETCH FROM API SERVER");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
                     break;
                 }
                 
@@ -227,20 +231,20 @@ namespace muffin {
                 switch (ret.ToCode())
                 {
                 case Status::Code::BAD_TIMEOUT:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_INTERNAL_ERROR);
-                    validationResult->SetDescription("FAILED TO READ FROM LTE MODEM: TIMEOUT");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_INTERNAL_ERROR);
+                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM: TIMEOUT");
                     break;
                 case Status::Code::BAD_NO_COMMUNICATION:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
-                    validationResult->SetDescription("FAILED TO READ FROM LTE MODEM: NO COMMUNICATION");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
+                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM: NO COMMUNICATION");
                     break;
                 case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
-                    validationResult->SetDescription("FAILED TO READ FROM LTE MODEM: OUT OF MEMORY");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
+                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM: OUT OF MEMORY");
                     break;
                 default:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_INTERNAL_ERROR);
-                    validationResult->SetDescription("FAILED TO READ FROM LTE MODEM");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_INTERNAL_ERROR);
+                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM");
                     break;
                 }
                 
@@ -269,8 +273,8 @@ namespace muffin {
                 switch (retJSON.ToCode())
                 {
                 case Status::Code::BAD_END_OF_STREAM:
-                    validationResult->SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult->SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
                     break;
                 default:
                     break;
@@ -288,11 +292,16 @@ namespace muffin {
     
 
         {/* JARVIS 설정 정보의 유효성을 검증한 다음 그 결과를 호출자에게 전달합니다. */
-            Jarvis& jarvis = Jarvis::GetInstance();
+            /**
+             * @todo Initializer 쪽에서 create를 먼저 하는 걸 가정하고 만들었습니다만
+             *       JARVIS 없이 설정하는 경우를 대비해서 GetInstanceOrCrash()룰 호출해야 합니다.
+             * @todo CreateOrNULL()로 함수 명을 바꾸면 위의 투 두 없이도 가능합니다.
+             */
+            Jarvis* jarvis = Jarvis::GetInstanceOrCrash();
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][VALIDATE JARVIS] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
-            *validationResult = std::move(jarvis.Validate(jsonDocument));
+            validationResult = jarvis->Validate(jsonDocument);
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][JARVIS VALIDATED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif

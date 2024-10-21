@@ -145,10 +145,20 @@ namespace muffin {
 
     void Core::startJarvisTask(const std::string& payload)
     {
-        uintptr_t pvParameters[3];
-        pvParameters[0] = (uintptr_t)onJarvisValidationResult;
-        pvParameters[1] = (uintptr_t)&payload;
-        pvParameters[2] = (uintptr_t)&mJarvisValidationResult;
+        jarvis_task_params* pvParameters = new(std::nothrow) jarvis_task_params();
+        if (pvParameters == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR TASK PARAMETERS");
+            return;
+        }
+
+        // uintptr_t pvParameters[3];
+        // pvParameters[0] = (uintptr_t)onJarvisValidationResult;
+        // pvParameters[1] = (uintptr_t)&payload;
+        // pvParameters[2] = (uintptr_t)&mJarvisValidationResult;
+
+        pvParameters->Callback = onJarvisValidationResult;
+        pvParameters->RequestPayload = payload;
 
         /**
          * @todo 스택 오버플로우를 방지하기 위해서 JARVIS 설정 정보 크기에 따라서 태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
@@ -193,16 +203,16 @@ namespace muffin {
         }
     }
 
-    void Core::onJarvisValidationResult(jarvis::ValidationResult* result)
+    void Core::onJarvisValidationResult(jarvis::ValidationResult result)
     {
         JsonDocument doc;
         JsonArray arrayCFG = doc["cfg"].to<JsonArray>();
 
         doc["ts"] = GetTimestampInMillis();
-        doc["rsc"] = Convert.ToUInt16(result->GetRSC());
-        doc["dsc"] = result->GetDescription();
+        doc["rsc"] = Convert.ToUInt16(result.GetRSC());
+        doc["dsc"] = result.GetDescription();
 
-        std::vector<jarvis::cfg_key_e> vectorKeyWithNG = result->RetrieveKeyWithNG();
+        std::vector<jarvis::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
         for (auto& key : vectorKeyWithNG)
         {
             arrayCFG.add(Convert.ToString(key));
@@ -242,7 +252,7 @@ namespace muffin {
         }
 
 
-        if (result->GetRSC() >= jarvis::rsc_e::UNCERTAIN)
+        if (result.GetRSC() >= jarvis::rsc_e::UNCERTAIN)
         {
             LOG_WARNING(logger, "INVALID JARVIS CONFIGURATION: NO SAVING AND APPLYING");
             return ;
