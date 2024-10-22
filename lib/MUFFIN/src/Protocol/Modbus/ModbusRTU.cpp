@@ -1,10 +1,11 @@
 /**
  * @file ModbusRTU.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
  * 
  * @brief Modbus RTU 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-10-21
+ * @date 2024-10-22
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -245,12 +246,12 @@ namespace muffin {
                 case jarvis::mb_area_e::DISCRETE_INPUT:
                     ret = pollDiscreteInput(slaveID, addressSetToPoll);
                     break;
-                // case jarvis::mb_area_e::INPUT_REGISTER:
-                //     // ret = pollInputRegister(slaveID, addressSetToPoll);
-                //     break;
-                // case jarvis::mb_area_e::HOLDING_REGISTER:
-                //     // ret = pollHoldingRegister(slaveID, addressSetToPoll);
-                //     break;
+                case jarvis::mb_area_e::INPUT_REGISTER:
+                    ret = pollInputRegister(slaveID, addressSetToPoll);
+                    break;
+                case jarvis::mb_area_e::HOLDING_REGISTER:
+                    ret = pollHoldingRegister(slaveID, addressSetToPoll);
+                    break;
                 default:
                     ASSERT(false, "UNDEFINED MODBUS MEMORY AREA");
                     break;
@@ -258,7 +259,7 @@ namespace muffin {
 
                 if (ret != Status(Status::Code::GOOD))
                 {
-                    LOG_ERROR(logger, "FAILED TO POLL: %s, %u, %u", ret.c_str(), slaveID, static_cast<uint8_t>(area));
+                    LOG_ERROR(logger, "FAILED TO POLL: %s, SlaveID : %u, AREA : %u", ret.c_str(), slaveID, static_cast<uint8_t>(area));
                 }
             }
         }
@@ -310,8 +311,11 @@ namespace muffin {
                 // switch (area)
                 // {
                 // case jarvis::mb_area_e::COILS:
-                // case jarvis::mb_area_e::DISCRETE_INPUT:
                 //     datum = mPolledDataTable.RetrieveCoil(slaveID, address);
+                //     goto BIT_MEMORY;
+                // case jarvis::mb_area_e::DISCRETE_INPUT:
+                //     datum = mPolledDataTable.RetrieveDiscreteInput(slaveID, address);
+                // BIT_MEMORY:
                 //     if (datum.IsOK == false)
                 //     {
                 //         polledData.StatusCode = Status::Code::BAD;
@@ -349,7 +353,7 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            LOG_INFO(logger,"slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
+
             ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
@@ -377,7 +381,7 @@ namespace muffin {
                 {
                 case 1:
                 case 0:
-                    // LOG_DEBUG(logger, "read value : %d, address : %d ", value, address);
+                    LOG_DEBUG(logger, "[COIL] read value : %d, address : %d ", value, address);
                     mPolledDataTable.UpdateCoil(slaveID, address, value);
                     continue;
                 default:
@@ -400,7 +404,6 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            LOG_INFO(logger,"slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
             ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
@@ -423,7 +426,7 @@ namespace muffin {
             {
                 const uint16_t address = startAddress + i;
                 const int8_t value = ModbusRTUClient.read();
-                
+                LOG_DEBUG(logger, "[DISCRETE INPUT] read value : %d, address : %d ", value, address);
                 switch (value)
                 {
                 case 1:
@@ -441,55 +444,104 @@ namespace muffin {
         return ret;
     }
 
-    // Status ModbusRTU::pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
-    // {
-    //     Status ret(Status::Code::GOOD);
-    //     constexpr int8_t INVALID_VALUE = -1;
+    Status ModbusRTU::pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
+    {
+        Status ret(Status::Code::GOOD);
+        constexpr int8_t INVALID_VALUE = -1;
 
-    //     for (const auto& addressRange : addressRangeSet)
-    //     {
-    //         const uint16_t startAddress = addressRange.GetStartAddress();
-    //         const uint16_t pollQuantity = addressRange.GetQuantity();
-    //         LOG_INFO(logger,"slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
-    //         ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
-    //         delay(80);
-    //         const char* lastError = ModbusRTUClient.lastError();
+        for (const auto& addressRange : addressRangeSet)
+        {
+            const uint16_t startAddress = addressRange.GetStartAddress();
+            const uint16_t pollQuantity = addressRange.GetQuantity();
+            LOG_INFO(logger,"[INPUT REGISTERS] slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
+            ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
+            delay(80);
+            const char* lastError = ModbusRTUClient.lastError();
 
-    //         if (lastError != nullptr)
-    //         {
-    //             LOG_ERROR(logger, "FAILED TO POLL: %s", lastError);
-    //             ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
-    //             for (size_t i = 0; i < pollQuantity; i++)
-    //             {
-    //                 const uint16_t address = startAddress + i;
-    //                 mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
-    //             }
-    //             continue;
-    //         }
-    //         LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
+            if (lastError != nullptr)
+            {
+                LOG_ERROR(logger, "[INPUT REGISTERS] FAILED TO POLL: %s", lastError);
+                ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
+                for (size_t i = 0; i < pollQuantity; i++)
+                {
+                    const uint16_t address = startAddress + i;
+                    mPolledDataTable.UpdateInputRegister(slaveID, address, INVALID_VALUE);
+                }
+                continue;
+            }
+            LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
 
-    //         for (size_t i = 0; i < pollQuantity; i++)
-    //         {
-    //             const uint16_t address = startAddress + i;
-    //             const int32_t value = ModbusRTUClient.read();
-                
-    //             if (value == -1)
-    //             {
-    //                 LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
-    //                 ret = Status::Code::BAD_DATA_LOST;
-    //                 mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
-    //                 return ret;
-    //             }
-    //             else
-    //             {
-    //                 mPolledDataTable.UpdateHoldingRegister(slaveID, address, (uint16_t)value);
-    //             }
-    //         }
-    //     }
+            for (size_t i = 0; i < pollQuantity; i++)
+            {
+                const uint16_t address = startAddress + i;
+                const int32_t value = ModbusRTUClient.read();
+                LOG_DEBUG(logger, "[INPUT REGISTER] read value : %d, address : %d ", value, address);
+                if (value == -1)
+                {
+                    LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
+                    ret = Status::Code::BAD_DATA_LOST;
+                    mPolledDataTable.UpdateInputRegister(slaveID, address, INVALID_VALUE);
+                    return ret;
+                }
+                else
+                {
+                    mPolledDataTable.UpdateInputRegister(slaveID, address, (uint16_t)value);
+                }
+            }
+        }
 
-    //     return ret;
-    // }
+        return ret;
+    }
+
+    Status ModbusRTU::pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
+    {
+        Status ret(Status::Code::GOOD);
+        constexpr int8_t INVALID_VALUE = -1;
+
+        for (const auto& addressRange : addressRangeSet)
+        {
+            const uint16_t startAddress = addressRange.GetStartAddress();
+            const uint16_t pollQuantity = addressRange.GetQuantity();
+            ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
+            delay(80);
+            const char* lastError = ModbusRTUClient.lastError();
+
+            if (lastError != nullptr)
+            {
+                LOG_ERROR(logger, "[HOLDING REGISTERS] FAILED TO POLL: %s", lastError);
+                ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
+                for (size_t i = 0; i < pollQuantity; i++)
+                {
+                    const uint16_t address = startAddress + i;
+                    mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
+                }
+                continue;
+            }
+            LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
+
+
+            for (size_t i = 0; i < pollQuantity; i++)
+            {
+                const uint16_t address = startAddress + i;
+                const int32_t value = ModbusRTUClient.read();
+                LOG_DEBUG(logger, "[HOLDING REGISTER] read value : %d, address : %d ", value, address);
+                if (value == -1)
+                {
+                    LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
+                    ret = Status::Code::BAD_DATA_LOST;
+                    mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
+                    return ret;
+                }
+                else
+                {
+                    mPolledDataTable.UpdateHoldingRegister(slaveID, address, (uint16_t)value);
+                }
+            }
+        }
+
+        return ret;
+    }
 
 
     ModbusRTU* ModbusRTU::mInstance = nullptr;

@@ -113,14 +113,10 @@ namespace muffin { namespace modbus {
         try
         {
             std::set<uint8_t> slaveIDs;
-
-            LOG_WARNING(logger, "mMapNodeReferenceBySlave size :  %u", mMapNodeReferenceBySlave.size());
-
             for (const auto& pair : mMapNodeReferenceBySlave)
             {
                 slaveIDs.emplace(pair.first);
             }
-            LOG_WARNING(logger, "slaveIDs size :  %u", slaveIDs.size());
             return std::make_pair(Status(Status::Code::GOOD), slaveIDs);
         }
         catch(const std::bad_alloc& e)

@@ -1,10 +1,11 @@
 /**
  * @file PolledData.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
  * 
  * @brief 단일 Modbus 슬레이브로부터 수집한 데이터를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-20
+ * @date 2024-10-22
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -136,11 +137,9 @@ namespace muffin { namespace modbus {
 
         auto itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
         {
-            // LOG_DEBUG(logger, "datum2find.Address : %u , address : %u",datum2find.Address, address);
             return datum2find.Address == address;
         });
 
-        // LOG_DEBUG(logger, "22datum2find.Address : %u ", address);
         datum_t datum;
         datum.Address = address;
 
@@ -162,6 +161,126 @@ namespace muffin { namespace modbus {
             try
             {
                 mMapDatumByArea[jarvis::mb_area_e::DISCRETE_INPUT].emplace_back(datum);
+                return Status(Status::Code::GOOD);
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+        else
+        {
+            itDatum->Value = datum.Value;
+            itDatum->IsOK  = datum.IsOK;
+            return Status(Status::Code::GOOD);
+        }
+    }
+
+    Status PolledData::UpdateInputRegister(const uint16_t address, const uint16_t value)
+    {
+        auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::INPUT_REGISTER);
+        
+        if (itArea == mMapDatumByArea.end())
+        {   
+            try
+            {
+                auto result = mMapDatumByArea.emplace(jarvis::mb_area_e::INPUT_REGISTER, std::vector<datum_t>());
+                itArea = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+
+        auto itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
+        {
+            return datum2find.Address == address;
+        });
+
+        datum_t datum;
+        datum.Address = address;
+        datum.Value = value;
+        datum.IsOK  = true;
+         
+        if (itDatum == itArea->second.end())
+        {
+            try
+            {
+                mMapDatumByArea[jarvis::mb_area_e::INPUT_REGISTER].emplace_back(datum);
+                return Status(Status::Code::GOOD);
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+        else
+        {
+            itDatum->Value = datum.Value;
+            itDatum->IsOK  = datum.IsOK;
+            return Status(Status::Code::GOOD);
+        }
+    }
+
+    Status PolledData::UpdateHoldingRegister(const uint16_t address, const uint16_t value)
+    {
+        auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::HOLDING_REGISTER);
+        
+        if (itArea == mMapDatumByArea.end())
+        {   
+            try
+            {
+                auto result = mMapDatumByArea.emplace(jarvis::mb_area_e::HOLDING_REGISTER, std::vector<datum_t>());
+                itArea = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), address);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+
+        auto itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
+        {
+            return datum2find.Address == address;
+        });
+
+        datum_t datum;
+        datum.Address = address;
+        datum.Value = value;
+        datum.IsOK  = true;
+         
+        if (itDatum == itArea->second.end())
+        {
+            try
+            {
+                mMapDatumByArea[jarvis::mb_area_e::HOLDING_REGISTER].emplace_back(datum);
                 return Status(Status::Code::GOOD);
             }
             catch(const std::bad_alloc& e)
@@ -213,6 +332,56 @@ namespace muffin { namespace modbus {
         std::vector<datum_t>::const_iterator itDatum;
 
         auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::DISCRETE_INPUT);
+        if (itArea == mMapDatumByArea.end())
+        {
+            goto BAD_NO_DATA;
+        }
+
+        itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
+        {
+            return datum2find.Address == address;
+        });
+
+        if (itDatum != itArea->second.end())
+        {
+            return *itDatum;
+        }
+
+    BAD_NO_DATA:
+        datum_t datum { .Address = address, .Value = 0, .IsOK = false };
+        return datum;
+    }
+
+    datum_t PolledData::RetrieveInputRegister(const uint16_t address) const
+    {
+        std::vector<datum_t>::const_iterator itDatum;
+
+        auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::INPUT_REGISTER);
+        if (itArea == mMapDatumByArea.end())
+        {
+            goto BAD_NO_DATA;
+        }
+
+        itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
+        {
+            return datum2find.Address == address;
+        });
+
+        if (itDatum != itArea->second.end())
+        {
+            return *itDatum;
+        }
+
+    BAD_NO_DATA:
+        datum_t datum { .Address = address, .Value = 0, .IsOK = false };
+        return datum;
+    }
+
+    datum_t PolledData::RetrieveHoldingRegister(const uint16_t address) const
+    {
+        std::vector<datum_t>::const_iterator itDatum;
+
+        auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::HOLDING_REGISTER);
         if (itArea == mMapDatumByArea.end())
         {
             goto BAD_NO_DATA;

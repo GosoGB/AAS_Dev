@@ -1,10 +1,11 @@
 /**
  * @file ModbusRTU.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
  * 
  * @brief Modbus RTU 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-10-20
+ * @date 2024-10-22
  * @version 0.0.1
  * 
  * @todo 김병우 수석께 DE/RE 핀 번호가 4/5번인지 확인을 받아야 합니다.
@@ -66,8 +67,8 @@ namespace muffin {
         Status updateVariableNodes();
         Status pollCoil(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         Status pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-        // Status pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-        // Status pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
+        Status pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
+        Status pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
     private:
         // Status pollCoilTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         // Status pollDiscreteInputTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
