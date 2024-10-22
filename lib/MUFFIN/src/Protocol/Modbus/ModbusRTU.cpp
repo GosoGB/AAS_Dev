@@ -154,7 +154,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-/** * @brief 향후 개발 예정입니다.  Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
+/** * @brief 향후 개발 예정입니다. --> Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
      Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
     {
         Status ret = mNodeTable.Remove(slaveID, node);

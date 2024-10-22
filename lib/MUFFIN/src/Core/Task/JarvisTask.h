@@ -28,8 +28,8 @@ namespace muffin {
     {
         void (*Callback)(muffin::jarvis::ValidationResult);
         std::string RequestPayload;
-        jarvis::ValidationResult Result;
     } jarvis_task_params;
+
 
     void ProcessJarvisRequestTask(void* pvParameters);
     void RetrieveJarvisRequestPayload(std::string* outputpayload);

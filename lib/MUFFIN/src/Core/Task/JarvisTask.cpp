@@ -50,17 +50,15 @@ namespace muffin {
 #endif
 
         jarvis_task_params* params = (jarvis_task_params*)pvParameters;
-
         void (*callback)(jarvis::ValidationResult) = params->Callback;
         ASSERT((callback != nullptr), "INVALID CALLBACK: FUNCTION POINTER CANNOT BE A NULL POINTER");
-
         std::string payload = params->RequestPayload;
-        LOG_DEBUG(logger, "payload: %s", payload.c_str());
-        // ASSERT((payload != nullptr), "INVALID INPUT PARAMETER: JARVIS PAYLOAD CANNOT BE A NULL POINTER");
+        
+        delete params;
+        params = nullptr;
 
-        jarvis::ValidationResult validationResult = params->Result;
-        LOG_DEBUG(logger, "payload: %u", static_cast<uint16_t>(validationResult.GetRSC()));
-        // ASSERT((validationResult != nullptr), "INVALID OUTPUT PARAMETER: JARVIS VALIDATION RESULT CANNOT BE A NULL POINTER");
+        jarvis::ValidationResult validationResult;
+
 
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][PARAMS RECEIVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));

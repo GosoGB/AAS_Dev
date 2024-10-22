@@ -151,12 +151,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR TASK PARAMETERS");
             return;
         }
-
-        // uintptr_t pvParameters[3];
-        // pvParameters[0] = (uintptr_t)onJarvisValidationResult;
-        // pvParameters[1] = (uintptr_t)&payload;
-        // pvParameters[2] = (uintptr_t)&mJarvisValidationResult;
-
+        
         pvParameters->Callback = onJarvisValidationResult;
         pvParameters->RequestPayload = payload;
 
