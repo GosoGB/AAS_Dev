@@ -69,9 +69,6 @@ namespace muffin {
         Status pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         Status pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         Status pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-    private:
-        // Status pollCoilTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-        // Status pollDiscreteInputTest(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
 
     private:
         modbus::NodeTable mNodeTable;

@@ -237,7 +237,7 @@ namespace muffin {
             
 
             // ret = catHttp.Retrieve(&s_JarvisApiPayload);
-            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["no01","no02","no03"]}],"mbtcp":[],"op":[],"node":[{"id":"no01","adtp":0,"addr":2,"area":4,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[3],"fmt":null,"uid":"DI01","name":"설정 온도","unit":"N/A","event":false},{"id":"no02","adtp":0,"addr":11,"area":4,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI02","name":"제상 정지 시간 설정","unit":"N/A","event":false},{"id":"no03","adtp":0,"addr":100,"area":3,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[3],"fmt":null,"uid":"DI03","name":"현재 온도","unit":"℃","event":false}],"alarm":[],"optime":[],"prod":[]}})";
+            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["no01"]}],"mbtcp":[],"op":[],"node":[{"id":"no01","adtp":0,"addr":0,"area":4,"bit":null,"qty":3,"scl":null,"ofst":null,"map":null,"ord":[["W0"],["W2"],["W1"]],"dt":[4,4,4],"fmt":"%u-%u-%u","uid":"DI01","name":"테스트 Node","unit":"N/A","event":false}],"alarm":[],"optime":[],"prod":[]}})";
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][RESPONSE RETRIEVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif

@@ -41,7 +41,6 @@ namespace muffin { namespace jarvis { namespace config {
         if (this != &obj)
         {
             mPlanExpired     = obj.mPlanExpired;
-            mCheckForOTA     = obj.mCheckForOTA;
             mServerNIC       = obj.mServerNIC;
             mIntervalServer  = obj.mIntervalServer;
             mIntervalPolling = obj.mIntervalPolling;
@@ -54,7 +53,6 @@ namespace muffin { namespace jarvis { namespace config {
     {
         return (
             mPlanExpired     == obj.mPlanExpired      &&
-            mCheckForOTA     == obj.mCheckForOTA      &&
             mServerNIC       == obj.mServerNIC        &&
             mIntervalServer  == obj.mIntervalServer   &&
             mIntervalPolling == obj.mIntervalPolling
@@ -70,12 +68,6 @@ namespace muffin { namespace jarvis { namespace config {
     {
         mPlanExpired = planExpired;
         mIsPlanExpiredSet = true;
-    }
-
-    void Operation::SetCheckForOTA(const bool checkForOTA)
-    {
-        mCheckForOTA = checkForOTA;
-        mIsCheckForOtaSet = true;
     }
 
     void Operation::SetServerNIC(const snic_e snic)
@@ -109,18 +101,6 @@ namespace muffin { namespace jarvis { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mPlanExpired);
-        }
-    }
-
-    std::pair<Status, bool> Operation::GetCheckForOTA() const
-    {
-        if (mIsCheckForOtaSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mCheckForOTA);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mCheckForOTA);
         }
     }
 

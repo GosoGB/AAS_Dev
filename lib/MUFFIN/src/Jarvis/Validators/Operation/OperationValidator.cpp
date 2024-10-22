@@ -56,7 +56,6 @@ namespace muffin { namespace jarvis {
         }
         
         const bool isExpired    = json["exp"].as<bool>();
-        const bool isOtaNeeded  = json["ota"].as<bool>();
         const uint16_t pollingInverval = json["intvPoll"].as<uint16_t>();
         const uint16_t serverInverval  = json["intvSrv"].as<uint16_t>();
 
@@ -75,7 +74,6 @@ namespace muffin { namespace jarvis {
         }
 
         operation->SetPlanExpired(isExpired);
-        operation->SetCheckForOTA(isOtaNeeded);
         operation->SetIntervalPolling(pollingInverval);
         operation->SetIntervalServer(serverInverval);
         operation->SetServerNIC(retSNIC.second);
@@ -108,7 +106,6 @@ namespace muffin { namespace jarvis {
         isValid &= json.containsKey("exp");
         isValid &= json.containsKey("intvPoll");
         isValid &= json.containsKey("intvSrv");
-        isValid &= json.containsKey("ota");
         
         if (isValid == true)
         {
@@ -125,11 +122,9 @@ namespace muffin { namespace jarvis {
         bool isValid = true;
         isValid &= json["snic"].isNull()            == false;
         isValid &= json["exp"].isNull()             == false;
-        isValid &= json["ota"].isNull()             == false;
         isValid &= json["intvPoll"].isNull()        == false;
         isValid &= json["intvSrv"].isNull()         == false;
         isValid &= json["exp"].is<bool>()           == true;
-        isValid &= json["ota"].is<bool>()           == true;
         isValid &= json["intvPoll"].is<uint16_t>()  == true;
         isValid &= json["intvSrv"].is<uint16_t>()   == true;
         
