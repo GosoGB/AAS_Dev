@@ -77,6 +77,12 @@ namespace muffin { namespace im {
         var_value_u Value;
     } poll_data_t;
 
+    typedef struct CastedDataType
+    {
+        jarvis::dt_e ValueType;
+        var_value_u Value;
+    } casted_data_t;
+
     typedef struct VariableDataType
     {
         Status::Code StatusCode;

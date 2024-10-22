@@ -183,6 +183,215 @@ namespace muffin { namespace im {
         }
     }
     
+    void Variable::Update(const std::vector<poll_data_t>& polledData)
+    {
+        /**
+         * @todo 문자열의 경우 메모리가 부족할 수도 있기 때문에 단일 데이터만
+         *       저장될 수 있도록 설계를 바꿔야 할지에 대한 결정이 필요합니다.
+         */
+        if (mDataBuffer.size() == mMaxHistorySize)
+        {
+            mDataBuffer.pop_front();
+        }
+
+        /**
+         * @todo 현재는 시간 상의 이유로 Modbus 프로토콜에 워드 데이터만 처리할 수 있도록
+         *       작업해두었습니다. 구조도 깔끔하지 않아서 향후에 개선하는 작업이 필요합니다.
+         */
+        var_data_t data;
+        data.StatusCode  = polledData[0].StatusCode;
+        data.Timestamp   = polledData[0].Timestamp;
+        data.Timestamp   = polledData.Timestamp;
+        data.DataType    = mDataType;
+        data.DataType    = mVectorDataTypes[0];
+        data.HasStatus   = true;
+
+
+
+
+        if ((mVectorDataUnitOrders.first == true))
+        {
+            ASSERT((mVectorDataUnitOrders.second.size() == 0), "LENGTH OF DATA UNIT ORDERS CANNOT BE 0 WHEN IT'S ENALBED");
+
+            if (mVectorDataUnitOrders.second.size() == 1)
+            {
+                std::vector<casted_data_t> castedData;
+                castWithDataUnitOrder(polledData, &castedData);
+
+
+                if (mBitIndex.first == true)
+                {
+                    castedData[0].Value.Boolean & (0x01 << mBitIndex.second);
+                    mDataBuffer.emplace_back()
+                }
+
+                if (mMapMappingRules.first == true)
+                {
+                    // apply mapping rules;
+                }
+
+                if (mNumericScale.first == true)
+                {
+                    // apply numeric scale;
+                }
+
+                if (mNumericOffset.first == true)
+                {
+                    // apply numeric offset;
+                }
+            }
+            else
+            {
+                // apply format string;
+            }
+        }
+        else
+        {
+            castWithoutDataUnitOrder(polledData);
+            // if bit index true:
+            //     apply bit index
+            // if mapping rules ture:
+            //     apply mapping rules;
+            // if numeric scale ture:
+            //     apply numeric scale;
+            // if numeric offset ture:
+            //     apply numeric offset;
+        }
+
+
+        if (mVectorDataUnitOrders.first == true && mVectorDataUnitOrders.second.size() == 1)
+        {
+            ASSERT((polledData.size() == 1), "ADDRESS QUANTITY AND THE POLLED QUANTITY MUST BE IDENTICAL");
+            ASSERT((mVectorDataTypes.size() == 1), "THERE MUST BE ONE DATA TYPE AND THE POLLED QUANTITY MUST BE IDENTICAL");
+
+        }
+
+
+        /**
+         * @todo 현재는 NTP 서버와 동기화가 되어야 MUFFIN 초기화가 끝나기
+         *       때문에 항상 true일 수밖에 없습니다. 따라서 해당 속성을
+         *       없애는 것을 고려해봐야 합니다.
+         */
+        // data.HasTimestamp   = true;
+    }
+    
+    void Variable::castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData)
+    {
+        ASSERT((outputCastedData != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
+        ASSERT((outputCastedData->empty() == true), "OUTPUT PARAMETER MUST BE AN EMPTY ARRAY");
+
+        /**
+         * @brief 현재는 기계에서 수집한 데이터의 타입이 16비트일 때까지만 구현되어 있습니다.
+         *        향후 다른 프로토콜이 필요하므로 나머지 데이터 타입의 처리를 구현해야 합니다.
+         */
+        std::vector<uint8_t> vectorPolledDataInBytes;
+        for (auto& datum : polledData)
+        {
+            switch (datum.ValueType)
+            {
+            case jarvis::dt_e::INT8:
+            case jarvis::dt_e::UINT8:
+                vectorPolledDataInBytes.emplace_back(static_cast<uint8_t>(datum.Value.UInt8));
+                break;
+            case jarvis::dt_e::INT16:
+            case jarvis::dt_e::UINT16:
+                vectorPolledDataInBytes.emplace_back(static_cast<uint8_t>(((datum.Value.UInt16 >> 8) & 0xFF)));
+                vectorPolledDataInBytes.emplace_back(static_cast<uint8_t>((datum.Value.UInt16 & 0xFF)));
+                break;
+            default:
+                break;
+            }
+        }
+
+        LOG_DEBUG(logger, "\n------------------------------------------------------------------");
+        char buffer[512] = { 0 };
+        char buffer2[8] = { 0 };
+        for (auto byte : vectorPolledDataInBytes)
+        {
+            sprintf(buffer2, "%X ", byte);
+            strcat(buffer, buffer2);
+        }
+        LOG_DEBUG(logger, "%s", buffer);
+        LOG_DEBUG(logger, "------------------------------------------------------------------\n");
+        
+        for (auto& dataUnitOrders : mVectorDataUnitOrders.second)
+        {
+            uint8_t castedSize = 0;
+            casted_data_t castedData;
+            std::vector<uint8_t> vectorCastedBytes;
+
+            for (auto& order : dataUnitOrders)
+            {
+                const uint8_t startIndex  = 2 * order.Index;
+                const uint8_t finishIndex = startIndex + 1;
+
+                if (order.DataUnit == jarvis::data_unit_e::WORD)
+                {
+                    vectorCastedBytes.emplace_back(vectorPolledDataInBytes[startIndex]);
+                    vectorCastedBytes.emplace_back(vectorPolledDataInBytes[finishIndex]);
+                    castedSize += 16;
+                }
+                else if (order.DataUnit == jarvis::data_unit_e::BYTE)
+                {
+                    if (order.ByteOrder == jarvis::byte_order_e::HIGHER)
+                    {
+                        vectorCastedBytes.emplace_back(vectorPolledDataInBytes[startIndex]);
+                    }
+                    else
+                    {
+                        vectorCastedBytes.emplace_back(vectorPolledDataInBytes[finishIndex]);
+                    }
+                    castedSize += 8;
+                }
+            }
+
+        LOG_DEBUG(logger, "\n------------------------------------------------------------------");
+        char _buffer[512] = { 0 };
+        char _buffer2[8] = { 0 };
+        for (auto byte : vectorCastedBytes)
+        {
+            sprintf(_buffer2, "%X ", byte);
+            strcat(_buffer, _buffer2);
+        }
+        LOG_DEBUG(logger, "%s", _buffer);
+        LOG_DEBUG(logger, "------------------------------------------------------------------\n");
+
+            switch (castedSize)
+            {
+            case 8:
+                castedData.ValueType = jarvis::dt_e::UINT8;
+                castedData.Value.UInt8 = static_cast<uint8_t>(*vectorCastedBytes.data());
+                break;
+            case 16:
+                castedData.ValueType = jarvis::dt_e::UINT16;
+                castedData.Value.UInt8 = static_cast<uint16_t>(*vectorCastedBytes.data());
+                break;
+            case 32:
+                castedData.ValueType = jarvis::dt_e::UINT32;
+                castedData.Value.UInt8 = static_cast<uint32_t>(*vectorCastedBytes.data());
+                break;
+            case 64:
+                castedData.ValueType = jarvis::dt_e::UINT64;
+                castedData.Value.UInt8 = static_cast<uint64_t>(*vectorCastedBytes.data());
+                break;
+            default:
+                break;
+            }
+
+            outputCastedData->emplace_back(castedData);
+        }
+    }
+
+    void Variable::castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData)
+    {
+        ;
+    }
+
+    void Variable::strategySingleDataType()
+    {
+        ;
+    }
+    
     void Variable::processStringData(const poll_data_t& polledData, var_data_t* outputData)
     {
         if (mMapMappingRules.first == true)

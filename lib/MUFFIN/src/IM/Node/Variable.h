@@ -57,6 +57,12 @@ namespace muffin { namespace im {
         uint16_t GetBitIndex() const;
         jarvis::mb_area_e GetModbusArea() const;
     private:
+        void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
+        void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData);
+    private:
+        // virtual void strategySingleDataType() override;
+        void strategySingleDataType();
+    private:
         jarvis::adtp_e mAddressType;
         jarvis::addr_u mAddress;
         std::vector<jarvis::dt_e> mVectorDataTypes;

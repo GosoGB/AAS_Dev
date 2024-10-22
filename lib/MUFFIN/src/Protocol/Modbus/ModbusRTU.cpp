@@ -272,9 +272,6 @@ namespace muffin {
         Status ret(Status::Code::UNCERTAIN);
 
         const auto retrievedSlaveInfo = std::move(mNodeTable.RetrieveEntireSlaveID());
-
-        LOG_INFO(logger, "retrievedSlaveInfo SIZE : %d",retrievedSlaveInfo.second.size());
-
         if (retrievedSlaveInfo.first.ToCode() != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE SLAVE ID FOR NODE UPDATE: %s", retrievedSlaveInfo.first.c_str());
@@ -284,7 +281,6 @@ namespace muffin {
         const uint64_t timestampInMillis = GetTimestampInMillis();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
-            LOG_INFO(logger, "slaveID  : %d", slaveID);
             const auto retrievedNodeInfo = mNodeTable.RetrieveNodeBySlaveID(slaveID);
             if (retrievedNodeInfo.first.ToCode() != Status::Code::GOOD)
             {
@@ -294,50 +290,72 @@ namespace muffin {
 
             for (auto& node : retrievedNodeInfo.second)
             {
-                jarvis::mb_area_e area = node->VariableNode.GetModbusArea();
-                const uint16_t address = node->VariableNode.GetAddress().Numeric;
+                const uint16_t address  = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
+                const jarvis::mb_area_e area = node->VariableNode.GetModbusArea();
 
                 modbus::datum_t datum;
+                std::vector<modbus::datum_t> vectorDatum;
                 im::poll_data_t polledData;
                 polledData.AddressType = jarvis::adtp_e::NUMERIC;
                 polledData.Address.Numeric = address;
                 polledData.Timestamp = timestampInMillis;
 
                 /**
-                 * @todo ModbusRTU 클래스에서 얻은 상태 코드에 따라서 
-                 *       MUFFIN 상태 코드로 변환하는 작업이 필요합니다.
+                 * @todo ModbusRTU 클래스에서 얻은 상태 코드에 따라서 MUFFIN 상태 코드로 변환하는 작업이 필요합니다.
+                 *       현재는 시간 상 IsOK로 Boolean 값을 받지만 향후에는 MUFFIN Status::Code로 변환해야 합니다.
                  */
-                // switch (area)
-                // {
-                // case jarvis::mb_area_e::COILS:
-                //     datum = mPolledDataTable.RetrieveCoil(slaveID, address);
-                //     goto BIT_MEMORY;
-                // case jarvis::mb_area_e::DISCRETE_INPUT:
-                //     datum = mPolledDataTable.RetrieveDiscreteInput(slaveID, address);
-                // BIT_MEMORY:
-                //     if (datum.IsOK == false)
-                //     {
-                //         polledData.StatusCode = Status::Code::BAD;
-                //         polledData.Value.Boolean = datum.Value == 1 ? true : false;
-                //     }
-                //     else
-                //     {
-                //         polledData.StatusCode = Status::Code::GOOD;
-                //         polledData.Value.Boolean = datum.Value == 1 ? true : false;
-                //     }
-                //     polledData.ValueType = jarvis::dt_e::BOOLEAN;
-                //     node->VariableNode.Update(polledData);
-                //     break;
-                // case jarvis::mb_area_e::INPUT_REGISTER:
-                //     /* code */
-                //     break;
-                // case jarvis::mb_area_e::HOLDING_REGISTER:
-                //     /* code */
-                //     break;
-                // default:
-                //     break;
-                // }
+                switch (area)
+                {
+                case jarvis::mb_area_e::COILS:
+                    datum = mPolledDataTable.RetrieveCoil(slaveID, address);
+                    goto BIT_MEMORY;
+                case jarvis::mb_area_e::DISCRETE_INPUT:
+                    datum = mPolledDataTable.RetrieveDiscreteInput(slaveID, address);
+                BIT_MEMORY:
+                    if (datum.IsOK == false)
+                    {
+                        polledData.StatusCode = Status::Code::BAD;
+                        polledData.Value.Boolean = datum.Value == 1 ? true : false;
+                    }
+                    else
+                    {
+                        polledData.StatusCode = Status::Code::GOOD;
+                        polledData.Value.Boolean = datum.Value == 1 ? true : false;
+                    }
+                    polledData.ValueType = jarvis::dt_e::BOOLEAN;
+                    node->VariableNode.Update(polledData);
+                    break;
+                case jarvis::mb_area_e::INPUT_REGISTER:
+                    vectorDatum.reserve(quantity);
+                    for (size_t i = 0; i < quantity; ++i)
+                    {
+                        vectorDatum.emplace_back(mPolledDataTable.RetrieveInputRegister(slaveID, address + i));
+                    }
+                    goto REGISTER_MEMORY;
+                case jarvis::mb_area_e::HOLDING_REGISTER:
+                    vectorDatum.reserve(quantity);
+                    for (size_t i = 0; i < quantity; ++i)
+                    {
+                        vectorDatum.emplace_back(mPolledDataTable.RetrieveHoldingRegister(slaveID, address + i));
+                    }
+                REGISTER_MEMORY:
+                    if (datum.IsOK == false)
+                    {
+                        polledData.StatusCode = Status::Code::BAD;
+                        polledData.Value.UInt16 = datum.Value;
+                    }
+                    else
+                    {
+                        polledData.StatusCode = Status::Code::GOOD;
+                        polledData.Value.UInt16 = datum.Value;
+                    }
+                    polledData.ValueType = jarvis::dt_e::BOOLEAN;
+                    node->VariableNode.Update(polledData);
+                    break;
+                default:
+                    break;
+                }
             }
         }
 
