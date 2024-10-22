@@ -416,6 +416,11 @@ const char* ModbusClient::lastError()
   return modbus_strerror(errno); 
 }
 
+void ModbusClient::clearError()
+{
+  errno = 0;
+}
+
 void ModbusClient::setTimeout(unsigned long ms)
 {
   _timeout = ms;

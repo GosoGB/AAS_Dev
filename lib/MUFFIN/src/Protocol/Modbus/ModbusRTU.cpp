@@ -357,6 +357,7 @@ namespace muffin {
             ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
+            ModbusRTUClient.clearError();
 
             if (lastError != nullptr)
             {
@@ -407,6 +408,7 @@ namespace muffin {
             ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
+            ModbusRTUClient.clearError();
 
             if (lastError != nullptr)
             {
@@ -457,6 +459,7 @@ namespace muffin {
             ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
+            ModbusRTUClient.clearError();
 
             if (lastError != nullptr)
             {
@@ -506,6 +509,7 @@ namespace muffin {
             ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
+            ModbusRTUClient.clearError();
 
             if (lastError != nullptr)
             {

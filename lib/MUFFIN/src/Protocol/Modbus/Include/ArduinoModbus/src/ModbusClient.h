@@ -200,6 +200,7 @@ public:
    * @return Last error reason as a C string
    */
   const char* lastError();
+  void clearError();
 
   /**
    * Stop the client and clean up
