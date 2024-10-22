@@ -139,7 +139,11 @@ namespace muffin { namespace im {
          *       없애는 것을 고려해봐야 합니다.
          */
         data.HasTimestamp   = true;
+        
 
+        /**
+         * @todo ord, scl, ofst 등을 고려해야 합니다.
+         */
         if (data.StatusCode != Status::Code::GOOD)
         {
             data.HasValue = false;
@@ -161,7 +165,6 @@ namespace muffin { namespace im {
         else
         {
             data.HasValue = true;
-
             if (mDataType == jarvis::dt_e::STRING)
             {
                 processStringData(polledData, &data);
@@ -199,13 +202,24 @@ namespace muffin { namespace im {
          *       작업해두었습니다. 구조도 깔끔하지 않아서 향후에 개선하는 작업이 필요합니다.
          */
         var_data_t data;
-        data.StatusCode  = polledData[0].StatusCode;
         data.Timestamp   = polledData[0].Timestamp;
-        data.Timestamp   = polledData.Timestamp;
-        data.DataType    = mDataType;
-        data.DataType    = mVectorDataTypes[0];
+        for (auto& polledDatum : polledData)
+        {
+            if (polledDatum.StatusCode != Status::Code::GOOD)
+            {
+                data.StatusCode = polledDatum.StatusCode;
+            }
+            
+            if (data.Timestamp != polledDatum.Timestamp)
+            {
+                data.StatusCode = Status::Code::BAD_INVALID_TIMESTAMP;
+            }
+        }
         data.HasStatus   = true;
 
+
+        data.DataType    = mDataType;
+        data.DataType    = mVectorDataTypes[0];
 
 
 
@@ -284,24 +298,102 @@ namespace muffin { namespace im {
          * @brief 현재는 기계에서 수집한 데이터의 타입이 16비트일 때까지만 구현되어 있습니다.
          *        향후 다른 프로토콜이 필요하므로 나머지 데이터 타입의 처리를 구현해야 합니다.
          */
-        std::vector<uint8_t> vectorPolledDataInBytes;
-        for (auto& datum : polledData)
+        for (auto& dataUnitOrders : mVectorDataUnitOrders.second)
         {
-            switch (datum.ValueType)
+            const size_t totalSizeOfBytes = dataUnitOrders.RetrieveTotalSize();
+            uint8_t arrayBytesPolled[totalSizeOfBytes] = { 0 };
+            uint8_t indexPolled = 0;
+
+            for (auto& datum : polledData)
             {
-            case jarvis::dt_e::INT8:
-            case jarvis::dt_e::UINT8:
-                vectorPolledDataInBytes.emplace_back(static_cast<uint8_t>(datum.Value.UInt8));
+                switch (datum.ValueType)
+                {
+                case jarvis::dt_e::INT8:
+                case jarvis::dt_e::UINT8:
+                    arrayBytesPolled[indexPolled] = datum.Value.UInt8;
+                    ++indexPolled;
+                    break;
+                case jarvis::dt_e::INT16:
+                case jarvis::dt_e::UINT16:
+                    arrayBytesPolled[indexPolled] = static_cast<uint8_t>(((datum.Value.UInt16 >> 8) & 0xFF));
+                    ++indexPolled;
+                    arrayBytesPolled[indexPolled] = static_cast<uint8_t>((datum.Value.UInt16 & 0xFF));
+                    ++indexPolled;
+                    break;
+                /**
+                 * @todo 32bit, 64bit인 경우를 구현해야 합니다.
+                 */
+                default:
+                    break;
+                }
+            }
+
+
+            uint8_t arrayBytesCasted[totalSizeOfBytes] = { 0 };
+            uint8_t totalSizeOfCasting = 0;
+            uint8_t indexCasted = 0;
+            for (auto& dataUnitOrder : dataUnitOrders)
+            {
+                /**
+                 * @todo 32bit, 64bit인 경우를 구현해야 합니다.
+                 */
+                const uint8_t startIndex  = 2 * dataUnitOrder.Index;
+                const uint8_t finishIndex = startIndex + 1;
+
+                if (dataUnitOrder.DataUnit == jarvis::data_unit_e::WORD)
+                {
+                    arrayBytesCasted[indexCasted] = arrayBytesPolled[startIndex];
+                    ++indexCasted;
+                    arrayBytesCasted[indexCasted] = arrayBytesPolled[finishIndex];
+                    ++indexCasted;
+
+                    totalSizeOfCasting += 16;
+                }
+                else if (dataUnitOrder.DataUnit == jarvis::data_unit_e::BYTE)
+                {
+                    if (dataUnitOrder.ByteOrder == jarvis::byte_order_e::HIGHER)
+                    {
+                        arrayBytesCasted[indexCasted] = arrayBytesPolled[startIndex];
+                    }
+                    else
+                    {
+                        arrayBytesCasted[indexCasted] = arrayBytesPolled[finishIndex];
+                    }
+                        
+                    ++indexCasted;
+                    totalSizeOfCasting += 8;
+                }
+            }
+
+            casted_data_t castedData;
+            switch (totalSizeOfCasting)
+            {
+            case 8:
+                castedData.ValueType = jarvis::dt_e::UINT8;
+                castedData.Value.UInt8 = static_cast<uint8_t>(*vectorCastedBytes.data());
                 break;
-            case jarvis::dt_e::INT16:
-            case jarvis::dt_e::UINT16:
-                vectorPolledDataInBytes.emplace_back(static_cast<uint8_t>(((datum.Value.UInt16 >> 8) & 0xFF)));
-                vectorPolledDataInBytes.emplace_back(static_cast<uint8_t>((datum.Value.UInt16 & 0xFF)));
+            case 16:
+                castedData.ValueType = jarvis::dt_e::UINT16;
+                castedData.Value.UInt8 = static_cast<uint16_t>(*vectorCastedBytes.data());
+                break;
+            case 32:
+                castedData.ValueType = jarvis::dt_e::UINT32;
+                castedData.Value.UInt8 = static_cast<uint32_t>(*vectorCastedBytes.data());
+                break;
+            case 64:
+                castedData.ValueType = jarvis::dt_e::UINT64;
+                castedData.Value.UInt8 = static_cast<uint64_t>(*vectorCastedBytes.data());
                 break;
             default:
                 break;
             }
+
+            outputCastedData->emplace_back(castedData);
         }
+
+
+        std::vector<uint8_t> vectorPolledDataInBytes;
+
 
         LOG_DEBUG(logger, "\n------------------------------------------------------------------");
         char buffer[512] = { 0 };
