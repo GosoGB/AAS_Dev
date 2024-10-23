@@ -295,6 +295,10 @@ namespace muffin {
                 const jarvis::mb_area_e area = node->VariableNode.GetModbusArea();
 
                 modbus::datum_t datum;
+                datum.Address = address;
+                datum.Value = 0;
+                datum.IsOK = false;
+
                 std::vector<modbus::datum_t> vectorDatum;
                 im::poll_data_t polledData;
                 polledData.AddressType = jarvis::adtp_e::NUMERIC;
