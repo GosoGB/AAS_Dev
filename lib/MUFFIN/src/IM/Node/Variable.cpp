@@ -13,6 +13,7 @@
 
 
 
+#include <stdarg.h>
 #include <string.h>
 
 #include "Common/Assert.h"
@@ -114,32 +115,84 @@ namespace muffin { namespace im {
         }
     }
 
+    std::string createFormattedString(const char* fmt, std::vector<casted_data_t>& inputVector)
+    {
+        return "UNSUPPORTED SERVICE: TOO MANY FORMAT SPECIFIERS";
+    }
+
     /**
      * @todo jump table로 처리하는 것이 필요한지 고민해보고 필요하면 적용해야 합니다.
      */
     void Variable::Update(const poll_data_t& polledData)
     {
-        /**
-         * @todo 문자열의 경우 메모리가 부족할 수도 있기 때문에 단일 데이터만
-         *       저장될 수 있도록 설계를 바꿔야 할지에 대한 결정이 필요합니다.
-         */
         if (mDataBuffer.size() == mMaxHistorySize)
         {
+            auto it = mDataBuffer.begin();
+            if (it->DataType == jarvis::dt_e::STRING)
+            {
+                delete it->Value.String.Data;
+                it->Value.String.Data = nullptr;
+            }
             mDataBuffer.pop_front();
         }
 
-        var_data_t data;
-        data.StatusCode     = polledData.StatusCode;
-        data.Timestamp      = polledData.Timestamp;
-        data.DataType       = mDataType;
-        data.HasStatus      = true;
+
+        if (mVectorDataUnitOrders.first == true)
+        {// data unit order is configured
+            std::vector<poll_data_t> vectorPolledData;
+            vectorPolledData.reserve(1);
+            vectorPolledData.emplace_back(polledData);
+
+            std::vector<casted_data_t> vectorCastedData;
+            castWithDataUnitOrder(vectorPolledData, &vectorCastedData);
+
+            var_data_t variableData;
+            variableData.StatusCode     = polledData.StatusCode;
+            variableData.Timestamp      = polledData.Timestamp;
+
+            if (mVectorDataUnitOrders.second.size() == 1)
+            {
+                variableData.DataType  = vectorCastedData[0].ValueType;
+                variableData.Value     = vectorCastedData[0].Value;
+
+                if (mVectorDataTypes[0] != jarvis::dt_e::STRING)
+                {
+                    if (mBitIndex.first == true)
+                    {
+                        variableData.DataType  = jarvis::dt_e::BOOLEAN;
+                        variableData.Value     = vectorCastedData[0].Value;
+                        uint8_t bitMask = 1 << mBitIndex.second;
+                        variableData.Value.Boolean = (variableData.Value.UInt64 & bitMask) >> mBitIndex.second;
+                    }
+
+                    if (mNumericScale.first == true)
+                    {
+                        /* code */
+                    }
+                    
+                }
+            }
+            else
+            {
+                std::string formattedString = createFormattedString(mFormatString.second.c_str(), vectorCastedData);
+                LOG_DEBUG(logger, "Formatted string: %s", formattedString.c_str());
+
+                variableData.DataType       = jarvis::dt_e::STRING;
+                variableData.Value.String   = ToMuffinString(formattedString);
+            }
+
+            variableData.HasValue      = true;
+            variableData.HasStatus      = true;
+            variableData.HasTimestamp   = true;
+        }
+
         /**
-         * @todo 현재는 NTP 서버와 동기화가 되어야 MUFFIN 초기화가 끝나기
-         *       때문에 항상 true일 수밖에 없습니다. 따라서 해당 속성을
-         *       없애는 것을 고려해봐야 합니다.
+         * @todo 현재는 NTP 서버와 동기화가 되어야 MUFFIN 초기화가 끝나기 때문에 항상 true일 수밖에 없습니다.
+         *       따라서 해당 속성이 필요한지 고민한 다음 필요 없다면 제거해야 합니다.
          */
-        data.HasTimestamp   = true;
-        
+        variableData.HasTimestamp   = true;
+        variableData.HasStatus      = true;
+
 
         /**
          * @todo ord, scl, ofst 등을 고려해야 합니다.
@@ -218,11 +271,6 @@ namespace muffin { namespace im {
         data.HasStatus   = true;
 
 
-        data.DataType    = mDataType;
-        data.DataType    = mVectorDataTypes[0];
-
-
-
         if ((mVectorDataUnitOrders.first == true))
         {
             ASSERT((mVectorDataUnitOrders.second.size() == 0), "LENGTH OF DATA UNIT ORDERS CANNOT BE 0 WHEN IT'S ENALBED");
@@ -231,12 +279,21 @@ namespace muffin { namespace im {
             {
                 std::vector<casted_data_t> castedData;
                 castWithDataUnitOrder(polledData, &castedData);
-
-
+                
+                if (castedData.size() == 1)
+                {
+                    if (castedData[0].ValueType == jarvis::dt_e::STRING)
+                    {
+                        data.DataType = jarvis::dt_e::STRING;
+                        data.Value = castedData[0].Value;
+                    }
+                }
+                
                 if (mBitIndex.first == true)
                 {
-                    castedData[0].Value.Boolean & (0x01 << mBitIndex.second);
-                    mDataBuffer.emplace_back()
+                    // apply bit index;
+                        // castedData[0].Value.Boolean & (0x01 << mBitIndex.second);
+                        // mDataBuffer.emplace_back()
                 }
 
                 if (mMapMappingRules.first == true)
@@ -298,11 +355,170 @@ namespace muffin { namespace im {
          * @brief 현재는 기계에서 수집한 데이터의 타입이 16비트일 때까지만 구현되어 있습니다.
          *        향후 다른 프로토콜이 필요하므로 나머지 데이터 타입의 처리를 구현해야 합니다.
          */
+        uint8_t idxDataTypeVector = 0;
         for (auto& dataUnitOrders : mVectorDataUnitOrders.second)
         {
-            const size_t totalSizeOfBytes = dataUnitOrders.RetrieveTotalSize();
-            uint8_t arrayBytesPolled[totalSizeOfBytes] = { 0 };
-            uint8_t indexPolled = 0;
+            const bool isDataTypeString = mVectorDataTypes[idxDataTypeVector] == jarvis::dt_e::STRING;
+            ++idxDataTypeVector;
+
+            if (isDataTypeString == false)
+            {
+                const size_t totalSizeOfBytes = dataUnitOrders.RetrieveTotalSize();
+                uint8_t arrayBytesPolled[totalSizeOfBytes] = { 0 };
+                uint8_t indexPolled = 0;
+
+                for (auto& datum : polledData)
+                {
+                    switch (datum.ValueType)
+                    {
+                    case jarvis::dt_e::INT8:
+                    case jarvis::dt_e::UINT8:
+                        arrayBytesPolled[indexPolled] = datum.Value.UInt8;
+                        ++indexPolled;
+                        break;
+                    case jarvis::dt_e::INT16:
+                    case jarvis::dt_e::UINT16:
+                        arrayBytesPolled[indexPolled] = static_cast<uint8_t>(((datum.Value.UInt16 >> 8) & 0xFF));
+                        ++indexPolled;
+                        arrayBytesPolled[indexPolled] = static_cast<uint8_t>((datum.Value.UInt16 & 0xFF));
+                        ++indexPolled;
+                        break;
+                    /**
+                     * @todo 32bit, 64bit인 경우를 구현해야 합니다.
+                     */
+                    default:
+                        break;
+                    }
+                }
+                ASSERT((totalSizeOfBytes == indexPolled), "TOTAL DATA UNIT ORDER SIZE AND THE POLLED DATA SIZE MUST IDENTICAL");
+
+
+                uint8_t arrayBytesCasted[totalSizeOfBytes] = { 0 };
+                uint8_t indexCasted = 0;
+                for (auto& dataUnitOrder : dataUnitOrders)
+                {
+                    /**
+                     * @todo 32bit, 64bit인 경우를 구현해야 합니다.
+                     */
+                    const uint8_t startIndex  = 2 * dataUnitOrder.Index;
+                    const uint8_t finishIndex = startIndex + 1;
+
+                    if (dataUnitOrder.DataUnit == jarvis::data_unit_e::WORD)
+                    {
+                        arrayBytesCasted[indexCasted] = arrayBytesPolled[startIndex];
+                        ++indexCasted;
+                        arrayBytesCasted[indexCasted] = arrayBytesPolled[finishIndex];
+                        ++indexCasted;
+                    }
+                    else if (dataUnitOrder.DataUnit == jarvis::data_unit_e::BYTE)
+                    {
+                        if (dataUnitOrder.ByteOrder == jarvis::byte_order_e::HIGHER)
+                        {
+                            arrayBytesCasted[indexCasted] = arrayBytesPolled[startIndex];
+                        }
+                        else
+                        {
+                            arrayBytesCasted[indexCasted] = arrayBytesPolled[finishIndex];
+                        }
+                        ++indexCasted;
+                    }
+                }
+
+                casted_data_t castedData;
+                switch (mVectorDataTypes[idxDataTypeVector])
+                {
+                case jarvis::dt_e::INT8:
+                    castedData.ValueType = jarvis::dt_e::INT8;
+                    castedData.Value.UInt8 = *reinterpret_cast<int8_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::UINT8:
+                    castedData.ValueType = jarvis::dt_e::UINT8;
+                    castedData.Value.UInt8 = *reinterpret_cast<uint8_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::INT16:
+                    castedData.ValueType = jarvis::dt_e::INT16;
+                    castedData.Value.UInt8 = *reinterpret_cast<int16_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::UINT16:
+                    castedData.ValueType = jarvis::dt_e::UINT16;
+                    castedData.Value.UInt8 = *reinterpret_cast<uint16_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::INT32:
+                    castedData.ValueType = jarvis::dt_e::INT32;
+                    castedData.Value.UInt8 = *reinterpret_cast<int32_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::UINT32:
+                    castedData.ValueType = jarvis::dt_e::UINT32;
+                    castedData.Value.UInt8 = *reinterpret_cast<uint32_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::INT64:
+                    castedData.ValueType = jarvis::dt_e::INT64;
+                    castedData.Value.UInt8 = *reinterpret_cast<int64_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::UINT64:
+                    castedData.ValueType = jarvis::dt_e::UINT64;
+                    castedData.Value.UInt8 = *reinterpret_cast<uint64_t*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::FLOAT32:
+                    castedData.ValueType = jarvis::dt_e::FLOAT32;
+                    castedData.Value.UInt8 = *reinterpret_cast<float*>(arrayBytesCasted);
+                    break;
+                case jarvis::dt_e::FLOAT64:
+                    castedData.ValueType = jarvis::dt_e::FLOAT64;
+                    castedData.Value.UInt8 = *reinterpret_cast<double*>(arrayBytesCasted);
+                    break;
+                default:
+                    break;
+                }
+
+                outputCastedData->emplace_back(castedData);
+            }
+            else
+            {
+                /**
+                 * @todo im::string_t 개체는 동적할당이기 때문에 소멸자를 나중에 호출시켜줘야 합니다.
+                 */
+                std::string castedString;
+                for (auto& datum : polledData)
+                {
+                    switch (datum.ValueType)
+                    {
+                    case jarvis::dt_e::INT8:
+                    case jarvis::dt_e::UINT8:
+                        castedString += static_cast<char>(datum.Value.UInt8);
+                        break;
+                    case jarvis::dt_e::INT16:
+                    case jarvis::dt_e::UINT16:
+                        castedString += static_cast<char>(((datum.Value.UInt16 >> 8) & 0xFF));
+                        castedString += static_cast<char>(((datum.Value.UInt16 & 0xFF)));
+                        break;
+                    /**
+                     * @todo 32bit, 64bit인 경우를 구현해야 합니다.
+                     */
+                    default:
+                        break;
+                    }
+                }
+
+                casted_data_t castedData;
+                castedData.ValueType = jarvis::dt_e::STRING;
+                castedData.Value.String = ToMuffinString(castedString);
+
+                outputCastedData->emplace_back(castedData);
+            }
+        }
+    }
+
+    void Variable::castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData)
+    {
+        ASSERT((outputCastedData != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
+
+        const bool isDataTypeString = mVectorDataTypes[0] == jarvis::dt_e::STRING;
+        ASSERT((mVectorDataTypes.size() == 1), "THE SIZE OF DATA TYPE ARRAY MUST BE 1 WHEN DATA UNIT ORDER IS DISABLED");
+
+        if (isDataTypeString == false)
+        {
+            std::vector<uint8_t> vectorBytesPolled;
 
             for (auto& datum : polledData)
             {
@@ -310,15 +526,90 @@ namespace muffin { namespace im {
                 {
                 case jarvis::dt_e::INT8:
                 case jarvis::dt_e::UINT8:
-                    arrayBytesPolled[indexPolled] = datum.Value.UInt8;
-                    ++indexPolled;
+                    vectorBytesPolled.emplace_back(datum.Value.UInt8);
                     break;
                 case jarvis::dt_e::INT16:
                 case jarvis::dt_e::UINT16:
-                    arrayBytesPolled[indexPolled] = static_cast<uint8_t>(((datum.Value.UInt16 >> 8) & 0xFF));
-                    ++indexPolled;
-                    arrayBytesPolled[indexPolled] = static_cast<uint8_t>((datum.Value.UInt16 & 0xFF));
-                    ++indexPolled;
+                    vectorBytesPolled.emplace_back(static_cast<uint8_t>(((datum.Value.UInt16 >> 8) & 0xFF)));
+                    vectorBytesPolled.emplace_back(static_cast<uint8_t>(((datum.Value.UInt16 & 0xFF))));
+                    break;
+                /**
+                 * @todo 32bit, 64bit인 경우를 구현해야 합니다.
+                 */
+                default:    
+                    ASSERT(false, "UNDEFINED BEHAVIOUR");
+                    break;
+                }
+            }
+
+
+            switch (mVectorDataTypes[0])
+            {
+            case jarvis::dt_e::INT8:
+                outputCastedData->ValueType = jarvis::dt_e::INT8;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<int8_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::UINT8:
+                outputCastedData->ValueType = jarvis::dt_e::UINT8;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<uint8_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::INT16:
+                outputCastedData->ValueType = jarvis::dt_e::INT16;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<int16_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::UINT16:
+                outputCastedData->ValueType = jarvis::dt_e::UINT16;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<uint16_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::INT32:
+                outputCastedData->ValueType = jarvis::dt_e::INT32;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<int32_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::UINT32:
+                outputCastedData->ValueType = jarvis::dt_e::UINT32;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<uint32_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::INT64:
+                outputCastedData->ValueType = jarvis::dt_e::INT64;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<int64_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::UINT64:
+                outputCastedData->ValueType = jarvis::dt_e::UINT64;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<uint64_t*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::FLOAT32:
+                outputCastedData->ValueType = jarvis::dt_e::FLOAT32;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<float*>(vectorBytesPolled.data());
+                break;
+            case jarvis::dt_e::FLOAT64:
+                outputCastedData->ValueType = jarvis::dt_e::FLOAT64;
+                outputCastedData->Value.UInt8 = *reinterpret_cast<double*>(vectorBytesPolled.data());
+                break;
+            default:
+                ASSERT(false, "UNDEFINED BEHAVIOUR");
+                break;
+            }
+
+            return;
+        }
+        else
+        {
+            /**
+             * @todo im::string_t 개체는 동적할당이기 때문에 소멸자를 나중에 호출시켜줘야 합니다.
+             */
+            std::string castedData;
+            for (auto& datum : polledData)
+            {
+                switch (datum.ValueType)
+                {
+                case jarvis::dt_e::INT8:
+                case jarvis::dt_e::UINT8:
+                    castedData += static_cast<char>(datum.Value.UInt8);
+                    break;
+                case jarvis::dt_e::INT16:
+                case jarvis::dt_e::UINT16:
+                    castedData += static_cast<char>(((datum.Value.UInt16 >> 8) & 0xFF));
+                    castedData += static_cast<char>(((datum.Value.UInt16 & 0xFF)));
                     break;
                 /**
                  * @todo 32bit, 64bit인 경우를 구현해야 합니다.
@@ -328,155 +619,9 @@ namespace muffin { namespace im {
                 }
             }
 
-
-            uint8_t arrayBytesCasted[totalSizeOfBytes] = { 0 };
-            uint8_t totalSizeOfCasting = 0;
-            uint8_t indexCasted = 0;
-            for (auto& dataUnitOrder : dataUnitOrders)
-            {
-                /**
-                 * @todo 32bit, 64bit인 경우를 구현해야 합니다.
-                 */
-                const uint8_t startIndex  = 2 * dataUnitOrder.Index;
-                const uint8_t finishIndex = startIndex + 1;
-
-                if (dataUnitOrder.DataUnit == jarvis::data_unit_e::WORD)
-                {
-                    arrayBytesCasted[indexCasted] = arrayBytesPolled[startIndex];
-                    ++indexCasted;
-                    arrayBytesCasted[indexCasted] = arrayBytesPolled[finishIndex];
-                    ++indexCasted;
-
-                    totalSizeOfCasting += 16;
-                }
-                else if (dataUnitOrder.DataUnit == jarvis::data_unit_e::BYTE)
-                {
-                    if (dataUnitOrder.ByteOrder == jarvis::byte_order_e::HIGHER)
-                    {
-                        arrayBytesCasted[indexCasted] = arrayBytesPolled[startIndex];
-                    }
-                    else
-                    {
-                        arrayBytesCasted[indexCasted] = arrayBytesPolled[finishIndex];
-                    }
-                        
-                    ++indexCasted;
-                    totalSizeOfCasting += 8;
-                }
-            }
-
-            casted_data_t castedData;
-            switch (totalSizeOfCasting)
-            {
-            case 8:
-                castedData.ValueType = jarvis::dt_e::UINT8;
-                castedData.Value.UInt8 = static_cast<uint8_t>(*vectorCastedBytes.data());
-                break;
-            case 16:
-                castedData.ValueType = jarvis::dt_e::UINT16;
-                castedData.Value.UInt8 = static_cast<uint16_t>(*vectorCastedBytes.data());
-                break;
-            case 32:
-                castedData.ValueType = jarvis::dt_e::UINT32;
-                castedData.Value.UInt8 = static_cast<uint32_t>(*vectorCastedBytes.data());
-                break;
-            case 64:
-                castedData.ValueType = jarvis::dt_e::UINT64;
-                castedData.Value.UInt8 = static_cast<uint64_t>(*vectorCastedBytes.data());
-                break;
-            default:
-                break;
-            }
-
-            outputCastedData->emplace_back(castedData);
+            outputCastedData->ValueType = jarvis::dt_e::STRING;
+            outputCastedData->Value.String = ToMuffinString(castedData);
         }
-
-
-        std::vector<uint8_t> vectorPolledDataInBytes;
-
-
-        LOG_DEBUG(logger, "\n------------------------------------------------------------------");
-        char buffer[512] = { 0 };
-        char buffer2[8] = { 0 };
-        for (auto byte : vectorPolledDataInBytes)
-        {
-            sprintf(buffer2, "%X ", byte);
-            strcat(buffer, buffer2);
-        }
-        LOG_DEBUG(logger, "%s", buffer);
-        LOG_DEBUG(logger, "------------------------------------------------------------------\n");
-        
-        for (auto& dataUnitOrders : mVectorDataUnitOrders.second)
-        {
-            uint8_t castedSize = 0;
-            casted_data_t castedData;
-            std::vector<uint8_t> vectorCastedBytes;
-
-            for (auto& order : dataUnitOrders)
-            {
-                const uint8_t startIndex  = 2 * order.Index;
-                const uint8_t finishIndex = startIndex + 1;
-
-                if (order.DataUnit == jarvis::data_unit_e::WORD)
-                {
-                    vectorCastedBytes.emplace_back(vectorPolledDataInBytes[startIndex]);
-                    vectorCastedBytes.emplace_back(vectorPolledDataInBytes[finishIndex]);
-                    castedSize += 16;
-                }
-                else if (order.DataUnit == jarvis::data_unit_e::BYTE)
-                {
-                    if (order.ByteOrder == jarvis::byte_order_e::HIGHER)
-                    {
-                        vectorCastedBytes.emplace_back(vectorPolledDataInBytes[startIndex]);
-                    }
-                    else
-                    {
-                        vectorCastedBytes.emplace_back(vectorPolledDataInBytes[finishIndex]);
-                    }
-                    castedSize += 8;
-                }
-            }
-
-        LOG_DEBUG(logger, "\n------------------------------------------------------------------");
-        char _buffer[512] = { 0 };
-        char _buffer2[8] = { 0 };
-        for (auto byte : vectorCastedBytes)
-        {
-            sprintf(_buffer2, "%X ", byte);
-            strcat(_buffer, _buffer2);
-        }
-        LOG_DEBUG(logger, "%s", _buffer);
-        LOG_DEBUG(logger, "------------------------------------------------------------------\n");
-
-            switch (castedSize)
-            {
-            case 8:
-                castedData.ValueType = jarvis::dt_e::UINT8;
-                castedData.Value.UInt8 = static_cast<uint8_t>(*vectorCastedBytes.data());
-                break;
-            case 16:
-                castedData.ValueType = jarvis::dt_e::UINT16;
-                castedData.Value.UInt8 = static_cast<uint16_t>(*vectorCastedBytes.data());
-                break;
-            case 32:
-                castedData.ValueType = jarvis::dt_e::UINT32;
-                castedData.Value.UInt8 = static_cast<uint32_t>(*vectorCastedBytes.data());
-                break;
-            case 64:
-                castedData.ValueType = jarvis::dt_e::UINT64;
-                castedData.Value.UInt8 = static_cast<uint64_t>(*vectorCastedBytes.data());
-                break;
-            default:
-                break;
-            }
-
-            outputCastedData->emplace_back(castedData);
-        }
-    }
-
-    void Variable::castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData)
-    {
-        ;
     }
 
     void Variable::strategySingleDataType()

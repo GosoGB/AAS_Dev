@@ -43,11 +43,12 @@ namespace muffin { namespace im {
         void Update(const poll_data_t& polledData);
         void Update(const std::vector<poll_data_t>& polledData);
     private:
+        ;
+    private:
         // void processStatusCode(const poll_data_t& polledData);
         void processStringData(const poll_data_t& polledData, var_data_t* outputData);
         void processNumericData(const poll_data_t& polledData, var_data_t* outputData);
         string_t ToMuffinString(const std::string& stdString);
-
     public:
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
@@ -58,7 +59,8 @@ namespace muffin { namespace im {
         jarvis::mb_area_e GetModbusArea() const;
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
-        void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData);
+        void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);
+        void applyBitIndex();
     private:
         // virtual void strategySingleDataType() override;
         void strategySingleDataType();
