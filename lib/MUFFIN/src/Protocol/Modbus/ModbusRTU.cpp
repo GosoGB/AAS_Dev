@@ -336,6 +336,7 @@ namespace muffin {
                     {
                         vectorDatum.emplace_back(mPolledDataTable.RetrieveInputRegister(slaveID, address + i));
                     }
+                    LOG_INFO(logger, "vectorDatum size : %d value : %d", vectorDatum.size(), vectorDatum[0].Value);
                     goto REGISTER_MEMORY;
                 case jarvis::mb_area_e::HOLDING_REGISTER:
                     vectorDatum.reserve(quantity);
@@ -347,14 +348,14 @@ namespace muffin {
                     if (datum.IsOK == false)
                     {
                         polledData.StatusCode = Status::Code::BAD;
-                        polledData.Value.UInt16 = datum.Value;
+                        polledData.Value.UInt16 =  vectorDatum[0].Value;
                     }
                     else
                     {
                         polledData.StatusCode = Status::Code::GOOD;
-                        polledData.Value.UInt16 = datum.Value;
+                        polledData.Value.UInt16 =  vectorDatum[0].Value;
                     }
-                    polledData.ValueType = jarvis::dt_e::BOOLEAN;
+                    polledData.ValueType = jarvis::dt_e::UINT16;
                     node->VariableNode.Update(polledData);
                     break;
                 default:
@@ -443,14 +444,14 @@ namespace muffin {
                 }
                 continue;
             }
-            LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
+            // LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
                 const int8_t value = ModbusRTUClient.read();
-                LOG_DEBUG(logger, "[DISCRETE INPUT] read value : %d, address : %d ", value, address);
+                // LOG_DEBUG(logger, "[DISCRETE INPUT] read value : %d, address : %d ", value, address);
                 switch (value)
                 {
                 case 1:
@@ -477,7 +478,7 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            LOG_INFO(logger,"[INPUT REGISTERS] slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
+            // LOG_INFO(logger,"[INPUT REGISTERS] slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
             ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
@@ -494,14 +495,14 @@ namespace muffin {
                 }
                 continue;
             }
-            LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
+            // LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
-                LOG_DEBUG(logger, "[INPUT REGISTER] read value : %d, address : %d ", value, address);
+                // LOG_DEBUG(logger, "[INPUT REGISTER] read value : %d, address : %d ", value, address);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");

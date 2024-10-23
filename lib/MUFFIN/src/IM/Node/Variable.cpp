@@ -125,6 +125,8 @@ namespace muffin { namespace im {
      */
     void Variable::Update(const poll_data_t& polledData)
     {
+        LOG_WARNING(logger,"polledData in : %u", polledData.Value.UInt16);
+        
         removeOldestHistory();
         
         var_data_t variableData;
@@ -166,11 +168,12 @@ namespace muffin { namespace im {
                 goto CHECK_EVENT;
             }
         }
-        else if (mVectorDataTypes[0] != jarvis::dt_e::BOOLEAN)
+        else //if (mVectorDataTypes[0] != jarvis::dt_e::BOOLEAN)
         {
             casted_data_t castedData;
             castWithoutDataUnitOrder(vectorPolledData, &castedData);
-
+            LOG_WARNING(logger,"variableData : %f, %d, %u", castedData.Value.Float32, castedData.Value.Int16, castedData.Value.UInt16);
+    
             variableData.DataType  = castedData.ValueType;
             variableData.Value     = castedData.Value;
 
@@ -179,29 +182,29 @@ namespace muffin { namespace im {
                 goto CHECK_EVENT;
             }
         }
-    
+        LOG_WARNING(logger,"1variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
         if (mBitIndex.first == true)
         {
             applyBitIndex(variableData);
             goto CHECK_EVENT;
         }
-
+        LOG_WARNING(logger,"2variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
         if (mMapMappingRules.first == true)
         {
             applyMappingRules(variableData);
             goto CHECK_EVENT;
         }
-
+        LOG_WARNING(logger,"3variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
         if (mNumericScale.first == true)
         {
             applyNumericScale(variableData);
         }
-
-        if (mNumericScale.first == true)
+        LOG_WARNING(logger,"4variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
+        if (mNumericOffset.first == true)
         {
             applyNumericOffset(variableData);
         }
-
+        LOG_WARNING(logger,"5variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
     CHECK_EVENT:
         if (variableData.StatusCode != Status::Code::GOOD)
         {
@@ -226,6 +229,7 @@ namespace muffin { namespace im {
     EMPLACE_DATA:
         try
         {
+            LOG_WARNING(logger,"variableData : %f, %d, %u",variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
             mDataBuffer.emplace_back(variableData);
         }
         catch(const std::exception& e)
@@ -269,10 +273,15 @@ namespace muffin { namespace im {
             case jarvis::dt_e::INT16:
             case jarvis::dt_e::UINT16:
                 {
+                    LOG_WARNING(logger,"polledDatum: %u", polledDatum.Value.UInt16);
                     const uint8_t byteHigh  = static_cast<uint8_t>(((polledDatum.Value.UInt16 >> 8) & 0xFF));
                     const uint8_t byteLow   = static_cast<uint8_t>((polledDatum.Value.UInt16 & 0xFF));
+                    LOG_WARNING(logger,"byteHigh: %u", byteHigh);
+                    LOG_WARNING(logger,"byteLow: %u", byteLow);
                     outputFlattenVector->emplace_back(byteHigh);
                     outputFlattenVector->emplace_back(byteLow);
+                    LOG_DEBUG(logger,"size() : %d ", outputFlattenVector->size());   
+                    LOG_DEBUG(logger,"first index : %d, second index : %d ", outputFlattenVector->at(0),outputFlattenVector->at(1));
                 }
                 break;
             /**
@@ -294,7 +303,8 @@ namespace muffin { namespace im {
             break;
         case jarvis::dt_e::INT16:
             castedData->ValueType = jarvis::dt_e::INT16;
-            memcpy(&castedData->Value.Int16, vectorBytes.data(), sizeof(int16_t));
+            castedData->Value.Int16 = *reinterpret_cast<const int16_t*>(vectorBytes.data());
+            LOG_INFO(logger, "INT16: %d", castedData->Value.Int16);
             break;
         case jarvis::dt_e::INT32:
             castedData->ValueType = jarvis::dt_e::INT32;
@@ -398,42 +408,42 @@ namespace muffin { namespace im {
         {
         case jarvis::dt_e::INT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) / denominator;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) * denominator;
             break;
         case jarvis::dt_e::UINT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) / denominator;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) * denominator;
             break;
         case jarvis::dt_e::INT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) / denominator;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) * denominator;
             break;
         case jarvis::dt_e::UINT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) / denominator;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) * denominator;
             break;
         case jarvis::dt_e::INT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<float>(variableData.Value.Int32) / denominator;
+            variableData.Value.Float64 = static_cast<float>(variableData.Value.Int32) * denominator;
             break;
         case jarvis::dt_e::UINT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<float>(variableData.Value.UInt32) / denominator;
+            variableData.Value.Float64 = static_cast<float>(variableData.Value.UInt32) * denominator;
             break;
         case jarvis::dt_e::FLOAT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) / denominator;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) * denominator;
             break;
         case jarvis::dt_e::INT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) / denominator;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) * denominator;
             break;
         case jarvis::dt_e::UINT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) / denominator;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) * denominator;
             break;
         case jarvis::dt_e::FLOAT64:
-            variableData.Value.Float64 = variableData.Value.Float64 / denominator;
+            variableData.Value.Float64 = variableData.Value.Float64 * denominator;
             break;
         default:
             break;
@@ -549,7 +559,9 @@ namespace muffin { namespace im {
 
         std::vector<uint8_t> vectorFlattened;
         flattenToByteArray(polledData, &vectorFlattened);
+
         castByteVector(mVectorDataTypes[0], vectorFlattened, outputCastedData);
+        
     }
 
     bool Variable::isEventOccured(var_data_t& variableData)
