@@ -21,4 +21,5 @@ namespace muffin {
 
     void StartTaskMQTT();
     void implMqttTask(void* pvParameter);
+    void publishMqttTask(void* pvParameter);
 }

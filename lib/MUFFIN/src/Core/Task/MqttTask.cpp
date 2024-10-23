@@ -22,7 +22,8 @@
 #include "Core/Core.h"
 #include "MqttTask.h"
 #include "Protocol/MQTT/CIA.h"
-
+#include "Protocol/MQTT/CDO.h"
+#include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 
 
 namespace muffin {
@@ -77,6 +78,43 @@ namespace muffin {
             // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             break;
         }
+
+        taskCreationResult = xTaskCreatePinnedToCore(
+            publishMqttTask,      // Function to be run inside of the task
+            "publishMqttTask",    // The identifier of this task for men
+            10240,			   // Stack memory size to allocate
+            NULL,			   // Task parameters to be passed to the function
+            0,				   // Task Priority for scheduling
+            &xTaskMqttHandle,  // The identifier of this task for machines
+            0				   // Index of MCU core where the function to run
+        );
+
+        /**
+         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
+         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
+         */
+        switch (taskCreationResult)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "The Publish MQTT task has been started");
+            // return Status(Status::Code::GOOD);
+            break;
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
+            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            break;
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
+            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            break;
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
+            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            break;
+        }
     }
 
     void implMqttTask(void* pvParameter)
@@ -101,6 +139,62 @@ namespace muffin {
 
             Core& core = Core::GetInstance();
             core.RouteMqttMessage(receivedMessage.second);
+        }
+    }
+
+    void publishMqttTask(void* pvParameter)
+    {
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        const uint8_t MAX_RETRY_COUNT = 5;
+
+        while (true)
+        {
+            if (cdo.Count() == 0)
+            {
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                continue;
+            }
+
+            const auto pubMessage = cdo.Peek();
+            const Status status = pubMessage.first;
+            
+            if (status.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO PEEK MESSAGE FROM CDO: %s ", status.c_str());
+                vTaskDelay(500 / portTICK_PERIOD_MS);
+                continue;
+            }
+
+            mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+            for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+            {
+                Status ret = catMqtt.Publish(pubMessage.second);
+                if (ret == Status::Code::GOOD)
+                {
+                    cdo.Retrieve();
+                    break;
+                }
+                else if ((i + 1) == MAX_RETRY_COUNT)
+                {
+                    /**
+                     * @todo 메시지 전송에 실패했을 때 나중에 다시 전송을 시도할 수 있도록 기능을 보완해야 합니다.
+                     */
+                    LOG_ERROR(logger, "FAILED TO PUBLISH MESSAGE: %s", ret.c_str());
+                    /**
+                     * @todo 메시지 전송에 실패한 경우에 return 해서 빠져나갈지 아니면 설정 정보를
+                     *        저장한 다음 설정 정보를 적용할지 여부를 결정해야 합니다.
+                     */
+                    ASSERT(false, "IMPLEMENTATION ERROR: NEED TO DECIDE BETWEEN EARLY EXIT AND APPLYING THE CONFIG");
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "[TRIAL: #%u] PUBLISH WAS UNSUCCESSFUL: %s", i, ret.c_str());
+                }
+            }
+
+
+    
         }
     }
 }

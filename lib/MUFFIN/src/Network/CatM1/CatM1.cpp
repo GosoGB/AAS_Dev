@@ -736,6 +736,7 @@ namespace muffin {
         LOG_INFO(logger, "Callback: SMS functionality is initialized");
         mInitFlags.set(init_flags_e::SMS_REPORT);
         checkCatM1Started();
+        
     }
 
     void CatM1::onEventAPPRDY()

@@ -1,10 +1,11 @@
 /**
  * @file Initializer.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 정의합니다.
  * 
- * @date 2024-10-17
+ * @date 2024-10-23
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -36,6 +37,7 @@
 #endif
 
 #include "Protocol/MQTT/CIA.h"
+#include "Protocol/MQTT/CDO.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Topic.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
@@ -203,6 +205,13 @@ namespace muffin {
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
 
+            mqtt::CDO* cdo = mqtt::CDO::GetInstanceOrNULL();
+            if (cdo == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT CDO");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+
             CatM1& catM1 = CatM1::GetInstance();
             mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::GetInstanceOrNULL(catM1, info);
             if (catMQTT == nullptr)
@@ -231,11 +240,19 @@ namespace muffin {
             }
 
             mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
+            mqtt::Message topicREMOTE_CONTROL(mqtt::topic_e::REMOTE_CONTROL, "");
             /**
-             * @todo 원격제어를 포함해 구독해야 하는 모든 토픽을 추가해야 합니다.
+             * @todo JARVIS REQUEST, REMOTE CONTROL 토픽 구독 완료, 추가로 구독해야하는 토픽이 있나?
              */
             std::vector<mqtt::Message> vectorTopicsToSubscribe;
             ret = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s", ret.c_str());
+                return ret;
+            }
+
+            ret = EmplaceBack(std::move(topicREMOTE_CONTROL), &vectorTopicsToSubscribe);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s", ret.c_str());

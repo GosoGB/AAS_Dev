@@ -22,6 +22,7 @@
 #include "Include/Helper.h"
 #include "Initializer/Initializer.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
+#include "Protocol/MQTT/CDO.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Task/MqttTask.h"
 #include "Task/JarvisTask.h"
@@ -217,35 +218,15 @@ namespace muffin {
         serializeJson(doc, payload);
 
         mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-        LOG_DEBUG(logger, "JARVIS Response: %s", message.GetPayload());
-
-        mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
-        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        Status ret = cdo.Store(message);
+        if (ret != Status::Code::GOOD)
         {
-            Status ret = catMqtt.Publish(message);
-            if (ret == Status::Code::GOOD)
-            {
-                break;
-            }
-            else if ((i + 1) == MAX_RETRY_COUNT)
-            {
-                /**
-                 * @todo 메시지 전송에 실패했을 때 나중에 다시 전송을 시도할 수 있도록 기능을 보완해야 합니다.
-                 */
-                LOG_ERROR(logger, "FAILED TO PUBLISH MESSAGE: %s", ret.c_str());
-                /**
-                 * @todo 메시지 전송에 실패한 경우에 return 해서 빠져나갈지 아니면 설정 정보를
-                 *        저장한 다음 설정 정보를 적용할지 여부를 결정해야 합니다.
-                 */
-                ASSERT(false, "IMPLEMENTATION ERROR: NEED TO DECIDE BETWEEN EARLY EXIT AND APPLYING THE CONFIG");
-                break;
-            }
-            else
-            {
-                LOG_WARNING(logger, "[TRIAL: #%u] PUBLISH WAS UNSUCCESSFUL: %s", i, ret.c_str());
-            }
+             /**
+             * @todo Store 실패시 falsh 메모리에 저장하는 방법
+             * 
+             */
         }
-
 
         if (result.GetRSC() >= jarvis::rsc_e::UNCERTAIN)
         {

@@ -85,7 +85,7 @@ namespace muffin { namespace jarvis {
             mAddress = convertToAddress(json["addr"].as<JsonVariant>());
             if (mAddress.first != rsc_e::GOOD)
             {
-                const std::string message = "INVALID NODE ADDRESS";
+                const std::string message = "INVALID NODE ADDRESS, NODE ID : " + mNodeID;
                 return std::make_pair(mAddress.first, message);
             }
             
@@ -112,7 +112,7 @@ namespace muffin { namespace jarvis {
             if (mModbusArea.first != rsc_e::GOOD && 
                 mModbusArea.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO MODBUS AREA";
+                const std::string message = "FAILED TO CONVERT TO MODBUS AREA, NODE ID : " + mNodeID;;
                 return std::make_pair(mModbusArea.first, message);
             }
 
@@ -120,7 +120,7 @@ namespace muffin { namespace jarvis {
             if (mBitIndex.first != rsc_e::GOOD && 
                 mBitIndex.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO BIT INDEX";
+                const std::string message = "FAILED TO CONVERT TO BIT INDEX, NODE ID : " + mNodeID;;
                 return std::make_pair(mBitIndex.first, message);
             }
 
@@ -128,7 +128,7 @@ namespace muffin { namespace jarvis {
             if (mAddressQuantity.first != rsc_e::GOOD && 
                 mAddressQuantity.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO ADDRESS QUANTITY";
+                const std::string message = "FAILED TO CONVERT TO ADDRESS QUANTITY, NODE ID : " + mNodeID;;
                 return std::make_pair(mAddressQuantity.first, message);
             }
 
@@ -136,7 +136,7 @@ namespace muffin { namespace jarvis {
             if (mNumericScale.first != rsc_e::GOOD && 
                 mNumericScale.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO NUMERIC SCALE";
+                const std::string message = "FAILED TO CONVERT TO NUMERIC SCALE, NODE ID : " + mNodeID;;
                 return std::make_pair(mNumericScale.first, message);
             }
 
@@ -144,7 +144,7 @@ namespace muffin { namespace jarvis {
             if (mNumericOffset.first != rsc_e::GOOD && 
                 mNumericOffset.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO NUMERIC OFFSET";
+                const std::string message = "FAILED TO CONVERT TO NUMERIC OFFSET, NODE ID : " + mNodeID;;
                 return std::make_pair(mNumericOffset.first, message);
             }
 
@@ -152,7 +152,7 @@ namespace muffin { namespace jarvis {
             if (mMappingRules.first != rsc_e::GOOD && 
                 mMappingRules.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO MAPPING RULES";
+                const std::string message = "FAILED TO CONVERT TO MAPPING RULES, NODE ID : " + mNodeID;;
                 return std::make_pair(mMappingRules.first, message);
             }
 
@@ -160,7 +160,7 @@ namespace muffin { namespace jarvis {
             if (mDataUnitOrders.first != rsc_e::GOOD &&
                 mDataUnitOrders.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO DATA UNIT ORDERS";
+                const std::string message = "FAILED TO CONVERT TO DATA UNIT ORDERS, NODE ID : " + mNodeID;;
                 return std::make_pair(mDataUnitOrders.first, message);
             }
 
@@ -168,7 +168,7 @@ namespace muffin { namespace jarvis {
             if (mFormatString.first != rsc_e::GOOD &&
                 mFormatString.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO FORMAT STRING";
+                const std::string message = "FAILED TO CONVERT TO FORMAT STRING, NODE ID : " + mNodeID;;
                 return std::make_pair(mFormatString.first, message);
             }
 

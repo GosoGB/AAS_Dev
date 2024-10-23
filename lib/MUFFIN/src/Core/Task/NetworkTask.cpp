@@ -24,6 +24,7 @@
 #include "IM/MacAddress/MacAddress.h"
 #include "NetworkTask.h"
 #include "Protocol/MQTT/CIA.h"
+#include "Protocol/MQTT/CDO.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Topic.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
@@ -71,7 +72,10 @@ namespace muffin {
         /*LTE Cat.M1 모뎀 사용에 필요한 설정 정보를 생성하는데 성공했습니다.*/
 
 
-
+        /**
+         * @todo LTE Cat.M1 부팅 후 Mqtt 브로커 재 연결 시 토픽 재구독 기능이 추가되어야 합니다.
+         * 
+         */
         if (s_IsCatM1Connected == false)
         {
             CatM1& catM1 = CatM1::GetInstance();
@@ -122,6 +126,13 @@ namespace muffin {
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
 
+            mqtt::CDO* cdo = mqtt::CDO::GetInstanceOrNULL();
+            if (cdo == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT CDO");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+
             CatM1& catM1 = CatM1::GetInstance();
             mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::GetInstanceOrNULL(catM1, info);
             if (catMQTT == nullptr)
@@ -152,11 +163,18 @@ namespace muffin {
                 }
 
                 mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
+                mqtt::Message topicREMOTE_CONTROL(mqtt::topic_e::REMOTE_CONTROL, "");
                 /**
-                 * @todo 원격제어를 포함해 구독해야 하는 모든 토픽을 추가해야 합니다.
-                 */
+             * @todo JARVIS REQUEST, REMOTE CONTROL 토픽 구독 완료, 추가로 구독해야하는 토픽이 있나?
+             */
                 std::vector<mqtt::Message> vectorTopicsToSubscribe;
                 ret = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s", ret.c_str());
+                    return ret;
+                }
+                ret = EmplaceBack(std::move(topicREMOTE_CONTROL), &vectorTopicsToSubscribe);
                 if (ret != Status::Code::GOOD)
                 {
                     LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s", ret.c_str());
