@@ -92,7 +92,7 @@ namespace muffin { namespace modbus {
         return it->second.UpdateDiscreteInput(address, value);
     }
 
-    Status PolledDataTable::UpdateInputRegister(const uint8_t slaveID, const uint16_t address, const uint16_t value)
+    Status PolledDataTable::UpdateInputRegister(const uint8_t slaveID, const uint16_t address, const int32_t value)
     {
         Status ret(Status::Code::UNCERTAIN);
 
@@ -120,7 +120,7 @@ namespace muffin { namespace modbus {
         return it->second.UpdateInputRegister(address, value);
     }
 
-    Status PolledDataTable::UpdateHoldingRegister(const uint8_t slaveID, const uint16_t address, const uint16_t value)
+    Status PolledDataTable::UpdateHoldingRegister(const uint8_t slaveID, const uint16_t address, const int32_t value)
     {
         Status ret(Status::Code::UNCERTAIN);
 

@@ -35,14 +35,15 @@ namespace muffin { namespace im {
     class Variable
     {
     public:
-        Variable();
+        Variable(const std::string& nodeID);
         virtual ~Variable();
     public:
         void Init(const jarvis::config::Node* cin);
     public:
-        void Update(const poll_data_t& polledData);
+        void Update(const std::vector<poll_data_t>& polledData);
         // void Update(const std::vector<poll_data_t>& polledData);
     private:
+        void implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData);
         void removeOldestHistory();
         void flattenToByteArray(const std::vector<poll_data_t>& polledData, std::vector<uint8_t>* outputFlattenVector);
         void castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
@@ -52,6 +53,7 @@ namespace muffin { namespace im {
         void applyNumericOffset(var_data_t& variableData);
         bool isEventOccured(var_data_t& variableData);
         string_t ToMuffinString(const std::string& stdString);
+        void logData(const var_data_t& data);
     public:
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
@@ -82,6 +84,7 @@ namespace muffin { namespace im {
         std::pair<bool, std::vector<jarvis::DataUnitOrder>> mVectorDataUnitOrders;
         std::pair<bool, std::string> mFormatString;
     private:
+        const std::string mNodeID;
         jarvis::dt_e mDataType;
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;

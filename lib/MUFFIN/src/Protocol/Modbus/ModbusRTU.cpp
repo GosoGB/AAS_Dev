@@ -91,8 +91,6 @@ namespace muffin {
                                     0x03;
 
         const uint32_t config = 0x8000000 | dataBits | stopBits | parityBits;
-        LOG_DEBUG(logger, "Serial Config: 0x%X", config);
-        LOG_DEBUG(logger, "Serial Config: %s", config == SERIAL_8N1 ? "SERIAL_8N1" : "INVALID!");
         return static_cast<SerialConfig>(config);
     }
 
@@ -147,8 +145,6 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO UPDATE ADDRESS TABLE: %s", ret.c_str());
                 return Status(Status::Code::BAD);
             }
-            
-            LOG_DEBUG(logger, "Updated node reference: %s", nodeID.c_str());
         }
 
         return Status(Status::Code::GOOD);
@@ -299,8 +295,9 @@ namespace muffin {
                 datum.Value = 0;
                 datum.IsOK = false;
 
-                std::vector<modbus::datum_t> vectorDatum;
+                std::vector<im::poll_data_t> vectorPolledData;
                 im::poll_data_t polledData;
+                polledData.StatusCode = Status::Code::GOOD;
                 polledData.AddressType = jarvis::adtp_e::NUMERIC;
                 polledData.Address.Numeric = address;
                 polledData.Timestamp = timestampInMillis;
@@ -328,35 +325,32 @@ namespace muffin {
                         polledData.Value.Boolean = datum.Value == 1 ? true : false;
                     }
                     polledData.ValueType = jarvis::dt_e::BOOLEAN;
-                    node->VariableNode.Update(polledData);
+                    vectorPolledData.emplace_back(polledData);
+                    node->VariableNode.Update(vectorPolledData);
                     break;
                 case jarvis::mb_area_e::INPUT_REGISTER:
-                    vectorDatum.reserve(quantity);
+                    vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
-                        vectorDatum.emplace_back(mPolledDataTable.RetrieveInputRegister(slaveID, address + i));
+                        datum = mPolledDataTable.RetrieveInputRegister(slaveID, address + i);
+                        polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
+                        polledData.ValueType = jarvis::dt_e::UINT16;
+                        polledData.Value.UInt16 = datum.Value;
+                        vectorPolledData.emplace_back(polledData);
                     }
-                    LOG_INFO(logger, "vectorDatum size : %d value : %d", vectorDatum.size(), vectorDatum[0].Value);
                     goto REGISTER_MEMORY;
                 case jarvis::mb_area_e::HOLDING_REGISTER:
-                    vectorDatum.reserve(quantity);
+                    vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
-                        vectorDatum.emplace_back(mPolledDataTable.RetrieveHoldingRegister(slaveID, address + i));
+                        datum = mPolledDataTable.RetrieveHoldingRegister(slaveID, address + i);
+                        polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
+                        polledData.ValueType = jarvis::dt_e::UINT16;
+                        polledData.Value.UInt16 = datum.Value;
+                        vectorPolledData.emplace_back(polledData);
                     }
                 REGISTER_MEMORY:
-                    if (datum.IsOK == false)
-                    {
-                        polledData.StatusCode = Status::Code::BAD;
-                        polledData.Value.UInt16 =  vectorDatum[0].Value;
-                    }
-                    else
-                    {
-                        polledData.StatusCode = Status::Code::GOOD;
-                        polledData.Value.UInt16 =  vectorDatum[0].Value;
-                    }
-                    polledData.ValueType = jarvis::dt_e::UINT16;
-                    node->VariableNode.Update(polledData);
+                    node->VariableNode.Update(vectorPolledData);
                     break;
                 default:
                     break;
@@ -384,7 +378,6 @@ namespace muffin {
 
             if (lastError != nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO POLL: %s", lastError);
                 ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
                 for (size_t i = 0; i < pollQuantity; i++)
                 {
@@ -393,7 +386,6 @@ namespace muffin {
                 }
                 continue;
             }
-            LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
 
             for (size_t i = 0; i < pollQuantity; i++)
@@ -405,11 +397,9 @@ namespace muffin {
                 {
                 case 1:
                 case 0:
-                    LOG_DEBUG(logger, "[COIL] read value : %d, address : %d ", value, address);
                     mPolledDataTable.UpdateCoil(slaveID, address, value);
                     continue;
                 default:
-                    LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
                     ret = Status::Code::BAD_DATA_LOST;
                     mPolledDataTable.UpdateCoil(slaveID, address, INVALID_VALUE);
                 }
@@ -444,14 +434,12 @@ namespace muffin {
                 }
                 continue;
             }
-            // LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
                 const int8_t value = ModbusRTUClient.read();
-                // LOG_DEBUG(logger, "[DISCRETE INPUT] read value : %d, address : %d ", value, address);
                 switch (value)
                 {
                 case 1:
@@ -478,7 +466,6 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            // LOG_INFO(logger,"[INPUT REGISTERS] slaveID : %d, startAddress : %d , pollQuantity : %d", slaveID, startAddress, pollQuantity);
             ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
             const char* lastError = ModbusRTUClient.lastError();
@@ -495,14 +482,12 @@ namespace muffin {
                 }
                 continue;
             }
-            // LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
-                // LOG_DEBUG(logger, "[INPUT REGISTER] read value : %d, address : %d ", value, address);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
@@ -545,14 +530,12 @@ namespace muffin {
                 }
                 continue;
             }
-            LOG_VERBOSE(logger, "Poll: %u bits", pollQuantity);
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
-                LOG_DEBUG(logger, "[HOLDING REGISTER] read value : %d, address : %d ", value, address);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
@@ -562,7 +545,7 @@ namespace muffin {
                 }
                 else
                 {
-                    mPolledDataTable.UpdateHoldingRegister(slaveID, address, (uint16_t)value);
+                    mPolledDataTable.UpdateHoldingRegister(slaveID, address, value);
                 }
             }
         }

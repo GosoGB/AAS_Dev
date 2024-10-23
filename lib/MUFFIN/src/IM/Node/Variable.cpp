@@ -14,6 +14,8 @@
 
 
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 #include <string.h>
 
 #include "Common/Assert.h"
@@ -24,7 +26,7 @@
 
 namespace muffin { namespace im {
 
-    Variable::Variable()
+    Variable::Variable(const std::string& nodeID)
         : mModbusArea(false, jarvis::mb_area_e::COILS)
         , mBitIndex(false, 0)
         , mAddressQuantity(false, 1)
@@ -33,6 +35,7 @@ namespace muffin { namespace im {
         , mMapMappingRules(false, std::map<std::uint16_t, std::string>())
         , mVectorDataUnitOrders(false, std::vector<jarvis::DataUnitOrder>())
         , mFormatString(false, std::string())
+        , mNodeID(nodeID)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -115,23 +118,261 @@ namespace muffin { namespace im {
         }
     }
 
-    std::string createFormattedString(const char* fmt, std::vector<casted_data_t>& inputVector)
+    std::string createFormattedString(const std::string& format, std::vector<casted_data_t>& inputVector)
     {
-        return "UNSUPPORTED SERVICE: TOO MANY FORMAT SPECIFIERS";
+        std::ostringstream oss;
+        size_t formatSpecifierCount = 0;
+
+        for (size_t i = 0; i < format.size(); ++i)
+        {
+            if (format[i] == '%' && (i + 1) < format.size())
+            {
+                char specifier = format[i + 1];
+                if (specifier == '%')
+                {
+                    oss << '%';
+                    ++i;
+                    continue;
+                }
+                
+                if ((formatSpecifierCount + 1) > inputVector.size())
+                {
+                    LOG_ERROR(logger, "NOT ENOUGH CASTED DATA FOR GIVEN FORMAT SPECIFIERS");
+                    return "";
+                }
+                
+                
+                bool hasZeroPadding = false;
+                bool hasLong        = false;
+                bool hasLongLong    = false;
+                int8_t width = 0;
+                int8_t precision = -1;
+
+                if (format[i + 1] == '0')
+                {
+                    hasZeroPadding = true;
+                    ++i;
+                }
+
+                while ((i + 1) < format.size() && isdigit(format[i + 1]))
+                {
+                    width = width * 10 + (format[++i] - '0');
+                }
+
+                if ((i + 1) < format.size() && format[i + 1] == '.')
+                {
+                    ++i;
+                    precision = 0;
+                    while ((i + 1) < format.size() && isdigit(format[i + 1]))
+                    {
+                        precision = precision * 10 + (format[++i] - '0');
+                    }
+                }
+
+                if ((i + 1) < format.size() && format[i + 1] == 'l')
+                {
+                    ++i;
+                    hasLong = true;
+
+                    if ((i + 1) < format.size() && format[i + 1] == 'l')
+                    {
+                        hasLongLong = true;
+                        hasLong = false;
+                        ++i;
+                    }
+                }
+
+                const casted_data_t& castedData = inputVector[formatSpecifierCount++];
+                switch (format[i + 1])
+                {
+                    case 'd':
+                        if (hasLongLong == true)
+                        {
+                            switch (castedData.ValueType)
+                            {
+                                case jarvis::dt_e::INT8:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int8;
+                                    break;
+                                case jarvis::dt_e::INT16:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int16;
+                                    break;
+                                case jarvis::dt_e::INT32:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int32;
+                                    break;
+                                case jarvis::dt_e::INT64:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int64;
+                                    break;
+                                case jarvis::dt_e::UINT8:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                    break;
+                                case jarvis::dt_e::UINT16:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                    break;
+                                case jarvis::dt_e::UINT32:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt32;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            switch (castedData.ValueType)
+                            {
+                                case jarvis::dt_e::INT8:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int8;
+                                    break;
+                                case jarvis::dt_e::INT16:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int16;
+                                    break;
+                                case jarvis::dt_e::INT32:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int32;
+                                    break;
+                                case jarvis::dt_e::UINT8:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                    break;
+                                case jarvis::dt_e::UINT16:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        break;
+                    
+                    case 'u':
+                        if (hasLongLong == true)
+                        {
+                            switch (castedData.ValueType)
+                            {
+                                case jarvis::dt_e::UINT8:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                    break;
+                                case jarvis::dt_e::UINT16:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                    break;
+                                case jarvis::dt_e::UINT32:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt32;
+                                    break;
+                                case jarvis::dt_e::UINT64:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt64;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            switch (castedData.ValueType)
+                            {
+                                case jarvis::dt_e::UINT8:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                    break;
+                                case jarvis::dt_e::UINT16:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                    break;
+                                case jarvis::dt_e::UINT32:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt32;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        break;
+                    
+                    case 'f':
+                        if (castedData.ValueType == jarvis::dt_e::FLOAT32)
+                        {
+                            oss << std::fixed;
+                            if (precision >= 0)
+                            {
+                                oss << std::setprecision(precision);
+                            }
+                            oss << std::setw(width) << castedData.Value.Float32;
+                        }
+                        else if (castedData.ValueType == jarvis::dt_e::FLOAT64)
+                        {
+                            oss << std::fixed;
+                            if (precision >= 0)
+                            {
+                                oss << std::setprecision(precision);
+                            }
+                            oss << std::setw(width) << castedData.Value.Float64;
+                        }
+                        break;
+                    
+                    case 'c':
+                    case 's':
+                        if (castedData.ValueType == jarvis::dt_e::STRING)
+                        {
+                            oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.String.Data;
+                        }
+                        break;
+                    
+                    case 'x':
+                    case 'X':
+                        if (jarvis::dt_e::BOOLEAN < castedData.ValueType && castedData.ValueType < jarvis::dt_e::FLOAT32)
+                        {
+                            if (format[i + 1] == 'x')
+                            {
+                                switch (castedData.ValueType)
+                                {
+                                    case jarvis::dt_e::UINT8:
+                                        oss << std::setw(width) << std::hex << std::setfill('0') << castedData.Value.UInt8;
+                                        break;
+                                    case jarvis::dt_e::UINT16:
+                                        oss << std::setw(width) << std::hex << std::setfill('0') << castedData.Value.UInt16;
+                                        break;
+                                    case jarvis::dt_e::UINT32:
+                                        oss << std::setw(width) << std::hex << std::setfill('0') << castedData.Value.UInt32;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                switch (castedData.ValueType)
+                                {
+                                    case jarvis::dt_e::UINT8:
+                                        oss << std::setw(width) << std::uppercase << std::hex << std::setfill('0') << castedData.Value.UInt8;
+                                        break;
+                                    case jarvis::dt_e::UINT16:
+                                        oss << std::setw(width) << std::uppercase << std::hex << std::setfill('0') << castedData.Value.UInt16;
+                                        break;
+                                    case jarvis::dt_e::UINT32:
+                                        oss << std::setw(width) << std::uppercase << std::hex << std::setfill('0') << castedData.Value.UInt32;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                            oss << std::dec; // Reset to decimal base
+                        }
+                        break;
+                    
+                    default:
+                        LOG_ERROR(logger, "Type mismatch or unsupported format specifier.");
+                        break;
+                }
+                ++i; // Skip the specifier
+            }
+            else
+            {
+                oss << format[i];
+            }
+        }
+
+        return oss.str();
     }
 
-    /**
-     * @todo jump table로 처리하는 것이 필요한지 고민해보고 필요하면 적용해야 합니다.
-     */
-    void Variable::Update(const poll_data_t& polledData)
+    void Variable::Update(const std::vector<poll_data_t>& polledData)
     {
-        LOG_WARNING(logger,"polledData in : %u", polledData.Value.UInt16);
-        
         removeOldestHistory();
         
         var_data_t variableData;
-        variableData.StatusCode   = polledData.StatusCode;
-        variableData.Timestamp    = polledData.Timestamp;
+        // variableData.StatusCode   = polledData.StatusCode;
+        // variableData.Timestamp    = polledData.Timestamp;
         variableData.HasValue     = true;
         /**
          * @todo 필요 없는 속성일 수 있습니다. 고민해보고 필요 없다면 삭제해야 합니다.
@@ -139,72 +380,86 @@ namespace muffin { namespace im {
         variableData.HasStatus    = true;
         variableData.HasTimestamp = true;
 
-        std::vector<poll_data_t> vectorPolledData;
-        vectorPolledData.reserve(1);
-        vectorPolledData.emplace_back(polledData);
 
-        if (mVectorDataUnitOrders.first == true)
-        {
-            std::vector<casted_data_t> vectorCastedData;
-            castWithDataUnitOrder(vectorPolledData, &vectorCastedData);
+        implUpdate(polledData, &variableData);
 
-            if (mVectorDataUnitOrders.second.size() == 1)
-            {
-                variableData.DataType  = vectorCastedData[0].ValueType;
-                variableData.Value     = vectorCastedData[0].Value;
+        // std::vector<poll_data_t> vectorPolledData;
+        // vectorPolledData.reserve(1);
+        // vectorPolledData.emplace_back(polledData);
 
-                if (variableData.DataType == jarvis::dt_e::STRING)
-                {
-                    goto CHECK_EVENT;
-                }
-            }
-            else
-            {
-                std::string formattedString = createFormattedString(mFormatString.second.c_str(), vectorCastedData);
-                variableData.DataType       = jarvis::dt_e::STRING;
-                variableData.Value.String   = ToMuffinString(formattedString);
+        // if (mVectorDataUnitOrders.first == true)
+        // {
+        //     std::vector<casted_data_t> vectorCastedData;
+        //     castWithDataUnitOrder(vectorPolledData, &vectorCastedData);
+
+        //     if (mVectorDataUnitOrders.second.size() == 1)
+        //     {
+        //         variableData.DataType  = vectorCastedData[0].ValueType;
+        //         variableData.Value     = vectorCastedData[0].Value;
+
+        //         if (variableData.DataType == jarvis::dt_e::STRING)
+        //         {
+        //             goto CHECK_EVENT;
+        //         }
+        //     }
+        //     else
+        //     {
+        //         std::string formattedString = createFormattedString(mFormatString.second.c_str(), vectorCastedData);
+        //         variableData.DataType       = jarvis::dt_e::STRING;
+        //         variableData.Value.String   = ToMuffinString(formattedString);
                 
-                LOG_DEBUG(logger, "Formatted string: %s", formattedString.c_str());
-                goto CHECK_EVENT;
-            }
-        }
-        else //if (mVectorDataTypes[0] != jarvis::dt_e::BOOLEAN)
-        {
-            casted_data_t castedData;
-            castWithoutDataUnitOrder(vectorPolledData, &castedData);
-            LOG_WARNING(logger,"variableData : %f, %d, %u", castedData.Value.Float32, castedData.Value.Int16, castedData.Value.UInt16);
+        //         LOG_DEBUG(logger, "Formatted string: %s", formattedString.c_str());
+        //         goto CHECK_EVENT;
+        //     }
+        // }
+        // else
+        // {
+        //     casted_data_t castedData;
+        //     castWithoutDataUnitOrder(vectorPolledData, &castedData);
+        //     LOG_WARNING(logger,"variableData : %f, %d, %u", castedData.Value.Float32, castedData.Value.Int16, castedData.Value.UInt16);
     
-            variableData.DataType  = castedData.ValueType;
-            variableData.Value     = castedData.Value;
+        //     variableData.DataType  = castedData.ValueType;
+        //     variableData.Value     = castedData.Value;
 
-            if (variableData.DataType == jarvis::dt_e::STRING)
-            {
-                goto CHECK_EVENT;
-            }
+        //     if (variableData.DataType == jarvis::dt_e::STRING)
+        //     {
+        //         goto CHECK_EVENT;
+        //     }
+        // }
+
+
+        if (variableData.DataType == jarvis::dt_e::BOOLEAN || variableData.DataType == jarvis::dt_e::STRING)
+        {
+            goto CHECK_EVENT;
         }
-        LOG_WARNING(logger,"1variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
+
         if (mBitIndex.first == true)
         {
             applyBitIndex(variableData);
+            if (mMapMappingRules.first == true)
+            {
+                applyMappingRules(variableData);
+                goto CHECK_EVENT;
+            }
             goto CHECK_EVENT;
         }
-        LOG_WARNING(logger,"2variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
+
         if (mMapMappingRules.first == true)
         {
             applyMappingRules(variableData);
             goto CHECK_EVENT;
         }
-        LOG_WARNING(logger,"3variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
+
         if (mNumericScale.first == true)
         {
             applyNumericScale(variableData);
         }
-        LOG_WARNING(logger,"4variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
+
         if (mNumericOffset.first == true)
         {
             applyNumericOffset(variableData);
         }
-        LOG_WARNING(logger,"5variableData : %f, %d, %u", variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
+
     CHECK_EVENT:
         if (variableData.StatusCode != Status::Code::GOOD)
         {
@@ -229,18 +484,112 @@ namespace muffin { namespace im {
     EMPLACE_DATA:
         try
         {
-            LOG_WARNING(logger,"variableData : %f, %d, %u",variableData.Value.Float32, variableData.Value.Int16, variableData.Value.UInt16);
             mDataBuffer.emplace_back(variableData);
+            logData(variableData);
         }
         catch(const std::exception& e)
         {
             LOG_ERROR(logger, "FAILED TO EMPLACE DATA: %s", e.what());
         }
     }
-    
-    // void Variable::Update(const std::vector<poll_data_t>& polledData)
-    // {
-    // }
+
+    void Variable::logData(const var_data_t& data)
+    {
+        switch (data.DataType)
+        {
+        case jarvis::dt_e::BOOLEAN:
+            LOG_INFO(logger,"[Node ID: %s]: %s", mNodeID.c_str(), data.Value.Boolean == true ? "true" : "false");
+            break;
+        case jarvis::dt_e::INT8:
+            LOG_INFO(logger,"[Node ID: %s]: %d", mNodeID.c_str(), data.Value.Int8);
+            break;
+        case jarvis::dt_e::UINT8:
+            LOG_INFO(logger,"[Node ID: %s]: %u", mNodeID.c_str(), data.Value.UInt8);
+            break;
+        case jarvis::dt_e::INT16:
+            LOG_INFO(logger,"[Node ID: %s]: %d", mNodeID.c_str(), data.Value.Int16);
+            break;
+        case jarvis::dt_e::UINT16:
+            LOG_INFO(logger,"[Node ID: %s]: %u", mNodeID.c_str(), data.Value.UInt16);
+            break;
+        case jarvis::dt_e::INT32:
+            LOG_INFO(logger,"[Node ID: %s]: %d", mNodeID.c_str(), data.Value.Int32);
+            break;
+        case jarvis::dt_e::UINT32:
+            LOG_INFO(logger,"[Node ID: %s]: %u", mNodeID.c_str(), data.Value.UInt32);
+            break;
+        case jarvis::dt_e::INT64:
+            LOG_INFO(logger,"[Node ID: %s]: %lld", mNodeID.c_str(), data.Value.Int64);
+            break;
+        case jarvis::dt_e::UINT64:
+            LOG_INFO(logger,"[Node ID: %s]: %llu", mNodeID.c_str(), data.Value.UInt64);
+            break;
+        case jarvis::dt_e::FLOAT32:
+            LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float32);
+            break;
+        case jarvis::dt_e::FLOAT64:
+            LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float64);
+            break;
+        case jarvis::dt_e::STRING:
+            LOG_INFO(logger,"[Node ID: %s]: %s", mNodeID.c_str(), data.Value.String.Data);
+            break;
+        default:
+            break;
+        }
+    }
+
+
+    void Variable::implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData)
+    {
+        if (mVectorDataTypes.size() == 1)
+        {
+            if (mVectorDataTypes.front() == jarvis::dt_e::BOOLEAN)
+            {
+                ASSERT((polledData.size() == 1), "BOOLEAN DATA TYPE IS ONLY APPLIED TO ONLY ONE DATUM POLLED FROM MACHINE");
+
+                variableData->DataType = jarvis::dt_e::BOOLEAN;
+                variableData->Value.Boolean = polledData.front().Value.Boolean;
+
+                if (mMapMappingRules.first == true)
+                {
+                    applyMappingRules(*variableData);
+                }
+                return;
+            }
+
+            if (mVectorDataUnitOrders.first == true)
+            {
+                ASSERT((mVectorDataUnitOrders.second.size() == 1), "ONLY ONE DATA UNIT ORDER IS ALLOWED WHEN SINGULAR DATA TYPE IS PROVIDED");
+
+                std::vector<casted_data_t> vectorCastedData;
+                castWithDataUnitOrder(polledData, &vectorCastedData);
+
+                variableData->DataType  = vectorCastedData.front().ValueType;
+                variableData->Value     = vectorCastedData.front().Value;
+                return;
+            }
+            else
+            {
+                casted_data_t castedData;
+                castWithoutDataUnitOrder(polledData, &castedData);
+        
+                variableData->DataType  = castedData.ValueType;
+                variableData->Value     = castedData.Value;
+                
+                return;
+            }
+        }
+        else
+        {
+            std::vector<casted_data_t> vectorCastedData;
+            castWithDataUnitOrder(polledData, &vectorCastedData);
+
+            std::string formattedString = createFormattedString(mFormatString.second.c_str(), vectorCastedData);
+            variableData->DataType      = jarvis::dt_e::STRING;
+            variableData->Value.String  = ToMuffinString(formattedString);
+            return;
+        }
+    }
     
     void Variable::removeOldestHistory()
     {
@@ -267,23 +616,19 @@ namespace muffin { namespace im {
             {
             case jarvis::dt_e::INT8:
             case jarvis::dt_e::UINT8:
-            case jarvis::dt_e::STRING:
                 outputFlattenVector->emplace_back(polledDatum.Value.UInt8);
                 break;
+
             case jarvis::dt_e::INT16:
             case jarvis::dt_e::UINT16:
                 {
-                    LOG_WARNING(logger,"polledDatum: %u", polledDatum.Value.UInt16);
                     const uint8_t byteHigh  = static_cast<uint8_t>(((polledDatum.Value.UInt16 >> 8) & 0xFF));
                     const uint8_t byteLow   = static_cast<uint8_t>((polledDatum.Value.UInt16 & 0xFF));
-                    LOG_WARNING(logger,"byteHigh: %u", byteHigh);
-                    LOG_WARNING(logger,"byteLow: %u", byteLow);
-                    outputFlattenVector->emplace_back(byteHigh);
                     outputFlattenVector->emplace_back(byteLow);
-                    LOG_DEBUG(logger,"size() : %d ", outputFlattenVector->size());   
-                    LOG_DEBUG(logger,"first index : %d, second index : %d ", outputFlattenVector->at(0),outputFlattenVector->at(1));
+                    outputFlattenVector->emplace_back(byteHigh);
                 }
                 break;
+
             /**
              * @todo 기계에서 수집한 데이터의 크기가 32bit, 64bit인 경우를 구현해야 합니다.
              */
@@ -293,7 +638,7 @@ namespace muffin { namespace im {
         }
     }
     
-    void Variable::castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
+    void Variable:: castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
     {
         switch (dataType)
         {
@@ -301,43 +646,52 @@ namespace muffin { namespace im {
             castedData->ValueType = jarvis::dt_e::INT8;
             memcpy(&castedData->Value.Int8, vectorBytes.data(), sizeof(int8_t));
             break;
+        
         case jarvis::dt_e::INT16:
             castedData->ValueType = jarvis::dt_e::INT16;
-            castedData->Value.Int16 = *reinterpret_cast<const int16_t*>(vectorBytes.data());
-            LOG_INFO(logger, "INT16: %d", castedData->Value.Int16);
+            memcpy(&castedData->Value.Int16, vectorBytes.data(), sizeof(int16_t));
             break;
+        
         case jarvis::dt_e::INT32:
             castedData->ValueType = jarvis::dt_e::INT32;
             memcpy(&castedData->Value.Int32, vectorBytes.data(), sizeof(int32_t));
             break;
+        
         case jarvis::dt_e::INT64:
             castedData->ValueType = jarvis::dt_e::INT64;
             memcpy(&castedData->Value.Int64, vectorBytes.data(), sizeof(int64_t));
             break;
+        
         case jarvis::dt_e::UINT8:
             castedData->ValueType = jarvis::dt_e::UINT8;
             memcpy(&castedData->Value.UInt8, vectorBytes.data(), sizeof(uint8_t));
             break;
+        
         case jarvis::dt_e::UINT16:
             castedData->ValueType = jarvis::dt_e::UINT16;
             memcpy(&castedData->Value.UInt16, vectorBytes.data(), sizeof(uint16_t));
             break;
+        
         case jarvis::dt_e::UINT32:
             castedData->ValueType = jarvis::dt_e::UINT32;
             memcpy(&castedData->Value.UInt32, vectorBytes.data(), sizeof(uint32_t));
             break;
+        
         case jarvis::dt_e::UINT64:
             castedData->ValueType = jarvis::dt_e::UINT64;
             memcpy(&castedData->Value.UInt64, vectorBytes.data(), sizeof(uint64_t));
             break;
+        
         case jarvis::dt_e::FLOAT32:
             castedData->ValueType = jarvis::dt_e::FLOAT32;
             memcpy(&castedData->Value.Float32, vectorBytes.data(), sizeof(float));
             break;
+        
         case jarvis::dt_e::FLOAT64:
             castedData->ValueType = jarvis::dt_e::FLOAT64;
             memcpy(&castedData->Value.Float64, vectorBytes.data(), sizeof(double));
             break;
+        
         case jarvis::dt_e::STRING:
         {
             castedData->ValueType = jarvis::dt_e::STRING;
@@ -345,6 +699,7 @@ namespace muffin { namespace im {
             castedData->Value.String = ToMuffinString(string);
             break;
         }
+        
         default:
             break;
         }
@@ -410,41 +765,51 @@ namespace muffin { namespace im {
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) * denominator;
             break;
+        
         case jarvis::dt_e::UINT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) * denominator;
             break;
+        
         case jarvis::dt_e::INT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) * denominator;
             break;
+        
         case jarvis::dt_e::UINT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) * denominator;
             break;
+        
         case jarvis::dt_e::INT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<float>(variableData.Value.Int32) * denominator;
             break;
+        
         case jarvis::dt_e::UINT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<float>(variableData.Value.UInt32) * denominator;
             break;
+        
         case jarvis::dt_e::FLOAT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) * denominator;
             break;
+        
         case jarvis::dt_e::INT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) * denominator;
             break;
+        
         case jarvis::dt_e::UINT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) * denominator;
             break;
+        
         case jarvis::dt_e::FLOAT64:
             variableData.Value.Float64 = variableData.Value.Float64 * denominator;
             break;
+        
         default:
             break;
         }
@@ -458,41 +823,51 @@ namespace muffin { namespace im {
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) - mNumericOffset.second;
             break;
+        
         case jarvis::dt_e::UINT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) - mNumericOffset.second;
             break;
+        
         case jarvis::dt_e::INT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) - mNumericOffset.second;
             break;
+        
         case jarvis::dt_e::UINT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
             variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) - mNumericOffset.second;
             break;
+        
         case jarvis::dt_e::INT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) - mNumericOffset.second;
             break;
+        
         case jarvis::dt_e::UINT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) - mNumericOffset.second;
             break;
+        
         case jarvis::dt_e::FLOAT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) - mNumericOffset.second;
             break;
+
         case jarvis::dt_e::INT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) - mNumericOffset.second;
             break;
+
         case jarvis::dt_e::UINT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
             variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) - mNumericOffset.second;
             break;
+            
         case jarvis::dt_e::FLOAT64:
             variableData.Value.Float64 = variableData.Value.Float64 - mNumericOffset.second;
             break;
+
         default:
             break;
         }
@@ -559,9 +934,15 @@ namespace muffin { namespace im {
 
         std::vector<uint8_t> vectorFlattened;
         flattenToByteArray(polledData, &vectorFlattened);
+        castByteVector(mVectorDataTypes.front(), vectorFlattened, outputCastedData);
 
-        castByteVector(mVectorDataTypes[0], vectorFlattened, outputCastedData);
-        
+        if (mModbusArea.first == true && outputCastedData->ValueType == jarvis::dt_e::STRING)
+        {
+            for (size_t i = 0; i < outputCastedData->Value.String.Length - 1; i += 2)
+            {
+                std::swap(outputCastedData->Value.String.Data[i], outputCastedData->Value.String.Data[i + 1]);
+            }
+        }
     }
 
     bool Variable::isEventOccured(var_data_t& variableData)
@@ -584,6 +965,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::UINT8:
             if (lastestHistory.Value.UInt8 != variableData.Value.UInt8)
             {
@@ -593,6 +975,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::INT16:
             if (lastestHistory.Value.Int16 != variableData.Value.Int16)
             {
@@ -602,6 +985,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::UINT16:
             if (lastestHistory.Value.UInt16 != variableData.Value.UInt16)
             {
@@ -611,6 +995,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::INT32:
             if (lastestHistory.Value.Int32 != variableData.Value.Int32)
             {
@@ -620,6 +1005,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::UINT32:
             if (lastestHistory.Value.UInt32 != variableData.Value.UInt32)
             {
@@ -629,6 +1015,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::FLOAT32:
             if (lastestHistory.Value.Float32 != variableData.Value.Float32)
             {
@@ -638,6 +1025,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::INT64:
             if (lastestHistory.Value.Int64 != variableData.Value.Int64)
             {
@@ -647,6 +1035,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::UINT64:
             if (lastestHistory.Value.UInt64 != variableData.Value.UInt64)
             {
@@ -656,6 +1045,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::FLOAT64:
             if (lastestHistory.Value.Float64 != variableData.Value.Float64)
             {
@@ -665,6 +1055,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         case jarvis::dt_e::STRING:
             if (strcmp(lastestHistory.Value.String.Data, variableData.Value.String.Data) != 0)
             {
@@ -674,6 +1065,7 @@ namespace muffin { namespace im {
             {
                 return false;
             }
+        
         default:
             return false;
         }

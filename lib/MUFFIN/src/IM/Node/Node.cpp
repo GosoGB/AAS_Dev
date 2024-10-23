@@ -24,6 +24,7 @@ namespace muffin { namespace im {
     Node::Node(const jarvis::config::Node* cin)
         : mNodeID(cin->GetNodeID().second)
         , mDeprecableUID(cin->GetDeprecableUID().second)
+        , VariableNode(mNodeID)
     {
         VariableNode.Init(cin);
         
