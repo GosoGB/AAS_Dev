@@ -671,6 +671,19 @@ namespace muffin { namespace jarvis {
             }
         }
 
+        if ((mAddressQuantity.second > 1))
+        {
+            for (auto dataType : mDataTypes.second)
+            {
+                if (dataType == dt_e::BOOLEAN)
+                {
+                    const std::string message = "NUMERIC ADDRESS QUANTITY LENGTH MUST BE 1 IF THERE'S A BOOLEAN DATA TYPE";
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                }
+            }
+        }
+        
+
         LOG_VERBOSE(logger, "Configured numeric address quantity: %u", mAddressQuantity.second);
         return std::make_pair(rsc_e::GOOD, "GOOD");    
     }

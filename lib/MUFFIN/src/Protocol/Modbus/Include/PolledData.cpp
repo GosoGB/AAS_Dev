@@ -64,11 +64,9 @@ namespace muffin { namespace modbus {
 
         auto itDatum = std::find_if(itArea->second.begin(), itArea->second.end(), [address](const datum_t& datum2find)
         {
-            // LOG_DEBUG(logger, "datum2find.Address : %u , address : %u",datum2find.Address, address);
             return datum2find.Address == address;
         });
 
-        // LOG_DEBUG(logger, "22datum2find.Address : %u ", address);
         datum_t datum;
         datum.Address = address;
 
@@ -182,7 +180,7 @@ namespace muffin { namespace modbus {
         }
     }
 
-    Status PolledData::UpdateInputRegister(const uint16_t address, const uint16_t value)
+    Status PolledData::UpdateInputRegister(const uint16_t address, const int32_t value)
     {
         auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::INPUT_REGISTER);
         
@@ -214,7 +212,7 @@ namespace muffin { namespace modbus {
         datum_t datum;
         datum.Address = address;
         datum.Value = value;
-        datum.IsOK  = true;
+        datum.IsOK  = value == -1 ? false : true;
          
         if (itDatum == itArea->second.end())
         {
@@ -242,7 +240,7 @@ namespace muffin { namespace modbus {
         }
     }
 
-    Status PolledData::UpdateHoldingRegister(const uint16_t address, const uint16_t value)
+    Status PolledData::UpdateHoldingRegister(const uint16_t address, const int32_t value)
     {
         auto itArea = mMapDatumByArea.find(jarvis::mb_area_e::HOLDING_REGISTER);
         
@@ -274,7 +272,7 @@ namespace muffin { namespace modbus {
         datum_t datum;
         datum.Address = address;
         datum.Value = value;
-        datum.IsOK  = true;
+        datum.IsOK  = value == -1 ? false : true;
          
         if (itDatum == itArea->second.end())
         {

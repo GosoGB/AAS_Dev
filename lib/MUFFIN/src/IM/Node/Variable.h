@@ -4,7 +4,7 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 선언합니다.
  * 
- * @date 2024-09-26
+ * @date 2024-10-23
  * @version 0.0.1
  * 
  * @todo 현재는 모든 데이터 수집 주기가 동일하기 때문에 샘플링 인터벌 변수를
@@ -35,19 +35,25 @@ namespace muffin { namespace im {
     class Variable
     {
     public:
-        Variable();
+        Variable(const std::string& nodeID);
         virtual ~Variable();
     public:
         void Init(const jarvis::config::Node* cin);
     public:
-        void Update(const poll_data_t& polledData);
         void Update(const std::vector<poll_data_t>& polledData);
+        // void Update(const std::vector<poll_data_t>& polledData);
     private:
-        // void processStatusCode(const poll_data_t& polledData);
-        void processStringData(const poll_data_t& polledData, var_data_t* outputData);
-        void processNumericData(const poll_data_t& polledData, var_data_t* outputData);
+        void implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData);
+        void removeOldestHistory();
+        void flattenToByteArray(const std::vector<poll_data_t>& polledData, std::vector<uint8_t>* outputFlattenVector);
+        void castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
+        void applyBitIndex(var_data_t& variableData);
+        void applyMappingRules(var_data_t& variableData);
+        void applyNumericScale(var_data_t& variableData);
+        void applyNumericOffset(var_data_t& variableData);
+        bool isEventOccured(var_data_t& variableData);
         string_t ToMuffinString(const std::string& stdString);
-
+        void logData(const var_data_t& data);
     public:
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
@@ -56,6 +62,12 @@ namespace muffin { namespace im {
         uint8_t GetQuantity() const;
         uint16_t GetBitIndex() const;
         jarvis::mb_area_e GetModbusArea() const;
+    private:
+        void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
+        void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);
+    private:
+        // virtual void strategySingleDataType() override;
+        // void strategySingleDataType();
     private:
         jarvis::adtp_e mAddressType;
         jarvis::addr_u mAddress;
@@ -72,6 +84,7 @@ namespace muffin { namespace im {
         std::pair<bool, std::vector<jarvis::DataUnitOrder>> mVectorDataUnitOrders;
         std::pair<bool, std::string> mFormatString;
     private:
+        const std::string mNodeID;
         jarvis::dt_e mDataType;
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;

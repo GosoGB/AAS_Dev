@@ -33,7 +33,7 @@
                           << "ASSERTION FAILED: (" #condition ") \n" \
                           << "FILE: " << __FILE__ << "\nLINE: " << __LINE__ << " \n" \
                           << "LOG: " << buffer << "\n\n" << std::endl; \
-                vTaskDelay(10 * 1000 / portTICK_PERIOD_MS); \
+                vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS); \
                 std::abort(); \
             } \
         } while (false)
