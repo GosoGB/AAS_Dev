@@ -528,10 +528,10 @@ namespace muffin { namespace im {
             LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float32);
             break;
         case jarvis::dt_e::FLOAT64:
-            LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float64);
+            LOG_INFO(logger,"[FLOAT64][Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float64);
             break;
         case jarvis::dt_e::STRING:
-            LOG_INFO(logger,"[Node ID: %s]: %s", mNodeID.c_str(), data.Value.String.Data);
+            LOG_INFO(logger,"[STRING][Node ID: %s]: %s", mNodeID.c_str(), data.Value.String.Data);
             break;
         default:
             break;
