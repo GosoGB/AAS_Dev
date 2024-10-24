@@ -18,6 +18,7 @@
 #include <sstream>
 #include <string.h>
 
+#include "Common/Convert/ConvertClass.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Variable.h"
@@ -56,7 +57,7 @@ namespace muffin { namespace im {
         mVectorDataTypes          = cin->GetDataTypes().second;
         mHasAttributeEvent        = cin->GetAttributeEvent().second;
         mDeprecableDisplayName    = cin->GetDeprecableDisplayName().second;
-        mDeprecableDisplayUnit    = cin->GetDeprecableDisplayUnit().second;
+        mDeprecableDisplayUnit    = cin->GetDeprecableDisplayUnit().second;                
 
 
         if (cin->GetModbusArea().first == Status::Code::GOOD)
@@ -638,7 +639,7 @@ namespace muffin { namespace im {
         }
     }
     
-    void Variable:: castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
+    void Variable::castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
     {
         switch (dataType)
         {
@@ -1136,6 +1137,71 @@ namespace muffin { namespace im {
     {
         return mModbusArea.second;
     }
+
+    std::pair<Status,uint16_t> Variable::ConvertModbusData(std::string& data)
+    {
+        /**
+         * @brief 현재 단일 레지스터나 비트만 제어 가능함, 추후 Method 개발시 업데이트 예정입니다.
+         * 
+         */
+        if (mAddressQuantity.first == true && mAddressQuantity.second != 1)
+        {
+            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
+            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
+        }
+        
+        im::var_value_u tempData;
+     
+        if (mVectorDataTypes.at(0) != jarvis::dt_e::STRING)
+        {
+            if (mMapMappingRules.first == true)
+            {
+                auto it = mMapMappingRules.second.find(Convert.ToUInt16(data));
+                if (it != mMapMappingRules.second.end()) 
+                {
+                    return std::make_pair(Status(Status::Code::GOOD), it->first);
+                } 
+                else
+                {
+                    LOG_ERROR(logger,"NO MATCHING KEY DATA IN MAPPING RULES, %s",data.c_str());
+                    return std::make_pair(Status(Status::Code::BAD_NO_DATA), it->first);
+                }
+            }
+
+            if (mNumericOffset.first == true)
+            {
+               tempData.Float32 = Convert.ToFloat(data) - mNumericOffset.second;
+            }
+
+            if (mNumericScale.first == true)
+            {
+                if (mNumericOffset.first == true)
+                {
+                    const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+                    const double denominator = pow(10, exponent);
+                    tempData.UInt16 = static_cast<uint16_t>(tempData.Float32/ denominator);
+                }
+                else
+                {
+                    const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+                    const double denominator = pow(10, exponent);
+                    tempData.UInt16 = static_cast<uint16_t>(Convert.ToFloat(data)/ denominator);
+                }
+            }
+
+            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), tempData.UInt16);
+            return std::make_pair(Status(Status::Code::GOOD), tempData.UInt16);
+        }
+        else
+        {
+            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
+            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
+        }
+        
+
+
+    }
+    
 
     uint32_t Variable::mSamplingIntervalInMillis = 1000;
 }}

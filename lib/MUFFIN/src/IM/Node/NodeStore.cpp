@@ -102,6 +102,20 @@ namespace muffin { namespace im {
         }
     }
 
+    std::pair<Status, Node*> NodeStore::GetNodeReferenceUID(const std::string& UID)
+    {
+        for (auto& node : mMapNode)
+        {
+            const std::string& mUID = node.second.GetUID();
+            if (mUID == UID)
+            {
+                return std::make_pair(Status(Status::Code::GOOD), &node.second);
+            }
+        }
+        return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), nullptr);
+    }
+
+
 
     NodeStore* NodeStore::mInstance = nullptr;
 }}

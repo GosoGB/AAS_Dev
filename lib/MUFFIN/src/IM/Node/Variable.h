@@ -41,7 +41,7 @@ namespace muffin { namespace im {
         void Init(const jarvis::config::Node* cin);
     public:
         void Update(const std::vector<poll_data_t>& polledData);
-        // void Update(const std::vector<poll_data_t>& polledData);
+        std::pair<Status,uint16_t> ConvertModbusData(std::string& data);
     private:
         void implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData);
         void removeOldestHistory();
@@ -89,5 +89,6 @@ namespace muffin { namespace im {
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;
         uint8_t mMaxHistorySize = 5;
+    
     };
 }}

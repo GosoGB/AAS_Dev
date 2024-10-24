@@ -13,6 +13,7 @@
 
 
 
+#include "Jarvis/Jarvis.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
@@ -21,13 +22,16 @@
 #include "DataFormat/JSON/JSON.h"
 #include "Include/Helper.h"
 #include "Initializer/Initializer.h"
+#include "IM/Node/NodeStore.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Task/MqttTask.h"
 #include "Task/JarvisTask.h"
 
-
+#include "Protocol/Modbus/ModbusMutex.h"
+#include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
+#include "Jarvis/Config/Protocol/ModbusRTU.h"
 
 
 
@@ -133,8 +137,9 @@ namespace muffin {
         /**
          * @todo 원격제어 명령 수신 토픽에 대한 처리 작업을 구현해야 합니다.
          */
-        case mqtt::topic_e::REMOTE_CONTROL:
-            ASSERT(false, "UNIMPLEMENTED ERROR: REMOTE CONTROL TOPIC IS NOT SUPPORTED");
+        case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
+            startRemoteControll(payload);
+            
             break;
         default:
             ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
@@ -197,6 +202,207 @@ namespace muffin {
             // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             break;
         }
+    }
+
+    void Core::startRemoteControll(const std::string& payload)
+    {
+        JSON json;
+        JsonDocument doc;
+        Status retJSON = json.Deserialize(payload, &doc);
+        std::string Description;
+
+        if (retJSON != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
+
+            switch (retJSON.ToCode())
+            {
+            case Status::Code::BAD_END_OF_STREAM:
+                Description = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
+                break;
+            case Status::Code::BAD_NO_DATA:
+                Description ="PAYLOAD EMPTY";
+                break;
+            case Status::Code::BAD_DATA_ENCODING_INVALID:
+                Description = "PAYLOAD INVALID ENCODING";
+                break;
+            case Status::Code::BAD_OUT_OF_MEMORY:
+                Description = "PAYLOAD OUT OF MEMORY";
+                break;
+            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
+                Description = "PAYLOAD EXCEEDED NESTING LIMIT";
+                break;
+            case Status::Code::BAD_UNEXPECTED_ERROR:
+                Description = "UNDEFINED CONDITION";
+                break;
+            default:
+                Description = "UNDEFINED CONDITION";
+                break;
+            }
+            
+            doc["id"]   = NULL; 
+            doc["ts"]   = GetTimestampInMillis(); 
+            doc["rsc"]  = "900 :" + Description;
+            doc["req"]  = NULL;
+
+            std::string payload;
+            serializeJson(doc, payload);
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
+
+            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+            Status ret = cdo.Store(message);
+            if (ret != Status::Code::GOOD)
+            {
+                /**
+                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
+                 * 
+                 */
+            }
+
+            return;
+        }
+        
+        /**
+         * @todo JSON Message에 대해 Validator 구현해야함
+         */
+        JsonArray request = doc["req"].as<JsonArray>();
+        std::vector<std::pair<std::string, std::string>> remoteData;
+
+        for (JsonObject obj : request)
+        {
+            std::string uid = obj["uid"].as<std::string>(); 
+            std::string value = obj["val"].as<std::string>(); 
+            
+            remoteData.emplace_back(uid, value); 
+        }
+
+         /**
+         * @todo 스카우터,프로직스 기준으로 제어명령은 한개밖에 들어오지 않아 고정으로 설정해두었음 remoteData.at(0), 추후 변경시 수정해야함
+         *       알람 상,하한에 대한 UID 검사는 알람 구조체 완성되면 만들 것 - 김주성
+         */
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        
+        std::pair<Status, im::Node*> ret = nodeStore.GetNodeReferenceUID(remoteData.at(0).first);
+        std::pair<Status, uint16_t> retConvertModbus = std::make_pair(Status(Status::Code::UNCERTAIN),0);
+
+        if (ret.first != Status::Code::GOOD)
+        {
+            doc["rsc"]  = "900 : UNDEFINED UID : " + remoteData.at(0).first;
+            std::string payload;
+            serializeJson(doc, payload);       
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
+
+            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+            Status ret = cdo.Store(message);
+            if (ret != Status::Code::GOOD)
+            {
+                /**
+                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
+                 * 
+                 */
+            }
+
+            return;
+        }
+    
+
+        retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
+        if (retConvertModbus.first != Status::Code::GOOD)
+        {
+            doc["rsc"]  = "900 : " + retConvertModbus.first.ToString();
+            std::string payload;
+            serializeJson(doc, payload);       
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
+
+            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+            Status ret = cdo.Store(message);
+            if (ret != Status::Code::GOOD)
+            {
+                /**
+                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
+                 * 
+                 */
+            }
+
+            return;
+        }
+        else
+        {
+            Jarvis& jarvisIntance = Jarvis::GetInstance();
+            jarvis::config::ModbusRTU* modbusRTU = nullptr;
+
+            for (const auto it : jarvisIntance)
+            {
+                 /**
+                 * @todo SLAVE와 1:1 연결만 가정하고 구현되어있음
+                 * 
+                 */
+                if (it.first == jarvis::cfg_key_e::MODBUS_RTU)
+                {
+                    modbusRTU = Convert.ToModbusRTUCIN(it.second.at(0)); 
+                }
+            }
+        
+            std::pair<muffin::Status, uint8_t> retSlaveID = modbusRTU->GetSlaveID();
+            if (retSlaveID.first != Status(Status::Code::GOOD))
+            {
+                retSlaveID.second = 0;
+            }
+            
+            jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+            jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+            uint8_t writeResult = 0;
+            
+            if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
+            {
+                LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
+                goto ERROR_RESPONSE;
+            }
+
+            switch (modbusArea)
+            {
+            case jarvis::mb_area_e::COILS:
+                writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                break;
+            case jarvis::mb_area_e::HOLDING_REGISTER:
+                writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                break;
+            default:
+                LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
+                break;
+            }
+
+            xSemaphoreGive(xSemaphoreModbusRTU);
+            
+ERROR_RESPONSE:
+            if (writeResult == 1)
+            {
+                doc["rsc"] = "200";
+            }
+            else
+            {
+                doc["rsc"] = "900 : UNEXPECTED ERROR";
+            }
+
+            std::string payload;
+            serializeJson(doc, payload);       
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
+
+            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+            Status ret = cdo.Store(message);
+            if (ret != Status::Code::GOOD)
+            {
+                /**
+                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
+                 * 
+                 */
+            }
+
+            return;
+
+        }
+    
+        
     }
 
     void Core::onJarvisValidationResult(jarvis::ValidationResult result)

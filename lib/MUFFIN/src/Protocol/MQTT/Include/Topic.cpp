@@ -35,10 +35,11 @@ namespace muffin { namespace mqtt {
                 return false;
             }
             
-            mLastWill         = "scautr/modlink/status/network/will";
-            mJarvisRequest    = "mfm/" + macAddress;
-            mJarvisResponse   = "mfm/resp/" + macAddress;
-            mRemoteControl    = "scautr/req/" + macAddress;
+            mLastWill               = "scautr/modlink/status/network/will";
+            mJarvisRequest          = "mfm/" + macAddress;
+            mJarvisResponse         = "mfm/resp/" + macAddress;
+            mRemoteControlRequest   = "scautr/req/" + macAddress;
+            mRemoteControlResponse  = "scautr/resp/" + macAddress;
         }
 
         return true;
@@ -74,8 +75,10 @@ namespace muffin { namespace mqtt {
             return mJarvisRequest.c_str();
         case topic_e::JARVIS_RESPONSE:
             return mJarvisResponse.c_str();
-        case topic_e::REMOTE_CONTROL:
-            return mRemoteControl.c_str();
+        case topic_e::REMOTE_CONTROL_REQUEST:
+            return mRemoteControlRequest.c_str();
+        case topic_e::REMOTE_CONTROL_RESPONSE:
+            return mRemoteControlResponse.c_str();
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));
             return nullptr;
@@ -92,9 +95,9 @@ namespace muffin { namespace mqtt {
         {
             return std::make_pair(true, topic_e::JARVIS_RESPONSE);
         }
-        else if (topicString == mRemoteControl)
+        else if (topicString == mRemoteControlRequest)
         {
-            return std::make_pair(true, topic_e::REMOTE_CONTROL);
+            return std::make_pair(true, topic_e::REMOTE_CONTROL_REQUEST);
         }
         else if (topicString == mLastWill)
         {
@@ -111,5 +114,6 @@ namespace muffin { namespace mqtt {
     std::string Topic::mLastWill;
     std::string Topic::mJarvisRequest;
     std::string Topic::mJarvisResponse;
-    std::string Topic::mRemoteControl;
+    std::string Topic::mRemoteControlRequest;
+    std::string Topic::mRemoteControlResponse;
 }}
