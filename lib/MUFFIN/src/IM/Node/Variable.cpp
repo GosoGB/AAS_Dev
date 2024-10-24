@@ -4,7 +4,7 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
- * @date 2024-10-23
+ * @date 2024-10-24
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -370,64 +370,35 @@ namespace muffin { namespace im {
     {
         removeOldestHistory();
         
-        var_data_t variableData;
-        // variableData.StatusCode   = polledData.StatusCode;
-        // variableData.Timestamp    = polledData.Timestamp;
-        variableData.HasValue     = true;
         /**
-         * @todo 필요 없는 속성일 수 있습니다. 고민해보고 필요 없다면 삭제해야 합니다.
+         * @todo HasStatus, HasTimestamp 속성은 필요 없을 수 있습니다.
+         *       고민해보고 필요 없다고 판단되면 삭제해야 합니다.
          */
-        variableData.HasStatus    = true;
-        variableData.HasTimestamp = true;
+        var_data_t variableData;
+        variableData.StatusCode     = Status::Code::GOOD;
+        variableData.Timestamp      = polledData.front().Timestamp;
+        variableData.HasValue       = true;
+        variableData.HasStatus      = true;
+        variableData.HasTimestamp   = true;
+        
+        for (const auto& polledDatum : polledData)
+        {
+            if (polledDatum.StatusCode != Status::Code::GOOD)
+            {
+                variableData.StatusCode = polledDatum.StatusCode;
+                break;
+            }
 
+            if (variableData.Timestamp != polledDatum.Timestamp)
+            {
+                variableData.StatusCode = Status::Code::BAD_INVALID_TIMESTAMP;
+                variableData.HasTimestamp = false;
+                break;
+            }
+        }
+    
 
         implUpdate(polledData, &variableData);
-
-        // std::vector<poll_data_t> vectorPolledData;
-        // vectorPolledData.reserve(1);
-        // vectorPolledData.emplace_back(polledData);
-
-        // if (mVectorDataUnitOrders.first == true)
-        // {
-        //     std::vector<casted_data_t> vectorCastedData;
-        //     castWithDataUnitOrder(vectorPolledData, &vectorCastedData);
-
-        //     if (mVectorDataUnitOrders.second.size() == 1)
-        //     {
-        //         variableData.DataType  = vectorCastedData[0].ValueType;
-        //         variableData.Value     = vectorCastedData[0].Value;
-
-        //         if (variableData.DataType == jarvis::dt_e::STRING)
-        //         {
-        //             goto CHECK_EVENT;
-        //         }
-        //     }
-        //     else
-        //     {
-        //         std::string formattedString = createFormattedString(mFormatString.second.c_str(), vectorCastedData);
-        //         variableData.DataType       = jarvis::dt_e::STRING;
-        //         variableData.Value.String   = ToMuffinString(formattedString);
-                
-        //         LOG_DEBUG(logger, "Formatted string: %s", formattedString.c_str());
-        //         goto CHECK_EVENT;
-        //     }
-        // }
-        // else
-        // {
-        //     casted_data_t castedData;
-        //     castWithoutDataUnitOrder(vectorPolledData, &castedData);
-        //     LOG_WARNING(logger,"variableData : %f, %d, %u", castedData.Value.Float32, castedData.Value.Int16, castedData.Value.UInt16);
-    
-        //     variableData.DataType  = castedData.ValueType;
-        //     variableData.Value     = castedData.Value;
-
-        //     if (variableData.DataType == jarvis::dt_e::STRING)
-        //     {
-        //         goto CHECK_EVENT;
-        //     }
-        // }
-
-
         if (variableData.DataType == jarvis::dt_e::BOOLEAN || variableData.DataType == jarvis::dt_e::STRING)
         {
             goto CHECK_EVENT;
@@ -460,6 +431,7 @@ namespace muffin { namespace im {
             applyNumericOffset(variableData);
         }
 
+
     CHECK_EVENT:
         if (variableData.StatusCode != Status::Code::GOOD)
         {
@@ -469,16 +441,24 @@ namespace muffin { namespace im {
             {
                 variableData.IsEventType  = true;
                 variableData.HasNewEvent  = true;
-                goto EMPLACE_DATA;
             }
             else
             {
                 const var_data_t lastestHistory = mDataBuffer.back();
                 variableData.IsEventType  = (lastestHistory.StatusCode != variableData.StatusCode);
                 variableData.HasNewEvent  = (lastestHistory.StatusCode != variableData.StatusCode);
-                goto EMPLACE_DATA;
             }
+            goto EMPLACE_DATA;
         }
+
+        variableData.HasNewEvent = isEventOccured(variableData);
+        variableData.IsEventType = variableData.HasNewEvent;
+    #if defined(DEBUG)
+        if (variableData.HasNewEvent == true)
+        {
+            LOG_DEBUG(logger,"[Node ID: %s]: NEW EVENT", mNodeID.c_str());
+        }
+    #endif
 
 
     EMPLACE_DATA:
@@ -528,10 +508,10 @@ namespace muffin { namespace im {
             LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float32);
             break;
         case jarvis::dt_e::FLOAT64:
-            LOG_INFO(logger,"[FLOAT64][Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float64);
+            LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float64);
             break;
         case jarvis::dt_e::STRING:
-            LOG_INFO(logger,"[STRING][Node ID: %s]: %s", mNodeID.c_str(), data.Value.String.Data);
+            LOG_INFO(logger,"[Node ID: %s]: %s", mNodeID.c_str(), data.Value.String.Data);
             break;
         default:
             break;
@@ -955,124 +935,39 @@ namespace muffin { namespace im {
             return false;
         }
 
-        const var_data_t lastestHistory = mDataBuffer.back();
-
-        switch (variableData.DataType)
+        if (mDataBuffer.size() == 0)
         {
-        case jarvis::dt_e::INT8:
-            if (lastestHistory.Value.Int8 != variableData.Value.Int8)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::UINT8:
-            if (lastestHistory.Value.UInt8 != variableData.Value.UInt8)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::INT16:
-            if (lastestHistory.Value.Int16 != variableData.Value.Int16)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::UINT16:
-            if (lastestHistory.Value.UInt16 != variableData.Value.UInt16)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::INT32:
-            if (lastestHistory.Value.Int32 != variableData.Value.Int32)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::UINT32:
-            if (lastestHistory.Value.UInt32 != variableData.Value.UInt32)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::FLOAT32:
-            if (lastestHistory.Value.Float32 != variableData.Value.Float32)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::INT64:
-            if (lastestHistory.Value.Int64 != variableData.Value.Int64)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::UINT64:
-            if (lastestHistory.Value.UInt64 != variableData.Value.UInt64)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::FLOAT64:
-            if (lastestHistory.Value.Float64 != variableData.Value.Float64)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        case jarvis::dt_e::STRING:
-            if (strcmp(lastestHistory.Value.String.Data, variableData.Value.String.Data) != 0)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        
-        default:
             return false;
         }
 
+        const var_data_t lastestHistory = mDataBuffer.back();
+        switch (variableData.DataType)
+        {
+        case jarvis::dt_e::INT8:
+            return lastestHistory.Value.Int8 != variableData.Value.Int8;
+        case jarvis::dt_e::UINT8:
+            return lastestHistory.Value.UInt8 != variableData.Value.UInt8;
+        case jarvis::dt_e::INT16:
+            return lastestHistory.Value.Int16 != variableData.Value.Int16;
+        case jarvis::dt_e::UINT16:
+            return lastestHistory.Value.UInt16 != variableData.Value.UInt16;
+        case jarvis::dt_e::INT32:
+            return lastestHistory.Value.Int32 != variableData.Value.Int32;
+        case jarvis::dt_e::UINT32:
+            return lastestHistory.Value.UInt32 != variableData.Value.UInt32;
+        case jarvis::dt_e::FLOAT32:
+            return lastestHistory.Value.Float32 != variableData.Value.Float32;
+        case jarvis::dt_e::INT64:
+            return lastestHistory.Value.Int64 != variableData.Value.Int64;
+        case jarvis::dt_e::UINT64:
+            return lastestHistory.Value.UInt64 != variableData.Value.UInt64;
+        case jarvis::dt_e::FLOAT64:
+            return lastestHistory.Value.Float64 != variableData.Value.Float64;
+        case jarvis::dt_e::STRING:
+            return static_cast<bool>(strcmp(lastestHistory.Value.String.Data, variableData.Value.String.Data));
+        default:
+            return false;
+        }
         return false;
     }
 
