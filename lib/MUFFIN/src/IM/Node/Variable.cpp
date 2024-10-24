@@ -738,6 +738,9 @@ namespace muffin { namespace im {
 
         switch (variableData.DataType)
         {
+        case jarvis::dt_e::BOOLEAN:
+            it = mMapMappingRules.second.find(variableData.Value.Boolean);
+            break;
         case jarvis::dt_e::INT8:
         case jarvis::dt_e::UINT8:
             it = mMapMappingRules.second.find(variableData.Value.UInt8);
