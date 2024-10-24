@@ -75,4 +75,12 @@ namespace muffin {
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
     }
+
+    // std::pair<Status, std::string> JSON::Serialize()
+    // {
+    //     JsonDocument doc;
+
+
+
+    // }
 }

@@ -23,7 +23,7 @@
 #include "IM/Node/NodeStore.h"
 #include "Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "ModbusRTU.h"
-
+#include "ModbusMutex.h"
 
 
 namespace muffin {
@@ -72,6 +72,14 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO CONFIGURE RS-485 PORT: %s", ret.c_str());
             return ret;
         }
+        xSemaphoreModbusRTU = xSemaphoreCreateMutex();
+        if (xSemaphoreModbusRTU == NULL)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MODBUS RTU SEMAPHORE");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+        
+        LOG_INFO(logger, "Created task Modbus RTU semaphore");
         return ret;
     }
 
@@ -231,9 +239,17 @@ namespace muffin {
                 return Status(Status::Code::BAD);
             }
 
+            if (xSemaphoreTake(xSemaphoreModbusRTU, 2000)  != pdTRUE)
+            {
+                LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
+                return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+            }
+
             for (const auto& area : retrievedAreaInfo.second)
             {
                 const auto& addressSetToPoll = retrievedAddressInfo.second.RetrieveAddressRange(area);
+                
+
                 switch (area)
                 {
                 case jarvis::mb_area_e::COILS:
@@ -259,7 +275,7 @@ namespace muffin {
                 }
             }
         }
-
+        xSemaphoreGive(xSemaphoreModbusRTU);
         return ret;
     }
 

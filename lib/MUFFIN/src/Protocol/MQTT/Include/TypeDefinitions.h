@@ -43,10 +43,11 @@ namespace muffin { namespace mqtt {
     typedef enum class topic_e
         : uint8_t
     {
-        LAST_WILL         = 0,
-        JARVIS_REQUEST    = 1,
-        JARVIS_RESPONSE   = 2,
-        REMOTE_CONTROL    = 3
+        LAST_WILL               = 0,
+        JARVIS_REQUEST          = 1,
+        JARVIS_RESPONSE         = 2,
+        REMOTE_CONTROL_REQUEST  = 3,
+        REMOTE_CONTROL_RESPONSE = 4
     } topic_e;
 
     typedef enum class MqttQoSEnum

@@ -18,9 +18,9 @@
 #pragma once
 
 #include <ArduinoJson.h>
+#include <Protocol/MQTT/Include/TypeDefinitions.h>
 
 #include "Common/Status.h"
-
 
 
 namespace muffin {
@@ -31,7 +31,7 @@ namespace muffin {
         JSON();
         virtual ~JSON();
     public:
-        // Status Serialize(const JsonDocument& json, std::string* payload);
+        // std::pair<Status, std::string> Serialize();
         Status Deserialize(const std::string& payload, JsonDocument* json);
     };
 }

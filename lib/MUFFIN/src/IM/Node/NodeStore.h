@@ -44,6 +44,7 @@ namespace muffin { namespace im {
         Status Remove(const std::string& nodeID);
         Status Clear();
         std::pair<Status, Node*> GetNodeReference(const std::string& nodeID);
+        std::pair<Status, Node*> GetNodeReferenceUID(const std::string& UID);
     private:
         std::map<std::string, Node> mMapNode;
     };

@@ -240,7 +240,7 @@ namespace muffin {
             }
 
             mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
-            mqtt::Message topicREMOTE_CONTROL(mqtt::topic_e::REMOTE_CONTROL, "");
+            mqtt::Message topicREMOTE_CONTROL_REQUEST(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
             /**
              * @todo JARVIS REQUEST, REMOTE CONTROL 토픽 구독 완료, 추가로 구독해야하는 토픽이 있나?
              */
@@ -252,7 +252,7 @@ namespace muffin {
                 return ret;
             }
 
-            ret = EmplaceBack(std::move(topicREMOTE_CONTROL), &vectorTopicsToSubscribe);
+            ret = EmplaceBack(std::move(topicREMOTE_CONTROL_REQUEST), &vectorTopicsToSubscribe);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s", ret.c_str());
