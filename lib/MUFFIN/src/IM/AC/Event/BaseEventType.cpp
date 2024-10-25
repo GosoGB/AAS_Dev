@@ -21,7 +21,7 @@
 
 namespace muffin { namespace im {
 
-    Event::Event()
+    BaseEventType::BaseEventType()
         : mEventID(generateEventID())
         , mReceiveTime(GetTimestampInMillis())
     {
@@ -30,7 +30,7 @@ namespace muffin { namespace im {
     #endif
     }
     
-    Event::Event(const std::string& sourceNodeID)
+    BaseEventType::BaseEventType(const std::string& sourceNodeID)
         : mEventID(generateEventID())
         , mSourceNodeID(sourceNodeID)
         , mReceiveTime(GetTimestampInMillis())
@@ -40,7 +40,7 @@ namespace muffin { namespace im {
     #endif
     }
     
-    Event::Event(const std::string& sourceNodeID, const std::string& eventMessage)
+    BaseEventType::BaseEventType(const std::string& sourceNodeID, const std::string& eventMessage)
         : mEventID(generateEventID())
         , mSourceNodeID(sourceNodeID)
         , mEventMessage(eventMessage)
@@ -51,42 +51,42 @@ namespace muffin { namespace im {
     #endif
     }
     
-    Event::~Event()
+    BaseEventType::~BaseEventType()
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
-    void Event::SetSourceNodeID(const std::string& nodeID)
+    void BaseEventType::SetSourceNodeID(const std::string& nodeID)
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
     }
 
-    void Event::SetEventMessage(const std::string& message)
+    void BaseEventType::SetEventMessage(const std::string& message)
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
     }
 
-    std::string Event::GetEventID() const
-    {
-        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
-        return std::string();
-    }
-
-    std::string Event::GetEventMessage() const
+    std::string BaseEventType::GetEventID() const
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
         return std::string();
     }
 
-    std::string Event::GetSourceNodeID() const
+    std::string BaseEventType::GetEventMessage() const
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
         return std::string();
     }
 
-    uint64_t Event::GetReceiveTime() const
+    std::string BaseEventType::GetSourceNodeID() const
+    {
+        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
+        return std::string();
+    }
+
+    uint64_t BaseEventType::GetReceiveTime() const
     {
         ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
         return 0;

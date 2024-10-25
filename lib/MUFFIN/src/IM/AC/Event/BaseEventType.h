@@ -1,5 +1,5 @@
 /**
- * @file Event.h
+ * @file BaseEventType.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief MUFFIN 프레임워크에서 발생시키는 이벤트에 대한 기본 클래스를 선언합니다.
@@ -24,13 +24,13 @@
 
 namespace muffin { namespace im {
 
-    class Event
+    class BaseEventType
     {
     public:
-        Event();
-        Event(const std::string& sourceNodeID);
-        Event(const std::string& sourceNodeID, const std::string& eventMessage);
-        virtual ~Event();
+        BaseEventType();
+        BaseEventType(const std::string& sourceNodeID);
+        BaseEventType(const std::string& sourceNodeID, const std::string& eventMessage);
+        virtual ~BaseEventType();
     public:
         void SetSourceNodeID(const std::string& nodeID);
         void SetEventMessage(const std::string& message);
