@@ -4,7 +4,7 @@
  * 
  * @brief MUFFIN 프레임워크 내에서 상태를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-08-30
+ * @date 2024-10-25
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2023-2024
@@ -174,8 +174,8 @@ namespace muffin {
             return "BAD OBJECT DELETED";
         case Code::BAD_NOT_IMPLEMENTED:
             return "BAD NOT IMPLEMENTED";
-        case Code::BAD_MONITOR_INGMODEINVALID:
-            return "BAD MONITOR INGMODEINVALID";
+        case Code::BAD_MONITORING_MODE_INVALID:
+            return "BAD MONITORING MODE INVALID";
         case Code::BAD_MONITORED_ITEM_ID_INVALID:
             return "BAD MONITORED ITEM ID INVALID";
         case Code::BAD_MONITORED_ITEM_FILTER_INVALID:

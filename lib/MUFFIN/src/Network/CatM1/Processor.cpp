@@ -92,9 +92,13 @@ namespace muffin {
     const std::string errorCode("\r\r\nERROR\r\n");
 
 
+    /**
+     * @brief mRxBufferSize를 줄여야 합니다. 그러려면 버퍼에 들어간 데이터를 
+     *        처리하는 별도의 코드가 있어야 합니다. 특히 JARVIS에서.
+     */
     Processor::Processor()
         : mSerial(HardwareSerial(1))
-        , mRxBufferSize(1024)
+        , mRxBufferSize(10240)
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)
         , mBaudRate(baudrate_e::BDR_115200)

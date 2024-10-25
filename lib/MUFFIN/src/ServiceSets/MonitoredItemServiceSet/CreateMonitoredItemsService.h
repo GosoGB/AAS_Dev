@@ -2,7 +2,7 @@
  * @file CreateMonitoredItemsService.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief Subscription 안의 MonitoredItem을 생성하고 초기 설정을 수행하는 서비스를 선언합니다.
+ * @brief 구독을 위한 MonitoredItem을 생성하고 초기 설정을 수행하는 서비스를 선언합니다.
  * 
  * @date 2024-10-24
  * @version 0.0.1

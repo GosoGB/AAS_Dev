@@ -1,11 +1,47 @@
-// struct UA_MonitoredItem {
-//     UA_TimerEntry delayedFreePointers;
-//     LIST_ENTRY(UA_MonitoredItem) listEntry; /* Linked list in the Subscription */
-//     UA_Subscription *subscription; /* If NULL, then this is a Local MonitoredItem */
-//     UA_UInt32 monitoredItemId;
+/**
+ * @file MonitoredItem.cpp
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
+ * @brief 노드, 변수, 속성, 이벤트를 모니터링 할 때 사용되는 MonitoredItem 클래스를 정의합니다.
+ * 
+ * @date 2024-10-25
+ * @version 0.0.1
+ * 
+ * @copyright Copyright (c) EdgecrBoss Inc. 2024
+ */
 
+
+
+
+#include "Common/Assert.h"
+#include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
+#include "MonitoredItem.h"
+
+
+
+namespace muffin {
+
+    MonitoredItem::MonitoredItem(const uint8_t monitoredItemID)
+        : mMonitoredItemID(monitoredItemID)
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
+    }
+    
+    MonitoredItem::~MonitoredItem()
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
+    }
+    
+}
+
+
+// struct UA_MonitoredItem {
 //     /* Status and Settings */
-//     UA_ReadValueId itemToMonitor;
 //     UA_MonitoringMode monitoringMode;
 //     UA_TimestampsToReturn timestampsToReturn;
 //     UA_Boolean registered;       /* Registered in the server / Subscription */
@@ -16,19 +52,6 @@
 //                                   * new sample is also published (and not just
 //                                   * sampled) if it occurs within the duration of
 //                                   * one publishing cycle after the triggering. */
-
-//     /* If the filter is a UA_DataChangeFilter: The DataChangeFilter always
-//      * contains an absolute deadband definition. Part 8, §6.2 gives the
-//      * following formula to test for percentage deadbands:
-//      *
-//      * DataChange if (absolute value of (last cached value - current value)
-//      *                > (deadbandValue/100.0) * ((high–low) of EURange)))
-//      *
-//      * So we can convert from a percentage to an absolute deadband and keep
-//      * the hot code path simple.
-//      *
-//      * TODO: Store the percentage deadband to recompute when the UARange is
-//      * changed at runtime of the MonitoredItem */
 //     UA_MonitoringParameters parameters;
 
 //     /* Sampling */
