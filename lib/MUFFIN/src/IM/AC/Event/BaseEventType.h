@@ -4,7 +4,7 @@
  * 
  * @brief MUFFIN 프레임워크에서 발생시키는 이벤트에 대한 기본 클래스를 선언합니다.
  * 
- * @date 2024-10-19
+ * @date 2024-10-25
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024

@@ -1,10 +1,10 @@
 /**
- * @file Event.cpp
+ * @file BaseEventType.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief MUFFIN 프레임워크에서 발생시키는 이벤트에 대한 기본 클래스를 정의합니다.
+ * @brief MUFFIN 프레임워크에서 발생시키는 이벤트에 대한 기본 클래스를 선언합니다.
  * 
- * @date 2024-10-19
+ * @date 2024-10-25
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -12,11 +12,10 @@
 
 
 
-
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
-#include "Event.h"
+#include "BaseEventType.h"
 
 
 

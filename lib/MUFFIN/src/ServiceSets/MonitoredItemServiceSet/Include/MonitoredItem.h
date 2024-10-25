@@ -77,6 +77,7 @@ namespace muffin {
         UtcTime StartTime;
         std::vector<std::string> AggregateType;
         double ProcessingInterval;
+        // AggregateConfiguration;
     } aggregate_filter_t;
 
 
@@ -103,6 +104,8 @@ namespace muffin {
         std::string mNodeID;
         monitoring_mode_e mMonitoringMode;
         data_change_filter_t mDataChangeFilter;
+        aggregate_filter_t mAggregateFilter;
+        uint32_t mQueueSize;
         bool mDiscardOldest = true;
     };
 }

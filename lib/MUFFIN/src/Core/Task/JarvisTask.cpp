@@ -161,53 +161,52 @@ namespace muffin {
             JSON json;
             JsonDocument doc;
 
-            http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-            http::RequestParameter parameters;
-            parameters.Add("mac", MacAddress::GetEthernet());
+//             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
+//             http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+//             http::RequestParameter parameters;
+//             parameters.Add("mac", MacAddress::GetEthernet());
 
-#ifdef DEBUG
-    LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-            Status ret = catHttp.GET(header, parameters);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
+// #ifdef DEBUG
+//     LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+// #endif
+//             Status ret = catHttp.GET(header, parameters);
+//             if (ret != Status::Code::GOOD)
+//             {
+//                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
                 
-                switch (ret.ToCode())
-                {
-                case Status::Code::BAD_TIMEOUT:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
-                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
-                    break;
-                case Status::Code::BAD_NO_COMMUNICATION:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
-                    break;
-                case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
-                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
-                    break;
-                default:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
-                    break;
-                }
+//                 switch (ret.ToCode())
+//                 {
+//                 case Status::Code::BAD_TIMEOUT:
+//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
+//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
+//                     break;
+//                 case Status::Code::BAD_NO_COMMUNICATION:
+//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
+//                     break;
+//                 case Status::Code::BAD_OUT_OF_MEMORY:
+//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
+//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
+//                     break;
+//                 default:
+//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
+//                     break;
+//                 }
                 
-                callback(validationResult);
-                s_IsJarvisTaskRunning = false;
-                vTaskDelete(NULL);
-            }
-#ifdef DEBUG
-    LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-            
-            s_JarvisApiPayload.clear();
-            ret = catHttp.Retrieve(&s_JarvisApiPayload);
+//                 callback(validationResult);
+//                 s_IsJarvisTaskRunning = false;
+//                 vTaskDelete(NULL);
+//             }
+// #ifdef DEBUG
+//     LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+// #endif
+
+//             s_JarvisApiPayload.clear();
+//             ret = catHttp.Retrieve(&s_JarvisApiPayload);
             // s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001","#002","#003","#004","#005"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":0,"area":3,"bit":null,"qty":4,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[11],"fmt":null,"uid":"DO01","name":"제품 모델명","unit":"N/A","event":true},{"id":"#002","adtp":0,"addr":100,"area":3,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[3],"fmt":null,"uid":"DI02","name":"현재 온도","unit":"°C","event":true},{"id":"#003","adtp":0,"addr":101,"area":3,"bit":1,"qty":null,"scl":null,"ofst":null,"map":{"0":"ON","1":"OFF"},"ord":null,"dt":[4],"fmt":null,"uid":"DO05","name":"콤프 상태","unit":"N/A","event":true},{"id":"#004","adtp":0,"addr":2,"area":4,"bit":3,"qty":null,"scl":null,"ofst":null,"map":{"0":"TEST1","1":"TEST2"},"ord":null,"dt":[3],"fmt":null,"uid":"P001","name":"설정 온도","unit":"°C","event":true},{"id":"#005","adtp":0,"addr":22,"area":4,"bit":0,"qty":null,"scl":null,"ofst":null,"map":{"0":"운전","1":"정지"},"ord":null,"dt":[4],"fmt":null,"uid":"P005","name":"시스템 설정","unit":"N/A","event":true}],"alarm":[],"optime":[],"prod":[]}})";
 
-            // Status ret = Status(Status::Code::GOOD);
-            // ret = Status(Status::Code::GOOD);
+            Status ret = Status(Status::Code::GOOD);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
