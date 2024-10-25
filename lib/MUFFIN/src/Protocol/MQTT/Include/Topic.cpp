@@ -40,6 +40,14 @@ namespace muffin { namespace mqtt {
             mJarvisResponse         = "mfm/resp/" + macAddress;
             mRemoteControlRequest   = "scautr/req/" + macAddress;
             mRemoteControlResponse  = "scautr/resp/" + macAddress;
+            mDaqIntput              = "scautr/equipment/daq/input";
+            mDaqOutput              = "scautr/equipment/daq/output";
+            mDaqParam               = "scautr/equipment/param";
+            mAlarm                  = "scautr/equipment/status/alarm";
+            mError                  = "scautr/equipment/status/error";
+            mOperation              = "scautr/equipment/status/operation";
+            mUptime                 = "progix/dashboard/fg";
+            mFinishedGoods          = "progix/dashboard/ut";
         }
 
         return true;
@@ -79,6 +87,22 @@ namespace muffin { namespace mqtt {
             return mRemoteControlRequest.c_str();
         case topic_e::REMOTE_CONTROL_RESPONSE:
             return mRemoteControlResponse.c_str();
+        case topic_e::DAQ_INPUT:
+            return mDaqIntput.c_str();
+        case topic_e::DAQ_OUTPUT:
+            return mDaqOutput.c_str();
+        case topic_e::DAQ_PARAM:
+            return mDaqParam.c_str();
+        case topic_e::ALARM:
+            return mAlarm.c_str();
+        case topic_e::ERROR:
+            return mError.c_str();
+        case topic_e::OPERATION:
+            return mOperation.c_str();
+        case topic_e::UPTIME:
+            return mUptime.c_str();
+        case topic_e::FINISHEDGOODS:
+            return mFinishedGoods.c_str();
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));
             return nullptr;
@@ -103,6 +127,38 @@ namespace muffin { namespace mqtt {
         {
             return std::make_pair(true, topic_e::LAST_WILL);
         }
+        else if (topicString == mDaqIntput)
+        {
+            return std::make_pair(true, topic_e::DAQ_INPUT);
+        }
+        else if (topicString == mDaqOutput)
+        {
+            return std::make_pair(true, topic_e::DAQ_OUTPUT);
+        }
+        else if (topicString == mDaqParam)
+        {
+            return std::make_pair(true, topic_e::DAQ_PARAM);
+        }
+        else if (topicString == mAlarm)
+        {
+            return std::make_pair(true, topic_e::ALARM);
+        }
+        else if (topicString == mError)
+        {
+            return std::make_pair(true, topic_e::ERROR);
+        }
+        else if (topicString == mOperation)
+        {
+            return std::make_pair(true, topic_e::OPERATION);
+        }
+        else if (topicString == mUptime)
+        {
+            return std::make_pair(true, topic_e::UPTIME);
+        }
+        else if (topicString == mFinishedGoods)
+        {
+            return std::make_pair(true, topic_e::FINISHEDGOODS);
+        }
         else
         {
             return std::make_pair(false, topic_e::LAST_WILL);
@@ -116,4 +172,12 @@ namespace muffin { namespace mqtt {
     std::string Topic::mJarvisResponse;
     std::string Topic::mRemoteControlRequest;
     std::string Topic::mRemoteControlResponse;
+    std::string Topic::mDaqIntput;
+    std::string Topic::mDaqOutput;
+    std::string Topic::mDaqParam;
+    std::string Topic::mAlarm;
+    std::string Topic::mError;
+    std::string Topic::mOperation;
+    std::string Topic::mUptime;
+    std::string Topic::mFinishedGoods;
 }}

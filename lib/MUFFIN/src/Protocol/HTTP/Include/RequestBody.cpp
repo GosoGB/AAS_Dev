@@ -38,11 +38,6 @@ namespace muffin { namespace http {
     #endif
     }
 
-    const char* RequestBody::c_str() const
-    {
-        return ToString().c_str();
-    }
-
     std::string RequestBody::ToString() const
     {
         auto it = mMapProperty.begin();

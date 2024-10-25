@@ -136,10 +136,10 @@ namespace muffin { namespace http {
 
     Status CatHTTP::GET(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        ASSERT((0 < strlen(header.c_str()) && strlen(header.c_str()) < 2049), "INVALID HEADER LENGTH");
+        ASSERT((0 < strlen(header.ToString().c_str()) && strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH");
         ASSERT((0 < timeout), "INVALID TIMEOUT VALUE");
 
-        header.UpdateParamter(parameter.c_str());
+        header.UpdateParamter(parameter.ToString().c_str());
         Status ret = setRequestURL(header.GetURL(), timeout);
         if (ret != Status::Code::GOOD)
         {
@@ -152,7 +152,7 @@ namespace muffin { namespace http {
         
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));
-        sprintf(command, "AT+QHTTPGET=%u,%u", timeout, strlen(header.c_str()));
+        sprintf(command, "AT+QHTTPGET=%u,%u", timeout, strlen(header.ToString().c_str()));
         ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
 
         const uint32_t timeoutMillis = timeout * 1000;
@@ -166,7 +166,6 @@ namespace muffin { namespace http {
         }
 
         ret = readUntilCONNECT(timeoutMillis, &rxd);
-        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
         if (ret != Status::Code::GOOD)
         {
             Status cmeErrorCode = processCmeErrorCode(rxd);
@@ -174,8 +173,7 @@ namespace muffin { namespace http {
                 ret.c_str(), processCmeErrorCode(rxd).c_str());
             return cmeErrorCode;
         }
-
-        ret = mCatM1.Execute(header.c_str());
+        ret = mCatM1.Execute(header.ToString().c_str());
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO REQUEST GET: %s", ret.c_str());
@@ -275,8 +273,8 @@ namespace muffin { namespace http {
 
     Status CatHTTP::POST(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
-        ASSERT((0 < strlen(header.c_str()) && strlen(header.c_str()) < 2049), "INVALID HEADER LENGTH");
-        ASSERT((0 < strlen(body.c_str()) && strlen(body.c_str()) < 1021953), "INVALID BODY LENGTH");
+        ASSERT((0 < strlen(header.ToString().c_str()) && strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH");
+        ASSERT((0 < strlen(body.ToString().c_str()) && strlen(body.ToString().c_str()) < 1021953), "INVALID BODY LENGTH");
         ASSERT((0 < timeout), "INVALID TIMEOUT VALUE");
 
         Status ret = setRequestURL(header.GetURL(), timeout);
@@ -288,13 +286,13 @@ namespace muffin { namespace http {
         }
 
         constexpr uint8_t BUFFER_SIZE = 64;
-        header.SetContentLength(strlen(body.c_str()));
+        header.SetContentLength(strlen(body.ToString().c_str()));
         header.SetContentType(body.GetContentType());
 
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));
         sprintf(command, "AT+QHTTPPOST=%u,%u,%u",
-            (strlen(header.c_str()) + strlen(body.c_str())),
+            (strlen(header.ToString().c_str()) + strlen(body.ToString().c_str())),
             timeout, timeout);
         ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
 

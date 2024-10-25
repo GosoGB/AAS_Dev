@@ -30,7 +30,6 @@ namespace muffin { namespace http {
         explicit RequestBody(const std::string& contentType);
         ~RequestBody();
     public:
-        const char* c_str() const;
         std::string ToString() const;
     public:
         void AddProperty(const std::string& key, const std::string& value);

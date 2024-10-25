@@ -35,11 +35,6 @@ namespace muffin { namespace http {
         LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
-    
-    const char* RequestParameter::c_str() const
-    {
-        return ToString().c_str();
-    }
 
     std::string RequestParameter::ToString() const
     {

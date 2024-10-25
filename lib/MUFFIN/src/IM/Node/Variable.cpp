@@ -1,6 +1,7 @@
 /**
  * @file Variable.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
@@ -1035,6 +1036,11 @@ namespace muffin { namespace im {
 
     std::pair<Status,uint16_t> Variable::ConvertModbusData(std::string& data)
     {
+        if (data.empty() == true)
+        {
+            return std::make_pair(Status(Status::Code::BAD_NO_DATA), 0);
+        }
+        
         /**
          * @brief 현재 단일 레지스터나 비트만 제어 가능함, 추후 Method 개발시 업데이트 예정입니다.
          * 
@@ -1045,27 +1051,63 @@ namespace muffin { namespace im {
             return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
         }
         
-        im::var_value_u tempData;
-     
+    
         if (mVectorDataTypes.at(0) != jarvis::dt_e::STRING)
         {
+            // 서버에서 입력된 value가 문자열인지 판단하는 로직, 더 좋은 방법이 있나?
+            bool decimalFound = false;
+            size_t start = (data[0] == '-') ? 1 : 0;
+            for (size_t i = start; i < data.length(); ++i) 
+            {
+                char c = data[i];
+                if (c == '.') 
+                {
+                    if (decimalFound) 
+                    {
+                        return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
+                    }
+                    decimalFound = true;
+                } 
+                else if (!isdigit(c)) 
+                {
+                    return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
+                }
+            }
+
+            uint16_t uint16Temp = Convert.ToUInt16(data);
+            float floatTemp = 0;
+            
             if (mMapMappingRules.first == true)
             {
-                auto it = mMapMappingRules.second.find(Convert.ToUInt16(data));
+                auto it = mMapMappingRules.second.find(uint16Temp);
                 if (it != mMapMappingRules.second.end()) 
                 {
                     return std::make_pair(Status(Status::Code::GOOD), it->first);
                 } 
                 else
                 {
-                    LOG_ERROR(logger,"NO MATCHING KEY DATA IN MAPPING RULES, %s",data.c_str());
-                    return std::make_pair(Status(Status::Code::BAD_NO_DATA), it->first);
+                    LOG_ERROR(logger,"NO MATCHING KEY DATA IN MAPPING RULES, DATA : %s",data.c_str());
+                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), it->first);
+                }
+            }
+
+            if (mBitIndex.first == true)
+            {
+                if (uint16Temp > 1)
+                {
+                    LOG_ERROR(logger,"BIT DATA HAS ONLY 1 or 0 VALUE , DATA : %s",data.c_str());
+                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), 0);
                 }
             }
 
             if (mNumericOffset.first == true)
             {
-               tempData.Float32 = Convert.ToFloat(data) - mNumericOffset.second;
+               floatTemp = Convert.ToFloat(data) - mNumericOffset.second;
+               if (mNumericScale.first == false)
+               {
+                    //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
+                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp));
+               }
             }
 
             if (mNumericScale.first == true)
@@ -1074,27 +1116,30 @@ namespace muffin { namespace im {
                 {
                     const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
                     const double denominator = pow(10, exponent);
-                    tempData.UInt16 = static_cast<uint16_t>(tempData.Float32/ denominator);
+                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp/ denominator));
                 }
                 else
                 {
                     const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
                     const double denominator = pow(10, exponent);
-                    tempData.UInt16 = static_cast<uint16_t>(Convert.ToFloat(data)/ denominator);
+                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(uint16Temp/ denominator));
                 }
             }
 
-            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), tempData.UInt16);
-            return std::make_pair(Status(Status::Code::GOOD), tempData.UInt16);
+            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), uint16Temp);
+            return std::make_pair(Status(Status::Code::GOOD), uint16Temp);
         }
         else
         {
             LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
             return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
         }
-        
 
+    }
 
+    std::pair<bool, uint8_t> Variable::GetBitindex() const
+    {
+        return mBitIndex;
     }
     
 

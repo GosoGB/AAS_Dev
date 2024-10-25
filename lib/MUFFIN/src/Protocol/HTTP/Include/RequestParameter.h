@@ -30,7 +30,6 @@ namespace muffin { namespace http {
         RequestParameter();
         ~RequestParameter();
     public:
-        const char* c_str() const;
         std::string ToString() const;
     public:
         void Add(const std::string& key, const std::string& value);

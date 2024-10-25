@@ -145,8 +145,8 @@ namespace muffin {
             }
 
             const jarvis::mb_area_e area = reference->VariableNode.GetModbusArea();
-            const AddressRange range = createAddressRange(*reference);
-
+            const AddressRange range = createAddressRange(reference->VariableNode.GetAddress().Numeric, reference->VariableNode.GetQuantity());
+    
             ret = mAddressTable.Update(slaveID, area, range);
             if (ret != Status::Code::GOOD)
             {
@@ -183,15 +183,8 @@ namespace muffin {
     }
  */
 
-
-    /**
-     * @todo node 개체 말고 필요한 정보만 매개변수로 넘기도록 수정해야 합니다.
-     * @author 김주성
-     */
-    im::NumericAddressRange ModbusRTU::createAddressRange(im::Node& node) const
+    im::NumericAddressRange ModbusRTU::createAddressRange(const uint16_t address, const uint16_t quantity) const
     {
-        const uint16_t address  = node.VariableNode.GetAddress().Numeric;
-        const uint16_t quantity = node.VariableNode.GetQuantity();
         return AddressRange(address, quantity);
     }
 
@@ -567,6 +560,32 @@ namespace muffin {
         }
 
         return ret;
+    }
+
+    modbus::datum_t ModbusRTU::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area)
+    {
+        modbus::datum_t data;
+        data.IsOK = false;
+        switch (area)
+        {
+        case jarvis::mb_area_e::COILS :
+            data = mPolledDataTable.RetrieveCoil(slaveID,address);
+            break;
+        case jarvis::mb_area_e::DISCRETE_INPUT :
+            data = mPolledDataTable.RetrieveDiscreteInput(slaveID,address);
+            break;
+        case jarvis::mb_area_e::INPUT_REGISTER :
+            data = mPolledDataTable.RetrieveInputRegister(slaveID,address);
+            break;
+        case jarvis::mb_area_e::HOLDING_REGISTER :
+            data = mPolledDataTable.RetrieveHoldingRegister(slaveID,address);
+            break;
+        default:
+            LOG_DEBUG(logger,"ADDRESS HAS NO DATA!!");
+            break;
+        }
+       
+        return data;
     }
 
 

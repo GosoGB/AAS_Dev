@@ -16,6 +16,8 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "JSON.h"
+#include "Protocol/MQTT/CDO.h"
+#include "IM/MacAddress/MacAddress.h"
 
 
 
@@ -76,11 +78,97 @@ namespace muffin {
         }
     }
 
-    // std::pair<Status, std::string> JSON::Serialize()
-    // {
-    //     JsonDocument doc;
 
+    std::string JSON::Serialize(const jarvis_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
 
+        doc["cfg"] = _struct.Config;
+        doc["ts"]  = _struct.SourceTimestamp;
+        doc["rsc"] = _struct.ResponseCode;
+        doc["dsc"] = _struct.Discription; 
 
-    // }
+        serializeJson(doc,payload);
+
+        return payload;
+    }
+
+    std::string JSON::Serialize(const remote_controll_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["id"]  = _struct.ID;
+        doc["ts"]  = _struct.SourceTimestamp;
+        doc["rsc"] = _struct.ResponseCode;
+        doc["req"] = _struct.RequestData;
+
+        serializeJson(doc,payload);
+
+        return payload;
+    }
+
+    std::string JSON::Serialize(const daq_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["mac"]   =  MacAddress::GetEthernet();
+        doc["ts"]    =  _struct.SourceTimestamp;
+        doc["name"]  =  _struct.Name;
+        doc["uid"]   =  _struct.Uid;
+        doc["unit"]  =  _struct.Unit;
+        doc["value"] =  _struct.Value;
+
+        serializeJson(doc,payload);
+
+        return payload;
+    }
+
+    std::string JSON::Serialize(const alarm_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["tp"]   =  _struct.AlarmType;
+        doc["ts"]   =  _struct.AlarmStartTime;
+        doc["tf"]   =  _struct.AlarmFinishTime;
+        doc["name"] =  _struct.Name;
+        doc["uid"]  =  _struct.Uid;
+        doc["id"]   =  _struct.UUID;
+
+        serializeJson(doc,payload);
+
+        return payload;
+    }
+
+    std::string JSON::Serialize(const operation_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["ts"]   =  _struct.SourceTimestamp;
+        doc["stauts"]   =  _struct.Status;
+
+        serializeJson(doc,payload);
+
+        return payload;
+    }
+
+    std::string JSON::Serialize(const progix_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["ts"]   =  _struct.SourceTimestamp;
+        doc["value"]   =  _struct.Value;
+
+        serializeJson(doc,payload);
+
+        return payload;
+    }
 }

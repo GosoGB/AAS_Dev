@@ -46,5 +46,13 @@ namespace muffin { namespace mqtt {
         static std::string mJarvisResponse;
         static std::string mRemoteControlRequest;
         static std::string mRemoteControlResponse;
+        static std::string mDaqIntput;
+        static std::string mDaqOutput;
+        static std::string mDaqParam;
+        static std::string mAlarm;
+        static std::string mError;
+        static std::string mOperation;
+        static std::string mUptime;
+        static std::string mFinishedGoods;
     };
 }}

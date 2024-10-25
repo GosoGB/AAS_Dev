@@ -1,6 +1,7 @@
 /**
  * @file Variable.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 선언합니다.
  * 
@@ -65,6 +66,10 @@ namespace muffin { namespace im {
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
         void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);
+
+    // 원격제어시 bit 정보를 알기 위해 임시로 만들어둔 매서드입니다. 추후 삭제 예정입니다.
+    public:
+        std::pair<bool, uint8_t> GetBitindex() const;
     private:
         // virtual void strategySingleDataType() override;
         // void strategySingleDataType();

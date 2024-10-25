@@ -43,7 +43,6 @@ namespace muffin { namespace http {
         RequestHeader(const rest_method_e method, const http_scheme_e scheme, const std::string& host, const uint16_t port, const std::string& path, const std::string& userAgent);
         virtual ~RequestHeader();
     public:
-        const char* c_str() const;
         std::string ToString() const;
         std::string GetURL() const;
     public:

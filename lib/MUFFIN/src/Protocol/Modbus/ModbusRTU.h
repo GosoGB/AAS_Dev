@@ -58,10 +58,11 @@ namespace muffin {
         Status addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID);
         // Status removeNodeReference(const uint8_t slaveID, im::Node& node);
     private:
-        im::NumericAddressRange createAddressRange(im::Node& node) const;
+        im::NumericAddressRange createAddressRange(const uint16_t address, const uint16_t quantity) const;
 
     public:
         Status Poll();
+        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area);
     private:
         Status implementPolling();
         Status updateVariableNodes();

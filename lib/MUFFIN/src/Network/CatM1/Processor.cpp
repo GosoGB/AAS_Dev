@@ -14,6 +14,7 @@
 
 
 #include "Common/Logger/Logger.h"
+#include "Common/Assert.h"
 #include "Processor.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/Include/Message.h"
@@ -457,6 +458,14 @@ namespace muffin {
             LOG_DEBUG(logger, "Token [%u]: %s", (i + 1), vectorToken[i].c_str());
         }
     #endif
+
+        if (vectorToken.size() != 4 || vectorToken[2].length() < 2 || vectorToken[3].length() < 2)
+        {
+            LOG_ERROR(logger, "RxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
+            ASSERT(false, "RxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
+            return;
+        }
+    
         vectorToken[2].erase(0, 1);
         vectorToken[2].erase(vectorToken[2].length() - 1, 1);
         vectorToken[3].erase(0, 1);

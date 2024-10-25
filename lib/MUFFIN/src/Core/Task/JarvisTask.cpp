@@ -161,52 +161,53 @@ namespace muffin {
             JSON json;
             JsonDocument doc;
 
-//             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-//             http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-//             http::RequestParameter parameters;
-//             parameters.Add("mac", MacAddress::GetEthernet());
+            http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+            http::RequestParameter parameters;
+            parameters.Add("mac", MacAddress::GetEthernet());
 
-// #ifdef DEBUG
-//     LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-// #endif
-//             Status ret = catHttp.GET(header, parameters);
-//             if (ret != Status::Code::GOOD)
-//             {
-//                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+            Status ret = catHttp.GET(header, parameters);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
                 
-//                 switch (ret.ToCode())
-//                 {
-//                 case Status::Code::BAD_TIMEOUT:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
-//                     break;
-//                 case Status::Code::BAD_NO_COMMUNICATION:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
-//                     break;
-//                 case Status::Code::BAD_OUT_OF_MEMORY:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
-//                     break;
-//                 default:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
-//                     break;
-//                 }
+                switch (ret.ToCode())
+                {
+                case Status::Code::BAD_TIMEOUT:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
+                    break;
+                case Status::Code::BAD_NO_COMMUNICATION:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
+                    break;
+                case Status::Code::BAD_OUT_OF_MEMORY:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
+                    break;
+                default:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
+                    break;
+                }
                 
-//                 callback(validationResult);
-//                 s_IsJarvisTaskRunning = false;
-//                 vTaskDelete(NULL);
-//             }
-// #ifdef DEBUG
-//     LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-// #endif
+                callback(validationResult);
+                s_IsJarvisTaskRunning = false;
+                vTaskDelete(NULL);
+            }
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
             
+            s_JarvisApiPayload.clear();
+            ret = catHttp.Retrieve(&s_JarvisApiPayload);
+            // s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001","#002","#003","#004","#005"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":0,"area":3,"bit":null,"qty":4,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[11],"fmt":null,"uid":"DO01","name":"제품 모델명","unit":"N/A","event":true},{"id":"#002","adtp":0,"addr":100,"area":3,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[3],"fmt":null,"uid":"DI02","name":"현재 온도","unit":"°C","event":true},{"id":"#003","adtp":0,"addr":101,"area":3,"bit":1,"qty":null,"scl":null,"ofst":null,"map":{"0":"ON","1":"OFF"},"ord":null,"dt":[4],"fmt":null,"uid":"DO05","name":"콤프 상태","unit":"N/A","event":true},{"id":"#004","adtp":0,"addr":2,"area":4,"bit":3,"qty":null,"scl":null,"ofst":null,"map":{"0":"TEST1","1":"TEST2"},"ord":null,"dt":[3],"fmt":null,"uid":"P001","name":"설정 온도","unit":"°C","event":true},{"id":"#005","adtp":0,"addr":22,"area":4,"bit":0,"qty":null,"scl":null,"ofst":null,"map":{"0":"운전","1":"정지"},"ord":null,"dt":[4],"fmt":null,"uid":"P005","name":"시스템 설정","unit":"N/A","event":true}],"alarm":[],"optime":[],"prod":[]}})";
 
-            // ret = catHttp.Retrieve(&s_JarvisApiPayload);
-            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001","#002","#003","#004","#005","#006","#007","#008","#009","#010","#011","#012","#013","#014","#015"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":0,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"0":"섭씨","1":"화씨"},"ord":null,"dt":[0],"fmt":null,"uid":"P001","name":"대기온도 섭씨/화씨 설정","unit":"N/A","event":true},{"id":"#002","adtp":0,"addr":100,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"0":"경보 OFF","1":"경보 ON"},"ord":null,"dt":[0],"fmt":null,"uid":"P002","name":"경보 출력/해제 설정","unit":"N/A","event":true},{"id":"#003","adtp":0,"addr":101,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"P003","name":"경보등 설정","unit":"N/A","event":true},{"id":"#004","adtp":0,"addr":0,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI01","name":"장비 운전 상태","unit":"N/A","event":true},{"id":"#005","adtp":0,"addr":1,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI02","name":"비상 정지","unit":"N/A","event":true},{"id":"#006","adtp":0,"addr":2,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI03","name":"절전 모드","unit":"N/A","event":true},{"id":"#007","adtp":0,"addr":3,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"DI03","name":"운전 모드","unit":"N/A","event":true},{"id":"#008","adtp":0,"addr":100,"area":3,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI04","name":"제품 번호 H","unit":"N/A","event":false},{"id":"#009","adtp":0,"addr":101,"area":3,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI05","name":"제품 번호 L","unit":"N/A","event":false},{"id":"#010","adtp":0,"addr":102,"area":3,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI06","name":"하드웨어 버전","unit":"N/A","event":false},{"id":"#011","adtp":0,"addr":103,"area":3,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI07","name":"펌웨어 버전","unit":"N/A","event":false},{"id":"#012","adtp":0,"addr":104,"area":3,"bit":null,"qty":2,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[11],"fmt":null,"uid":"DI08","name":"모델명","unit":"N/A","event":false},{"id":"#013","adtp":0,"addr":106,"area":3,"bit":null,"qty":3,"scl":null,"ofst":null,"map":null,"ord":[["W0"],["W1"],["W2"]],"dt":[4,4,4],"fmt":"%u년 %u월 %u일","uid":"DI09","name":"제조일","unit":"N/A","event":false},{"id":"#014","adtp":0,"addr":153,"area":4,"bit":null,"qty":2,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[9],"fmt":null,"uid":"DI10","name":"FP32 #1","unit":"N/A","event":false},{"id":"#015","adtp":0,"addr":155,"area":4,"bit":null,"qty":4,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[10],"fmt":null,"uid":"DI10","name":"FP32 #2","unit":"N/A","event":false}],"alarm":[],"optime":[],"prod":[]}})";
-            Status ret = Status(Status::Code::GOOD);
-
+            // Status ret = Status(Status::Code::GOOD);
+            // ret = Status(Status::Code::GOOD);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());

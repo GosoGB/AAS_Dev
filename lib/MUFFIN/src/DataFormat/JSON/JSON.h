@@ -25,13 +25,84 @@
 
 namespace muffin {
 
+    typedef struct JarvisStruct
+    {
+        mqtt::topic_e Topic;
+        JsonArray Config;
+        uint64_t SourceTimestamp;
+        uint32_t ResponseCode;
+        std::string Discription;
+    } jarvis_struct_t;
+
+    typedef struct RemoteControllStruct
+    {
+        mqtt::topic_e Topic;
+        std::string ID;
+        uint64_t SourceTimestamp;
+        std::string ResponseCode;
+        JsonArray RequestData;
+    } remote_controll_struct_t;
+
+    typedef struct DaqStruct
+    {
+        mqtt::topic_e Topic;
+        uint64_t SourceTimestamp;
+        std::string Name;
+        std::string Uid;
+        std::string Unit;
+        std::string Value;
+    } daq_struct_t;
+
+    typedef struct AlarmStruct
+    {
+        mqtt::topic_e Topic;
+        std::string AlarmType;
+        uint64_t AlarmStartTime;
+        int64_t AlarmFinishTime;
+        std::string Name;
+        std::string Uid;
+        std::string UUID;
+    } alarm_struct_t;
+
+    typedef struct OperationStruct
+    {
+        mqtt::topic_e Topic;
+        uint64_t SourceTimestamp;
+        std::string Status;
+    } operation_struct_t;
+
+    typedef struct ProgixStruct
+    {
+        mqtt::topic_e Topic;
+        uint64_t SourceTimestamp;
+        std::string Value;
+    } progix_struct_t;
+
     class JSON
     {
     public:
         JSON();
         virtual ~JSON();
     public:
-        // std::pair<Status, std::string> Serialize();
+        std::string Serialize(const jarvis_struct_t& _struct);
+        std::string Serialize(const remote_controll_struct_t& _struct);
+        std::string Serialize(const daq_struct_t& _struct);
+        std::string Serialize(const alarm_struct_t& _struct);
+        std::string Serialize(const operation_struct_t& _struct);
+        std::string Serialize(const progix_struct_t& _struct);
+    public:
         Status Deserialize(const std::string& payload, JsonDocument* json);
+    
+    // private:
+    //     std::string serializeJarvisResponse(const jarvis_struct_t& _struct);
+    // private:
+    //     std::string serializeScautrRemoteControllResponse(const remote_controll_struct_t& _struct);
+    // private:
+    //     std::string serializeDaqInput(const daq_struct_t& _struct);
+    //     std::string serializeDaqOutput(const daq_struct_t& _struct);
+    //     std::string serializeDaqParam(const daq_struct_t& _struct);
+    // private:
+    //     std::string serializeScautrAlarm(const remote_controll_struct_t& _struct);
+    //     std::string serializeScautrError(const remote_controll_struct_t& _struct);
     };
 }

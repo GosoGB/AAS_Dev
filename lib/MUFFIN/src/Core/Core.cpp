@@ -30,9 +30,10 @@
 #include "Task/JarvisTask.h"
 
 #include "Protocol/Modbus/ModbusMutex.h"
+#include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "Jarvis/Config/Protocol/ModbusRTU.h"
-
+#include "IM/Node/Include/TypeDefinitions.h"
 
 
 namespace muffin {
@@ -134,12 +135,8 @@ namespace muffin {
         case mqtt::topic_e::JARVIS_REQUEST:
             startJarvisTask(payload);
             return;
-        /**
-         * @todo 원격제어 명령 수신 토픽에 대한 처리 작업을 구현해야 합니다.
-         */
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
             startRemoteControll(payload);
-            
             break;
         default:
             ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
@@ -207,10 +204,13 @@ namespace muffin {
     void Core::startRemoteControll(const std::string& payload)
     {
         JSON json;
+        remote_controll_struct_t messageconfig;
+        std::string serializedPayload;
         JsonDocument doc;
         Status retJSON = json.Deserialize(payload, &doc);
         std::string Description;
 
+    
         if (retJSON != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
@@ -240,15 +240,11 @@ namespace muffin {
                 break;
             }
             
-            doc["id"]   = NULL; 
-            doc["ts"]   = GetTimestampInMillis(); 
-            doc["rsc"]  = "900 :" + Description;
-            doc["req"]  = NULL;
+            messageconfig.SourceTimestamp = GetTimestampInMillis(); 
+            messageconfig.ResponseCode    = "900 :" + Description;
 
-            std::string payload;
-            serializeJson(doc, payload);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
-
+            serializedPayload = json.Serialize(messageconfig);
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
             mqtt::CDO& cdo = mqtt::CDO::GetInstance();
             Status ret = cdo.Store(message);
             if (ret != Status::Code::GOOD)
@@ -257,8 +253,8 @@ namespace muffin {
                  * @todo Store 실패시 falsh 메모리에 저장하는 방법
                  * 
                  */
+                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
             }
-
             return;
         }
         
@@ -266,8 +262,9 @@ namespace muffin {
          * @todo JSON Message에 대해 Validator 구현해야함
          */
         JsonArray request = doc["req"].as<JsonArray>();
+        messageconfig.RequestData = request;
+        messageconfig.ID = doc["id"].as<std::string>();
         std::vector<std::pair<std::string, std::string>> remoteData;
-
         for (JsonObject obj : request)
         {
             std::string uid = obj["uid"].as<std::string>(); 
@@ -287,11 +284,11 @@ namespace muffin {
 
         if (ret.first != Status::Code::GOOD)
         {
-            doc["rsc"]  = "900 : UNDEFINED UID : " + remoteData.at(0).first;
-            std::string payload;
-            serializeJson(doc, payload);       
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
+            messageconfig.SourceTimestamp   = GetTimestampInMillis();
+            messageconfig.ResponseCode  = "900 : UNDEFINED UID : " + remoteData.at(0).first;
 
+            serializedPayload = json.Serialize(messageconfig);
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
             mqtt::CDO& cdo = mqtt::CDO::GetInstance();
             Status ret = cdo.Store(message);
             if (ret != Status::Code::GOOD)
@@ -300,20 +297,19 @@ namespace muffin {
                  * @todo Store 실패시 falsh 메모리에 저장하는 방법
                  * 
                  */
+                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
             }
-
-            return;
+            return ;
         }
     
 
         retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
         if (retConvertModbus.first != Status::Code::GOOD)
         {
-            doc["rsc"]  = "900 : " + retConvertModbus.first.ToString();
-            std::string payload;
-            serializeJson(doc, payload);       
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
-
+            messageconfig.SourceTimestamp = GetTimestampInMillis();
+            messageconfig.ResponseCode    = "900 : " + retConvertModbus.first.ToString();
+            serializedPayload = json.Serialize(messageconfig);
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
             mqtt::CDO& cdo = mqtt::CDO::GetInstance();
             Status ret = cdo.Store(message);
             if (ret != Status::Code::GOOD)
@@ -322,14 +318,15 @@ namespace muffin {
                  * @todo Store 실패시 falsh 메모리에 저장하는 방법
                  * 
                  */
+                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
             }
-
             return;
         }
         else
         {
             Jarvis& jarvisIntance = Jarvis::GetInstance();
-            jarvis::config::ModbusRTU* modbusRTU = nullptr;
+            jarvis::config::ModbusRTU* modbusRtuConfig = nullptr;
+            
 
             for (const auto it : jarvisIntance)
             {
@@ -339,20 +336,30 @@ namespace muffin {
                  */
                 if (it.first == jarvis::cfg_key_e::MODBUS_RTU)
                 {
-                    modbusRTU = Convert.ToModbusRTUCIN(it.second.at(0)); 
+                    modbusRtuConfig = Convert.ToModbusRTUCIN(it.second.at(0)); 
                 }
             }
         
-            std::pair<muffin::Status, uint8_t> retSlaveID = modbusRTU->GetSlaveID();
+            std::pair<muffin::Status, uint8_t> retSlaveID = modbusRtuConfig->GetSlaveID();
             if (retSlaveID.first != Status(Status::Code::GOOD))
             {
                 retSlaveID.second = 0;
             }
-            
+
             jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
             jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-            uint8_t writeResult = 0;
+            std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
+
+            if (retBit.first == true)
+            {
+                ModbusRTU& modbusRTU = ModbusRTU::GetInstance();
+                modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
+                LOG_INFO(logger, "RAW DATA : %u ", registerData.Value);
+                retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
+                LOG_INFO(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+            }
             
+            uint8_t writeResult = 0;
             if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
             {
                 LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
@@ -377,16 +384,16 @@ namespace muffin {
 ERROR_RESPONSE:
             if (writeResult == 1)
             {
-                doc["rsc"] = "200";
+                messageconfig.ResponseCode = "200";
             }
             else
             {
-                doc["rsc"] = "900 : UNEXPECTED ERROR";
+                messageconfig.ResponseCode = "900 : UNEXPECTED ERROR";
             }
+            messageconfig.SourceTimestamp  = GetTimestampInMillis();
+            serializedPayload = json.Serialize(messageconfig);
 
-            std::string payload;
-            serializeJson(doc, payload);       
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, payload);
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
 
             mqtt::CDO& cdo = mqtt::CDO::GetInstance();
             Status ret = cdo.Store(message);
@@ -396,33 +403,29 @@ ERROR_RESPONSE:
                  * @todo Store 실패시 falsh 메모리에 저장하는 방법
                  * 
                  */
+                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
             }
-
             return;
-
         }
-    
-        
     }
 
     void Core::onJarvisValidationResult(jarvis::ValidationResult result)
     {
-        JsonDocument doc;
-        JsonArray arrayCFG = doc["cfg"].to<JsonArray>();
+        JSON json;
+        jarvis_struct_t messageConfig;
 
-        doc["ts"] = GetTimestampInMillis();
-        doc["rsc"] = Convert.ToUInt16(result.GetRSC());
-        doc["dsc"] = result.GetDescription();
+        messageConfig.SourceTimestamp = GetTimestampInMillis();
+        messageConfig.ResponseCode    = Convert.ToUInt16(result.GetRSC());
+        messageConfig.Discription     = result.GetDescription();
 
         std::vector<jarvis::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
+
         for (auto& key : vectorKeyWithNG)
         {
-            arrayCFG.add(Convert.ToString(key));
+           messageConfig.Config.add(Convert.ToString(key));
         }
 
-        std::string payload;
-        serializeJson(doc, payload);
-
+        std::string payload = json.Serialize(messageConfig);
         mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         Status ret = cdo.Store(message);
@@ -432,12 +435,13 @@ ERROR_RESPONSE:
              * @todo Store 실패시 falsh 메모리에 저장하는 방법
              * 
              */
+            LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
         }
 
         if (result.GetRSC() >= jarvis::rsc_e::UNCERTAIN)
         {
             LOG_WARNING(logger, "INVALID JARVIS CONFIGURATION: NO SAVING AND APPLYING");
-            return ;
+            return;
         }
 
 
