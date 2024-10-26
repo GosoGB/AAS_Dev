@@ -99,47 +99,6 @@ namespace muffin { namespace im {
 
 
 /* For future MUFFIN code base
-    typedef enum class NodeIdTypeEnum
-        : uint8_t
-    {
-        NUMERIC     = 0,
-        STRING      = 3
-        // GUID        = 4,
-        // BYTE_STRING = 5
-    } node_id_type_e;
-
-    typedef union NodeIdentifierUnion
-    {
-        uint32_t Numeric;
-        string_t String;
-        // GUID GUID;
-        // ByteString ByteString;
-    } node_id_u;
-
-    typedef enum class NodeClassTypeEnum
-        : uint8_t
-    {
-        UNSPECIFIED = 0,
-        OBJECT = 1,
-        VARIABLE = 2,
-        METHOD = 4,
-        OBJECT_TYPE = 8,
-        VARIABLE_TYPE = 16,
-        REFERENCE_TYPE = 32,
-        DATA_TYPE = 64,
-        VIEW = 128
-    } class_type_e;
-
-    typedef struct QualifiedNodeNameType
-    {
-        uint16_t NamespaceIndex;
-        string_t Name;
-    } qualified_name_t;
-
-    typedef struct LocalizedTextType{
-        string_t Local;
-        string_t Text;
-    } local_txt_t;
 
     typedef union NodePointerUnion
     {

@@ -17,14 +17,9 @@
 
 #include <memory>
 
-#include "Common/Status.h"
-
 #include "IM/DataTypes/BuiltinDataType/LocalizedText.h"
 #include "IM/DataTypes/BuiltinDataType/NodeId.h"
 #include "IM/DataTypes/BuiltinDataType/QualifiedName.h"
-
-#include "Include/NodeID.h"
-#include "Include/TypeDefinitions.h"
 
 
 

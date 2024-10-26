@@ -16,11 +16,10 @@
 #include "BaseNodeClass.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Include/Helper.h"
 
 
 
-namespace muffin { namespace im { 
+namespace muffin { namespace im {
 
     BaseNodeClass::BaseNodeClass(std::shared_ptr<BaseNodeId> nodeId, const node_class_e nodeClass, const QualifiedName& browseName, const LocalizedText displayName)
         : mNodeId(nodeId)
