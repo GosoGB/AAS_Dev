@@ -63,6 +63,7 @@ namespace muffin { namespace im {
         uint8_t GetQuantity() const;
         uint16_t GetBitIndex() const;
         jarvis::mb_area_e GetModbusArea() const;
+        std::string GetDisplayName() const { return mDeprecableDisplayName; }
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
         void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);

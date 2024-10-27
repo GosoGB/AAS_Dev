@@ -17,9 +17,9 @@
 
 #include <memory>
 
-#include "IM/DataTypes/BuiltinDataType/LocalizedText.h"
-#include "IM/DataTypes/BuiltinDataType/NodeId.h"
-#include "IM/DataTypes/BuiltinDataType/QualifiedName.h"
+#include "IM/AddressSpaceModel/DataTypes/Builtin/LocalizedText.h"
+#include "IM/AddressSpaceModel/DataTypes/Builtin/NodeId.h"
+#include "IM/AddressSpaceModel/DataTypes/Builtin/QualifiedName.h"
 
 
 

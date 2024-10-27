@@ -53,8 +53,6 @@ namespace muffin { namespace im {
     {
     public:
         virtual ~BaseNodeId() = default;
-        virtual uint16_t  GetNamespaceIndex() const = 0;
-        virtual id_type_e GetIdType() const = 0;
     };
     
 
@@ -89,12 +87,12 @@ namespace muffin { namespace im {
         #endif
         }
 
-        virtual uint16_t GetNamespaceIndex() const override
+        uint16_t GetNamespaceIndex() const
         {
             return mNamespaceIndex;
         }
 
-        virtual id_type_e GetIdType() const override
+        id_type_e GetIdType() const
         {
             return mIdType;
         }

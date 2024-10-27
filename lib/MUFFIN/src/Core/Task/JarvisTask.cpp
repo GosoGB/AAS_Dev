@@ -22,6 +22,7 @@
 #include "Core/Task/ModbusTask.h"
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Node/NodeStore.h"
+#include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "Jarvis/Jarvis.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
 #include "JarvisTask.h"
@@ -204,9 +205,12 @@ namespace muffin {
 
 //             s_JarvisApiPayload.clear();
 //             ret = catHttp.Retrieve(&s_JarvisApiPayload);
-            // s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001","#002","#003","#004","#005"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":0,"area":3,"bit":null,"qty":4,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[11],"fmt":null,"uid":"DO01","name":"제품 모델명","unit":"N/A","event":true},{"id":"#002","adtp":0,"addr":100,"area":3,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[3],"fmt":null,"uid":"DI02","name":"현재 온도","unit":"°C","event":true},{"id":"#003","adtp":0,"addr":101,"area":3,"bit":1,"qty":null,"scl":null,"ofst":null,"map":{"0":"ON","1":"OFF"},"ord":null,"dt":[4],"fmt":null,"uid":"DO05","name":"콤프 상태","unit":"N/A","event":true},{"id":"#004","adtp":0,"addr":2,"area":4,"bit":3,"qty":null,"scl":null,"ofst":null,"map":{"0":"TEST1","1":"TEST2"},"ord":null,"dt":[3],"fmt":null,"uid":"P001","name":"설정 온도","unit":"°C","event":true},{"id":"#005","adtp":0,"addr":22,"area":4,"bit":0,"qty":null,"scl":null,"ofst":null,"map":{"0":"운전","1":"정지"},"ord":null,"dt":[4],"fmt":null,"uid":"P005","name":"시스템 설정","unit":"N/A","event":true}],"alarm":[],"optime":[],"prod":[]}})";
+//             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
 
+            s_JarvisApiPayload.clear();
+            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":100,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"P001","name":"대기온도 섭씨/화씨 설정","unit":"N/A","event":true}],"alarm":[{"nodeId":"#001","type":1,"lcl":1,"lclUid":"P001","lclAUid":"A001","ucl":null,"uclUid":null,"uclAUid":null,"cnd":null}],"optime":[],"prod":[]}})";
             Status ret = Status(Status::Code::GOOD);
+
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
@@ -390,7 +394,18 @@ namespace muffin {
 
     void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
     {
-        ASSERT(false, "APPLYING ALARM CIN IS NOT IMPLEMENTED");
+        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+        for (auto cin : vectorAlarmCIN)
+        {
+            alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
+        }
+        
+        for (auto& cin : vectorAlarmCIN)
+        {
+            delete cin;
+        }
+
+        vectorAlarmCIN.clear();
     }
     
     void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN)

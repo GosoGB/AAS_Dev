@@ -42,6 +42,26 @@ namespace muffin { namespace im {
         return *mInstance;
     }
 
+    std::map<std::string, Node>::iterator NodeStore::begin()
+    {
+        return mMapNode.begin();
+    }
+
+    std::map<std::string, Node>::iterator NodeStore::end()
+    {
+        return mMapNode.end();
+    }
+
+    std::map<std::string, Node>::const_iterator NodeStore::begin() const
+    {
+        return mMapNode.cbegin();
+    }
+
+    std::map<std::string, Node>::const_iterator NodeStore::end() const
+    {
+        return mMapNode.cend();
+    }
+
     NodeStore::NodeStore()
     {
     #if defined(DEBUG)

@@ -1134,7 +1134,6 @@ namespace muffin { namespace im {
             LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
             return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
         }
-
     }
 
     std::pair<bool, uint8_t> Variable::GetBitindex() const

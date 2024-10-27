@@ -33,6 +33,11 @@ namespace muffin { namespace im {
         void operator=(NodeStore const&) = delete;
         static NodeStore* CreateInstanceOrNULL();
         static NodeStore& GetInstance();
+    public:
+        std::map<std::string, Node>::iterator begin();
+        std::map<std::string, Node>::iterator end();
+        std::map<std::string, Node>::const_iterator begin() const;
+        std::map<std::string, Node>::const_iterator end() const;
     private:
         NodeStore();
         virtual ~NodeStore();
