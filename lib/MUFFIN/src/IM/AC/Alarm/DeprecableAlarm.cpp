@@ -200,6 +200,8 @@ namespace muffin {
 
         const float lcl = cin.GetLCL().second;
         const float value = convertToFloat(datum);
+        const jarvis::alarm_type_e type = jarvis::alarm_type_e::ONLY_LCL;
+        ASSERT((cin.GetType().second == jarvis::alarm_type_e::ONLY_LCL || cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
 
         const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
         const bool isAlarmCondition = value < lcl;
@@ -208,7 +210,7 @@ namespace muffin {
         {
             if (isAlarmCondition == true)
             {
-                activateAlarm(cin, node);
+                activateAlarm(type, cin, node);
             }
             else
             {
@@ -223,7 +225,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(cin);
+                deactivateAlarm(type, cin);
             }
         }
     }
@@ -235,6 +237,8 @@ namespace muffin {
 
         const float ucl = cin.GetUCL().second;
         const float value = convertToFloat(datum);
+        const jarvis::alarm_type_e type = jarvis::alarm_type_e::ONLY_UCL;
+        ASSERT((cin.GetType().second == jarvis::alarm_type_e::ONLY_UCL || cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
 
         const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
         const bool isAlarmCondition = value > ucl;
@@ -243,7 +247,7 @@ namespace muffin {
         {
             if (isAlarmCondition == true)
             {
-                activateAlarm(cin, node);
+                activateAlarm(type, cin, node);
             }
             else
             {
@@ -258,7 +262,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(cin);
+                deactivateAlarm(type, cin);
             }
         }
     }
@@ -267,6 +271,7 @@ namespace muffin {
     {
         ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
         ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE BOTH LOWER AND UPPER CONTROL LIMITS");
 
         const float ucl = cin.GetUCL().second;
         const float lcl = cin.GetLCL().second;
@@ -278,9 +283,13 @@ namespace muffin {
         
         if (isNewAlarm == true)
         {
-            if (isUclCondition == true || isLclCondition == true)
+            if (isUclCondition == true)
             {
-                activateAlarm(cin, node);
+                activateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin, node);
+            }
+            else if (isLclCondition == true)
+            {
+                activateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin, node);
             }
             else
             {
@@ -295,14 +304,118 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(cin);
+                if (isUclCondition == false)
+                {
+                    deactivateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin);
+                }
+                else if (isLclCondition == true)
+                {
+                    deactivateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin);
+                }
             }
         }
     }
 
     void AlarmMonitor::strategyCondition(const jarvis::config::Alarm cin, const im::var_data_t datum, const im::Variable& node)
     {
-        ;
+        ASSERT((cin.GetType().second == jarvis::alarm_type_e::CONDITION), "ALARM TYPE MUST BE CONDITION TYPE");
+
+        int16_t value = 0;
+        bool hasValue = false;
+        switch (datum.DataType)
+        {
+        case jarvis::dt_e::BOOLEAN:
+            value = static_cast<int16_t>(datum.Value.Boolean);
+            hasValue = true;
+            break;
+        case jarvis::dt_e::INT8:
+            value = static_cast<int16_t>(datum.Value.Int8);
+            hasValue = true;
+            break;
+        case jarvis::dt_e::INT16:
+            value = static_cast<int16_t>(datum.Value.Int16);
+            hasValue = true;
+            break;
+        case jarvis::dt_e::UINT8:
+            value = static_cast<int16_t>(datum.Value.UInt8);
+            hasValue = true;
+            break;
+        case jarvis::dt_e::UINT16:
+            value = static_cast<int16_t>(datum.Value.UInt16);
+            hasValue = true;
+            break;
+        case jarvis::dt_e::STRING:
+            {
+                const auto mappingRules = node.GetMappingRules();
+                for (auto& pair : mappingRules)
+                {
+                    const std::string strValue = std::string(datum.Value.String.Data);
+                    if (pair.second == strValue)
+                    {
+                        value = static_cast<int16_t>(pair.first);
+                        hasValue = true;
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+        }
+
+        if (hasValue == false)
+        {
+            LOG_ERROR(logger, "NO VALUE AVAILABLE FOR CONDITION TYPE ALARM");
+            return;
+        }
+        
+
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        std::string alarmUID;
+        for (auto& node : nodeStore)
+        {
+            if (cin.GetNodeID().second == node.first)
+            {
+                alarmUID = node.second.GetUID();
+                break;
+            }
+        }
+        ASSERT((alarmUID.length() == 4), "THE LENGTH OF ALARM UID MUST BE 4");
+
+        const bool isNewAlarm = isActiveAlarm(alarmUID) == false;
+        bool isCondition = false;
+
+        const std::vector<int16_t> vectorCondition = cin.GetCondition().second;
+        for (auto& condition : vectorCondition)
+        {
+            if (value == condition)
+            {
+                isCondition = true;
+                break;
+            }
+        }
+        
+        if (isNewAlarm == true)
+        {
+            if (isCondition == true)
+            {
+                activateAlarm(jarvis::alarm_type_e::CONDITION, cin, node);
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            if (isCondition == true)
+            {
+                return;
+            }
+            else
+            {
+                deactivateAlarm(jarvis::alarm_type_e::CONDITION, cin);
+            }
+        }
     }
 
     bool AlarmMonitor::isActiveAlarm(const std::string& uid)
@@ -424,7 +537,7 @@ namespace muffin {
         return std::string(returnUUID).substr(0, 12);
     }
     
-    void AlarmMonitor::activateAlarm(const jarvis::config::Alarm cin, const im::Variable& node)
+    void AlarmMonitor::activateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin, const im::Variable& node)
     {
         alarm_struct_t alarm;
         alarm.Topic = mqtt::topic_e::ALARM;
@@ -432,8 +545,32 @@ namespace muffin {
         alarm.AlarmStartTime = GetTimestampInMillis();
         alarm.AlarmFinishTime = -1;
         alarm.Name = node.GetDisplayName();
-        alarm.Uid = cin.GetLclAlarmUID().second;
+        switch (type)
+        {
+        case jarvis::alarm_type_e::ONLY_LCL:
+            alarm.Uid = cin.GetLclAlarmUID().second;
+            break;
+        case jarvis::alarm_type_e::ONLY_UCL:
+            alarm.Uid = cin.GetUclAlarmUID().second;
+            break;
+        case jarvis::alarm_type_e::CONDITION:
+            {
+                im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+                for (auto& node : nodeStore)
+                {
+                    if (cin.GetNodeID().second == node.first)
+                    {
+                        alarm.Uid = node.second.GetUID();
+                        break;
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+        }
         alarm.UUID = createAlarmUUID();
+        
 
         JSON json;
         const std::string payload = json.Serialize(alarm);
@@ -446,9 +583,36 @@ namespace muffin {
         LOG_INFO(logger, "[Alarm][Activate] %s", payload.c_str());
     }
 
-    void AlarmMonitor::deactivateAlarm(const jarvis::config::Alarm cin)
+    void AlarmMonitor::deactivateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin)
     {
-        alarm_struct_t alarm = retrieveActiveAlarm(cin.GetLclAlarmUID().second);
+        std::string uid;
+
+        switch (type)
+        {
+        case jarvis::alarm_type_e::ONLY_LCL:
+            uid = cin.GetLclAlarmUID().second;
+            break;
+        case jarvis::alarm_type_e::ONLY_UCL:
+            uid = cin.GetUclAlarmUID().second;
+            break;
+        case jarvis::alarm_type_e::CONDITION:
+            {
+                im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+                for (auto& node : nodeStore)
+                {
+                    if (cin.GetNodeID().second == node.first)
+                    {
+                        uid = node.second.GetUID();
+                        break;
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+        }
+        
+        alarm_struct_t alarm = retrieveActiveAlarm(uid);
         alarm.AlarmFinishTime = GetTimestampInMillis();
         alarm.AlarmType = "finish";
 

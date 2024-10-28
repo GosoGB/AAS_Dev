@@ -22,13 +22,15 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "DataFormat/JSON/JSON.h"
+#include "Protocol/MQTT/CDO.h"
 #include "Variable.h"
 
 
 
 namespace muffin { namespace im {
 
-    Variable::Variable(const std::string& nodeID)
+    Variable::Variable(const std::string& nodeID, const std::string& UID)
         : mModbusArea(false, jarvis::mb_area_e::COILS)
         , mBitIndex(false, 0)
         , mAddressQuantity(false, 1)
@@ -38,6 +40,7 @@ namespace muffin { namespace im {
         , mVectorDataUnitOrders(false, std::vector<jarvis::DataUnitOrder>())
         , mFormatString(false, std::string())
         , mNodeID(nodeID)
+        , mDeprecableUID(UID)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -455,12 +458,77 @@ namespace muffin { namespace im {
 
         variableData.HasNewEvent = isEventOccured(variableData);
         variableData.IsEventType = variableData.HasNewEvent;
-    #if defined(DEBUG)
         if (variableData.HasNewEvent == true)
         {
+            if (mDeprecableUID.substr(0, 2) == "DI" ||
+                mDeprecableUID.substr(0, 2) == "DO" ||
+                mDeprecableUID.substr(0, 1) == "P")
+            {
+                daq_struct_t daq;
+                daq.Name = mDeprecableDisplayName;
+                daq.SourceTimestamp = variableData.Timestamp;
+                daq.Uid = mDeprecableUID;
+                daq.Unit = mDeprecableDisplayUnit;
+                daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
+                            mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
+                            mqtt::topic_e::DAQ_PARAM;
+                
+                switch (variableData.DataType)
+                {
+                case jarvis::dt_e::BOOLEAN:
+                    daq.Value = variableData.Value.Boolean ? "true" : "false";
+                    break;
+                case jarvis::dt_e::FLOAT32 :
+                    daq.Value = std::to_string(variableData.Value.Float32);
+                    break;
+                case jarvis::dt_e::FLOAT64:
+                    daq.Value = std::to_string(variableData.Value.Float64);
+                    break;
+                case jarvis::dt_e::INT16:
+                    daq.Value = std::to_string(variableData.Value.Int16);
+                    break;
+                case jarvis::dt_e::INT32:
+                    daq.Value = std::to_string(variableData.Value.Int32);
+                    break;
+                case jarvis::dt_e::INT64:
+                    daq.Value = std::to_string(variableData.Value.Int64);
+                    break;
+                case jarvis::dt_e::INT8 :
+                    daq.Value = std::to_string(variableData.Value.Int8);
+                    break;
+                case jarvis::dt_e::STRING:
+                    daq.Value = std::string(variableData.Value.String.Data);
+                    break;
+                case jarvis::dt_e::UINT16:
+                    daq.Value = std::to_string(variableData.Value.UInt16);
+                    break;
+                case jarvis::dt_e::UINT32:
+                    daq.Value = std::to_string(variableData.Value.UInt32);
+                    break;
+                case jarvis::dt_e::UINT64:
+                    daq.Value = std::to_string(variableData.Value.UInt64);
+                    break;
+                case jarvis::dt_e::UINT8:
+                    daq.Value = std::to_string(variableData.Value.UInt8);
+                    break;
+                default:
+                    break;
+                }
+            
+            
+                JSON json;
+                const std::string payload = json.Serialize(daq);
+                mqtt::Message message(daq.Topic, payload);
+
+                mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+                cdo.Store(message);
+            }
+
+
+        #if defined(DEBUG)
             LOG_DEBUG(logger,"[Node ID: %s]: NEW EVENT", mNodeID.c_str());
+        #endif
         }
-    #endif
 
 
     EMPLACE_DATA:

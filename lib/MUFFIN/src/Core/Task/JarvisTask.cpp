@@ -344,8 +344,6 @@ namespace muffin {
             case jarvis::cfg_key_e::ALARM:
                 applyAlarmCIN(pair.second);
                 break;
-            case jarvis::cfg_key_e::NODE:
-                break;
             case jarvis::cfg_key_e::OPERATION_TIME:
                 applyOperationTimeCIN(pair.second);
                 break;

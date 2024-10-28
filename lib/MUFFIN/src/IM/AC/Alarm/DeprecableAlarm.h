@@ -59,8 +59,8 @@ namespace muffin {
         float convertToFloat(const im::var_data_t& datum);
         alarm_struct_t retrieveActiveAlarm(const std::string& uid);
         std::string createAlarmUUID();
-        void activateAlarm(const bool isLCL, const jarvis::config::Alarm cin, const im::Variable& node);
-        void deactivateAlarm(const bool isLCL, const jarvis::config::Alarm cin);
+        void activateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin, const im::Variable& node);
+        void deactivateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin);
     private:
         using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node>>;
         std::vector<jarvis::config::Alarm> mVectorConfig;

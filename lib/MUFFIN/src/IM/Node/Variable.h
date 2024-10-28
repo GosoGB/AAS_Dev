@@ -36,7 +36,7 @@ namespace muffin { namespace im {
     class Variable
     {
     public:
-        Variable(const std::string& nodeID);
+        Variable(const std::string& nodeID, const std::string& UID);
         virtual ~Variable();
     public:
         void Init(const jarvis::config::Node* cin);
@@ -63,6 +63,7 @@ namespace muffin { namespace im {
         uint8_t GetQuantity() const;
         uint16_t GetBitIndex() const;
         jarvis::mb_area_e GetModbusArea() const;
+        std::map<std::uint16_t, std::string> GetMappingRules() const { return mMapMappingRules.second; }
         std::string GetDisplayName() const { return mDeprecableDisplayName; }
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
@@ -91,6 +92,7 @@ namespace muffin { namespace im {
         std::pair<bool, std::string> mFormatString;
     private:
         const std::string mNodeID;
+        const std::string mDeprecableUID;
         jarvis::dt_e mDataType;
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;
