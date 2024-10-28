@@ -602,6 +602,7 @@ namespace muffin { namespace mqtt {
             LOG_ERROR(logger, "FAILED TO PUBLISH DUE TO NO RTS"); // ready to send
             return Status(Status::Code::BAD_TIMEOUT);
         }
+
 HAS_RTS_SIGNAL:
         ret = mCatM1.Execute(message.GetPayload());
         if (ret != Status::Code::GOOD)
@@ -649,9 +650,9 @@ HAS_RTS_SIGNAL:
                 vTaskDelay(50 / portTICK_PERIOD_MS);
                 continue;
             }
-            LOG_DEBUG(logger, "RxD: %s", rxd.back());
+            LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
             rxd.append(betweenPatterns);
-            LOG_DEBUG(logger, "RxD: %s", rxd.back());
+            LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
             break;
         }
 

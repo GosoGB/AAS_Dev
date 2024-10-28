@@ -43,7 +43,9 @@ namespace muffin { namespace mqtt {
             mDaqIntput              = "scautr/equipment/daq/input";
             mDaqOutput              = "scautr/equipment/daq/output";
             mDaqParam               = "scautr/equipment/param";
-            mAlarm                  = "scautr/equipment/status/alarm";
+        #if defined(DEBUG)
+            mAlarm                  = "scautr/equipment/status/alarm/test";
+        #endif
             mError                  = "scautr/equipment/status/error";
             mOperation              = "scautr/equipment/status/operation";
             mUptime                 = "progix/dashboard/fg";

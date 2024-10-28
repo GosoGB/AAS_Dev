@@ -208,7 +208,7 @@ namespace muffin {
 //             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
 
             s_JarvisApiPayload.clear();
-            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":100,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[0],"fmt":null,"uid":"P001","name":"대기온도 섭씨/화씨 설정","unit":"N/A","event":true}],"alarm":[{"nodeId":"#001","type":1,"lcl":1,"lclUid":"P001","lclAUid":"A001","ucl":null,"uclUid":null,"uclAUid":null,"cnd":null}],"optime":[],"prod":[]}})";
+            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":200,"area":3,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI01","name":"온도","unit":"N/A","event":true}],"alarm":[{"nodeId":"#001","type":1,"lcl":8,"lclUid":"P001","lclAUid":"A001","ucl":null,"uclUid":null,"uclAUid":null,"cnd":null}],"optime":[],"prod":[]}})";
             Status ret = Status(Status::Code::GOOD);
 
             if (ret != Status::Code::GOOD)
@@ -394,6 +394,8 @@ namespace muffin {
 
     void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
     {
+        LOG_DEBUG(logger, "Start applying Alarm CIN");
+
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         for (auto cin : vectorAlarmCIN)
         {
@@ -406,6 +408,9 @@ namespace muffin {
         }
 
         vectorAlarmCIN.clear();
+        LOG_DEBUG(logger, "vectorAlarmCIN.size(): %u", vectorAlarmCIN.size());
+
+        alarmMonitor.StartTask();
     }
     
     void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN)

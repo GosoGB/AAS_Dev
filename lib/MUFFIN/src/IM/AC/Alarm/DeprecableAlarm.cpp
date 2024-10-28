@@ -39,6 +39,7 @@ namespace muffin {
     }
     
     AlarmMonitor::AlarmMonitor()
+        : xHandle(NULL)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -88,11 +89,11 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             wrapImplTask,  // Function to be run inside of the task
             "implTask",    // The identifier of this task for men
-            4 * 1024,	   // Stack memory size to allocate
+            8 * 1024,	   // Stack memory size to allocate
             this,	       // Task parameters to be passed to the function
             0,		       // Task Priority for scheduling
             &xHandle,      // The identifier of this task for machines
-            0	           // Index of MCU core where the function to run
+            1	           // Index of MCU core where the function to run
         );
 
         /**
@@ -135,12 +136,24 @@ namespace muffin {
 
     void AlarmMonitor::implTask()
     {
+    #ifdef DEBUG
+        uint32_t checkRemainedStackMillis = millis();
+        const uint16_t remainedStackCheckInterval = 60 * 1000;
+    #endif
+
         while (true)
         {
+#ifdef DEBUG
+    if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+    {
+        LOG_DEBUG(logger, "[TASK: ALARM] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
+        checkRemainedStackMillis = millis();
+    }
+#endif
+
             for (auto& cin : mVectorConfig)
             {
                 const std::string nodeId = cin.GetNodeID().second;
-
                 for (auto& nodeReference : mVectorNodeReference)
                 {
                     auto& reference = nodeReference.get();
@@ -161,21 +174,22 @@ namespace muffin {
                         strategyLCL(cin, datum, reference.second.VariableNode);
                         break;
                     case jarvis::alarm_type_e::ONLY_UCL:
-                        strategyUCL(cin, datum);
+                        strategyUCL(cin, datum, reference.second.VariableNode);
                         break;
                     case jarvis::alarm_type_e::LCL_AND_UCL:
-                        strategyLclAndUcl(cin, datum);
+                        strategyLclAndUcl(cin, datum, reference.second.VariableNode);
                         break;
                     case jarvis::alarm_type_e::CONDITION:
-                        strategyCondition(cin, datum);
+                        strategyCondition(cin, datum, reference.second.VariableNode);
                         break;
                     default:
                         break;
                     }
                 }
             }
-        
-            vTaskDelay(500 / portTICK_PERIOD_MS);
+
+
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
 
@@ -185,47 +199,7 @@ namespace muffin {
         ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         const float lcl = cin.GetLCL().second;
-        float value = 0.0f;
-        bool isAlarm = false;
-        
-        /**
-         * @todo double 타입을 처리할 수 있도록 코드를 수정해야 합니다.
-         */
-        switch (datum.DataType)
-        {
-        case jarvis::dt_e::INT8:
-            value = static_cast<float>(datum.Value.Int8);
-            break;
-        case jarvis::dt_e::UINT8:
-            value = static_cast<float>(datum.Value.UInt8);
-            break;
-        case jarvis::dt_e::INT16:
-            value = static_cast<float>(datum.Value.Int16);
-            break;
-        case jarvis::dt_e::UINT16:
-            value = static_cast<float>(datum.Value.UInt16);
-            break;
-        case jarvis::dt_e::INT32:
-            value = static_cast<float>(datum.Value.Int32);
-            break;
-        case jarvis::dt_e::UINT32:
-            value = static_cast<float>(datum.Value.UInt32);
-            break;
-        case jarvis::dt_e::INT64:
-            value = static_cast<float>(datum.Value.Int64);
-            break;
-        case jarvis::dt_e::UINT64:
-            value = static_cast<float>(datum.Value.UInt64);
-            break;
-        case jarvis::dt_e::FLOAT32:
-            value = static_cast<float>(datum.Value.Float32);
-            break;
-        case jarvis::dt_e::FLOAT64:
-            value = static_cast<float>(datum.Value.Float64);
-            break;
-        default:
-            return;
-        }
+        const float value = convertToFloat(datum);
 
         const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
         const bool isAlarmCondition = value < lcl;
@@ -234,25 +208,7 @@ namespace muffin {
         {
             if (isAlarmCondition == true)
             {
-                alarm_struct_t alarm;
-                alarm.Topic = mqtt::topic_e::ALARM;
-                alarm.AlarmType = "start";
-                alarm.AlarmStartTime = GetTimestampInMillis();
-                alarm.AlarmFinishTime = -1;
-                alarm.Name = node.GetDisplayName();
-                alarm.Uid = cin.GetLclAlarmUID().second;
-                alarm.UUID = createAlarmUUID();
-
-                mVectorAlarmInfo.emplace_back(alarm);
-
-                JSON json;
-                const std::string payload = json.Serialize(alarm);
-                mqtt::Message message(mqtt::topic_e::ALARM, payload);
-
-                mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                cdo.Store(message);
-
-                LOG_INFO(logger, "[Alarm][Payload] %s", payload.c_str());
+                activateAlarm(cin, node);
             }
             else
             {
@@ -267,33 +223,84 @@ namespace muffin {
             }
             else
             {
-                alarm_struct_t alarm = retrieveActiveAlarm(cin.GetLclAlarmUID().second);
-                alarm.AlarmFinishTime = GetTimestampInMillis();
-                alarm.AlarmType = "finish";
-
-                JSON json;
-                const std::string payload = json.Serialize(alarm);
-                mqtt::Message message(mqtt::topic_e::ALARM, payload);
-
-                mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                cdo.Store(message);
-
-                LOG_INFO(logger, "[Alarm][Payload] %s", payload.c_str());
+                deactivateAlarm(cin);
             }
         }
     }
 
-    void AlarmMonitor::strategyUCL(jarvis::config::Alarm cin, const im::var_data_t datum)
+    void AlarmMonitor::strategyUCL(const jarvis::config::Alarm cin, const im::var_data_t datum, const im::Variable& node)
     {
-        ;
+        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jarvis::dt_e::STRING), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        const float ucl = cin.GetUCL().second;
+        const float value = convertToFloat(datum);
+
+        const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
+        const bool isAlarmCondition = value > ucl;
+
+        if (isNewAlarm == true)
+        {
+            if (isAlarmCondition == true)
+            {
+                activateAlarm(cin, node);
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            if (isAlarmCondition == true)
+            {
+                return;
+            }
+            else
+            {
+                deactivateAlarm(cin);
+            }
+        }
     }
 
-    void AlarmMonitor::strategyLclAndUcl(jarvis::config::Alarm cin, const im::var_data_t datum)
+    void AlarmMonitor::strategyLclAndUcl(const jarvis::config::Alarm cin, const im::var_data_t datum, const im::Variable& node)
     {
-        ;
+        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        const float ucl = cin.GetUCL().second;
+        const float lcl = cin.GetLCL().second;
+        const float value = convertToFloat(datum);
+
+        const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
+        const bool isUclCondition = value > ucl;
+        const bool isLclCondition = value < lcl;
+        
+        if (isNewAlarm == true)
+        {
+            if (isUclCondition == true || isLclCondition == true)
+            {
+                activateAlarm(cin, node);
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            if (isUclCondition == true || isLclCondition == true)
+            {
+                return;
+            }
+            else
+            {
+                deactivateAlarm(cin);
+            }
+        }
     }
 
-    void AlarmMonitor::strategyCondition(jarvis::config::Alarm cin, const im::var_data_t datum)
+    void AlarmMonitor::strategyCondition(const jarvis::config::Alarm cin, const im::var_data_t datum, const im::Variable& node)
     {
         ;
     }
@@ -311,23 +318,54 @@ namespace muffin {
         return false;
     }
 
+    float AlarmMonitor::convertToFloat(const im::var_data_t& datum)
+    {
+        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        /**
+         * @todo double 타입을 처리할 수 있도록 코드를 수정해야 합니다.
+         */
+        switch (datum.DataType)
+        {
+        case jarvis::dt_e::INT8:
+            return static_cast<float>(datum.Value.Int8);
+        case jarvis::dt_e::UINT8:
+            return static_cast<float>(datum.Value.UInt8);
+        case jarvis::dt_e::INT16:
+            return static_cast<float>(datum.Value.Int16);
+        case jarvis::dt_e::UINT16:
+            return static_cast<float>(datum.Value.UInt16);
+        case jarvis::dt_e::INT32:
+            return static_cast<float>(datum.Value.Int32);
+        case jarvis::dt_e::UINT32:
+            return static_cast<float>(datum.Value.UInt32);
+        case jarvis::dt_e::INT64:
+            return static_cast<float>(datum.Value.Int64);
+        case jarvis::dt_e::UINT64:
+            return static_cast<float>(datum.Value.UInt64);
+        case jarvis::dt_e::FLOAT32:
+            return static_cast<float>(datum.Value.Float32);
+        case jarvis::dt_e::FLOAT64:
+            return static_cast<float>(datum.Value.Float64);
+        default:
+            return 0.0f;
+        }
+    }
+
     alarm_struct_t AlarmMonitor::retrieveActiveAlarm(const std::string& uid)
     {
-        // auto it = std::find(mVectorAlarmInfo.begin(), mVectorAlarmInfo.end(), [uid](const alarm_struct_t& alarm)
-        // {
-        //     return alarm.Uid == uid;
-        // });
-
         alarm_struct_t alarm;
-
-        for (auto it = mVectorAlarmInfo.begin(); it != mVectorAlarmInfo.end(); ++it)
+        std::vector<muffin::alarm_struct_t>::iterator it;
+        for (it = mVectorAlarmInfo.begin(); it != mVectorAlarmInfo.end(); ++it)
         {
-            alarm = *it;
-            mVectorAlarmInfo.erase(it);
+            if (it->Uid == uid)
+            {
+                alarm = *it;
+                mVectorAlarmInfo.erase(it);
+                break;
+            }
         }
-        
-        // alarm_struct_t alarm = *it;
-        // mVectorAlarmInfo.erase(it);
         return alarm;
     }
 
@@ -384,6 +422,44 @@ namespace muffin {
         char returnUUID[37];
         CreateUUID(returnUUID);
         return std::string(returnUUID).substr(0, 12);
+    }
+    
+    void AlarmMonitor::activateAlarm(const jarvis::config::Alarm cin, const im::Variable& node)
+    {
+        alarm_struct_t alarm;
+        alarm.Topic = mqtt::topic_e::ALARM;
+        alarm.AlarmType = "start";
+        alarm.AlarmStartTime = GetTimestampInMillis();
+        alarm.AlarmFinishTime = -1;
+        alarm.Name = node.GetDisplayName();
+        alarm.Uid = cin.GetLclAlarmUID().second;
+        alarm.UUID = createAlarmUUID();
+
+        JSON json;
+        const std::string payload = json.Serialize(alarm);
+        mqtt::Message message(mqtt::topic_e::ALARM, payload);
+
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        cdo.Store(message);
+
+        mVectorAlarmInfo.emplace_back(alarm);
+        LOG_INFO(logger, "[Alarm][Activate] %s", payload.c_str());
+    }
+
+    void AlarmMonitor::deactivateAlarm(const jarvis::config::Alarm cin)
+    {
+        alarm_struct_t alarm = retrieveActiveAlarm(cin.GetLclAlarmUID().second);
+        alarm.AlarmFinishTime = GetTimestampInMillis();
+        alarm.AlarmType = "finish";
+
+        JSON json;
+        const std::string payload = json.Serialize(alarm);
+        mqtt::Message message(mqtt::topic_e::ALARM, payload);
+
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        cdo.Store(message);
+
+        LOG_INFO(logger, "[Alarm][Deactivate] %s", payload.c_str());
     }
 
 

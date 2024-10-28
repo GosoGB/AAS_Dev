@@ -177,19 +177,32 @@ namespace muffin { namespace jarvis {
             const std::string message = "INVALID LCL: NOT A 32-BIT FLOATING POINT";
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
+        /**
+         * @todo 김주성 전임과 float로 변경하는 것에 대해 논의해보기
+         */
         const int32_t lcl = json["lcl"].as<float>();
         
         const std::string uid = json["lclUid"].as<std::string>();
-        const std::regex pattern("^P\\d{3}$");
-        const bool isUidValid = std::regex_match(uid, pattern);
+        const std::regex patternUID("^P\\d{3}$");
+        const bool isUidValid = std::regex_match(uid, patternUID);
         if (isUidValid == false)
         {
             const std::string message = "INVALID LCL UID: "+ uid;
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
+        
+        const std::string auid = json["lclAUid"].as<std::string>();
+        const std::regex patternAUID("^A\\d{3}$");
+        const bool isAUidValid = std::regex_match(auid, patternAUID);
+        if (isAUidValid == false)
+        {
+            const std::string message = "INVALID LCL ALARM UID: "+ uid;
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+        }
 
         cin->SetLCL(lcl);
         cin->SetLclUID(uid);
+        cin->SetLclAlarmUID(auid);
 
         return std::make_pair(rsc_e::GOOD, "GOOD");
     }

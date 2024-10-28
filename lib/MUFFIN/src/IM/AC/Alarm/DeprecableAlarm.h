@@ -52,12 +52,15 @@ namespace muffin {
         static void wrapImplTask(void* pvParams);
         void implTask();
         void strategyLCL(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
-        void strategyUCL(jarvis::config::Alarm cin, const im::var_data_t datum);
-        void strategyLclAndUcl(jarvis::config::Alarm cin, const im::var_data_t datum);
-        void strategyCondition(jarvis::config::Alarm cin, const im::var_data_t datum);
+        void strategyUCL(const jarvis::config::Alarm cin, const im::var_data_t datum, const im::Variable& node);
+        void strategyLclAndUcl(const jarvis::config::Alarm cin, const im::var_data_t datum, const im::Variable& node);
+        void strategyCondition(const jarvis::config::Alarm cin, const im::var_data_t datum, const im::Variable& node);
         bool isActiveAlarm(const std::string& uid);
+        float convertToFloat(const im::var_data_t& datum);
         alarm_struct_t retrieveActiveAlarm(const std::string& uid);
         std::string createAlarmUUID();
+        void activateAlarm(const bool isLCL, const jarvis::config::Alarm cin, const im::Variable& node);
+        void deactivateAlarm(const bool isLCL, const jarvis::config::Alarm cin);
     private:
         using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node>>;
         std::vector<jarvis::config::Alarm> mVectorConfig;
