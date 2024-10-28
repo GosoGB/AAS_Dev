@@ -175,7 +175,7 @@ namespace muffin { namespace jarvis {
             std::pair<rsc_e, std::string> result = validateModbusArea();
             if (result.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS AREA CONFIG");
+                LOG_ERROR(logger, "INVALID MODBUS AREA CONFIG:");
                 return result;
             }
             

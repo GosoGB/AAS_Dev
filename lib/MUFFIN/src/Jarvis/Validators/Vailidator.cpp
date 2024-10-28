@@ -194,9 +194,9 @@ namespace muffin { namespace jarvis {
             const cfg_key_e key = pair.first;
             const rsc_e responseCode = pair.second.first;
             const std::string& description = pair.second.second;
-
             if (responseCode >= rsc_e::BAD)
             {
+                LOG_DEBUG(logger, "key: %X", static_cast<uint16_t>(key));
                 result.EmplaceKeyWithNG(key);
                 result.SetRSC(responseCode);
                 result.SetDescription(description);

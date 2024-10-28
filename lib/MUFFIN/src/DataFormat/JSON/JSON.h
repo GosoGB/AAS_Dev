@@ -19,6 +19,7 @@
 
 #include <ArduinoJson.h>
 #include <Protocol/MQTT/Include/TypeDefinitions.h>
+#include <vector>
 
 #include "Common/Status.h"
 
@@ -28,10 +29,10 @@ namespace muffin {
     typedef struct JarvisStruct
     {
         mqtt::topic_e Topic;
-        JsonArray Config;
         uint64_t SourceTimestamp;
         uint32_t ResponseCode;
         std::string Discription;
+        std::vector<std::string> Config;
     } jarvis_struct_t;
 
     typedef struct RemoteControllStruct
@@ -84,7 +85,7 @@ namespace muffin {
         JSON();
         virtual ~JSON();
     public:
-        std::string Serialize(const jarvis_struct_t& _struct);
+        std::string Serialize(jarvis_struct_t& _struct);
         std::string Serialize(const remote_controll_struct_t& _struct);
         std::string Serialize(const daq_struct_t& _struct);
         std::string Serialize(const alarm_struct_t& _struct);

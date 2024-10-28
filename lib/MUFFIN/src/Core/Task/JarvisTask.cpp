@@ -162,54 +162,54 @@ namespace muffin {
             JSON json;
             JsonDocument doc;
 
-//             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-//             http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-//             http::RequestParameter parameters;
-//             parameters.Add("mac", MacAddress::GetEthernet());
+            http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+            http::RequestParameter parameters;
+            parameters.Add("mac", MacAddress::GetEthernet());
 
-// #ifdef DEBUG
-//     LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-// #endif
-//             Status ret = catHttp.GET(header, parameters);
-//             if (ret != Status::Code::GOOD)
-//             {
-//                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+            Status ret = catHttp.GET(header, parameters);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
                 
-//                 switch (ret.ToCode())
-//                 {
-//                 case Status::Code::BAD_TIMEOUT:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
-//                     break;
-//                 case Status::Code::BAD_NO_COMMUNICATION:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
-//                     break;
-//                 case Status::Code::BAD_OUT_OF_MEMORY:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
-//                     break;
-//                 default:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
-//                     break;
-//                 }
+                switch (ret.ToCode())
+                {
+                case Status::Code::BAD_TIMEOUT:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
+                    break;
+                case Status::Code::BAD_NO_COMMUNICATION:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
+                    break;
+                case Status::Code::BAD_OUT_OF_MEMORY:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
+                    break;
+                default:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
+                    break;
+                }
                 
-//                 callback(validationResult);
-//                 s_IsJarvisTaskRunning = false;
-//                 vTaskDelete(NULL);
-//             }
-// #ifdef DEBUG
-//     LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-// #endif
-
-//             s_JarvisApiPayload.clear();
-//             ret = catHttp.Retrieve(&s_JarvisApiPayload);
-//             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
+                callback(validationResult);
+                s_IsJarvisTaskRunning = false;
+                vTaskDelete(NULL);
+            }
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
 
             s_JarvisApiPayload.clear();
-            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":200,"area":3,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI01","name":"온도","unit":"N/A","event":true}],"alarm":[{"nodeId":"#001","type":1,"lcl":8,"lclUid":"P001","lclAUid":"A001","ucl":null,"uclUid":null,"uclAUid":null,"cnd":null}],"optime":[],"prod":[]}})";
-            Status ret = Status(Status::Code::GOOD);
+            ret = catHttp.Retrieve(&s_JarvisApiPayload);
+            LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
+
+            // s_JarvisApiPayload.clear();
+            // s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":200,"area":3,"bit":null,"qty":1,"scl":-1,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DI01","name":"온도","unit":"N/A","event":true}],"alarm":[{"nodeId":"#001","type":1,"lcl":8,"lclUid":"P001","lclAUid":"A001","ucl":null,"uclUid":null,"uclAUid":null,"cnd":null}],"optime":[],"prod":[]}})";
+            // Status ret = Status(Status::Code::GOOD);
 
             if (ret != Status::Code::GOOD)
             {

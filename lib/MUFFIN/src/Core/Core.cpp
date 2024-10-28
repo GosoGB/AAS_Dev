@@ -422,7 +422,7 @@ ERROR_RESPONSE:
 
         for (auto& key : vectorKeyWithNG)
         {
-           messageConfig.Config.add(Convert.ToString(key));
+           messageConfig.Config.emplace_back(Convert.ToString(key));
         }
 
         std::string payload = json.Serialize(messageConfig);

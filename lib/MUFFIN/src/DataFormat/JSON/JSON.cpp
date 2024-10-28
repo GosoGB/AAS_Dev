@@ -79,16 +79,21 @@ namespace muffin {
     }
 
 
-    std::string JSON::Serialize(const jarvis_struct_t& _struct)
+    std::string JSON::Serialize(jarvis_struct_t& _struct)
     {
         JsonDocument doc;
-        std::string payload;
-
-        doc["cfg"] = _struct.Config;
         doc["ts"]  = _struct.SourceTimestamp;
         doc["rsc"] = _struct.ResponseCode;
         doc["dsc"] = _struct.Discription; 
 
+        JsonArray keyWithNG = doc["cfg"].to<JsonArray>();
+        for (auto& key : _struct.Config)
+        {
+            keyWithNG.add(key);
+            LOG_DEBUG(logger, "Key with NG: %s", key.c_str());
+        }
+        
+        std::string payload;
         serializeJson(doc,payload);
 
         return payload;
