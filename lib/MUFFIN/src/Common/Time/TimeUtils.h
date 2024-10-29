@@ -59,6 +59,12 @@ namespace muffin {
     uint64_t GetTimestampInMillis();
 
     /**
+     * @brief Get the start of the hour in KST (Korean Standard Time) in milliseconds.
+     * @return uint64_t start of the hour unix time in miiliseconds
+     */
+    uint64_t TimestampToExactHourKST();
+
+    /**
      * @brief Get the Datetime object
      * @return std::string datetime
      */

@@ -123,6 +123,15 @@ namespace muffin {
 		return ts;
 	}
 
+	uint64_t TimestampToExactHourKST()
+	{
+		uint64_t kstTimestamp = GetTimestampInMillis() + 9 * 3600 * 1000;
+		uint64_t kstHour = kstTimestamp / (1000 * 60 * 60); 
+		uint64_t exactHourTimestampKST = kstHour * (1000 * 60 * 60); 
+
+		return exactHourTimestampKST - 9 * 3600 * 1000;
+	}
+
 	std::string GetDatetime()
 	{
 		return Convert2Datetime(GetTimestamp());

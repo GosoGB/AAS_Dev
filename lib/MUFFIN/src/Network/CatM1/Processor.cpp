@@ -157,7 +157,7 @@ namespace muffin {
             BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
                 wrapUrcHandleTask, 
                 "UrcHandleTask", 
-                4096, 
+                6144, 
                 this, 
                 0, 
                 &xHandle, 

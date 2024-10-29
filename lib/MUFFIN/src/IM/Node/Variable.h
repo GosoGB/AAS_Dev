@@ -55,6 +55,9 @@ namespace muffin { namespace im {
         bool isEventOccured(var_data_t& variableData);
         string_t ToMuffinString(const std::string& stdString);
         void logData(const var_data_t& data);
+        std::string Float32ConvertToString(const float data);
+        std::string Float64ConvertToString(const double data);
+        
     public:
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
@@ -90,6 +93,9 @@ namespace muffin { namespace im {
         std::pair<bool, std::map<std::uint16_t, std::string>> mMapMappingRules;
         std::pair<bool, std::vector<jarvis::DataUnitOrder>> mVectorDataUnitOrders;
         std::pair<bool, std::string> mFormatString;
+
+        // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
+        bool mInitEvent = true;
     private:
         const std::string mNodeID;
         const std::string mDeprecableUID;

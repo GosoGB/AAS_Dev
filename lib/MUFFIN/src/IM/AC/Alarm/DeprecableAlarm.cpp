@@ -31,7 +31,7 @@ namespace muffin {
             mInstance = new(std::nothrow) AlarmMonitor();
             if (mInstance == nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT CDO");
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ALARM MONITOR");
             }
         }
 

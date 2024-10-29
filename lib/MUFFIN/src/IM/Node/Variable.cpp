@@ -472,17 +472,17 @@ namespace muffin { namespace im {
                 daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
                             mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
                             mqtt::topic_e::DAQ_PARAM;
-                
+    
                 switch (variableData.DataType)
                 {
                 case jarvis::dt_e::BOOLEAN:
                     daq.Value = variableData.Value.Boolean ? "true" : "false";
                     break;
                 case jarvis::dt_e::FLOAT32 :
-                    daq.Value = std::to_string(variableData.Value.Float32);
+                    daq.Value = Float32ConvertToString(variableData.Value.Float32);
                     break;
                 case jarvis::dt_e::FLOAT64:
-                    daq.Value = std::to_string(variableData.Value.Float64);
+                    daq.Value = Float64ConvertToString(variableData.Value.Float64);
                     break;
                 case jarvis::dt_e::INT16:
                     daq.Value = std::to_string(variableData.Value.Int16);
@@ -1002,11 +1002,20 @@ namespace muffin { namespace im {
     {
         if (mHasAttributeEvent == false)
         {
+            LOG_INFO(logger,"HasAttributeEvent IS FALSE");
             return false;
         }
 
         if (mDataBuffer.size() == 0)
         {
+            // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
+            if (mInitEvent)
+            {   
+                mInitEvent = false;
+                return true;
+            }
+            
+            LOG_INFO(logger,"mDataBuffer IS 0");
             return false;
         }
 
@@ -1038,6 +1047,7 @@ namespace muffin { namespace im {
         default:
             return false;
         }
+   
         return false;
     }
 
@@ -1142,12 +1152,11 @@ namespace muffin { namespace im {
                 }
             }
 
-            uint16_t uint16Temp = Convert.ToUInt16(data);
             float floatTemp = 0;
             
             if (mMapMappingRules.first == true)
             {
-                auto it = mMapMappingRules.second.find(uint16Temp);
+                auto it = mMapMappingRules.second.find(Convert.ToUInt16(data));
                 if (it != mMapMappingRules.second.end()) 
                 {
                     return std::make_pair(Status(Status::Code::GOOD), it->first);
@@ -1161,7 +1170,7 @@ namespace muffin { namespace im {
 
             if (mBitIndex.first == true)
             {
-                if (uint16Temp > 1)
+                if (Convert.ToUInt16(data) > 1)
                 {
                     LOG_ERROR(logger,"BIT DATA HAS ONLY 1 or 0 VALUE , DATA : %s",data.c_str());
                     return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), 0);
@@ -1190,12 +1199,12 @@ namespace muffin { namespace im {
                 {
                     const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
                     const double denominator = pow(10, exponent);
-                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(uint16Temp/ denominator));
+                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(Convert.ToFloat(data)/ denominator));
                 }
             }
 
-            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), uint16Temp);
-            return std::make_pair(Status(Status::Code::GOOD), uint16Temp);
+            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
+            return std::make_pair(Status(Status::Code::GOOD), Convert.ToUInt16(data));
         }
         else
         {
@@ -1209,6 +1218,50 @@ namespace muffin { namespace im {
         return mBitIndex;
     }
     
+    std::string Variable::Float32ConvertToString(const float data)
+    {
+        if (mNumericScale.first == false)
+        {
+            // scl 설정 없이 float32 변형이 이루어졌기 때문에 유효숫자를 따로 입력할 필요 없다
+            return std::to_string(data);
+        }
+        
+        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const double denominator = pow(10, exponent);
+        
+        int decimalPlaces = static_cast<int>(-exponent);
+        
+        char format[10];
+        sprintf(format, "%%.%df", decimalPlaces);
+
+        char buffer[20];
+        sprintf(buffer, format, data);
+
+        return std::string(buffer);
+    }
+
+    std::string Variable::Float64ConvertToString(const double data)
+    {
+        if (mNumericScale.first == false)
+        {
+            // scl 설정 없이 float32 변형이 이루어졌기 때문에 유효숫자를 따로 입력할 필요 없다
+            return std::to_string(data);
+        }
+        
+        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const double denominator = pow(10, exponent);
+        
+        int decimalPlaces = static_cast<int>(-exponent);
+        
+        char format[10];
+        sprintf(format, "%%.%df", decimalPlaces);
+
+        char buffer[20];
+        sprintf(buffer, format, data);
+
+        return std::string(buffer);
+    }
+
 
     uint32_t Variable::mSamplingIntervalInMillis = 1000;
 }}
