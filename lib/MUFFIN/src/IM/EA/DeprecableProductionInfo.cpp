@@ -1,12 +1,14 @@
 /**
  * @file DeprecableProductionInfo.cpp
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
- * @brief 
- * @version 0.1
+ * 
+ * @brief 생산실적 정보를 집계하고 매분 서버로 전송하는 클래스를 정의합니다.
+ * 
  * @date 2024-10-29
+ * @version 0.0.1
  * 
- * @copyright Copyright (c) 2024
- * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
  */
 
 
@@ -17,7 +19,6 @@
 #include "Common/Time/TimeUtils.h"
 #include "DeprecableProductionInfo.h"
 #include "Protocol/MQTT/CDO.h"
-
 
 
 
@@ -38,7 +39,10 @@ namespace muffin {
     }
     
     ProductionInfo::ProductionInfo()
-        : xHandle(NULL)
+        : mNodeIdTotal(std::make_pair(false, ""))
+        , mNodeIdGood(std::make_pair(false, ""))
+        , mNodeIdNG(std::make_pair(false, ""))
+        , xHandle(NULL)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -98,7 +102,7 @@ namespace muffin {
     {
         if (xHandle == NULL)
         {
-            LOG_WARNING(logger, "NO ALARM TASK TO STOP!");
+            LOG_WARNING(logger, "NO PRODUCTION INFO TASK TO STOP!");
             return;
         }
         
@@ -117,128 +121,152 @@ namespace muffin {
         uint32_t checkRemainedStackMillis = millis();
         const uint16_t remainedStackCheckInterval = 60 * 1000;
     #endif
-
+    
         while (true)
         {
-      
-#ifdef DEBUG
-    if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-    {
-        LOG_DEBUG(logger, "[TASK: ProductionInfo] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
-        checkRemainedStackMillis = millis();
-    }
-#endif
-        LOG_DEBUG(logger,"mVectorNodeReference size : %d", mVectorNodeReference.size());
-
-        for (auto& nodeReference : mVectorNodeReference)
-        {
-     
-            auto& reference = nodeReference.get();
-    
-            if (mTotalNodeID == reference.first)
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                // VariableNode 내부에 mDataBuffer가 업데이트 안되어있을 시 메모리 크래시가 발생함, 해결방법 찾아봐야함
-                im::var_data_t datum = reference.second.VariableNode.RetrieveData();
-  
+                LOG_DEBUG(logger, "[TASK: ProductionInfo] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
+
+            for (auto& nodeReference : mVectorNodeReference)
+            {
+                const size_t dataStoredCount = nodeReference.get().second.VariableNode.RetrieveCount();
+                if (dataStoredCount == 0)
+                {
+                    break;
+                }
+                ASSERT((dataStoredCount != 0), "THERE MUST BE DATA COLLECTED TO AGGREGATE PRODUCTION INFO");
+
+/**
+ * @todo VariableNode 내부에 mDataBuffer가 비어있을 시 메모리 크래시가 발생함. 해결 방법을 찾아봐야함.
+ * @note mDataBuffer가 비어있지 않을 때만 들어오도록 수정하였음. 크래시 없을 시 위의 todo는 제거할 에정임
+ */
+                auto& reference = nodeReference.get();
+                const im::var_data_t datum = reference.second.VariableNode.RetrieveData();
                 if (datum.StatusCode != Status::Code::GOOD)
                 {
                     break;
                 }
-              
-                switch (datum.DataType)
+
+                /**
+                 * @todo PROGIX에 총 생산수량 외에 양품수량, 불량수량을 보내기 위한
+                 *       메시지 형식을 클라우드 개발팀과 협의해야 합니다.
+                 */
+                if (mNodeIdTotal.second == reference.first)
                 {
-                case jarvis::dt_e::UINT8:
-                    mTotalProductionValue = datum.Value.UInt8;
-                    break;
-                case jarvis::dt_e::UINT16:
-                    mTotalProductionValue = datum.Value.UInt16;
-                    break;
-                case jarvis::dt_e::UINT32:
-                    mTotalProductionValue = datum.Value.UInt32;
-                    break;
-                case jarvis::dt_e::UINT64:
-                    mTotalProductionValue = datum.Value.UInt64;
-                    break;
-                default:
-                    break;
+                    updateCountTotal(datum);
                 }
-
-                if (mPreviousTotalValue > mTotalProductionValue)
+                else if (mNodeIdGood.second == reference.first)
                 {
-                    mTotalProductionValue = 0;
+                    // updateCountGood(datum);
                 }
-                else
+                else if (mNodeIdNG.second == reference.first)
                 {
-                    mTotalProductionValue = mTotalProductionValue - mPreviousTotalValue;
+                    // updateCountNG(datum);
                 }
-                
-                mPreviousTotalValue = mTotalProductionValue;
-
-                progix_struct_t production;
-
-                production.SourceTimestamp = TimestampToExactHourKST();
-                production.Value = mTotalProductionValue;
-                production.Topic = mqtt::topic_e::FINISHEDGOODS;
-
-                JSON json;
-                const std::string payload = json.Serialize(production);
-                mqtt::Message message(mqtt::topic_e::FINISHEDGOODS, payload);
-
-                mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                cdo.Store(message);
-
-                LOG_INFO(logger, "[PRODUCTIONINFO] %s", payload.c_str());
-            
             }
-        }
 
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
 
+    void ProductionInfo::updateCountTotal(const im::var_data_t& datum)
+    {
+        switch (datum.DataType)
+        {
+        case jarvis::dt_e::UINT8:
+            mProductCount.Total = datum.Value.UInt8;
+            break;
+        case jarvis::dt_e::UINT16:
+            mProductCount.Total = datum.Value.UInt16;
+            break;
+        case jarvis::dt_e::UINT32:
+            mProductCount.Total = datum.Value.UInt32;
+            break;
+        case jarvis::dt_e::UINT64:
+            mProductCount.Total = datum.Value.UInt64;
+            break;
+        default:
+            /**
+             * @todo JARVIS Validator 쪽에서 설정 형식 간 선결조건, 관계 검증에 추가해야 합니다.
+             */
+            ASSERT(false, "PRODUCT COUNT MUST BE A UNSIGNED INTEGER VALUE: %s", mNodeIdTotal.second.c_str());
+            break;
+        }
+
+        if (mPreviousCount.Total > mProductCount.Total)
+        {
+            mProductCount.Total = 0;
+        }
+        else
+        {
+            mProductCount.Total = mProductCount.Total - mPreviousCount.Total;
+        }
+        
+        mPreviousCount.Total = mProductCount.Total;
+
+        progix_struct_t production;
+
+        production.SourceTimestamp = TimestampToExactHourKST();
+        production.Value = mProductCount.Total;
+        production.Topic = mqtt::topic_e::FINISHEDGOODS;
+
+        JSON json;
+        const std::string payload = json.Serialize(production);
+        mqtt::Message message(mqtt::topic_e::FINISHEDGOODS, payload);
+
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        cdo.Store(message);
+
+        LOG_INFO(logger, "[PRODUCTIONINFO] %s", payload.c_str());
+    }
 
     void ProductionInfo::Config(jarvis::config::Production* cin)
     {
         std::pair<Status,std::string> ret = cin->GetNodeIdTotal();
-        
         if (ret.first == Status::Code::GOOD)
         {
-            mTotalNodeID = ret.second;
-
-            LOG_DEBUG(logger,"mTotalNodeID : %s", mTotalNodeID.c_str());
+            mNodeIdTotal.first = true;
+            mNodeIdTotal.second = ret.second;
         }
 
         ret = cin->GetNodeIdGood();
-
         if (ret.first == Status::Code::GOOD)
         {
-            mGoodNodeID = ret.second;
-            LOG_DEBUG(logger,"mGoodNodeID : %s", mTotalNodeID.c_str());
+            mNodeIdTotal.first = true;
+            mNodeIdGood.second = ret.second;
         }
         
         ret = cin->GetNodeIdNG();
-
         if (ret.first == Status::Code::GOOD)
         {
-            mNotGoodNodeID = ret.second;
-            LOG_DEBUG(logger,"mNotGoodNodeID : %s", mTotalNodeID.c_str());
+            mNodeIdTotal.first = true;
+            mNodeIdNG.second = ret.second;
         }
 
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-
         for (auto& node : nodeStore)
         {
-            if ((node.first == mTotalNodeID)  ||
-                (node.first == mGoodNodeID)   ||
-                (node.first == mNotGoodNodeID) )
+            if ((node.first == mNodeIdTotal.second) || 
+                (node.first == mNodeIdGood.second)  || 
+                (node.first == mNodeIdNG.second))
             {
                 mVectorNodeReference.emplace_back(node);
-    
             }
-            
         }
-        LOG_DEBUG(logger,"mVectorNodeReference size : %d", mVectorNodeReference.size());
+        
+    #if defined(DEBUG)
+        for (uint8_t i = 0; i < mVectorNodeReference.size(); ++i)
+        {
+            LOG_DEBUG(logger, "Node Reference [#%01u]: %s", i, mVectorNodeReference[i].get().first.c_str());
+        }
+    #endif
     }
+
 
     ProductionInfo* ProductionInfo::mInstance = nullptr;
 }

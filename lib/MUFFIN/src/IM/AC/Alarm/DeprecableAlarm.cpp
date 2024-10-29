@@ -75,6 +75,19 @@ namespace muffin {
         mVectorNodeReference.clear();
     }
 
+    bool AlarmMonitor::HasError() const
+    {
+        for (auto& alarmInfo : mVectorAlarmInfo)
+        {
+            if (alarmInfo.Uid.at(0) == 'E')
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     void AlarmMonitor::StartTask()
     {
         if (xHandle != NULL)
@@ -574,7 +587,8 @@ namespace muffin {
 
         JSON json;
         const std::string payload = json.Serialize(alarm);
-        mqtt::Message message(mqtt::topic_e::ALARM, payload);
+        const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
+        mqtt::Message message(topic, payload);
 
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         cdo.Store(message);
@@ -618,7 +632,8 @@ namespace muffin {
 
         JSON json;
         const std::string payload = json.Serialize(alarm);
-        mqtt::Message message(mqtt::topic_e::ALARM, payload);
+        const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
+        mqtt::Message message(topic, payload);
 
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         cdo.Store(message);

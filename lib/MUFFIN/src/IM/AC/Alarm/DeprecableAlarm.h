@@ -45,6 +45,7 @@ namespace muffin {
     public:
         void Add(jarvis::config::Alarm* cin);
         void Clear();
+        bool HasError() const;
     public:
         void StartTask();
         void StopTask();

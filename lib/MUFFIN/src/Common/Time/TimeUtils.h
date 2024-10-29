@@ -53,6 +53,14 @@ namespace muffin {
     time_t GetTimestamp();
 
     /**
+     * @brief Calculate timestamp when the next minute starts
+     * 
+     * @param currentTimestamp current timestamp
+     * @return time_t unix time
+     */
+    time_t CalculateTimestampNextMinuteStarts(const time_t currentTimestamp);
+
+    /**
      * @brief Get the Millis Timestamp object
      * @return uint64_t  unix time in miiliseconds
      */

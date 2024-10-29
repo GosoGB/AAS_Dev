@@ -5,7 +5,7 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
- * @date 2024-10-24
+ * @date 2024-10-29
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -1070,6 +1070,12 @@ namespace muffin { namespace im {
     // {
     //     ;
     // }
+
+
+    size_t Variable::RetrieveCount() const
+    {
+        return mDataBuffer.size();
+    }
 
     var_data_t Variable::RetrieveData() const
     {

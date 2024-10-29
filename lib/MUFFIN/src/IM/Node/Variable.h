@@ -59,6 +59,7 @@ namespace muffin { namespace im {
         std::string Float64ConvertToString(const double data);
         
     public:
+        size_t RetrieveCount() const;
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
     public:

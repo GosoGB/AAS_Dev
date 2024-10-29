@@ -4,7 +4,7 @@
  * 
  * @brief 시간 정보를 생성, 관리, 교환하기 위한 기능을 정의
  * 
- * @date 2024-08-31
+ * @date 2024-10-29
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -109,6 +109,35 @@ namespace muffin {
 	time_t GetTimestamp()
 	{
 		return time(NULL);
+	}
+
+	time_t CalculateTimestampNextMinuteStarts(const time_t currentTimestamp)
+	{
+		const tm* localTime = localtime(&currentTimestamp);
+
+		const int currentHour    = localTime->tm_hour;
+		const int currentMinute  = localTime->tm_min;
+
+		int nextHour    = currentHour;
+		int nextMinute  = currentMinute + 1;
+
+		if (nextMinute >= 60)
+		{
+			nextMinute = 0;
+			++nextHour;
+
+			if (nextHour >= 24)
+			{
+				nextHour = 0;
+			}
+		}
+
+		tm nextLocalTime = *localTime;
+		nextLocalTime.tm_hour = nextHour;
+		nextLocalTime.tm_min  = nextMinute;
+		nextLocalTime.tm_sec  = 0;
+
+		return mktime(&nextLocalTime);
 	}
 
 	uint64_t GetTimestampInMillis()
