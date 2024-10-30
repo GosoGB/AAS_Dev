@@ -24,6 +24,7 @@
 #include "IM/Node/NodeStore.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableProductionInfo.h"
+#include "IM/EA/DeprecableOperationTime.h"
 #include "Jarvis/Jarvis.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
 #include "JarvisTask.h"
@@ -209,7 +210,7 @@ namespace muffin {
 //             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
 
             s_JarvisApiPayload.clear();
-            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001","#002","#003"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":0,"area":4,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DO01","name":"생산 수량","unit":"N/A","event":true},{"id":"#002","adtp":0,"addr":0,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"1":"정지","0":"가동중"},"ord":null,"dt":[0],"fmt":null,"uid":"DO02","name":"가동 상태","unit":"N/A","event":true},{"id":"#003","adtp":0,"addr":6,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"0":"OFF","1":"ON"},"ord":null,"dt":[0],"fmt":null,"uid":"P002","name":"릴레이","unit":"N/A","event":true}],"alarm":[],"optime":[],"prod":[{"tot":"#001","ok":null,"ng":null}]}})";
+            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001","#002","#003"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":0,"area":4,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DO01","name":"생산 수량","unit":"N/A","event":true},{"id":"#002","adtp":0,"addr":0,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"1":"정지","0":"가동중"},"ord":null,"dt":[0],"fmt":null,"uid":"A002","name":"가동 상태","unit":"N/A","event":true},{"id":"#003","adtp":0,"addr":6,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"0":"OFF","1":"ON"},"ord":null,"dt":[0],"fmt":null,"uid":"P002","name":"릴레이","unit":"N/A","event":true}],"alarm":[{"nodeId":"#002","type":4,"lcl":null,"lclUid":null,"lclAUid":null,"ucl":null,"uclUid":null,"uclAUid":null,"cnd":[1]}],"optime":[{"nodeId":"#002","type":2,"crit":0,"op":"=="}],"prod":[{"tot":"#001","ok":null,"ng":null}]}})";
             Status ret = Status(Status::Code::GOOD);
 
             if (ret != Status::Code::GOOD)
@@ -439,7 +440,25 @@ namespace muffin {
     
     void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN)
     {
-        ASSERT(false, "APPLYING OPERATION TIME CIN IS NOT IMPLEMENTED");
+        // ASSERT(false, "APPLYING OPERATION TIME CIN IS NOT IMPLEMENTED");
+        LOG_DEBUG(logger, "Start applying Operation Time CIN");
+        OperationTime& operationTime = OperationTime::GetInstance();
+        for (auto cin : vectorOperationTimeCIN)
+        {
+            operationTime.Config(static_cast<jarvis::config::OperationTime*>(cin));
+        }
+
+        for (auto& cin : vectorOperationTimeCIN)
+        {
+            delete cin;
+        }
+
+        vectorOperationTimeCIN.clear();
+        LOG_DEBUG(logger, "vectorProductionInfoCIN.size(): %u", vectorOperationTimeCIN.size());
+
+        operationTime.StartTask();
+
+
     }
     
     void applyProductionInfoCIN(std::vector<jarvis::config::Base*>& vectorProductionInfoCIN)

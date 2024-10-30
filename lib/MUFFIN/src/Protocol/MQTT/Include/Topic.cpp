@@ -48,8 +48,8 @@ namespace muffin { namespace mqtt {
         #endif
             mError                  = "scautr/equipment/status/error";
             mOperation              = "scautr/equipment/status/operation";
-            mUptime                 = "progix/dashboard/fg";
-            mFinishedGoods          = "progix/dashboard/ut";
+            mUptime                 = "progix/dashboard/ut";
+            mFinishedGoods          = "progix/dashboard/fg";
         }
 
         return true;

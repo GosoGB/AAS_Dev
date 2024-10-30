@@ -150,9 +150,10 @@ namespace muffin {
 
         mPublishTimer.LastTime = GetTimestamp();
         mPublishTimer.NextTime = CalculateTimestampNextMinuteStarts(mPublishTimer.LastTime);
+        
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         time_t processingTime = 0;
-
+ 
         while (true)
         {
         #ifdef DEBUG
@@ -182,7 +183,7 @@ namespace muffin {
                 bool isStatusProcessing = false;
                 bool currentErrorStatus = alarmMonitor.HasError();
                 updateOperationTime(datum, reference.second, &isStatusProcessing);
-
+                
                 if (isStatusProcessing == true)
                 {
                     if (currentErrorStatus == false)
@@ -200,6 +201,7 @@ namespace muffin {
 
                 mPublishTimer.LastTime = mPublishTimer.NextTime;
                 mPublishTimer.NextTime = CalculateTimestampNextMinuteStarts(mPublishTimer.LastTime);
+                processingTime = 0;
             }
 
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -514,13 +516,13 @@ namespace muffin {
     {
         progix_struct_t production;
 
-        production.Value = processingTime;
-        production.Topic = mqtt::topic_e::OPERATION;
+        production.Value = std::to_string(processingTime);
+        production.Topic = mqtt::topic_e::UPTIME;
         production.SourceTimestamp = TimestampToExactHourKST();
 
         JSON json;
         const std::string payload = json.Serialize(production);
-        mqtt::Message message(mqtt::topic_e::OPERATION, payload);
+        mqtt::Message message(mqtt::topic_e::UPTIME, payload);
 
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         cdo.Store(message);

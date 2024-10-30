@@ -29,11 +29,11 @@
 
 namespace muffin {
 
-    typedef struct ProductionInfoPublishTimer
+    typedef struct OperationPublishTimer
     {
         time_t LastTime;
         time_t NextTime;
-    } pub_timer;
+    } ut_pub_timer;
 
     class OperationTime
     {
@@ -74,6 +74,6 @@ namespace muffin {
         uint64_t mPreviousTotalValue = UINT64_MAX;
     private:
         TaskHandle_t xHandle;
-        pub_timer mPublishTimer;
+        ut_pub_timer mPublishTimer;
     };
 }

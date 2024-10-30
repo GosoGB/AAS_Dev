@@ -121,7 +121,10 @@ namespace muffin {
         uint32_t checkRemainedStackMillis = millis();
         const uint16_t remainedStackCheckInterval = 60 * 1000;
     #endif
-    
+
+        time_t LastTime;
+        time_t NextTime = CalculateTimestampNextMinuteStarts(GetTimestamp());
+  
         while (true)
         {
         #ifdef DEBUG
@@ -168,6 +171,17 @@ namespace muffin {
                 {
                     // updateCountNG(datum);
                 }
+
+                if (GetTimestamp() < NextTime)
+                {
+                    break;
+                }
+
+                LastTime = NextTime;
+                NextTime = CalculateTimestampNextMinuteStarts(LastTime);
+
+                publishInfo(mProductCount.Total);
+                mProductCount.Total = 0;
             }
 
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -176,19 +190,21 @@ namespace muffin {
 
     void ProductionInfo::updateCountTotal(const im::var_data_t& datum)
     {
+        uint64_t TotalValue;
+
         switch (datum.DataType)
         {
         case jarvis::dt_e::UINT8:
-            mProductCount.Total = datum.Value.UInt8;
+            TotalValue = datum.Value.UInt8;
             break;
         case jarvis::dt_e::UINT16:
-            mProductCount.Total = datum.Value.UInt16;
+            TotalValue = datum.Value.UInt16;
             break;
         case jarvis::dt_e::UINT32:
-            mProductCount.Total = datum.Value.UInt32;
+            TotalValue = datum.Value.UInt32;
             break;
         case jarvis::dt_e::UINT64:
-            mProductCount.Total = datum.Value.UInt64;
+            TotalValue = datum.Value.UInt64;
             break;
         default:
             /**
@@ -198,31 +214,23 @@ namespace muffin {
             break;
         }
 
-        if (mPreviousCount.Total > mProductCount.Total)
+
+        if (mPreviousCount.Total == TotalValue)
         {
-            mProductCount.Total = 0;
+            return;
+        }
+        
+        if (mPreviousCount.Total > TotalValue)
+        {
+             mProductCount.Total = 0;
         }
         else
         {
-            mProductCount.Total = mProductCount.Total - mPreviousCount.Total;
+            mProductCount.Total =  mProductCount.Total + TotalValue - mPreviousCount.Total;
         }
-        
-        mPreviousCount.Total = mProductCount.Total;
+       
+        mPreviousCount.Total = TotalValue;
 
-        progix_struct_t production;
-
-        production.SourceTimestamp = TimestampToExactHourKST();
-        production.Value = mProductCount.Total;
-        production.Topic = mqtt::topic_e::FINISHEDGOODS;
-
-        JSON json;
-        const std::string payload = json.Serialize(production);
-        mqtt::Message message(mqtt::topic_e::FINISHEDGOODS, payload);
-
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(message);
-
-        LOG_INFO(logger, "[PRODUCTIONINFO] %s", payload.c_str());
     }
 
     void ProductionInfo::Config(jarvis::config::Production* cin)
@@ -265,6 +273,27 @@ namespace muffin {
             LOG_DEBUG(logger, "Node Reference [#%01u]: %s", i, mVectorNodeReference[i].get().first.c_str());
         }
     #endif
+    }
+
+    void ProductionInfo::publishInfo(const uint64_t productionValue)
+    {
+        if (productionValue == 0)
+        {
+            return;
+        }
+        
+        progix_struct_t production;
+
+        production.SourceTimestamp = TimestampToExactHourKST();
+        production.Value = std::to_string(productionValue);
+        production.Topic = mqtt::topic_e::FINISHEDGOODS;
+
+        JSON json;
+        const std::string payload = json.Serialize(production);
+        mqtt::Message message(mqtt::topic_e::FINISHEDGOODS, payload);
+
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        cdo.Store(message);
     }
 
 

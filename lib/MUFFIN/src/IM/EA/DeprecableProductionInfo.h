@@ -36,7 +36,6 @@ namespace muffin {
         uint64_t NG;
     } product_count_t;
 
-
     class ProductionInfo
     {
     public:
@@ -63,6 +62,7 @@ namespace muffin {
         static void wrapImplTask(void* pvParams);
         void implTask();
         void updateCountTotal(const im::var_data_t& datum);
+        void publishInfo(const uint64_t productionValue); 
         // void updateCountGood(const im::var_data_t& datum);
         // void updateCountNG(const im::var_data_t& datum);
     private:
