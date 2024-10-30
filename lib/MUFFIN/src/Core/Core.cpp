@@ -472,6 +472,8 @@ ERROR_RESPONSE:
                 LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
                 return;
             }
+
+            return;
         }
 
 
@@ -492,11 +494,11 @@ ERROR_RESPONSE:
             operationTime.Clear();
 
             StopModbusTask();
-            ModbusRTU& modbusRTU = ModbusRTU::GetInstance();
-            modbusRTU.Clear();
+            ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
+            modbusRTU->Clear();
 
-            im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-            nodeStore.Clear();
+            im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
+            nodeStore->Clear();
         }
 
         

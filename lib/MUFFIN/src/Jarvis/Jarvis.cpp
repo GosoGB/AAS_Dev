@@ -70,6 +70,11 @@ namespace muffin {
         jarvis::Validator validator;
         return validator.Inspect(json, &mMapCIN);
     }
+
+    void Jarvis::Clear()
+    {
+        mMapCIN.clear();
+    }
     
     std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator Jarvis::begin()
     {

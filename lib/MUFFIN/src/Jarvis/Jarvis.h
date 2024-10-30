@@ -43,6 +43,7 @@ namespace muffin {
     
     public:
         jarvis::ValidationResult Validate(JsonDocument& json);
+        void Clear();
     public:
         std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator begin();
         std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator end();

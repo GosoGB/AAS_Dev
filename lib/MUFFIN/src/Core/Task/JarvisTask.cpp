@@ -296,6 +296,16 @@ namespace muffin {
              * @todo CreateOrNULL()로 함수 명을 바꾸면 위의 투 두 없이도 가능합니다.
              */
             Jarvis* jarvis = Jarvis::GetInstanceOrCrash();
+            for (auto& pair : *jarvis)
+            {
+                for (auto& element : pair.second)
+                {
+                    delete element;
+                }
+                pair.second.clear();
+            }
+            jarvis->Clear();
+
             validationResult = jarvis->Validate(jsonDocument);
             callback(validationResult);
             s_IsJarvisTaskRunning = false;
@@ -322,7 +332,6 @@ namespace muffin {
     void ApplyJarvisTask()
     {
         Jarvis& jarvis = Jarvis::GetInstance();
-
         for (auto& pair : jarvis)
         {
             const jarvis::cfg_key_e key = pair.first;
@@ -389,6 +398,15 @@ namespace muffin {
 
         for (auto& pair : jarvis)
         {
+            for (auto& element : pair.second)
+            {
+                delete element;
+            }
+            pair.second.clear();
+        }
+
+        for (auto& pair : jarvis)
+        {
             const jarvis::cfg_key_e key = pair.first;
             if (key == jarvis::cfg_key_e::PRODUCTION_INFO)
             {
@@ -406,12 +424,6 @@ namespace muffin {
         {
             alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
         }
-        
-        for (auto& cin : vectorAlarmCIN)
-        {
-            delete cin;
-        }
-        vectorAlarmCIN.clear();
         alarmMonitor.StartTask();
     }
     
@@ -429,12 +441,6 @@ namespace muffin {
             jarvis::config::Node* nodeCIN = static_cast<jarvis::config::Node*>(baseCIN);
             nodeStore->Create(nodeCIN);
         }
-        
-        for (auto& cin : vectorNodeCIN)
-        {
-            delete cin;
-        }
-        vectorNodeCIN.clear();
     }
     
     void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN)
@@ -445,12 +451,6 @@ namespace muffin {
         {
             operationTime.Config(static_cast<jarvis::config::OperationTime*>(cin));
         }
-
-        for (auto& cin : vectorOperationTimeCIN)
-        {
-            delete cin;
-        }
-        vectorOperationTimeCIN.clear();
         operationTime.StartTask();
     }
     
@@ -462,12 +462,6 @@ namespace muffin {
         {
             productionInfo.Config(static_cast<jarvis::config::Production*>(cin));
         }
-
-        for (auto& cin : vectorProductionInfoCIN)
-        {
-            delete cin;
-        }
-        vectorProductionInfoCIN.clear();
         productionInfo.StartTask();
     }
 
@@ -486,12 +480,6 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
         }
-
-        for (auto& cin : vectorRS485CIN)
-        {
-            delete cin;
-        }
-        vectorRS485CIN.clear();
     }
     
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
@@ -513,12 +501,6 @@ namespace muffin {
          * @todo 상태 코드에 따라 적절한 처리를 수행하도록 코드를 수정해야 합니다.
          */
         StartCatM1Task();
-
-        for (auto& cin : vectorLteCatM1CIN)
-        {
-            delete cin;
-        }
-        vectorLteCatM1CIN.clear();
     }
 
     void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN)
@@ -545,11 +527,5 @@ namespace muffin {
         LOG_INFO(logger, "Configured Modbus RTU protocol");
         
         StartModbusTask();
-
-        for (auto& cin : vectorModbusRTUCIN)
-        {
-            delete cin;
-        }
-        vectorModbusRTUCIN.clear();
     }
 }
