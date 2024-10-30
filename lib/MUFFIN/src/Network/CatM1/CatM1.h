@@ -95,7 +95,7 @@ namespace muffin {
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
-        jarvis::config::CatM1 RetrieveConfig() const;
+        std::pair<bool, jarvis::config::CatM1> RetrieveConfig() const;
         state_e GetState() const;
         Status SyncWithNTP();
     public:
@@ -124,7 +124,7 @@ namespace muffin {
 
     private:
         Processor mProcessor;
-        jarvis::config::CatM1 mConfig;
+        std::pair<bool, jarvis::config::CatM1> mConfig;
         static state_e mState;
         static std::bitset<8> mInitFlags;
         static std::bitset<6> mConnFlags;

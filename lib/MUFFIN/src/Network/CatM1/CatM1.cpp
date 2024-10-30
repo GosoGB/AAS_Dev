@@ -55,6 +55,7 @@ namespace muffin {
     }
 
     CatM1::CatM1()
+        : mConfig(std::make_pair(false, jarvis::config::CatM1()))
     {
         mInitFlags.reset();
         mConnFlags.reset();
@@ -118,13 +119,13 @@ namespace muffin {
         assert(config != nullptr);
         assert(config->GetCategory() == jarvis::cfg_key_e::LTE_CatM1);
 
-        mConfig = *static_cast<jarvis::config::CatM1*>(config);
+        mConfig = std::make_pair(true, *static_cast<jarvis::config::CatM1*>(config));
 
-        if (mConfig.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, HIGH);
         }
-        else if (mConfig.GetModel().second == jarvis::md_e::LCM300)
+        else if (mConfig.second.GetModel().second == jarvis::md_e::LCM300)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -204,7 +205,7 @@ namespace muffin {
      */
     Status CatM1::Disconnect()
     {
-        if (mConfig.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -255,7 +256,7 @@ namespace muffin {
         return IPAddress(0,0,0,0);
     }
 
-    jarvis::config::CatM1 CatM1::RetrieveConfig() const
+    std::pair<bool, jarvis::config::CatM1> CatM1::RetrieveConfig() const
     {
         return mConfig;
     }
@@ -632,7 +633,7 @@ namespace muffin {
 
     void CatM1::resetModule()
     {
-        if (mConfig.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
             delay(110);

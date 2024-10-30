@@ -98,7 +98,10 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
     {
-        ASSERT((mState != state_e::INITIALIZED), "REINITIALIZATION IS FORBIDDEN");
+        /**
+         * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
+         */
+        // ASSERT((mState != state_e::INITIALIZED), "REINITIALIZATION IS FORBIDDEN");
 
         Status ret = Status(Status::Code::UNCERTAIN);
 

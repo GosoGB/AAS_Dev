@@ -54,11 +54,8 @@ namespace muffin {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
-        jarvis::config::CatM1 retrievedCIN = catM1->RetrieveConfig();
-        const bool isConfigured = 
-            (retrievedCIN.GetCountry().first == Status::Code::GOOD) &&
-            (retrievedCIN.GetModel().first   == Status::Code::GOOD) &&
-            (retrievedCIN == *cin);
+        const auto retrievedCIN = catM1->RetrieveConfig();
+        const bool isConfigured = (retrievedCIN.first == true) && (retrievedCIN.second == *cin);
         
         if ((isConfigured == true) && (s_IsCatM1Connected == true))
         {
@@ -67,6 +64,8 @@ namespace muffin {
         }
         else
         {
+            LOG_INFO(logger, "New configuration for LTE Cat.M1 modem");
+
             s_IsMqttTopicCreated     = false;
             s_IsCatM1Connected       = false;
             s_IsCatMqttInitialized   = false;
@@ -281,7 +280,7 @@ namespace muffin {
                 s_IsCatMQTTConnected     = false;
                 s_IsCatHttpInitialized   = false;
 
-                jarvis::config::CatM1 retrievedCIN = catM1.RetrieveConfig();
+                jarvis::config::CatM1 retrievedCIN = catM1.RetrieveConfig().second;
                 InitCatM1(&retrievedCIN);
                 InitCatHTTP();
                 ConnectToBroker();
