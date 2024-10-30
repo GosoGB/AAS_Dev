@@ -35,21 +35,21 @@ namespace muffin { namespace mqtt {
                 return false;
             }
             
-            mLastWill               = "scautr/modlink/status/network/will";
+        #if defined(DEBUG)
+            mLastWill               = "test/scautr/modlink/status/network/will";
             mJarvisRequest          = "mfm/" + macAddress;
             mJarvisResponse         = "mfm/resp/" + macAddress;
-            mRemoteControlRequest   = "scautr/req/" + macAddress;
-            mRemoteControlResponse  = "scautr/resp/" + macAddress;
-            mDaqIntput              = "scautr/equipment/daq/input";
-            mDaqOutput              = "scautr/equipment/daq/output";
-            mDaqParam               = "scautr/equipment/param";
-        #if defined(DEBUG)
-            mAlarm                  = "scautr/equipment/status/alarm/test";
+            mRemoteControlRequest   = "test/scautr/req/" + macAddress;
+            mRemoteControlResponse  = "test/scautr/resp/" + macAddress;
+            mDaqIntput              = "test/scautr/equipment/daq/input";
+            mDaqOutput              = "test/scautr/equipment/daq/output";
+            mDaqParam               = "test/scautr/equipment/param";
+            mAlarm                  = "test/scautr/equipment/status/alarm";
+            mError                  = "test/scautr/equipment/status/error";
+            mOperation              = "test/scautr/equipment/status/operation";
+            mUptime                 = "test/progix/dashboard/ut";
+            mFinishedGoods          = "test/progix/dashboard/fg";
         #endif
-            mError                  = "scautr/equipment/status/error";
-            mOperation              = "scautr/equipment/status/operation";
-            mUptime                 = "progix/dashboard/ut";
-            mFinishedGoods          = "progix/dashboard/fg";
         }
 
         return true;

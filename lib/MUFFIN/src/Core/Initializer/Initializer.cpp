@@ -19,6 +19,9 @@
 #include "Common/Time/TimeUtils.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
+#include "Core/Task/JarvisTask.h"
+#include "DataFormat/JSON/JSON.h"
+
 #include "IM/MacAddress/MacAddress.h"
 
 #include "Jarvis/Config/Network/CatM1.h"
@@ -298,6 +301,27 @@ namespace muffin {
 
     Status Initializer::configureWithJarvis()
     {
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        ESP32FS& esp32FS = ESP32FS::GetInstance();
+        fs::File file = esp32FS.Open("/jarvis/config.json");
+        std::string payload;
+
+        while (file.available() > 0)
+        {
+            payload += file.read();
+        }
+        
+        JSON json;
+        JsonDocument doc;
+        Status ret = json.Deserialize(payload, &doc);
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        
+        Jarvis* jarvis = Jarvis::GetInstanceOrCrash();
+        jarvis->Validate(doc);
+        ApplyJarvisTask();
+
+        return Status(Status::Code::GOOD);
     }
 }

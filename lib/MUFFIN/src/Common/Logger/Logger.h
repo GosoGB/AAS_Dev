@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <set>
 #include <stdarg.h>
 #include <sys/types.h>
@@ -136,6 +138,7 @@ namespace muffin {
         void Log(const log_level_e level, const size_t counter, const char* file, const char* func, const size_t line, const char* fmt, ...);
 
     private:
+        SemaphoreHandle_t xSemaphore;
         static const uint32_t mBaudRate = 115200;
         bool mIsFilePathVerbose = false;
     #if defined(DEBUG)

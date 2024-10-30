@@ -26,7 +26,6 @@
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "Jarvis/Jarvis.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
 #include "JarvisTask.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
