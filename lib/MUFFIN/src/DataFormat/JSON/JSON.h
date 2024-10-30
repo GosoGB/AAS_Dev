@@ -31,7 +31,7 @@ namespace muffin {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
         uint32_t ResponseCode;
-        std::string Discription;
+        std::string Description;
         std::vector<std::string> Config;
     } jarvis_struct_t;
 

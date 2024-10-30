@@ -102,10 +102,9 @@ namespace muffin { namespace im {
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
-    Status NodeStore::Clear()
+    void NodeStore::Clear()
     {
-        ASSERT(false, "IMPLEMENTATION ERROR: FUNCTION IS NOT IMPLEMENTED");
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        mMapNode.clear();
     }
 
     std::pair<Status, Node*> NodeStore::GetNodeReference(const std::string& nodeID)

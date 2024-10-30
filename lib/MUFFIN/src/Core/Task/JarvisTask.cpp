@@ -24,6 +24,7 @@
 #include "IM/Node/NodeStore.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableProductionInfo.h"
+#include "IM/EA/DeprecableOperationTime.h"
 #include "Jarvis/Jarvis.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
 #include "JarvisTask.h"
@@ -163,54 +164,50 @@ namespace muffin {
             JSON json;
             JsonDocument doc;
 
-//             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-//             http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-//             http::RequestParameter parameters;
-//             parameters.Add("mac", MacAddress::GetEthernet());
+            http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+            http::RequestParameter parameters;
+            parameters.Add("mac", MacAddress::GetEthernet());
 
-// #ifdef DEBUG
-//     LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-// #endif
-//             Status ret = catHttp.GET(header, parameters);
-//             if (ret != Status::Code::GOOD)
-//             {
-//                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
+        #ifdef DEBUG
+            LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+        #endif
+            Status ret = catHttp.GET(header, parameters);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
                 
-//                 switch (ret.ToCode())
-//                 {
-//                 case Status::Code::BAD_TIMEOUT:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
-//                     break;
-//                 case Status::Code::BAD_NO_COMMUNICATION:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
-//                     break;
-//                 case Status::Code::BAD_OUT_OF_MEMORY:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
-//                     break;
-//                 default:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
-//                     break;
-//                 }
+                switch (ret.ToCode())
+                {
+                case Status::Code::BAD_TIMEOUT:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
+                    break;
+                case Status::Code::BAD_NO_COMMUNICATION:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
+                    break;
+                case Status::Code::BAD_OUT_OF_MEMORY:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
+                    break;
+                default:
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
+                    break;
+                }
                 
-//                 callback(validationResult);
-//                 s_IsJarvisTaskRunning = false;
-//                 vTaskDelete(NULL);
-//             }
-// #ifdef DEBUG
-//     LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-// #endif
-
-//             s_JarvisApiPayload.clear();
-//             ret = catHttp.Retrieve(&s_JarvisApiPayload);
-//             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
+                callback(validationResult);
+                s_IsJarvisTaskRunning = false;
+                vTaskDelete(NULL);
+            }
+#ifdef DEBUG
+    LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
 
             s_JarvisApiPayload.clear();
-            s_JarvisApiPayload = R"({"ver":"v1","cnt":{"rs232":[],"rs485":[{"prt":2,"bdr":9600,"dbit":8,"pbit":0,"sbit":1}],"wifi":[],"eth":[],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[{"prt":2,"sid":1,"nodes":["#001","#002","#003"]}],"mbtcp":[],"op":[],"node":[{"id":"#001","adtp":0,"addr":0,"area":4,"bit":null,"qty":1,"scl":null,"ofst":null,"map":null,"ord":null,"dt":[4],"fmt":null,"uid":"DO01","name":"생산 수량","unit":"N/A","event":true},{"id":"#002","adtp":0,"addr":0,"area":2,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"1":"정지","0":"가동중"},"ord":null,"dt":[0],"fmt":null,"uid":"DO02","name":"가동 상태","unit":"N/A","event":true},{"id":"#003","adtp":0,"addr":6,"area":1,"bit":null,"qty":null,"scl":null,"ofst":null,"map":{"0":"OFF","1":"ON"},"ord":null,"dt":[0],"fmt":null,"uid":"P002","name":"릴레이","unit":"N/A","event":true}],"alarm":[],"optime":[],"prod":[{"tot":"#001","ok":null,"ng":null}]}})";
-            Status ret = Status(Status::Code::GOOD);
+            ret = catHttp.Retrieve(&s_JarvisApiPayload);
+            LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
 
             if (ret != Status::Code::GOOD)
             {
@@ -318,6 +315,7 @@ namespace muffin {
         s_JarvisApiPayload.clear();
     }
 
+
     /**
      * @todo 상태 코드를 반환하도록 코드를 수정해야 합니다.
      */
@@ -402,12 +400,8 @@ namespace muffin {
 
     void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
     {
-        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-        alarmMonitor.StopTask();
-        alarmMonitor.Clear();
-
         LOG_DEBUG(logger, "Start applying Alarm CIN");
-
+        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         for (auto cin : vectorAlarmCIN)
         {
             alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
@@ -417,7 +411,6 @@ namespace muffin {
         {
             delete cin;
         }
-
         vectorAlarmCIN.clear();
         alarmMonitor.StartTask();
     }
@@ -436,17 +429,34 @@ namespace muffin {
             jarvis::config::Node* nodeCIN = static_cast<jarvis::config::Node*>(baseCIN);
             nodeStore->Create(nodeCIN);
         }
+        
+        for (auto& cin : vectorNodeCIN)
+        {
+            delete cin;
+        }
+        vectorNodeCIN.clear();
     }
     
     void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN)
     {
-        ASSERT(false, "APPLYING OPERATION TIME CIN IS NOT IMPLEMENTED");
+        LOG_DEBUG(logger, "Start applying Operation time CIN");
+        OperationTime& operationTime = OperationTime::GetInstance();
+        for (auto cin : vectorOperationTimeCIN)
+        {
+            operationTime.Config(static_cast<jarvis::config::OperationTime*>(cin));
+        }
+
+        for (auto& cin : vectorOperationTimeCIN)
+        {
+            delete cin;
+        }
+        vectorOperationTimeCIN.clear();
+        operationTime.StartTask();
     }
     
     void applyProductionInfoCIN(std::vector<jarvis::config::Base*>& vectorProductionInfoCIN)
     {
         LOG_DEBUG(logger, "Start applying Production CIN");
-
         ProductionInfo& productionInfo = ProductionInfo::GetInstance();
         for (auto cin : vectorProductionInfoCIN)
         {
@@ -457,12 +467,8 @@ namespace muffin {
         {
             delete cin;
         }
-
         vectorProductionInfoCIN.clear();
-        LOG_DEBUG(logger, "vectorProductionInfoCIN.size(): %u", vectorProductionInfoCIN.size());
-
         productionInfo.StartTask();
-
     }
 
     void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN)
@@ -480,7 +486,12 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
         }
-        // return Status(Status::Code::GOOD);
+
+        for (auto& cin : vectorRS485CIN)
+        {
+            delete cin;
+        }
+        vectorRS485CIN.clear();
     }
     
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
@@ -502,6 +513,12 @@ namespace muffin {
          * @todo 상태 코드에 따라 적절한 처리를 수행하도록 코드를 수정해야 합니다.
          */
         StartCatM1Task();
+
+        for (auto& cin : vectorLteCatM1CIN)
+        {
+            delete cin;
+        }
+        vectorLteCatM1CIN.clear();
     }
 
     void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN)
@@ -528,5 +545,11 @@ namespace muffin {
         LOG_INFO(logger, "Configured Modbus RTU protocol");
         
         StartModbusTask();
+
+        for (auto& cin : vectorModbusRTUCIN)
+        {
+            delete cin;
+        }
+        vectorModbusRTUCIN.clear();
     }
 }

@@ -81,6 +81,18 @@ namespace muffin {
             }
         }
     }
+    
+    void OperationTime::Clear()
+    {
+        mNodeId.clear();
+        mCriterion.first = Status::Code::BAD;
+        mOperator.first  = Status::Code::BAD;
+        mPublishTimer.LastTime = 0;
+        mPublishTimer.NextTime = 0;
+        mVectorNodeReference.clear();
+
+        LOG_INFO(logger, "Operation time configurations and data have been cleared");
+    }
 
     void OperationTime::StartTask()
     {
@@ -94,13 +106,13 @@ namespace muffin {
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
          */
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            wrapImplTask,  // Function to be run inside of the task
-            "implTask",    // The identifier of this task for men
-            8 * 1024,	   // Stack memory size to allocate
-            this,	       // Task parameters to be passed to the function
-            0,		       // Task Priority for scheduling
-            &xHandle,      // The identifier of this task for machines
-            1	           // Index of MCU core where the function to run
+            wrapImplTask,    // Function to be run inside of the task
+            "OpTimeTask",    // The identifier of this task for men
+            8 * 1024,	     // Stack memory size to allocate
+            this,	         // Task parameters to be passed to the function
+            0,		         // Task Priority for scheduling
+            &xHandle,        // The identifier of this task for machines
+            1	             // Index of MCU core where the function to run
         );
 
         /**

@@ -110,6 +110,11 @@ namespace muffin { namespace modbus {
         }
     }
 
+    void AddressTable::Clear()
+    {
+        mMapAddressBySlave.clear();
+    }
+
     std::pair<Status, std::set<uint8_t>> AddressTable::RetrieveEntireSlaveID() const
     {
         std::exception exception;

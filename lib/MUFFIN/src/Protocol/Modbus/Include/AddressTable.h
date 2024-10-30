@@ -36,6 +36,7 @@ namespace muffin { namespace modbus {
     public:
         Status Update(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range);
         Status Remove(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range);
+        void Clear();
     public:
         std::pair<Status, std::set<uint8_t>> RetrieveEntireSlaveID() const;
         std::pair<Status, Address> RetrieveAddressBySlaveID(const uint8_t slaveID) const;
@@ -50,6 +51,7 @@ namespace muffin { namespace modbus {
          */
         void printAddressTable() const;
     #endif
+
     private:
         std::map<uint8_t, Address> mMapAddressBySlave;
     };

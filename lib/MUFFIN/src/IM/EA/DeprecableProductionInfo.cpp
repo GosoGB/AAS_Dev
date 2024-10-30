@@ -68,13 +68,13 @@ namespace muffin {
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
          */
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            wrapImplTask,  // Function to be run inside of the task
-            "implTask",    // The identifier of this task for men
-            8 * 1024,	   // Stack memory size to allocate
-            this,	       // Task parameters to be passed to the function
-            0,		       // Task Priority for scheduling
-            &xHandle,      // The identifier of this task for machines
-            1	           // Index of MCU core where the function to run
+            wrapImplTask,      // Function to be run inside of the task
+            "ProdInfoTask",    // The identifier of this task for men
+            8 * 1024,	       // Stack memory size to allocate
+            this,	           // Task parameters to be passed to the function
+            0,		           // Task Priority for scheduling
+            &xHandle,          // The identifier of this task for machines
+            1	               // Index of MCU core where the function to run
         );
 
         /**
@@ -265,6 +265,25 @@ namespace muffin {
             LOG_DEBUG(logger, "Node Reference [#%01u]: %s", i, mVectorNodeReference[i].get().first.c_str());
         }
     #endif
+    }
+    
+    void ProductionInfo::Clear()
+    {
+        mNodeIdTotal.first = false;
+        mNodeIdGood.first = false;
+        mNodeIdNG.first = false;
+        
+        mProductCount.Total = 0;
+        mProductCount.Good = 0;
+        mProductCount.NG = 0;
+
+        mPreviousCount.Total = 0;
+        mPreviousCount.Good = 0;
+        mPreviousCount.NG = 0;
+
+        mVectorNodeReference.clear();
+
+        LOG_INFO(logger, "Production Info configurations and data have been cleared");
     }
 
 

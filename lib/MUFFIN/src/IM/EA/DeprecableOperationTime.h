@@ -49,6 +49,7 @@ namespace muffin {
     
     public:
         void Config(jarvis::config::OperationTime* cin);
+        void Clear();
     private:
         std::string mNodeId;
         jarvis::op_time_type_e mType;
@@ -71,7 +72,6 @@ namespace muffin {
     private:
         using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node>>;
         std::vector<node_reference> mVectorNodeReference;
-        uint64_t mPreviousTotalValue = UINT64_MAX;
     private:
         TaskHandle_t xHandle;
         pub_timer mPublishTimer;

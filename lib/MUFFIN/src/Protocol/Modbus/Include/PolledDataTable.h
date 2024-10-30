@@ -40,6 +40,8 @@ namespace muffin { namespace modbus {
         datum_t RetrieveDiscreteInput(const uint8_t slaveID, const uint16_t address) const;
         datum_t RetrieveInputRegister(const uint8_t slaveID, const uint16_t address) const;
         datum_t RetrieveHoldingRegister(const uint8_t slaveID, const uint16_t address) const;
+    public:
+        void Clear();
     private:
         std::map<uint8_t, PolledData> mMapPolledDataBySlave;
     };

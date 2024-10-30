@@ -47,7 +47,7 @@ namespace muffin { namespace im {
     public:
         Status Create(const jarvis::config::Node* cin);
         Status Remove(const std::string& nodeID);
-        Status Clear();
+        void Clear();
         std::pair<Status, Node*> GetNodeReference(const std::string& nodeID);
         std::pair<Status, Node*> GetNodeReferenceUID(const std::string& UID);
     private:
