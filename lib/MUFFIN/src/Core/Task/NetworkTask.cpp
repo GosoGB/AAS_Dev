@@ -178,20 +178,6 @@ namespace muffin {
             LOG_WARNING(logger, "NOTHING TO DO: ALREADY CONNECTED TO THE BROKER");
             return Status(Status::Code::GOOD);
         }
-        
-        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
-        if (cia == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-
-        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
-        if (cdo == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
 
     #if defined(DEBUG)
         mqtt::BrokerInfo info(
@@ -320,6 +306,20 @@ namespace muffin {
         {
             LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
             return;
+        }
+        
+        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
+        if (cia == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
+            esp_restart();
+        }
+
+        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
+        if (cdo == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
+            esp_restart();
         }
         
         /**

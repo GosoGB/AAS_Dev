@@ -496,7 +496,10 @@ namespace muffin {
         LOG_INFO(logger, "Start to apply LTE Cat.M1 configuration");
 
         jarvis::config::CatM1* cin = Convert.ToCatM1CIN(vectorLteCatM1CIN[0]);
-        InitCatM1(cin);
+        while (InitCatM1(cin) != Status::Code::GOOD)
+        {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
         InitCatHTTP();
         ConnectToBroker();
         StartCatM1Task();

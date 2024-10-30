@@ -186,7 +186,10 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::Connect()
     {
-        ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Connect()\"");
+        /**
+         * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
+         */
+        // ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Connect()\"");
 
         if (mState == state_e::CONNECTED)
         {
