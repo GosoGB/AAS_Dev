@@ -31,6 +31,7 @@ namespace muffin {
     constexpr uint16_t SECOND_IN_MILLIS = 1024;
 
 
+
     void implModbusRtuTask(void* pvParameters)
     {
         ModbusRTU& modbusRTU = ModbusRTU::GetInstance();
@@ -97,6 +98,7 @@ namespace muffin {
             break;
         }
     }
+
 
     void StopModbusTask()
     {

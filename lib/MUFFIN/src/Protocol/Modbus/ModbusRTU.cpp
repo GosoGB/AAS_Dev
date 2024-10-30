@@ -90,6 +90,13 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
+    void ModbusRTU::Clear()
+    {
+        mNodeTable.Clear();
+        mAddressTable.Clear();
+        mPolledDataTable.Clear();
+    }
+
     SerialConfig ModbusRTU::convert2SerialConfig(const jarvis::dbit_e dbit, const jarvis::sbit_e sbit, const jarvis::pbit_e pbit)
     {
         const uint8_t dataBits    = (static_cast<uint8_t>(dbit) - 0x05) << 0x2;

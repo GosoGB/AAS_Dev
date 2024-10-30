@@ -52,6 +52,7 @@ namespace muffin {
     public:
         Status SetPort(jarvis::config::Rs485* portConfig);
         Status Config(jarvis::config::ModbusRTU* config);
+        void Clear();
     private:
         SerialConfig convert2SerialConfig(const jarvis::dbit_e dataBit, const jarvis::sbit_e stopBit, const jarvis::pbit_e parityBit);
         Status configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig);

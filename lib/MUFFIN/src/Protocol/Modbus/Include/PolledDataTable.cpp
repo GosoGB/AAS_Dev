@@ -195,4 +195,9 @@ namespace muffin { namespace modbus {
         
         return it->second.RetrieveHoldingRegister(address);
     }
+
+    void PolledDataTable::Clear()
+    {
+        mMapPolledDataBySlave.clear();
+    }
 }}

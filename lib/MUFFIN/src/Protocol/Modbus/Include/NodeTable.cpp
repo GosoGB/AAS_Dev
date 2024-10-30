@@ -105,6 +105,11 @@ namespace muffin { namespace modbus {
         return Status(Status::Code::BAD_NOT_FOUND);
     }
 
+    void NodeTable::Clear()
+    {
+        mMapNodeReferenceBySlave.clear();
+    }
+
     std::pair<Status, std::set<uint8_t>> NodeTable::RetrieveEntireSlaveID() const
     {
         std::exception exception;

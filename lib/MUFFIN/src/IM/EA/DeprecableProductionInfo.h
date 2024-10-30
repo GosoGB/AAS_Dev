@@ -50,6 +50,7 @@ namespace muffin {
     
     public:
         void Config(jarvis::config::Production* cin);
+        void Clear();
     private:
         std::pair<bool, std::string> mNodeIdTotal;
         std::pair<bool, std::string> mNodeIdGood;
@@ -70,7 +71,6 @@ namespace muffin {
         std::vector<node_reference> mVectorNodeReference;
         product_count_t mProductCount;
         product_count_t mPreviousCount;
-        uint64_t mPreviousTotalValue = UINT64_MAX;
     private:
         TaskHandle_t xHandle;
     };

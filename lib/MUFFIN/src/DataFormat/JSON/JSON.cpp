@@ -84,7 +84,7 @@ namespace muffin {
         JsonDocument doc;
         doc["ts"]  = _struct.SourceTimestamp;
         doc["rsc"] = _struct.ResponseCode;
-        doc["dsc"] = _struct.Discription; 
+        doc["dsc"] = _struct.Description; 
 
         JsonArray keyWithNG = doc["cfg"].to<JsonArray>();
         for (auto& key : _struct.Config)
