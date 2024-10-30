@@ -402,9 +402,12 @@ namespace muffin {
 
     void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
     {
+        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+        alarmMonitor.StopTask();
+        alarmMonitor.Clear();
+
         LOG_DEBUG(logger, "Start applying Alarm CIN");
 
-        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         for (auto cin : vectorAlarmCIN)
         {
             alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
@@ -416,8 +419,6 @@ namespace muffin {
         }
 
         vectorAlarmCIN.clear();
-        LOG_DEBUG(logger, "vectorAlarmCIN.size(): %u", vectorAlarmCIN.size());
-
         alarmMonitor.StartTask();
     }
     

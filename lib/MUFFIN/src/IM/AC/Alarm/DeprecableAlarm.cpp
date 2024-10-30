@@ -72,7 +72,10 @@ namespace muffin {
     void AlarmMonitor::Clear()
     {
         mVectorConfig.clear();
+        mVectorAlarmInfo.clear();
         mVectorNodeReference.clear();
+
+        LOG_INFO(logger, "Alarm monitoring configurations and data have been cleared");
     }
 
     bool AlarmMonitor::HasError() const
@@ -140,6 +143,7 @@ namespace muffin {
         
         vTaskDelete(xHandle);
         xHandle = NULL;
+        LOG_INFO(logger, "Alarm monitoring task has been stopped");
     }
 
     void AlarmMonitor::wrapImplTask(void* pvParams)
