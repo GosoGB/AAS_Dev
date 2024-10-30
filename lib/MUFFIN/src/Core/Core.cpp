@@ -1,10 +1,11 @@
 /**
  * @file Core.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-10-21
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -40,28 +41,34 @@
 #include "IM/Node/Include/TypeDefinitions.h"
 
 
+
 namespace muffin {
 
-    Core& Core::GetInstance() noexcept
+    Core* Core::CreateInstance() noexcept
     {
         if (mInstance == nullptr)
         {
             logger = new(std::nothrow) muffin::Logger();
             if (logger == nullptr)
             {
-                ASSERT(false, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR LOGGER");
+                LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR LOGGER");
                 esp_restart();
             }
 
             mInstance = new(std::nothrow) Core();
             if (mInstance == nullptr)
             {
-                ASSERT(false, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR MUFFIN CORE");
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR MUFFIN CORE");
+                LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR MUFFIN CORE");
                 esp_restart();
             }
         }
-        
+
+        return mInstance;
+    }
+
+    Core& Core::GetInstance() noexcept
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstance\" IN ADVANCE");
         return *mInstance;
     }
 
@@ -148,6 +155,11 @@ namespace muffin {
         }
         
         // mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+    }
+
+    esp_reset_reason_t Core::RetrieveResetReason() const
+    {
+        return mResetReason;
     }
 
     void Core::startJarvisTask(const std::string& payload)

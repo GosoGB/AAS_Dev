@@ -4,7 +4,7 @@
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 선언합니다.
  * 
- * @date 2024-10-17
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @todo Option #1: MODLINK 모델 별로 기본 설정이 달라지는 부분을 고려해야 합니다.
@@ -36,8 +36,8 @@ namespace muffin {
         Status configureWithoutJarvis();
         Status configureWithJarvis();
     private:
+        static constexpr const char* JARVIS_FILE_PATH = "/jarvis/config.json";
         bool mIsMqttTopicCreated = false;
-        bool mIsCatM1Connected = false;
         bool mIsCatMQTTConnected = false;
         bool mIsCatHTTPConfigured = false;
     };

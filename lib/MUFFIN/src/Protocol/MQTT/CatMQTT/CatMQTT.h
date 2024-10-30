@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 모듈의 MQTT 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-09-11
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @todo 시간 제약으로 인해 Ver.0.0.1에서는 하기 함수를 구현하지 않기로 하였습니다.
@@ -51,8 +51,8 @@ namespace muffin { namespace mqtt {
     public:
         CatMQTT(CatMQTT const&) = delete;
         void operator=(CatMQTT const&) = delete;
-        static CatMQTT* GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt);
-        static CatMQTT* GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker);
+        static CatMQTT* CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt);
+        static CatMQTT* CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker);
         static CatMQTT& GetInstance();
     private:
         CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt);

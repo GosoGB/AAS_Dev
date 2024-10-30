@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 모듈의 HTTP 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-09-23
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -24,7 +24,7 @@
 namespace muffin { namespace http {
 
 
-    CatHTTP* CatHTTP::GetInstanceOrNULL(CatM1& catM1)
+    CatHTTP* CatHTTP::CreateInstanceOrNULL(CatM1& catM1)
     {
         if (mInstance == nullptr)
         {
@@ -41,7 +41,7 @@ namespace muffin { namespace http {
 
     CatHTTP& CatHTTP::GetInstance()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
 

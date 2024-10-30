@@ -6,7 +6,7 @@
  * @details 현재는 Quectel 사의 BG96 칩셋을 사용한 LTE Cat.M1 모듈만을 대상으로 
  * 개발했습니다. 향후 향지에 따라서 별도의 칩셋을 사용한다면 추가 개발이 필요합니다.
  * 
- * @date 2024-10-18
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @todo 추후 버전 개발 시 FSM 수정 및 재적용이 필요함
@@ -38,7 +38,7 @@ namespace muffin {
     public:
         CatM1(CatM1 const&) = delete;
         void operator=(CatM1 const&) = delete;
-        static CatM1* GetInstanceOrNULL();
+        static CatM1* CreateInstanceOrNULL();
         static CatM1& GetInstance() noexcept;
     private:
         CatM1();
@@ -95,6 +95,7 @@ namespace muffin {
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
+        jarvis::config::CatM1 RetrieveConfig() const;
         state_e GetState() const;
         Status SyncWithNTP();
     public:

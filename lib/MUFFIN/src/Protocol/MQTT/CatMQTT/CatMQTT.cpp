@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 모듈의 MQTT 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-09-12
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -24,7 +24,7 @@
 
 namespace muffin { namespace mqtt {
 
-    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt)
+    CatMQTT* CatMQTT::CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt)
     {
         if (mInstance == nullptr)
         {
@@ -32,14 +32,14 @@ namespace muffin { namespace mqtt {
             if (mInstance == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
-                return nullptr;
+                return mInstance;
             }
         }
         
         return mInstance;
     }
 
-    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker)
+    CatMQTT* CatMQTT::CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker)
     {
         if (mInstance == nullptr)
         {
@@ -47,7 +47,7 @@ namespace muffin { namespace mqtt {
             if (mInstance == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
-                return nullptr;
+                return mInstance;
             }
         }
         
@@ -56,7 +56,7 @@ namespace muffin { namespace mqtt {
 
     CatMQTT& CatMQTT::GetInstance()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
 

@@ -4,7 +4,7 @@
  * 
  * @brief MODLINK 설정을 담당하는 JARVIS 클래스를 선언합니다.
  * 
- * @date 2024-10-15
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -35,11 +35,16 @@
 
 namespace muffin {
 
-    Jarvis* Jarvis::GetInstanceOrCrash()
+    Jarvis* Jarvis::CreateInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {
-            mInstance = new Jarvis();
+            mInstance = new(std::nothrow) Jarvis();
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO ALLOCATE MEMORY FOR JARVIS");
+                return mInstance;
+            }
         }
         
         return mInstance;
@@ -47,7 +52,7 @@ namespace muffin {
 
     Jarvis& Jarvis::GetInstance()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
 

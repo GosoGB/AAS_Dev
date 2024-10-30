@@ -4,7 +4,7 @@
  * 
  * @brief ESP32 LittleFS 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-09-16
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @note Arduino 프레임워크의 제약으로 인해 End() 실행 결과를 확인할 수 있는 방법이 없음
@@ -29,7 +29,7 @@ namespace muffin {
     public:
         ESP32FS(ESP32FS const&) = delete;
         void operator=(ESP32FS const&) = delete;
-        static ESP32FS* GetInstanceOrNULL();
+        static ESP32FS* CreateInstanceOrNULL();
         static ESP32FS& GetInstance();
     private:
         ESP32FS();

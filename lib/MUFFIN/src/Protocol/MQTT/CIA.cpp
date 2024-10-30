@@ -4,7 +4,7 @@
  * 
  * @brief MQTT 브로커로부터 수신한 메시지를 집적하여 관리하는 클래스를 선언합니다.
  * 
- * @date 2024-10-17
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -21,7 +21,7 @@
 
 namespace muffin { namespace mqtt {
 
-    CIA* CIA::GetInstanceOrNULL()
+    CIA* CIA::CreateInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {
@@ -45,7 +45,7 @@ namespace muffin { namespace mqtt {
 
     CIA& CIA::GetInstance()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
 

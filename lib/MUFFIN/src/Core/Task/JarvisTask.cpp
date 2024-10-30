@@ -294,7 +294,7 @@ namespace muffin {
              *       JARVIS 없이 설정하는 경우를 대비해서 GetInstanceOrCrash()룰 호출해야 합니다.
              * @todo CreateOrNULL()로 함수 명을 바꾸면 위의 투 두 없이도 가능합니다.
              */
-            Jarvis* jarvis = Jarvis::GetInstanceOrCrash();
+            Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
             for (auto& pair : *jarvis)
             {
                 for (auto& element : pair.second)
@@ -334,6 +334,16 @@ namespace muffin {
         for (auto& pair : jarvis)
         {
             const jarvis::cfg_key_e key = pair.first;
+            if (key == jarvis::cfg_key_e::LTE_CatM1)
+            {
+                applyLteCatM1CIN(pair.second);
+                break;
+            }
+        }
+
+        for (auto& pair : jarvis)
+        {
+            const jarvis::cfg_key_e key = pair.first;
             if (key == jarvis::cfg_key_e::NODE)
             {
                 applyNodeCIN(pair.second);
@@ -367,7 +377,6 @@ namespace muffin {
                 applyRS485CIN(pair.second);
                 break;
             case jarvis::cfg_key_e::LTE_CatM1:
-                applyLteCatM1CIN(pair.second);
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
             case jarvis::cfg_key_e::OPERATION:
@@ -487,18 +496,9 @@ namespace muffin {
         LOG_INFO(logger, "Start to apply LTE Cat.M1 configuration");
 
         jarvis::config::CatM1* cin = Convert.ToCatM1CIN(vectorLteCatM1CIN[0]);
-
-        CatM1* catM1 = CatM1::GetInstanceOrNULL();
-        if (catM1 == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR LTE Cat.M1 NETWORK INTERFACE");
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-
-        catM1->Config(cin);
-        /**
-         * @todo 상태 코드에 따라 적절한 처리를 수행하도록 코드를 수정해야 합니다.
-         */
+        InitCatM1(cin);
+        InitCatHTTP();
+        ConnectToBroker();
         StartCatM1Task();
     }
 

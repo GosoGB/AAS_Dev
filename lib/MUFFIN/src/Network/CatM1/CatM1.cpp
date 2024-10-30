@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-18
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -33,7 +33,7 @@ namespace muffin {
     uint32_t CatM1::mLastInterruptMillis = 0;
 
 
-    CatM1* CatM1::GetInstanceOrNULL()
+    CatM1* CatM1::CreateInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {
@@ -41,7 +41,7 @@ namespace muffin {
             if (mInstance == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatM1");
-                return nullptr;
+                return mInstance;
             }
         }
         
@@ -50,7 +50,7 @@ namespace muffin {
 
     CatM1& CatM1::GetInstance() noexcept
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
 
@@ -253,6 +253,11 @@ namespace muffin {
     IPAddress CatM1::GetIPv4() const
     {
         return IPAddress(0,0,0,0);
+    }
+
+    jarvis::config::CatM1 CatM1::RetrieveConfig() const
+    {
+        return mConfig;
     }
 
     CatM1::state_e CatM1::GetState() const

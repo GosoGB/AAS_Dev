@@ -7,7 +7,7 @@
  *          인터페이스의 유형에 구애받지 않고 MQTT 브로커로부터 수신한 모든 메시지를
  *          한 곳에 집적해서 관리하기 위한 기능을 제공합니다.
  * 
- * @date 2024-10-17
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -33,7 +33,7 @@ namespace muffin { namespace mqtt {
     public:
         CIA(CIA const&) = delete;
         void operator=(CIA const&) = delete;
-        static CIA* GetInstanceOrNULL();
+        static CIA* CreateInstanceOrNULL();
         static CIA& GetInstance();
     private:
         CIA();
