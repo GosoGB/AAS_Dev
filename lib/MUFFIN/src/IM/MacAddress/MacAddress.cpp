@@ -4,7 +4,7 @@
  * 
  * @brief MODLINK 식별자로 사용되는 MAC 주소를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-16
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -21,21 +21,21 @@
 
 namespace muffin {
 
-    MacAddress* MacAddress::GetInstanceOrNULL() noexcept
+    MacAddress* MacAddress::CreateInstanceOrNULL() noexcept
     {
         if (mInstance == nullptr)
         {
             Status ret = readMacAddressesFromAllNIC();
             if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS: %s", ret.c_str());
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO READ MAC ADDRESS: %s", ret.c_str());
                 return mInstance;
             }
 
             mInstance = new(std::nothrow) MacAddress();
             if (mInstance == nullptr)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MAC ADDRESS");
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO ALLOCATE MEMORY FOR MAC ADDRESS");
                 return mInstance;
             }
         }
@@ -45,7 +45,7 @@ namespace muffin {
 
     MacAddress& MacAddress::GetInstance() noexcept
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
     
@@ -65,23 +65,23 @@ namespace muffin {
     
     const char* MacAddress::GetEthernet()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return mEthernet.c_str();
     }
 
     const char* MacAddress::GetWiFiClient()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return mWiFiClient.c_str();
     }
 
     const char* MacAddress::GetWiFiServer()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return mWiFiServer.c_str();
     }
 
-    esp_err_t readMacAddress(const esp_mac_type_t type, std::string* mac)
+    esp_err_t MacAddress::readMacAddress(const esp_mac_type_t type, std::string* mac)
     {
         ASSERT((mac != nullptr), "OUTPUT PARAMETER <mac> CANNOT BE A NULL POINTER");
         ASSERT((mac->empty() == true), "OUTPUT PARAMETER <mac> MUST BE EMPTY");
@@ -147,8 +147,6 @@ namespace muffin {
 
     Status MacAddress::readMacAddressesFromAllNIC()
     {
-        constexpr uint8_t INTERFACES_COUNT = 3;
-
         Status::Code arrayStatusCode[INTERFACES_COUNT];
         arrayStatusCode[0] = readMacAddressEthernet().ToCode();
         arrayStatusCode[1] = readMacAddressWiFiClient().ToCode();

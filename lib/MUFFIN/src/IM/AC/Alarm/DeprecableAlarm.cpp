@@ -179,6 +179,11 @@ namespace muffin {
                         continue;
                     }
 
+                    if (reference.second.VariableNode.RetrieveCount() == 0)
+                    {
+                        continue;
+                    }
+                    
                     im::var_data_t datum = reference.second.VariableNode.RetrieveData();
                     if (datum.StatusCode != Status::Code::GOOD)
                     {
@@ -561,23 +566,26 @@ namespace muffin {
         alarm.AlarmType = "start";
         alarm.AlarmStartTime = GetTimestampInMillis();
         alarm.AlarmFinishTime = -1;
-        alarm.Name = node.GetDisplayName();
+
         switch (type)
         {
         case jarvis::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
+            alarm.Name = node.GetDisplayName() + "하한 도달";
             break;
         case jarvis::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
+            alarm.Name = node.GetDisplayName() + "상한 초과";
             break;
         case jarvis::alarm_type_e::CONDITION:
             {
                 im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-                for (auto& node : nodeStore)
+                for (auto& nodeRef : nodeStore)
                 {
-                    if (cin.GetNodeID().second == node.first)
+                    if (cin.GetNodeID().second == nodeRef.first)
                     {
-                        alarm.Uid = node.second.GetUID();
+                        alarm.Uid = nodeRef.second.GetUID();
+                        alarm.Name = std::string(node.RetrieveData().Value.String.Data);
                         break;
                     }
                 }

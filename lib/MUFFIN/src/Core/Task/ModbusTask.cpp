@@ -28,7 +28,7 @@ namespace muffin {
 
     TaskHandle_t xTaskModbusRtuHandle = NULL;
     constexpr uint16_t KILLOBYTE = 1024;
-    constexpr uint16_t SECOND_IN_MILLIS = 1024;
+    constexpr uint16_t SECOND_IN_MILLIS = 1000;
 
 
 

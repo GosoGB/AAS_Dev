@@ -4,7 +4,7 @@
  * 
  * @brief MODLINK 설정을 담당하는 JARVIS 클래스를 선언합니다.
  * 
- * @date 2024-10-15
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -33,7 +33,7 @@ namespace muffin {
     public:
         Jarvis(Jarvis const&) = delete;
         void operator=(Jarvis const&) = delete;
-        static Jarvis* GetInstanceOrCrash();
+        static Jarvis* CreateInstanceOrNULL();
         static Jarvis& GetInstance();
     private:
         Jarvis();
@@ -43,6 +43,7 @@ namespace muffin {
     
     public:
         jarvis::ValidationResult Validate(JsonDocument& json);
+        void Clear();
     public:
         std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator begin();
         std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator end();

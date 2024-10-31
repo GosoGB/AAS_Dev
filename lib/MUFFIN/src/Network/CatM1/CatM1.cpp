@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-18
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -33,7 +33,7 @@ namespace muffin {
     uint32_t CatM1::mLastInterruptMillis = 0;
 
 
-    CatM1* CatM1::GetInstanceOrNULL()
+    CatM1* CatM1::CreateInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {
@@ -41,7 +41,7 @@ namespace muffin {
             if (mInstance == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatM1");
-                return nullptr;
+                return mInstance;
             }
         }
         
@@ -50,11 +50,12 @@ namespace muffin {
 
     CatM1& CatM1::GetInstance() noexcept
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
 
     CatM1::CatM1()
+        : mConfig(std::make_pair(false, jarvis::config::CatM1()))
     {
         mInitFlags.reset();
         mConnFlags.reset();
@@ -118,13 +119,13 @@ namespace muffin {
         assert(config != nullptr);
         assert(config->GetCategory() == jarvis::cfg_key_e::LTE_CatM1);
 
-        mConfig = *static_cast<jarvis::config::CatM1*>(config);
+        mConfig = std::make_pair(true, *static_cast<jarvis::config::CatM1*>(config));
 
-        if (mConfig.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, HIGH);
         }
-        else if (mConfig.GetModel().second == jarvis::md_e::LCM300)
+        else if (mConfig.second.GetModel().second == jarvis::md_e::LCM300)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -204,7 +205,7 @@ namespace muffin {
      */
     Status CatM1::Disconnect()
     {
-        if (mConfig.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -253,6 +254,11 @@ namespace muffin {
     IPAddress CatM1::GetIPv4() const
     {
         return IPAddress(0,0,0,0);
+    }
+
+    std::pair<bool, jarvis::config::CatM1> CatM1::RetrieveConfig() const
+    {
+        return mConfig;
     }
 
     CatM1::state_e CatM1::GetState() const
@@ -627,7 +633,7 @@ namespace muffin {
 
     void CatM1::resetModule()
     {
-        if (mConfig.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
             delay(110);

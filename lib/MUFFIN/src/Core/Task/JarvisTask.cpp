@@ -18,6 +18,7 @@
 #include "Common/Status.h"
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
+#include "Core/Core.h"
 #include "Core/Task/NetworkTask.h"
 #include "Core/Task/ModbusTask.h"
 #include "DataFormat/JSON/JSON.h"
@@ -26,7 +27,6 @@
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "Jarvis/Jarvis.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
 #include "JarvisTask.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
@@ -295,7 +295,17 @@ namespace muffin {
              *       JARVIS 없이 설정하는 경우를 대비해서 GetInstanceOrCrash()룰 호출해야 합니다.
              * @todo CreateOrNULL()로 함수 명을 바꾸면 위의 투 두 없이도 가능합니다.
              */
-            Jarvis* jarvis = Jarvis::GetInstanceOrCrash();
+            Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
+            for (auto& pair : *jarvis)
+            {
+                for (auto& element : pair.second)
+                {
+                    delete element;
+                }
+                pair.second.clear();
+            }
+            jarvis->Clear();
+
             validationResult = jarvis->Validate(jsonDocument);
             callback(validationResult);
             s_IsJarvisTaskRunning = false;
@@ -322,6 +332,15 @@ namespace muffin {
     void ApplyJarvisTask()
     {
         Jarvis& jarvis = Jarvis::GetInstance();
+        for (auto& pair : jarvis)
+        {
+            const jarvis::cfg_key_e key = pair.first;
+            if (key == jarvis::cfg_key_e::LTE_CatM1)
+            {
+                applyLteCatM1CIN(pair.second);
+                break;
+            }
+        }
 
         for (auto& pair : jarvis)
         {
@@ -359,9 +378,10 @@ namespace muffin {
                 applyRS485CIN(pair.second);
                 break;
             case jarvis::cfg_key_e::LTE_CatM1:
-                applyLteCatM1CIN(pair.second);
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
+                applyProductionInfoCIN(pair.second);
+                break;
             case jarvis::cfg_key_e::OPERATION:
                 break;
             case jarvis::cfg_key_e::MODBUS_RTU:
@@ -389,12 +409,11 @@ namespace muffin {
 
         for (auto& pair : jarvis)
         {
-            const jarvis::cfg_key_e key = pair.first;
-            if (key == jarvis::cfg_key_e::PRODUCTION_INFO)
+            for (auto& element : pair.second)
             {
-                applyProductionInfoCIN(pair.second);
-                break;
+                delete element;
             }
+            pair.second.clear();
         }
     }
 
@@ -406,12 +425,6 @@ namespace muffin {
         {
             alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
         }
-        
-        for (auto& cin : vectorAlarmCIN)
-        {
-            delete cin;
-        }
-        vectorAlarmCIN.clear();
         alarmMonitor.StartTask();
     }
     
@@ -429,12 +442,6 @@ namespace muffin {
             jarvis::config::Node* nodeCIN = static_cast<jarvis::config::Node*>(baseCIN);
             nodeStore->Create(nodeCIN);
         }
-        
-        for (auto& cin : vectorNodeCIN)
-        {
-            delete cin;
-        }
-        vectorNodeCIN.clear();
     }
     
     void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN)
@@ -445,12 +452,6 @@ namespace muffin {
         {
             operationTime.Config(static_cast<jarvis::config::OperationTime*>(cin));
         }
-
-        for (auto& cin : vectorOperationTimeCIN)
-        {
-            delete cin;
-        }
-        vectorOperationTimeCIN.clear();
         operationTime.StartTask();
     }
     
@@ -462,12 +463,6 @@ namespace muffin {
         {
             productionInfo.Config(static_cast<jarvis::config::Production*>(cin));
         }
-
-        for (auto& cin : vectorProductionInfoCIN)
-        {
-            delete cin;
-        }
-        vectorProductionInfoCIN.clear();
         productionInfo.StartTask();
     }
 
@@ -486,12 +481,6 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
         }
-
-        for (auto& cin : vectorRS485CIN)
-        {
-            delete cin;
-        }
-        vectorRS485CIN.clear();
     }
     
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
@@ -500,25 +489,13 @@ namespace muffin {
         LOG_INFO(logger, "Start to apply LTE Cat.M1 configuration");
 
         jarvis::config::CatM1* cin = Convert.ToCatM1CIN(vectorLteCatM1CIN[0]);
-
-        CatM1* catM1 = CatM1::GetInstanceOrNULL();
-        if (catM1 == nullptr)
+        while (InitCatM1(cin) != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR LTE Cat.M1 NETWORK INTERFACE");
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
-
-        catM1->Config(cin);
-        /**
-         * @todo 상태 코드에 따라 적절한 처리를 수행하도록 코드를 수정해야 합니다.
-         */
+        InitCatHTTP();
+        ConnectToBroker();
         StartCatM1Task();
-
-        for (auto& cin : vectorLteCatM1CIN)
-        {
-            delete cin;
-        }
-        vectorLteCatM1CIN.clear();
     }
 
     void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN)
@@ -531,6 +508,8 @@ namespace muffin {
         }
 
         modbusRTU->SetPort(rs485CIN);
+        
+        mVectorModbusRTU.clear();
 
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
@@ -541,15 +520,11 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
+
+            mVectorModbusRTU.emplace_back(*cin);
         }
-        LOG_INFO(logger, "Configured Modbus RTU protocol");
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
         
         StartModbusTask();
-
-        for (auto& cin : vectorModbusRTUCIN)
-        {
-            delete cin;
-        }
-        vectorModbusRTUCIN.clear();
     }
 }

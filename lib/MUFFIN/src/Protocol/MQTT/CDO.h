@@ -8,7 +8,7 @@
  *          한 곳에 집적해서 관리하기 위한 기능을 제공합니다.
  * @todo 현재는 LTE Cat.M1 만 구현이 되어있습니다.
  * 
- * @date 2024-10-17
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -34,7 +34,7 @@ namespace muffin { namespace mqtt {
     public:
         CDO(CDO const&) = delete;
         void operator=(CDO const&) = delete;
-        static CDO* GetInstanceOrNULL();
+        static CDO* CreateInstanceOrNULL();
         static CDO& GetInstance();
     private:
         CDO();

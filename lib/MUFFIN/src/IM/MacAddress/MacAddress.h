@@ -4,7 +4,7 @@
  * 
  * @brief MODLINK 식별자로 사용되는 MAC 주소를 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-16
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @todo 향후 필요하면 블루투스의 MAC 주소도 추가해야 합니다.
@@ -30,7 +30,7 @@ namespace muffin {
     public:
         MacAddress(const MacAddress&) = delete;
         void operator=(const MacAddress&) = delete;
-        static MacAddress* GetInstanceOrNULL() noexcept;
+        static MacAddress* CreateInstanceOrNULL() noexcept;
         static MacAddress& GetInstance() noexcept;
     private:
         MacAddress();
@@ -43,6 +43,7 @@ namespace muffin {
         static const char* GetWiFiClient();
         static const char* GetWiFiServer();
     private:
+        static esp_err_t readMacAddress(const esp_mac_type_t type, std::string* mac);
         static Status readMacAddressEthernet();
         static Status readMacAddressWiFiClient();
         static Status readMacAddressWiFiServer();
@@ -51,5 +52,6 @@ namespace muffin {
         static std::string mEthernet;
         static std::string mWiFiClient;
         static std::string mWiFiServer;
+        static constexpr uint8_t INTERFACES_COUNT = 3;
     };
 }

@@ -1,10 +1,11 @@
 /**
  * @file Core.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-21
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @todo 사용자로부터 네트워크 설정 정보를 받는 기능을 구현해야 합니다.
@@ -25,17 +26,20 @@
 
 #include "Common/Status.h"
 #include "Protocol/MQTT/Include/Message.h"
+#include "Jarvis/Config/Protocol/ModbusRTU.h"
 #include "Jarvis/Validators/ValidationResult.h"
 
 
 
 namespace muffin {
     
+    extern std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
     class Core
     {
     public:
         Core(Core const&) = delete;
         void operator=(Core const&) = delete;
+        static Core* CreateInstance() noexcept;
         static Core& GetInstance() noexcept;
     private:
         Core();
@@ -45,9 +49,10 @@ namespace muffin {
 
     public:
         void Init();
-    
-    public:
         void RouteMqttMessage(const mqtt::Message& message);
+    public:
+        esp_reset_reason_t RetrieveResetReason() const;
+    
     private:
         void startJarvisTask(const std::string& payload);
         void startRemoteControll(const std::string& payload);
@@ -59,5 +64,6 @@ namespace muffin {
         static constexpr uint8_t MAX_RETRY_COUNT = 5;
         static constexpr uint16_t SECOND_IN_MILLIS = 1000;
         static constexpr uint16_t KILLOBYTE = 1024;
+        
     };
 }

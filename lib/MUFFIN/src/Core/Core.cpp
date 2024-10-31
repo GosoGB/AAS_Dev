@@ -1,10 +1,11 @@
 /**
  * @file Core.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-10-21
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -40,28 +41,36 @@
 #include "IM/Node/Include/TypeDefinitions.h"
 
 
+
 namespace muffin {
 
-    Core& Core::GetInstance() noexcept
+    std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
+
+    Core* Core::CreateInstance() noexcept
     {
         if (mInstance == nullptr)
         {
             logger = new(std::nothrow) muffin::Logger();
             if (logger == nullptr)
             {
-                ASSERT(false, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR LOGGER");
+                LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR LOGGER");
                 esp_restart();
             }
 
             mInstance = new(std::nothrow) Core();
             if (mInstance == nullptr)
             {
-                ASSERT(false, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR MUFFIN CORE");
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR MUFFIN CORE");
+                LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR MUFFIN CORE");
                 esp_restart();
             }
         }
-        
+
+        return mInstance;
+    }
+
+    Core& Core::GetInstance() noexcept
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstance\" IN ADVANCE");
         return *mInstance;
     }
 
@@ -148,6 +157,11 @@ namespace muffin {
         }
         
         // mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+    }
+
+    esp_reset_reason_t Core::RetrieveResetReason() const
+    {
+        return mResetReason;
     }
 
     void Core::startJarvisTask(const std::string& payload)
@@ -357,23 +371,8 @@ namespace muffin {
         }
         else
         {
-            Jarvis& jarvisIntance = Jarvis::GetInstance();
-            jarvis::config::ModbusRTU* modbusRtuConfig = nullptr;
-            
-
-            for (const auto it : jarvisIntance)
-            {
-                 /**
-                 * @todo SLAVE와 1:1 연결만 가정하고 구현되어있음
-                 * 
-                 */
-                if (it.first == jarvis::cfg_key_e::MODBUS_RTU)
-                {
-                    modbusRtuConfig = Convert.ToModbusRTUCIN(it.second.at(0)); 
-                }
-            }
-        
-            std::pair<muffin::Status, uint8_t> retSlaveID = modbusRtuConfig->GetSlaveID();
+           
+            std::pair<muffin::Status, uint8_t> retSlaveID =  mVectorModbusRTU.at(0).GetSlaveID();
             if (retSlaveID.first != Status(Status::Code::GOOD))
             {
                 retSlaveID.second = 0;
@@ -382,7 +381,7 @@ namespace muffin {
             jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
             jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
             std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-
+ 
             if (retBit.first == true)
             {
                 ModbusRTU& modbusRTU = ModbusRTU::GetInstance();
@@ -472,6 +471,8 @@ ERROR_RESPONSE:
                 LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
                 return;
             }
+
+            return;
         }
 
 
@@ -492,11 +493,11 @@ ERROR_RESPONSE:
             operationTime.Clear();
 
             StopModbusTask();
-            ModbusRTU& modbusRTU = ModbusRTU::GetInstance();
-            modbusRTU.Clear();
+            ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
+            modbusRTU->Clear();
 
-            im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-            nodeStore.Clear();
+            im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
+            nodeStore->Clear();
         }
 
         

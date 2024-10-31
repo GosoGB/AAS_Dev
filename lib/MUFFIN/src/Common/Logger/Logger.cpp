@@ -25,6 +25,7 @@
 namespace muffin {
 
 	Logger::Logger()
+		: xSemaphore(NULL)
 	{
 		if (Serial == false)
 		{
@@ -32,11 +33,17 @@ namespace muffin {
 			vTaskDelay(10 / portTICK_PERIOD_MS);
 			Serial.println("\033[0m");
 			Serial.println(F(welcomAsciiArt));
+
+			if (xSemaphore == NULL)
+			{
+				xSemaphore = xSemaphoreCreateMutex();
+			}
 		}
 	}
 
 	Logger::Logger(const log_level_e level)
-		: mLevel(level)
+		: xSemaphore(NULL)
+		, mLevel(level)
 	{
 		if (Serial == false)
 		{
@@ -44,6 +51,11 @@ namespace muffin {
 			vTaskDelay(10 / portTICK_PERIOD_MS);
 			Serial.println("\033[0m");
 			Serial.println(F(welcomAsciiArt));
+
+			if (xSemaphore == NULL)
+			{
+				xSemaphore = xSemaphoreCreateMutex();
+			}
 		}
 	}
 
@@ -100,6 +112,12 @@ namespace muffin {
         	return ;
     	}
 
+		if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+		{
+			Serial.println("COULD NOT TAKE THE MUTEX");
+			return;
+		}
+
 		std::string filePath(file);
 		if (mIsFilePathVerbose == false)
 		{
@@ -139,6 +157,8 @@ namespace muffin {
             #endif
 			}
 		}
+				
+		xSemaphoreGive(xSemaphore);
 	}
 
 	Logger* logger = nullptr;

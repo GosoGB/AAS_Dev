@@ -17,6 +17,8 @@
 
 #include <ArduinoJson.h>
 
+#include "Jarvis/Include/Base.h"
+#include "Jarvis/Config/Interfaces/Rs485.h"
 #include "Jarvis/Validators/ValidationResult.h"
 #include "Protocol/MQTT/Include/Message.h"
 

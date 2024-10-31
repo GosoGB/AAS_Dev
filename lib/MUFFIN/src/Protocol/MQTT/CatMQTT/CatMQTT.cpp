@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 모듈의 MQTT 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-09-12
+ * @date 2024-10-30
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -24,7 +24,7 @@
 
 namespace muffin { namespace mqtt {
 
-    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt)
+    CatMQTT* CatMQTT::CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt)
     {
         if (mInstance == nullptr)
         {
@@ -32,14 +32,14 @@ namespace muffin { namespace mqtt {
             if (mInstance == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
-                return nullptr;
+                return mInstance;
             }
         }
         
         return mInstance;
     }
 
-    CatMQTT* CatMQTT::GetInstanceOrNULL(CatM1& catM1, BrokerInfo& broker)
+    CatMQTT* CatMQTT::CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker)
     {
         if (mInstance == nullptr)
         {
@@ -47,7 +47,7 @@ namespace muffin { namespace mqtt {
             if (mInstance == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
-                return nullptr;
+                return mInstance;
             }
         }
         
@@ -56,7 +56,7 @@ namespace muffin { namespace mqtt {
 
     CatMQTT& CatMQTT::GetInstance()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"GetInstanceOrNULL\" INSTEAD");
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
         return *mInstance;
     }
 
@@ -98,7 +98,10 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
     {
-        ASSERT((mState != state_e::INITIALIZED), "REINITIALIZATION IS FORBIDDEN");
+        /**
+         * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
+         */
+        // ASSERT((mState != state_e::INITIALIZED), "REINITIALIZATION IS FORBIDDEN");
 
         Status ret = Status(Status::Code::UNCERTAIN);
 
@@ -183,7 +186,10 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::Connect()
     {
-        ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Connect()\"");
+        /**
+         * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
+         */
+        // ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Connect()\"");
 
         if (mState == state_e::CONNECTED)
         {
