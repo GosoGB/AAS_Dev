@@ -49,6 +49,12 @@ namespace muffin {
     public:
         void StartTask();
         void StopTask();
+
+    public:
+        std::pair<bool,std::vector<std::string>> GetUclUid();
+        std::pair<bool,std::vector<std::string>> GetLclUid();
+        bool ConvertUCL(std::string ucluid, std::string ucl);
+        bool ConvertLCL(std::string lcluid, std::string lcl);
     private:
         static void wrapImplTask(void* pvParams);
         void implTask();
@@ -62,6 +68,10 @@ namespace muffin {
         std::string createAlarmUUID();
         void activateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin, const im::Variable& node);
         void deactivateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin);
+
+    private:
+        void updateFlashUclValue(std::string nodeid, float ucl);
+        void updateFlashLclValue(std::string nodeid, float lcl);
     private:
         using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node>>;
         std::vector<jarvis::config::Alarm> mVectorConfig;

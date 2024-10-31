@@ -1233,8 +1233,6 @@ namespace muffin { namespace im {
         }
         
         const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-        const double denominator = pow(10, exponent);
-        
         int decimalPlaces = static_cast<int>(-exponent);
         
         char format[10];
@@ -1255,7 +1253,6 @@ namespace muffin { namespace im {
         }
         
         const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-        const double denominator = pow(10, exponent);
         
         int decimalPlaces = static_cast<int>(-exponent);
         

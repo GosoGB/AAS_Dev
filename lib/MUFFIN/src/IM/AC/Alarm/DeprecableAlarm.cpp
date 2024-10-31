@@ -13,13 +13,14 @@
 
 
 
-
+#include "Storage/ESP32FS/ESP32FS.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
 #include "DeprecableAlarm.h"
 #include "Protocol/MQTT/CDO.h"
 
+#include "Common/Convert/ConvertClass.h"
 
 
 namespace muffin {
@@ -299,42 +300,40 @@ namespace muffin {
         const float lcl = cin.GetLCL().second;
         const float value = convertToFloat(datum);
 
-        const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
+        const bool isNewLclAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
+        const bool isNewUclAlarm = isActiveAlarm(cin.GetUclAlarmUID().second) == false;
         const bool isUclCondition = value > ucl;
         const bool isLclCondition = value < lcl;
         
-        if (isNewAlarm == true)
+        if (isNewLclAlarm == true)
+        {
+            if (isLclCondition == true)
+            {
+                activateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin, node);
+            }
+        }
+        else
+        {
+            if (isLclCondition == false)
+            {
+                deactivateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin);
+            }
+        }
+
+        if (isNewUclAlarm == true)
         {
             if (isUclCondition == true)
             {
                 activateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin, node);
             }
-            else if (isLclCondition == true)
-            {
-                activateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin, node);
-            }
-            else
-            {
-                return;
-            }
         }
         else
         {
-            if (isUclCondition == true || isLclCondition == true)
+            if (isUclCondition == false)
             {
-                return;
+                deactivateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin);
             }
-            else
-            {
-                if (isUclCondition == false)
-                {
-                    deactivateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin);
-                }
-                else if (isLclCondition == true)
-                {
-                    deactivateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin);
-                }
-            }
+
         }
     }
 
@@ -571,11 +570,11 @@ namespace muffin {
         {
         case jarvis::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
-            alarm.Name = node.GetDisplayName() + "하한 도달";
+            alarm.Name = node.GetDisplayName() + " 하한 도달";
             break;
         case jarvis::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
-            alarm.Name = node.GetDisplayName() + "상한 초과";
+            alarm.Name = node.GetDisplayName() + " 상한 초과";
             break;
         case jarvis::alarm_type_e::CONDITION:
             {
@@ -606,6 +605,7 @@ namespace muffin {
         cdo.Store(message);
 
         mVectorAlarmInfo.emplace_back(alarm);
+        LOG_INFO(logger, "alarm, mVectorAlarmInfo.size : %d", mVectorAlarmInfo.size());
         LOG_INFO(logger, "[Alarm][Activate] %s", payload.c_str());
     }
 
@@ -639,6 +639,7 @@ namespace muffin {
         }
         
         alarm_struct_t alarm = retrieveActiveAlarm(uid);
+        LOG_INFO(logger,"alarm.Uid : %s", alarm.Uid.c_str());
         alarm.AlarmFinishTime = GetTimestampInMillis();
         alarm.AlarmType = "finish";
 
@@ -651,6 +652,206 @@ namespace muffin {
         cdo.Store(message);
 
         LOG_INFO(logger, "[Alarm][Deactivate] %s", payload.c_str());
+    }
+
+    std::pair<bool,std::vector<std::string>> AlarmMonitor::GetUclUid()
+    {
+        std::vector<std::string> mVector;
+        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
+
+        for (auto& cin : mVectorConfig)
+        {
+            ret = cin.GetUclUID();
+            if (ret.first == Status::Code::GOOD)
+            {
+                mVector.emplace_back(ret.second);
+            }
+        }
+        
+        if (mVector.size() == 0)
+        {
+            return std::make_pair(false,mVector);
+        }
+        else
+        {
+            return std::make_pair(true,mVector);
+        }
+
+    }
+
+    std::pair<bool,std::vector<std::string>> AlarmMonitor::GetLclUid()
+    {
+        std::vector<std::string> mVector;
+        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
+
+        for (auto& cin : mVectorConfig)
+        {
+            ret = cin.GetLclUID();
+            if (ret.first == Status::Code::GOOD)
+            {
+                mVector.emplace_back(ret.second);
+            }
+        }
+        
+        if (mVector.size() == 0)
+        {
+            return std::make_pair(false,mVector);
+        }
+        else
+        {
+            return std::make_pair(true,mVector);
+        }
+
+    }
+
+    bool AlarmMonitor::ConvertUCL(std::string ucluid, std::string ucl)
+    {
+        bool decimalFound = false;
+        size_t start = (ucl[0] == '-') ? 1 : 0;
+        for (size_t i = start; i < ucl.length(); ++i) 
+        {
+            char c = ucl[i];
+            if (c == '.') 
+            {
+                if (decimalFound) 
+                {
+                    return false;
+                }
+                decimalFound = true;
+            } 
+            else if (!isdigit(c)) 
+            {
+                return false;
+            }
+        }
+        
+        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
+
+        for (auto& cin : mVectorConfig)
+        {
+            ret = cin.GetUclUID();
+            
+            if (ret.first == Status::Code::GOOD)
+            {
+                if (ret.second == ucluid)
+                {
+                    float floatUCL = Convert.ToFloat(ucl);
+                    cin.SetUCL(floatUCL);
+                    updateFlashUclValue(cin.GetNodeID().second,floatUCL);
+                    return true; 
+                }
+            }
+
+        }
+
+        return false;
+    }
+
+    bool AlarmMonitor::ConvertLCL(std::string lcluid, std::string lcl)
+    {
+        bool decimalFound = false;
+        size_t start = (lcl[0] == '-') ? 1 : 0;
+        for (size_t i = start; i < lcl.length(); ++i) 
+        {
+            char c = lcl[i];
+            if (c == '.') 
+            {
+                if (decimalFound) 
+                {
+                    return false;
+                }
+                decimalFound = true;
+            } 
+            else if (!isdigit(c)) 
+            {
+                return false;
+            }
+        }
+        
+        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
+
+        for (auto& cin : mVectorConfig)
+        {
+            ret = cin.GetLclUID();
+            if (ret.first == Status::Code::GOOD)
+            {
+                if (ret.second == lcluid)
+                {
+                    float floatLCL = Convert.ToFloat(lcl);
+                    cin.SetLCL(floatLCL);
+                    updateFlashLclValue(cin.GetNodeID().second,floatLCL);
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    void AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)
+    {
+        ESP32FS& esp32FS = ESP32FS::GetInstance();
+        fs::File file = esp32FS.Open("/jarvis/config.json");
+        std::string payload;
+        std::string resultPayload;
+        while (file.available() > 0)
+        {
+            payload += file.read();
+        }
+
+        file.close();
+
+        JSON json;
+        JsonDocument doc;
+        json.Deserialize(payload, &doc);
+        JsonArray alarms = doc["cnt"]["alarm"];
+        for (JsonObject alarm : alarms)
+        {
+            if (alarm["nodeId"].as<std::string>() == nodeid)
+            {
+                alarm["ucl"] = ucl;
+                serializeJson(doc, resultPayload);
+                file = esp32FS.Open("/jarvis/config.json", "w", true);
+                for (size_t i = 0; i < resultPayload.length(); ++i)
+                {
+                    file.write(resultPayload[i]);
+                }
+                file.close();
+            }
+        }
+    }
+
+    void AlarmMonitor::updateFlashLclValue(std::string nodeid, float lcl)
+    {
+        ESP32FS& esp32FS = ESP32FS::GetInstance();
+        fs::File file = esp32FS.Open("/jarvis/config.json");
+        std::string payload;
+        std::string resultPayload;
+        while (file.available() > 0)
+        {
+            payload += file.read();
+        }
+        file.close();
+
+
+        JSON json;
+        JsonDocument doc;
+        json.Deserialize(payload, &doc);
+        JsonArray alarms = doc["cnt"]["alarm"];
+        for (JsonObject alarm : alarms)
+        {
+            if (alarm["nodeId"].as<std::string>() == nodeid)
+            {
+                alarm["lcl"] = lcl;
+                serializeJson(doc, resultPayload);
+
+                file = esp32FS.Open("/jarvis/config.json", "w", true);
+                for (size_t i = 0; i < resultPayload.length(); ++i)
+                {
+                    file.write(resultPayload[i]);
+                }
+                file.close();
+            }
+        }
     }
 
 

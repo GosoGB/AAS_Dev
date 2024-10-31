@@ -128,10 +128,12 @@ namespace muffin { namespace jarvis {
         isValid &= json.containsKey("nodeId");
         isValid &= json.containsKey("type");
         isValid &= json.containsKey("lcl");
-        isValid &= json.containsKey("ucl");
-        isValid &= json.containsKey("cnd");
         isValid &= json.containsKey("lclUid");
+        isValid &= json.containsKey("lclAUid");
+        isValid &= json.containsKey("ucl");
         isValid &= json.containsKey("uclUid");
+        isValid &= json.containsKey("uclAUid");
+        isValid &= json.containsKey("cnd");
 
         if (isValid == true)
         {
@@ -163,9 +165,10 @@ namespace muffin { namespace jarvis {
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
-        const bool isLclNull     = json["lcl"].isNull();
-        const bool isLclUidNull  = json["lclUid"].isNull();
-        if (isLclNull == true || isLclUidNull == true)
+        const bool isLclNull          = json["lcl"].isNull();
+        const bool isLclUidNull       = json["lclUid"].isNull();
+        const bool isLclAlarmUidNull  = json["lclAUid"].isNull();
+        if (isLclNull == true || isLclUidNull == true || isLclAlarmUidNull == true)
         {
             const std::string message = "LCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1";
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
@@ -183,7 +186,7 @@ namespace muffin { namespace jarvis {
         const int32_t lcl = json["lcl"].as<float>();
         
         const std::string uid = json["lclUid"].as<std::string>();
-        const std::regex patternUID("^P\\d{3}$");
+        const std::regex patternUID("^P[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
         const bool isUidValid = std::regex_match(uid, patternUID);
         if (isUidValid == false)
         {
@@ -192,7 +195,7 @@ namespace muffin { namespace jarvis {
         }
         
         const std::string auid = json["lclAUid"].as<std::string>();
-        const std::regex patternAUID("^A\\d{3}$");
+        const std::regex patternAUID("^A[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
         const bool isAUidValid = std::regex_match(auid, patternAUID);
         if (isAUidValid == false)
         {
@@ -211,9 +214,10 @@ namespace muffin { namespace jarvis {
     {
         ASSERT((cin != nullptr), "OUTPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
 
-        const bool isUclNull     = json["ucl"].isNull();
-        const bool isUclUidNull  = json["uclUid"].isNull();
-        if (isUclNull == true || isUclUidNull == true)
+        const bool isUclNull          = json["ucl"].isNull();
+        const bool isUclUidNull       = json["uclUid"].isNull();
+        const bool isUclAlarmUidNull  = json["uclAUid"].isNull();
+        if (isUclNull == true || isUclUidNull == true || isUclAlarmUidNull == true)
         {
             const std::string message = "UCL AND UID KEYS CANNOT BE NULL WHEN TYPE IS 1";
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
@@ -228,7 +232,7 @@ namespace muffin { namespace jarvis {
         const int32_t ucl = json["ucl"].as<float>();
         
         const std::string uid = json["uclUid"].as<std::string>();
-        const std::regex pattern("^P\\d{3}$");
+        const std::regex pattern("^P[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
         const bool isUidValid = std::regex_match(uid, pattern);
         if (isUidValid == false)
         {
@@ -236,8 +240,18 @@ namespace muffin { namespace jarvis {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
+        const std::string auid = json["uclAUid"].as<std::string>();
+        const std::regex patternAUID("^A[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
+        const bool isAUidValid = std::regex_match(auid, patternAUID);
+        if (isAUidValid == false)
+        {
+            const std::string message = "INVALID UCL ALARM UID: "+ uid;
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+        }
+
         cin->SetUCL(ucl);
         cin->SetUclUID(uid);
+        cin->SetUclAlarmUID(auid);
 
         return std::make_pair(rsc_e::GOOD, "GOOD");
     }
