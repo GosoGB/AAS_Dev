@@ -41,6 +41,7 @@ namespace muffin {
     void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN);
     void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN);
     void applyProductionInfoCIN(std::vector<jarvis::config::Base*>& vectorProductionInfoCIN);
+    void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN);
     void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN);
     
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN);

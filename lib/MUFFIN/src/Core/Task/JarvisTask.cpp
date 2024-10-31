@@ -27,6 +27,7 @@
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "Jarvis/Jarvis.h"
+#include "Jarvis/Config/Operation/Operation.h"
 #include "JarvisTask.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
@@ -362,22 +363,11 @@ namespace muffin {
             case jarvis::cfg_key_e::ALARM:
                 applyAlarmCIN(pair.second);
                 break;
-            case jarvis::cfg_key_e::NODE:
-                break;
             case jarvis::cfg_key_e::OPERATION_TIME:
                 applyOperationTimeCIN(pair.second);
                 break;
-            case jarvis::cfg_key_e::RS232:
-            /**
-             * @todo ATmega2560 MCU 버전의 MUFFIN을 개발할 때 RS-232 
-             *       설정 개체에 대한 구현이 필요합니다.
-             */
-                LOG_ERROR(logger, "UNSUPPORTED CONFIG INSTANCE: RS-232");
-                break;
             case jarvis::cfg_key_e::RS485:
                 applyRS485CIN(pair.second);
-                break;
-            case jarvis::cfg_key_e::LTE_CatM1:
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);
@@ -398,8 +388,13 @@ namespace muffin {
                 }
                 break;
 
-            case jarvis::cfg_key_e::ETHERNET:
+            case jarvis::cfg_key_e::NODE:
+            case jarvis::cfg_key_e::LTE_CatM1:
+                break;
+                
+            case jarvis::cfg_key_e::RS232:
             case jarvis::cfg_key_e::WIFI4:
+            case jarvis::cfg_key_e::ETHERNET:
             case jarvis::cfg_key_e::MODBUS_TCP:
             default:
                 ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
@@ -466,6 +461,13 @@ namespace muffin {
         productionInfo.StartTask();
     }
 
+    void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN)
+    {
+        LOG_DEBUG(logger, "Start applying Operation CIN");
+        jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
+        여기서부터 다시 작업 시작해야 합니다.
+    }
+
     void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
@@ -508,7 +510,6 @@ namespace muffin {
         }
 
         modbusRTU->SetPort(rs485CIN);
-        
         mVectorModbusRTU.clear();
 
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
