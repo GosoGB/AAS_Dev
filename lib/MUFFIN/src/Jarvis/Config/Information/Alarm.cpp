@@ -158,7 +158,7 @@ namespace muffin { namespace jarvis { namespace config {
                     const std::regex pattern("^A\\d{3}$");
                     return std::regex_match(uclAlarmUID, pattern);
                 }()
-            ), "INVALID LCL UID: %s", uclAlarmUID.c_str()
+            ), "INVALID LCL ALARM UID: %s", uclAlarmUID.c_str()
         );
 
         mUclAlarmUID = uclAlarmUID;

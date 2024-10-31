@@ -39,6 +39,7 @@
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "Jarvis/Config/Protocol/ModbusRTU.h"
 #include "IM/Node/Include/TypeDefinitions.h"
+#include "IM/AC/Alarm/DeprecableAlarm.h"
 
 
 
@@ -318,6 +319,89 @@ namespace muffin {
             std::string value = obj["val"].as<std::string>(); 
             
             remoteData.emplace_back(uid, value); 
+        }
+
+
+        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+        std::pair<bool,std::vector<std::string>> retUCL;
+        std::pair<bool,std::vector<std::string>> retLCL;
+        retUCL = alarmMonitor.GetUclUid();
+        retLCL = alarmMonitor.GetLclUid();
+
+        if (retUCL.first == true)
+        {
+            for (auto& uclUid : retUCL.second )
+            {
+                if (uclUid == remoteData.at(0).first)
+                {
+                   bool result = alarmMonitor.ConvertUCL(uclUid,remoteData.at(0).second);
+                   if (result)
+                   {
+                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
+                        messageconfig.ResponseCode      = "200";                
+                        
+                   }
+                   else
+                   {
+                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
+                        messageconfig.ResponseCode      = "900";
+                   }
+
+                    serializedPayload = json.Serialize(messageconfig);
+                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
+                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+                    Status ret = cdo.Store(message);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        /**
+                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
+                         * 
+                         */
+                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
+                    }
+                    return ;
+                   
+                }
+                
+            }
+            
+        }
+        
+        if (retLCL.first == true)
+        {
+            for (auto& lclUid : retLCL.second )
+            {
+                if (lclUid == remoteData.at(0).first)
+                {
+                   bool result = alarmMonitor.ConvertLCL(lclUid,remoteData.at(0).second);
+                   if (result)
+                   {
+                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
+                        messageconfig.ResponseCode      = "200";
+                   }
+                   else
+                   {
+                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
+                        messageconfig.ResponseCode      = "900";
+                   }
+
+                    serializedPayload = json.Serialize(messageconfig);
+                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
+                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+                    Status ret = cdo.Store(message);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        /**
+                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
+                         * 
+                         */
+                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
+                    }
+                    return ;
+                }
+                
+            }
+            
         }
 
          /**
