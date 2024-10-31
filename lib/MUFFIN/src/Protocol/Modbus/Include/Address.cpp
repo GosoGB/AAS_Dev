@@ -162,32 +162,87 @@ namespace muffin { namespace modbus {
     {
         ASSERT((ranges != nullptr), "ADDRESS RANGE SET CANNOT BE A NULL POINTER");
         
-        LOG_VERBOSE(logger, "Start to update consecutive ranges to merge");
+        LOG_DEBUG(logger, "Start to update consecutive ranges to merge");
         Status ret(Status::Code::GOOD);
 
-        for (auto it = ranges->begin(); std::next(it) != ranges->end(); ++it)
+        bool hasMergeableRange = true;
+        while (hasMergeableRange == true)
         {
-            if (it->IsMergeable(*std::next(it)) == true)
-            {
-                AddressRange formerRange = *it;
-                AddressRange latterRange = *std::next(it);
-                formerRange.MergeRanges(latterRange);
-                
-                ranges->erase(std::next(it));
-                ranges->erase(it);
-                it = ranges->begin();
+            hasMergeableRange = false;
 
-                ret = emplaceAddressRange(area, formerRange, ranges);
-                if (ret != Status::Code::GOOD)
+            for (auto it = ranges->begin(); std::next(it) != ranges->end(); ++it)
+            {
+                if (it->IsMergeable(*std::next(it)) == true)
                 {
-                    LOG_ERROR(logger, "FAILED TO UPDATE CONSECUTIVES: %s", ret.c_str());
-                    return ret;
+                    ASSERT((std::next(it) != ranges->end()), "std::next(it) cannot be end of ranges");
+                    ASSERT((it != ranges->end()), "it cannot be end of ranges");
+
+                    AddressRange formerRange = *it;
+                    AddressRange latterRange = *std::next(it);
+                    formerRange.MergeRanges(latterRange);
+                    
+                    ASSERT((std::next(it) != ranges->end()), "std::next(it) cannot be end of ranges");
+                    ranges->erase(std::next(it));
+                    ASSERT((it != ranges->end()), "it cannot be end of ranges");
+                    ranges->erase(it);
+                    it = ranges->begin();
+                    LOG_DEBUG(logger, "it->GetLastAddress(): %u", it->GetLastAddress());
+                    LOG_DEBUG(logger, "it->GetQuantity(): %u", it->GetQuantity());
+
+                    ret = emplaceAddressRange(area, formerRange, ranges);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        LOG_ERROR(logger, "FAILED TO UPDATE CONSECUTIVES: %s", ret.c_str());
+                        return ret;
+                    }
+                    
+                    LOG_VERBOSE(logger, "Merged consecutive ranges");
+                    LOG_DEBUG(logger, "ranges size: %u", ranges->size());
+
+                    hasMergeableRange = true;
+                    break;
                 }
-                
-                LOG_VERBOSE(logger, "Merged consecutive ranges");
             }
         }
+        
+        // for (auto it = ranges->begin(); std::next(it) != ranges->end(); ++it)
+        // {
+        //     LOG_DEBUG(logger, "ranges size: %u", ranges->size());
+        //     if (it == ranges->end())
+        //     {
+        //         it = ranges->begin();
+        //         continue;
+        //     }
+            
+        //     if (it->IsMergeable(*std::next(it)) == true)
+        //     {
+        //         ASSERT((std::next(it) != ranges->end()), "std::next(it) cannot be end of ranges");
+        //         ASSERT((it != ranges->end()), "it cannot be end of ranges");
 
+        //         AddressRange formerRange = *it;
+        //         AddressRange latterRange = *std::next(it);
+        //         formerRange.MergeRanges(latterRange);
+                
+        //         ASSERT((std::next(it) != ranges->end()), "std::next(it) cannot be end of ranges");
+        //         ranges->erase(std::next(it));
+        //         ASSERT((it != ranges->end()), "it cannot be end of ranges");
+        //         ranges->erase(it);
+        //         it = ranges->begin();
+        //         LOG_DEBUG(logger, "it->GetLastAddress(): %u", it->GetLastAddress());
+        //         LOG_DEBUG(logger, "it->GetQuantity(): %u", it->GetQuantity());
+
+        //         ret = emplaceAddressRange(area, formerRange, ranges);
+        //         if (ret != Status::Code::GOOD)
+        //         {
+        //             LOG_ERROR(logger, "FAILED TO UPDATE CONSECUTIVES: %s", ret.c_str());
+        //             return ret;
+        //         }
+                
+        //         LOG_VERBOSE(logger, "Merged consecutive ranges");
+        //         LOG_DEBUG(logger, "ranges size: %u", ranges->size());
+        //     }
+        // }
+        LOG_DEBUG(logger, "End of updating consecutive ranges to merge");
         return ret;
     }
 

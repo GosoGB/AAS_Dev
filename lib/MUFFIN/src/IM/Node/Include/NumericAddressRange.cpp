@@ -26,6 +26,7 @@ namespace muffin { namespace im {
         , mQuantity(quantity)
     {
     #if defined(DEBUG)
+        ASSERT((quantity != 0 ), "quantity cannot be 0");
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
@@ -77,11 +78,18 @@ namespace muffin { namespace im {
         LOG_VERBOSE(logger, "Range: [%u, %u]", mStart, mQuantity);
         LOG_VERBOSE(logger, "Given: [%u, %u]", obj.mStart, obj.mQuantity);
         
-        mStart = std::min(mStart, obj.mStart);
-
         const uint16_t lastAddressInRange = GetLastAddress();
         const uint16_t lastAddressInGivenRange = obj.GetLastAddress();
+        LOG_VERBOSE(logger, "lastAddressInRange: [%u]", lastAddressInRange);
+        LOG_VERBOSE(logger, "lastAddressInGivenRange: [%u]", lastAddressInGivenRange);
+        
+        LOG_VERBOSE(logger, "mStart: [%u]", mStart);
+        LOG_VERBOSE(logger, "mQuantity: [%u]", mQuantity);
+
+        mStart = std::min(mStart, obj.mStart);
         mQuantity = std::max(lastAddressInRange, lastAddressInGivenRange) - mStart + 1;
+        LOG_VERBOSE(logger, "mStart: [%u]", mStart);
+        LOG_VERBOSE(logger, "mQuantity: [%u]", mQuantity);
         
         LOG_VERBOSE(logger, "Merged: [%u, %u]", mStart, mQuantity);
     }

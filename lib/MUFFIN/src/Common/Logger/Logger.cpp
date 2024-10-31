@@ -112,9 +112,8 @@ namespace muffin {
         	return ;
     	}
 
-		if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
-			Serial.println("COULD NOT TAKE THE MUTEX");
 			return;
 		}
 
