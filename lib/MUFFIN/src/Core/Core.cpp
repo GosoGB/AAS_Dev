@@ -44,6 +44,8 @@
 
 namespace muffin {
 
+    std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
+
     Core* Core::CreateInstance() noexcept
     {
         if (mInstance == nullptr)
@@ -369,23 +371,8 @@ namespace muffin {
         }
         else
         {
-            Jarvis& jarvisIntance = Jarvis::GetInstance();
-            jarvis::config::ModbusRTU* modbusRtuConfig = nullptr;
-            
-
-            for (const auto it : jarvisIntance)
-            {
-                 /**
-                 * @todo SLAVE와 1:1 연결만 가정하고 구현되어있음
-                 * 
-                 */
-                if (it.first == jarvis::cfg_key_e::MODBUS_RTU)
-                {
-                    modbusRtuConfig = Convert.ToModbusRTUCIN(it.second.at(0)); 
-                }
-            }
-        
-            std::pair<muffin::Status, uint8_t> retSlaveID = modbusRtuConfig->GetSlaveID();
+           
+            std::pair<muffin::Status, uint8_t> retSlaveID =  mVectorModbusRTU.at(0).GetSlaveID();
             if (retSlaveID.first != Status(Status::Code::GOOD))
             {
                 retSlaveID.second = 0;
@@ -394,7 +381,7 @@ namespace muffin {
             jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
             jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
             std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-
+ 
             if (retBit.first == true)
             {
                 ModbusRTU& modbusRTU = ModbusRTU::GetInstance();

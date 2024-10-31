@@ -26,12 +26,14 @@
 
 #include "Common/Status.h"
 #include "Protocol/MQTT/Include/Message.h"
+#include "Jarvis/Config/Protocol/ModbusRTU.h"
 #include "Jarvis/Validators/ValidationResult.h"
 
 
 
 namespace muffin {
     
+    extern std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
     class Core
     {
     public:
@@ -62,5 +64,6 @@ namespace muffin {
         static constexpr uint8_t MAX_RETRY_COUNT = 5;
         static constexpr uint16_t SECOND_IN_MILLIS = 1000;
         static constexpr uint16_t KILLOBYTE = 1024;
+        
     };
 }

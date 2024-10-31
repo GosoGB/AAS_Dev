@@ -18,6 +18,7 @@
 #include "Common/Status.h"
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
+#include "Core/Core.h"
 #include "Core/Task/NetworkTask.h"
 #include "Core/Task/ModbusTask.h"
 #include "DataFormat/JSON/JSON.h"
@@ -379,6 +380,8 @@ namespace muffin {
             case jarvis::cfg_key_e::LTE_CatM1:
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
+                applyProductionInfoCIN(pair.second);
+                break;
             case jarvis::cfg_key_e::OPERATION:
                 break;
             case jarvis::cfg_key_e::MODBUS_RTU:
@@ -411,16 +414,6 @@ namespace muffin {
                 delete element;
             }
             pair.second.clear();
-        }
-
-        for (auto& pair : jarvis)
-        {
-            const jarvis::cfg_key_e key = pair.first;
-            if (key == jarvis::cfg_key_e::PRODUCTION_INFO)
-            {
-                applyProductionInfoCIN(pair.second);
-                break;
-            }
         }
     }
 
@@ -515,6 +508,8 @@ namespace muffin {
         }
 
         modbusRTU->SetPort(rs485CIN);
+        
+        mVectorModbusRTU.clear();
 
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
@@ -525,8 +520,10 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
+
+            mVectorModbusRTU.emplace_back(*cin);
         }
-        LOG_INFO(logger, "Configured Modbus RTU protocol");
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
         
         StartModbusTask();
     }
