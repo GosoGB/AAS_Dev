@@ -385,6 +385,7 @@ namespace muffin { namespace im {
         variableData.HasValue       = true;
         variableData.HasStatus      = true;
         variableData.HasTimestamp   = true;
+        variableData.DataType       = mDataType;
         
         for (const auto& polledDatum : polledData)
         {
@@ -526,7 +527,7 @@ namespace muffin { namespace im {
 
 
         #if defined(DEBUG)
-            LOG_DEBUG(logger,"[Node ID: %s]: NEW EVENT", mNodeID.c_str());
+            LOG_DEBUG(logger,"[NodeId: %s][UID: %s]: NEW EVENT", mNodeID.c_str(), mDeprecableUID.c_str());
         #endif
         }
 
@@ -548,40 +549,40 @@ namespace muffin { namespace im {
         switch (data.DataType)
         {
         case jarvis::dt_e::BOOLEAN:
-            LOG_INFO(logger,"[Node ID: %s]: %s", mNodeID.c_str(), data.Value.Boolean == true ? "true" : "false");
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
             break;
         case jarvis::dt_e::INT8:
-            LOG_INFO(logger,"[Node ID: %s]: %d", mNodeID.c_str(), data.Value.Int8);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
             break;
         case jarvis::dt_e::UINT8:
-            LOG_INFO(logger,"[Node ID: %s]: %u", mNodeID.c_str(), data.Value.UInt8);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
             break;
         case jarvis::dt_e::INT16:
-            LOG_INFO(logger,"[Node ID: %s]: %d", mNodeID.c_str(), data.Value.Int16);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
             break;
         case jarvis::dt_e::UINT16:
-            LOG_INFO(logger,"[Node ID: %s]: %u", mNodeID.c_str(), data.Value.UInt16);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
             break;
         case jarvis::dt_e::INT32:
-            LOG_INFO(logger,"[Node ID: %s]: %d", mNodeID.c_str(), data.Value.Int32);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
             break;
         case jarvis::dt_e::UINT32:
-            LOG_INFO(logger,"[Node ID: %s]: %u", mNodeID.c_str(), data.Value.UInt32);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
             break;
         case jarvis::dt_e::INT64:
-            LOG_INFO(logger,"[Node ID: %s]: %lld", mNodeID.c_str(), data.Value.Int64);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
             break;
         case jarvis::dt_e::UINT64:
-            LOG_INFO(logger,"[Node ID: %s]: %llu", mNodeID.c_str(), data.Value.UInt64);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
             break;
         case jarvis::dt_e::FLOAT32:
-            LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float32);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
             break;
         case jarvis::dt_e::FLOAT64:
-            LOG_INFO(logger,"[Node ID: %s]: %.3f", mNodeID.c_str(), data.Value.Float64);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
             break;
         case jarvis::dt_e::STRING:
-            LOG_INFO(logger,"[Node ID: %s]: %s", mNodeID.c_str(), data.Value.String.Data);
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
             break;
         default:
             break;
@@ -939,7 +940,7 @@ namespace muffin { namespace im {
          */
         for (auto& dataUnitOrders : mVectorDataUnitOrders.second)
         {
-            ++dataTypeIndex;
+            // ++dataTypeIndex;
 
             std::vector<uint8_t> vectorFlattened;
             flattenToByteArray(polledData, &vectorFlattened);
@@ -947,7 +948,6 @@ namespace muffin { namespace im {
             const uint8_t totalBytes = sizeof(uint8_t) * vectorFlattened.size();
             std::vector<uint8_t> arrayOrderedBytes;
             arrayOrderedBytes.reserve(totalBytes);
-            uint8_t index = 0;
 
             /**
              * @todo 32bit, 64bit인 경우를 구현해야 합니다.
@@ -959,18 +959,18 @@ namespace muffin { namespace im {
 
                 if (dataUnitOrder.DataUnit == jarvis::data_unit_e::WORD)
                 {
-                    arrayOrderedBytes[index++] = vectorFlattened[startByteIndex];
-                    arrayOrderedBytes[index++] = vectorFlattened[finishByteIndex];
+                    arrayOrderedBytes.emplace_back(vectorFlattened[startByteIndex]);
+                    arrayOrderedBytes.emplace_back(vectorFlattened[finishByteIndex]);
                 }
                 else if (dataUnitOrder.DataUnit == jarvis::data_unit_e::BYTE)
                 {
                     if (dataUnitOrder.ByteOrder == jarvis::byte_order_e::HIGHER)
                     {
-                        arrayOrderedBytes[index++] = vectorFlattened[startByteIndex];
+                        arrayOrderedBytes.emplace_back(vectorFlattened[finishByteIndex]);
                     }
                     else
                     {
-                        arrayOrderedBytes[index++] = vectorFlattened[finishByteIndex];
+                        arrayOrderedBytes.emplace_back(vectorFlattened[startByteIndex]);
                     }
                 }
 
