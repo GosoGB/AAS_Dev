@@ -58,6 +58,7 @@ namespace muffin { namespace jarvis {
         const bool isExpired    = json["exp"].as<bool>();
         const uint16_t pollingInverval = json["intvPoll"].as<uint16_t>();
         const uint16_t serverInverval  = json["intvSrv"].as<uint16_t>();
+        const bool factoryReset = json["fmt"].as<bool>();
 
         const std::string snic = json["snic"].as<std::string>();
         const auto retSNIC = convertToServerNIC(snic);
@@ -76,7 +77,9 @@ namespace muffin { namespace jarvis {
         operation->SetPlanExpired(isExpired);
         operation->SetIntervalPolling(pollingInverval);
         operation->SetIntervalServer(serverInverval);
+        operation->SetFactoryReset(factoryReset);
         operation->SetServerNIC(retSNIC.second);
+
 
         rsc = emplaceCIN(static_cast<config::Base*>(operation), outVector);
         if (rsc != rsc_e::GOOD)
@@ -106,6 +109,7 @@ namespace muffin { namespace jarvis {
         isValid &= json.containsKey("exp");
         isValid &= json.containsKey("intvPoll");
         isValid &= json.containsKey("intvSrv");
+        isValid &= json.containsKey("fmt");
         
         if (isValid == true)
         {
@@ -124,9 +128,11 @@ namespace muffin { namespace jarvis {
         isValid &= json["exp"].isNull()             == false;
         isValid &= json["intvPoll"].isNull()        == false;
         isValid &= json["intvSrv"].isNull()         == false;
+        isValid &= json["fmt"].isNull()             == false;
         isValid &= json["exp"].is<bool>()           == true;
         isValid &= json["intvPoll"].is<uint16_t>()  == true;
         isValid &= json["intvSrv"].is<uint16_t>()   == true;
+        isValid &= json["fmt"].is<bool>()           == true;
         
         if (isValid == true)
         {

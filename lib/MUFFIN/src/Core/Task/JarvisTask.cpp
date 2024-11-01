@@ -21,6 +21,7 @@
 #include "Core/Core.h"
 #include "Core/Task/NetworkTask.h"
 #include "Core/Task/ModbusTask.h"
+#include "Core/Task/CyclicalPubTask.h"
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Node/NodeStore.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
@@ -487,6 +488,7 @@ namespace muffin {
         jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
 
         s_HasFactoryResetCommand   = cin->GetFactoryReset().second;
+        LOG_INFO(logger,"s_HasFactoryResetCommand : %s", s_HasFactoryResetCommand == true ? "true":"false" );
         s_HasPlanExpirationCommand = cin->GetPlanExpired().second;
         s_PollingInterval = cin->GetIntervalPolling().second;
         s_PublishInterval = cin->GetIntervalServer().second;
@@ -577,5 +579,7 @@ namespace muffin {
         
         SetPollingInterval(s_PollingInterval);
         StartModbusTask();
+        StartTaskCyclicalsMSG(s_PublishInterval);
+        
     }
 }

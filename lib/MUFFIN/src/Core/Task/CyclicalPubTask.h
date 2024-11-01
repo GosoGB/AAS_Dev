@@ -19,6 +19,6 @@
 
 namespace muffin {
 
-    void StartTaskCyclicalsMSG();
+    void StartTaskCyclicalsMSG(uint16_t pollingInterval);
     void cyclicalsMSGTask(void* pvParameter);
 }
