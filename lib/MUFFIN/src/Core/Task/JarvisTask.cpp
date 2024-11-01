@@ -463,9 +463,9 @@ namespace muffin {
 
     void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN)
     {
-        LOG_DEBUG(logger, "Start applying Operation CIN");
-        jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
-        여기서부터 다시 작업 시작해야 합니다.
+        // LOG_DEBUG(logger, "Start applying Operation CIN");
+        // jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
+        // 여기서부터 다시 작업 시작해야 합니다.
     }
 
     void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN)
