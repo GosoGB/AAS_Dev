@@ -1224,7 +1224,7 @@ namespace muffin { namespace im {
         return mBitIndex;
     }
     
-    std::string Variable::Float32ConvertToString(const float data)
+    std::string Variable::Float32ConvertToString(const float& data) const
     {
         if (mNumericScale.first == false)
         {
@@ -1244,12 +1244,40 @@ namespace muffin { namespace im {
         return std::string(buffer);
     }
 
-    std::string Variable::Float64ConvertToString(const double data)
+    std::string Variable::Float64ConvertToString(const double& data) const
     {
         if (mNumericScale.first == false)
         {
             // scl 설정 없이 float32 변형이 이루어졌기 때문에 유효숫자를 따로 입력할 필요 없다
             return std::to_string(data);
+        }
+        
+        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        
+        int decimalPlaces = static_cast<int>(-exponent);
+        
+        char format[10];
+        sprintf(format, "%%.%df", decimalPlaces);
+
+        char buffer[20];
+        sprintf(buffer, format, data);
+
+        return std::string(buffer);
+    }
+
+    std::string Variable::FloatConvertToStringForLimitValue(const float& data) const
+    {   
+        if (mNumericScale.first == false)
+        {
+            if (mDataType == jarvis::dt_e::FLOAT32 || mDataType == jarvis::dt_e::FLOAT64)
+            {
+                return std::to_string(data);
+            }
+            else
+            {
+                uint16_t returnData = (uint16_t)data;
+                return std::to_string(returnData);
+            }
         }
         
         const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
