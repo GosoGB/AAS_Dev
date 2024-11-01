@@ -200,7 +200,21 @@ namespace muffin {
                 {
                     if (currentErrorStatus == false)
                     {
+                        if (mStauts != jarvis::op_status_e::PROCESSING)
+                        {
+                            mStauts = jarvis::op_status_e::PROCESSING;
+                            publishOperationStauts();
+                        }
+                        
                         ++processingTime;
+                    }
+                }
+                else
+                {
+                    if (mStauts != jarvis::op_status_e::IDLE)
+                    {
+                        mStauts = jarvis::op_status_e::IDLE;
+                        publishOperationStauts();
                     }
                 }
 
@@ -539,8 +553,25 @@ namespace muffin {
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         cdo.Store(message);
 
-        LOG_INFO(logger, "[OPERATION TIME] %s", payload.c_str());
     }
+
+    void OperationTime::publishOperationStauts()
+    {
+        operation_struct_t status;
+
+        status.SourceTimestamp = GetTimestampInMillis();
+        status.Status = mStauts == jarvis::op_status_e::PROCESSING ? "processing" : "idle";
+        status.Topic = mqtt::topic_e::OPERATION;
+
+        JSON json;
+        const std::string payload = json.Serialize(status);
+        mqtt::Message message(mqtt::topic_e::OPERATION, payload);
+
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        cdo.Store(message);
+
+    }
+
 
 
     OperationTime* OperationTime::mInstance = nullptr;

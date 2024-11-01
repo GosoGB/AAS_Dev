@@ -72,7 +72,7 @@ namespace muffin { namespace jarvis { namespace config {
     void ModbusRTU::SetSlaveID(const uint8_t sid)
     {
         ASSERT((0 < sid && sid < 248), "INVALID SLAVED ID: %u", sid);
-
+        LOG_WARNING(logger, "sid : %d", sid);
         mSlaveID = sid;
         mIsSlaveIdSet = true;
     }
@@ -101,11 +101,11 @@ namespace muffin { namespace jarvis { namespace config {
     {
         if (mIsSlaveIdSet)
         {
-            return std::make_pair(Status(Status::Code::GOOD), mIsSlaveIdSet);
+            return std::make_pair(Status(Status::Code::GOOD), mSlaveID);
         }
         else
         {
-            return std::make_pair(Status(Status::Code::BAD), mIsSlaveIdSet);
+            return std::make_pair(Status(Status::Code::BAD), mSlaveID);
         }
     }
 

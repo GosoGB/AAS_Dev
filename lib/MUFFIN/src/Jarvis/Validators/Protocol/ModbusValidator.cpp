@@ -155,6 +155,8 @@ namespace muffin { namespace jarvis {
             const uint8_t sid       = cin["sid"].as<uint8_t>();
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
 
+            LOG_WARNING(logger, " sid  : %d ",sid);
+            
             const auto retPRT  = convertToPortIndex(prt);
             const auto retSID  = convertToSlaveID(sid);
             auto retNodes      = convertToNodes(nodes);

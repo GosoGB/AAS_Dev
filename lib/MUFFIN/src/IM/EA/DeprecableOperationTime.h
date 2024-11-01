@@ -75,5 +75,9 @@ namespace muffin {
     private:
         TaskHandle_t xHandle;
         ut_pub_timer mPublishTimer;
+    private:
+        jarvis::op_status_e mStauts = jarvis::op_status_e::TURN_OFF;
+    private:
+        void publishOperationStauts();
     };
 }
