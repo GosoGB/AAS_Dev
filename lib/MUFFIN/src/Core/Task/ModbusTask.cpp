@@ -30,6 +30,12 @@ namespace muffin {
     constexpr uint16_t KILLOBYTE = 1024;
     constexpr uint16_t SECOND_IN_MILLIS = 1000;
 
+    static uint32_t s_PollingIntervalInMillis = 1000;
+#ifdef DEBUG
+    uint32_t checkRemainedStackMillis = millis();
+    const uint16_t remainedStackCheckInterval = 60 * 1000;
+#endif
+
 
 
     void implModbusRtuTask(void* pvParameters)
@@ -44,7 +50,14 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
             }
         
-            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+            {
+                LOG_DEBUG(logger, "[TASK: Modbus] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
         }
     }
 
@@ -64,7 +77,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implModbusRtuTask,      // Function to be run inside of the task
             "implModbusRtuTask",    // The identifier of this task for men
-            32 * KILLOBYTE,		    // Stack memory size to allocate
+            10 * KILLOBYTE,		    // Stack memory size to allocate
             NULL,			        // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusRtuHandle,       // The identifier of this task for machines
@@ -110,5 +123,22 @@ namespace muffin {
         
         vTaskDelete(xTaskModbusRtuHandle);
         xTaskModbusRtuHandle = NULL;
+    }
+
+    void SetPollingInterval(const uint16_t pollingInterval)
+    {
+        s_PollingIntervalInMillis = 1000 * pollingInterval;
+    }
+
+    bool HasModbusTask()
+    {
+        if (xTaskModbusRtuHandle == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 }
