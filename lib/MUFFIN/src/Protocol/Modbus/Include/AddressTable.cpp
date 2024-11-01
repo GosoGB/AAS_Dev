@@ -73,9 +73,11 @@ namespace muffin { namespace modbus {
         LOG_VERBOSE(logger, "Address range updated: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
     #if defined(DEBUG)
         printAddressTable();
+        printAddressTable();
     #else
         CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
     #endif
+    
         // countBufferSize();
         return ret;
     }
@@ -185,7 +187,7 @@ namespace muffin { namespace modbus {
     void AddressTable::printAddressTable() const
     {
         const char* dashLine = "----------------------------------------------\n";
-        const uint16_t bufferSize = 1024;
+        const uint16_t bufferSize = 2048;
         const uint8_t cellWidth = 11;
         
         char buffer[bufferSize];

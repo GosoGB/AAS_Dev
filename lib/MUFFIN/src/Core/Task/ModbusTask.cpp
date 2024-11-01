@@ -64,7 +64,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implModbusRtuTask,      // Function to be run inside of the task
             "implModbusRtuTask",    // The identifier of this task for men
-           10 * KILLOBYTE,		    // Stack memory size to allocate
+            32 * KILLOBYTE,		    // Stack memory size to allocate
             NULL,			        // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusRtuHandle,       // The identifier of this task for machines

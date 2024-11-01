@@ -34,7 +34,7 @@ namespace muffin { namespace jarvis {
         , mDataUnitOrders(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>())
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jarvis::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
-        , mPatternUID(std::regex(R"(^(?:(P|A|E)\d{3}|(?:DI|DO|MD)\d{2})$)"))
+        , mPatternUID(std::regex(R"(^(?:[PAE][A-Za-z0-9!@#$%^&*()_+=-]{3}|(?:DI|DO|MD)[A-Za-z0-9!@#$%^&*()_+=-]{2})$)"))
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);

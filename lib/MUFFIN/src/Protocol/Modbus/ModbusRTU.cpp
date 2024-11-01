@@ -504,6 +504,7 @@ namespace muffin {
             {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
+                LOG_WARNING(logger, "value : %d", value);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");

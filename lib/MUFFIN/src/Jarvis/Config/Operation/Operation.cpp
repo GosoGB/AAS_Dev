@@ -40,10 +40,11 @@ namespace muffin { namespace jarvis { namespace config {
     {
         if (this != &obj)
         {
-            mPlanExpired     = obj.mPlanExpired;
-            mServerNIC       = obj.mServerNIC;
-            mIntervalServer  = obj.mIntervalServer;
-            mIntervalPolling = obj.mIntervalPolling;
+            mPlanExpired        = obj.mPlanExpired;
+            mFactoryReset       = obj.mFactoryReset;
+            mServerNIC          = obj.mServerNIC;
+            mIntervalServer     = obj.mIntervalServer;
+            mIntervalPolling    = obj.mIntervalPolling;
         }
         
         return *this;
@@ -53,6 +54,7 @@ namespace muffin { namespace jarvis { namespace config {
     {
         return (
             mPlanExpired     == obj.mPlanExpired      &&
+            mFactoryReset    == obj.mFactoryReset     &&
             mServerNIC       == obj.mServerNIC        &&
             mIntervalServer  == obj.mIntervalServer   &&
             mIntervalPolling == obj.mIntervalPolling
@@ -68,6 +70,12 @@ namespace muffin { namespace jarvis { namespace config {
     {
         mPlanExpired = planExpired;
         mIsPlanExpiredSet = true;
+    }
+
+    void Operation::SetFactoryReset(const bool factoryReset)
+    {
+        mFactoryReset = factoryReset;
+        mIsFactoryResetSet = true;
     }
 
     void Operation::SetServerNIC(const snic_e snic)
@@ -101,6 +109,18 @@ namespace muffin { namespace jarvis { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mPlanExpired);
+        }
+    }
+
+    std::pair<Status, bool> Operation::GetFactoryReset() const
+    {
+        if (mIsFactoryResetSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mFactoryReset);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mFactoryReset);
         }
     }
 

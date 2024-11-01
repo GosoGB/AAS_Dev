@@ -112,9 +112,8 @@ namespace muffin {
         	return ;
     	}
 
-		if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
-			Serial.println("COULD NOT TAKE THE MUTEX");
 			return;
 		}
 
@@ -149,10 +148,10 @@ namespace muffin {
 					"["  <<  func     << ":" << counter  				<< "] ";
 
 				// combine the log message with metadata
-				const char* log = metadata.str().append(message).c_str();
+				const std::string fullLog = metadata.str() + message;
 
 				// mush flush the txd buffer after writing
-				Serial.println(log);
+				Serial.println(fullLog.c_str());
 				Serial.flush();
             #endif
 			}

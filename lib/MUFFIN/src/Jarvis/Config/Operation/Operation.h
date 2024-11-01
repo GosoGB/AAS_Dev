@@ -34,21 +34,25 @@ namespace muffin { namespace jarvis { namespace config {
         bool operator!=(const Operation& obj) const;
     public:
         void SetPlanExpired(const bool planExpired);
+        void SetFactoryReset(const bool factoryReset);
         void SetServerNIC(const snic_e snic);
         void SetIntervalServer(const uint16_t interval);
         void SetIntervalPolling(const uint16_t interval);
     public:
         std::pair<Status, bool> GetPlanExpired() const;
+        std::pair<Status, bool> GetFactoryReset() const;
         std::pair<Status, snic_e> GetServerNIC() const;
         std::pair<Status, uint16_t> GetIntervalServer() const;
         std::pair<Status, uint16_t> GetIntervalPolling() const;
     private:
-        bool mIsPlanExpiredSet      = false;
-        bool mIsServerNicSet        = false;
-        bool mIsIntervalServerSet   = false;
-        bool mIsIntervalPollingSet  = false;
+        bool mIsPlanExpiredSet        = false;
+        bool mIsFactoryResetSet       = false;
+        bool mIsServerNicSet          = false;
+        bool mIsIntervalServerSet     = false;
+        bool mIsIntervalPollingSet    = false;
     private:
         bool mPlanExpired;
+        bool mFactoryReset;
         snic_e mServerNIC;
         uint16_t mIntervalServer;
         uint16_t mIntervalPolling;

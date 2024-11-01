@@ -74,5 +74,8 @@ namespace muffin { namespace jarvis { namespace config {
         std::string mUclUID;
         std::string mUclAlarmUID;
         std::vector<int16_t> mCondition;
+    public:
+        float mPreviousLCL;
+        float mPreviousUCL;
     };
 }}}

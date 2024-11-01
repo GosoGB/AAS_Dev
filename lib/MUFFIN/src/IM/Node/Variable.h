@@ -55,8 +55,11 @@ namespace muffin { namespace im {
         bool isEventOccured(var_data_t& variableData);
         string_t ToMuffinString(const std::string& stdString);
         void logData(const var_data_t& data);
-        std::string Float32ConvertToString(const float data);
-        std::string Float64ConvertToString(const double data);
+        std::string Float32ConvertToString(const float& data) const;
+        std::string Float64ConvertToString(const double& data) const;
+
+    public:
+        std::string FloatConvertToStringForLimitValue(const float& data) const;
         
     public:
         size_t RetrieveCount() const;
@@ -69,6 +72,8 @@ namespace muffin { namespace im {
         jarvis::mb_area_e GetModbusArea() const;
         std::map<std::uint16_t, std::string> GetMappingRules() const { return mMapMappingRules.second; }
         std::string GetDisplayName() const { return mDeprecableDisplayName; }
+        std::string GetDisplayUnit() const { return mDeprecableDisplayUnit; }
+        std::pair<bool, jarvis::scl_e> GetNumericScale() const { return mNumericScale; }
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
         void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);

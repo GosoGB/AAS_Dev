@@ -283,4 +283,13 @@ namespace muffin { namespace jarvis {
         HEX_LOWERCASE,
         HEX_UPPERCASE
     } fmt_spec_e;
+
+    typedef enum class OperationStatus
+        : uint8_t
+    {
+        PROCESSING,
+        IDLE,
+        ERROR,
+        TURN_OFF
+    } op_status_e;
 }}

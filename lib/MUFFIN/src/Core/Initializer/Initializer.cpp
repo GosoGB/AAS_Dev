@@ -158,6 +158,8 @@ namespace muffin {
         {
             payload += file.read();
         }
+
+        LOG_DEBUG(logger, "%s", payload.c_str());
         
         JSON json;
         JsonDocument doc;
