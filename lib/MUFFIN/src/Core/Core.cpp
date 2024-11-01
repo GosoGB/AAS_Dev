@@ -455,7 +455,6 @@ namespace muffin {
         }
         else
         {
-           
             std::pair<muffin::Status, uint8_t> retSlaveID =  mVectorModbusRTU.at(0).GetSlaveID();
             if (retSlaveID.first != Status(Status::Code::GOOD))
             {

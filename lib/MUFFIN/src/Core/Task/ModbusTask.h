@@ -21,4 +21,6 @@ namespace muffin {
 
     void StartModbusTask();
     void StopModbusTask();
+    void SetPollingInterval(const uint16_t pollingInterval);
+    bool HasModbusTask();
 }

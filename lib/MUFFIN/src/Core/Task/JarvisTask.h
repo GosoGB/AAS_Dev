@@ -49,6 +49,9 @@ namespace muffin {
     // void applyWiFi4CIN(std::vector<jarvis::config::Base*>& vectorWiFi4CIN);
 
     void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN);
+    uint16_t RetrievePublishInterval();
+    jarvis::snic_e RetrieveServerNIC();
+
     void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN);
     // void applyModbusTcpCIN(std::vector<jarvis::config::Base*>& vectorModbusTCPCIN);
 }

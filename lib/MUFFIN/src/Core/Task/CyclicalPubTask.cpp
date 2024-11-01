@@ -16,6 +16,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <functional>
+#include <esp32-hal.h>
 
 #include "Common/Time/TimeUtils.h"
 #include "Common/Assert.h"
@@ -84,13 +85,16 @@ namespace muffin {
 
     void cyclicalsMSGTask(void* pvParameter)
     {
-        uint16_t pollingInterval = *(uint16_t*) pvParameter;
+        uint16_t publishInterval = *(uint16_t*) pvParameter;
         time_t currentTimestamp = GetTimestamp();
+    #ifdef DEBUG
+        uint32_t checkRemainedStackMillis = millis();
+        const uint16_t remainedStackCheckInterval = 60 * 1000;
+    #endif
+
         while (true)
         {
-            vTaskDelay(100 / portTICK_PERIOD_MS); 
-
-            if (GetTimestamp() - currentTimestamp < pollingInterval)
+            if (GetTimestamp() - currentTimestamp < publishInterval)
             {
                 continue;
             }
@@ -102,11 +106,14 @@ namespace muffin {
             im::NodeStore& nodeStore = im::NodeStore::GetInstance();
             //  mHasAttributeEvent false 인 데이터 전송 
 
-
+            vTaskDelay(100 / portTICK_PERIOD_MS); 
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+            {
+                LOG_DEBUG(logger, "[TASK: Modbus] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
         }
-        
-       
-
     }
-
 }

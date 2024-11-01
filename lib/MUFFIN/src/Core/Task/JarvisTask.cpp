@@ -36,6 +36,7 @@
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "IM/MacAddress/MacAddress.h"
+#include "Storage/ESP32FS/ESP32FS.h"
 
 
 
@@ -43,6 +44,12 @@ namespace muffin {
 
     static bool s_IsJarvisTaskRunning = false;
     static std::string s_JarvisApiPayload;
+
+    static bool s_HasFactoryResetCommand   = false;
+    static bool s_HasPlanExpirationCommand = false;
+    static uint16_t s_PollingInterval =  1;
+    static uint16_t s_PublishInterval = 60;
+    static jarvis::snic_e s_ServerNIC = jarvis::snic_e::LTE_CatM1;
 
     /**
      * @todo LTE Cat.M1 모뎀을 쓰지 않을 때의 기능을 구현해야 합니다.
@@ -352,6 +359,16 @@ namespace muffin {
                 break;
             }
         }
+
+        for (auto& pair : jarvis)
+        {
+            const jarvis::cfg_key_e key = pair.first;
+            if (key == jarvis::cfg_key_e::OPERATION)
+            {
+                applyOperationCIN(pair.second);
+                break;
+            }
+        }
         
 
         for (auto& pair : jarvis)
@@ -372,8 +389,6 @@ namespace muffin {
             case jarvis::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);
                 break;
-            case jarvis::cfg_key_e::OPERATION:
-                break;
             case jarvis::cfg_key_e::MODBUS_RTU:
                 {
                     for (auto cin : jarvis)
@@ -390,6 +405,7 @@ namespace muffin {
 
             case jarvis::cfg_key_e::NODE:
             case jarvis::cfg_key_e::LTE_CatM1:
+            case jarvis::cfg_key_e::OPERATION:
                 break;
                 
             case jarvis::cfg_key_e::RS232:
@@ -463,9 +479,36 @@ namespace muffin {
 
     void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN)
     {
-        // LOG_DEBUG(logger, "Start applying Operation CIN");
-        // jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
-        // 여기서부터 다시 작업 시작해야 합니다.
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        ASSERT((vectorOperationCIN.size() == 1), "THERE MUST BE ONLY ONE OPERATION CIN");
+    #endif
+
+        LOG_DEBUG(logger, "Start applying Operation CIN");
+        jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
+
+        s_HasFactoryResetCommand   = cin->GetFactoryReset().second;
+        s_HasPlanExpirationCommand = cin->GetPlanExpired().second;
+        s_PollingInterval = cin->GetIntervalPolling().second;
+        s_PublishInterval = cin->GetIntervalServer().second;
+        s_ServerNIC = cin->GetServerNIC().second;
+
+
+        if (s_HasFactoryResetCommand == true)
+        {
+            ESP32FS& esp32FS = ESP32FS::GetInstance();
+            esp32FS.Format();
+            esp_restart();
+        }
+    }
+
+    uint16_t RetrievePublishInterval()
+    {
+        return s_PublishInterval;
+    }
+
+    jarvis::snic_e RetrieveServerNIC()
+    {
+        return s_ServerNIC;
     }
 
     void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN)
@@ -502,6 +545,12 @@ namespace muffin {
 
     void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN)
     {
+        if (s_HasPlanExpirationCommand == true)
+        {
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
+            return;
+        }
+        
         ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
         if (modbusRTU == nullptr)
         {
@@ -526,6 +575,7 @@ namespace muffin {
         }
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
         
+        SetPollingInterval(s_PollingInterval);
         StartModbusTask();
     }
 }
