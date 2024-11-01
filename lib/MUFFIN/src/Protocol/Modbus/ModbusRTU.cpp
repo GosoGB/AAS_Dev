@@ -504,7 +504,8 @@ namespace muffin {
             {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
-                LOG_WARNING(logger, "value : %d", value);
+                
+                LOG_WARNING(logger, "[INPUT REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
@@ -553,6 +554,8 @@ namespace muffin {
             {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
+                
+                LOG_WARNING(logger, "[HOLDING REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");

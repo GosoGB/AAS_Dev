@@ -736,8 +736,23 @@ namespace muffin { namespace im {
                 {
                     const uint8_t byteHigh  = static_cast<uint8_t>(((polledDatum.Value.UInt16 >> 8) & 0xFF));
                     const uint8_t byteLow   = static_cast<uint8_t>((polledDatum.Value.UInt16 & 0xFF));
+                    
                     outputFlattenVector->emplace_back(byteLow);
                     outputFlattenVector->emplace_back(byteHigh);
+
+                    if (mDeprecableUID == "DI0E")
+                    {
+                        LOG_DEBUG(logger, "DI0E: outputFlattenVector->size(): %u", outputFlattenVector->size());
+                        LOG_DEBUG(logger, "DI0E: byteLow: %u", byteLow);
+                        LOG_DEBUG(logger, "DI0E: byteHigh: %u", byteHigh);
+                    }
+
+                    if (mDeprecableUID == "DI05")
+                    {
+                        LOG_DEBUG(logger, "DI05: outputFlattenVector->size(): %u", outputFlattenVector->size());
+                        LOG_DEBUG(logger, "DI05: byteLow: %u", byteLow);
+                        LOG_DEBUG(logger, "DI05: byteHigh: %u", byteHigh);
+                    }
                 }
                 break;
 
@@ -745,13 +760,24 @@ namespace muffin { namespace im {
              * @todo 기계에서 수집한 데이터의 크기가 32bit, 64bit인 경우를 구현해야 합니다.
              */
             default:
+                ASSERT(false, "UNDEFINED DATA TYPE TO FLATTEN AS A BYTE ARRAY");
                 break;
             }
         }
     }
     
-    void Variable::castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
+    void Variable::castByteVector(const jarvis::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
     {
+        if (mDeprecableUID == "DI0E")
+        {
+            LOG_DEBUG(logger, "DI0E: dataType: %u", static_cast<uint8_t>(dataType));
+
+            for (size_t i = 0; i < vectorBytes.size(); i++)
+            {
+                LOG_DEBUG(logger, "DI0E: byte[%u]: %u", i, vectorBytes[i]);
+            }
+        }
+
         switch (dataType)
         {
         case jarvis::dt_e::INT8:
@@ -766,7 +792,18 @@ namespace muffin { namespace im {
         
         case jarvis::dt_e::INT32:
             castedData->ValueType = jarvis::dt_e::INT32;
+            ASSERT((vectorBytes.size() == 4), "BYTE ARRAY SIZE MUST BE EQUAL TO 4");
+            // castedData->Value.Int32 = 
+            //     static_cast<int32_t>(vectorBytes[2]) << 24 | 
+            //     static_cast<int32_t>(vectorBytes[3]) << 16 | 
+            //     static_cast<int32_t>(vectorBytes[0]) <<  8 | 
+            //     vectorBytes[1];
             memcpy(&castedData->Value.Int32, vectorBytes.data(), sizeof(int32_t));
+
+            if (mDeprecableUID == "DI0E")
+            {
+                LOG_DEBUG(logger, "DI0E: castedData->Value.Int32: %u", castedData->Value.Int32);
+            }
             break;
         
         case jarvis::dt_e::INT64:
@@ -780,14 +817,27 @@ namespace muffin { namespace im {
             break;
         
         case jarvis::dt_e::UINT16:
-            castedData->ValueType = jarvis::dt_e::UINT16;
-            memcpy(&castedData->Value.UInt16, vectorBytes.data(), sizeof(uint16_t));
-            break;
-        
+            {
+                const uint8_t temporaryStoredValue = vectorBytes[1];
+                vectorBytes[1] = vectorBytes[0];
+                vectorBytes[0] = temporaryStoredValue;
+
+                castedData->ValueType = jarvis::dt_e::UINT16;
+                memcpy(&castedData->Value.UInt16, vectorBytes.data(), sizeof(uint16_t));
+                break;
+            }
         case jarvis::dt_e::UINT32:
+        {
             castedData->ValueType = jarvis::dt_e::UINT32;
-            memcpy(&castedData->Value.UInt32, vectorBytes.data(), sizeof(uint32_t));
+            uint32_t value = 0;
+            memcpy(&value, vectorBytes.data(), sizeof(uint32_t));
+            castedData->Value.UInt32 = value;
+            if (mDeprecableUID == "DI0E")
+            {
+                LOG_DEBUG(logger, "DI0E: castedData->Value.UInt32: %u", castedData->Value.UInt32);
+            }
             break;
+        }
         
         case jarvis::dt_e::UINT64:
             castedData->ValueType = jarvis::dt_e::UINT64;
@@ -848,6 +898,13 @@ namespace muffin { namespace im {
     {
         auto it = mMapMappingRules.second.end();
 
+        if (mDeprecableUID == "DI05")
+        {
+            LOG_DEBUG(logger, "[DI05] Data Type: %u", static_cast<uint8_t>(variableData.DataType));
+            LOG_DEBUG(logger, "[DI05] Value: %u", variableData.Value.UInt16);
+        }
+        
+
         switch (variableData.DataType)
         {
         case jarvis::dt_e::BOOLEAN:
@@ -859,6 +916,10 @@ namespace muffin { namespace im {
             break;
         case jarvis::dt_e::INT16:
         case jarvis::dt_e::UINT16:
+            it = mMapMappingRules.second.find(variableData.Value.UInt16);
+            break;
+        case jarvis::dt_e::INT32:
+        case jarvis::dt_e::UINT32:
             it = mMapMappingRules.second.find(variableData.Value.UInt16);
             break;
         default:

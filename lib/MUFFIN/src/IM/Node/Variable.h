@@ -47,7 +47,7 @@ namespace muffin { namespace im {
         void implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData);
         void removeOldestHistory();
         void flattenToByteArray(const std::vector<poll_data_t>& polledData, std::vector<uint8_t>* outputFlattenVector);
-        void castByteVector(const jarvis::dt_e dataType, const std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
+        void castByteVector(const jarvis::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
         void applyBitIndex(var_data_t& variableData);
         void applyMappingRules(var_data_t& variableData);
         void applyNumericScale(var_data_t& variableData);
