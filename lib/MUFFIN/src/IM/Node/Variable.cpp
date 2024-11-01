@@ -5,7 +5,7 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
- * @date 2024-10-29
+ * @date 2024-11-01
  * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -19,8 +19,8 @@
 #include <sstream>
 #include <string.h>
 
-#include "Common/Convert/ConvertClass.h"
 #include "Common/Assert.h"
+#include "Common/Convert/ConvertClass.h"
 #include "Common/Logger/Logger.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Variable.h"
@@ -147,7 +147,6 @@ namespace muffin { namespace im {
                 
                 
                 bool hasZeroPadding = false;
-                bool hasLong        = false;
                 bool hasLongLong    = false;
                 int8_t width = 0;
                 int8_t precision = -1;
@@ -176,12 +175,10 @@ namespace muffin { namespace im {
                 if ((i + 1) < format.size() && format[i + 1] == 'l')
                 {
                     ++i;
-                    hasLong = true;
 
                     if ((i + 1) < format.size() && format[i + 1] == 'l')
                     {
                         hasLongLong = true;
-                        hasLong = false;
                         ++i;
                     }
                 }
@@ -195,11 +192,17 @@ namespace muffin { namespace im {
                             switch (castedData.ValueType)
                             {
                                 case jarvis::dt_e::INT8:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int8;
+                                {
+                                    const int32_t value = castedData.Value.Int8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::INT16:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int16;
+                                {
+                                    const int32_t value = castedData.Value.Int16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::INT32:
                                     oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int32;
                                     break;
@@ -207,14 +210,23 @@ namespace muffin { namespace im {
                                     oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int64;
                                     break;
                                 case jarvis::dt_e::UINT8:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                {
+                                    const int32_t value = castedData.Value.UInt8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::UINT16:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                {
+                                    const int32_t value = castedData.Value.UInt16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::UINT32:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt32;
+                                {
+                                    const int64_t value = castedData.Value.UInt32;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 default:
                                     break;
                             }
@@ -224,20 +236,32 @@ namespace muffin { namespace im {
                             switch (castedData.ValueType)
                             {
                                 case jarvis::dt_e::INT8:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int8;
+                                {
+                                    const int32_t value = castedData.Value.Int8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::INT16:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int16;
+                                {
+                                    const int32_t value = castedData.Value.Int16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::INT32:
                                     oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int32;
                                     break;
                                 case jarvis::dt_e::UINT8:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                {
+                                    const int32_t value = castedData.Value.UInt8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::UINT16:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                {
+                                    const int32_t value = castedData.Value.UInt16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 default:
                                     break;
                             }
@@ -249,12 +273,33 @@ namespace muffin { namespace im {
                         {
                             switch (castedData.ValueType)
                             {
+                                case jarvis::dt_e::INT8:
+                                {
+                                    const int32_t value = castedData.Value.Int8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
+                                    break;
+                                }
+                                case jarvis::dt_e::INT16:
+                                {
+                                    const int32_t value = castedData.Value.Int16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
+                                    break;
+                                }
+                                case jarvis::dt_e::INT32:
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.Int32;
+                                    break;
                                 case jarvis::dt_e::UINT8:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                {
+                                    const int32_t value = castedData.Value.UInt8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::UINT16:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                {
+                                    const int32_t value = castedData.Value.UInt16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::UINT32:
                                     oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt32;
                                     break;
@@ -269,12 +314,30 @@ namespace muffin { namespace im {
                         {
                             switch (castedData.ValueType)
                             {
+                                case jarvis::dt_e::INT8:
+                                {
+                                    const int32_t value = castedData.Value.Int8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
+                                    break;
+                                }
+                                case jarvis::dt_e::INT16:
+                                {
+                                    const int32_t value = castedData.Value.Int16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
+                                    break;
+                                }
                                 case jarvis::dt_e::UINT8:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt8;
+                                {
+                                    const int32_t value = castedData.Value.UInt8;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::UINT16:
-                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt16;
+                                {
+                                    const int32_t value = castedData.Value.UInt16;
+                                    oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << value;
                                     break;
+                                }
                                 case jarvis::dt_e::UINT32:
                                     oss << std::setw(width) << (hasZeroPadding ? std::setfill('0') : std::setfill(' ')) << castedData.Value.UInt32;
                                     break;
@@ -384,7 +447,6 @@ namespace muffin { namespace im {
         variableData.HasValue       = true;
         variableData.HasStatus      = true;
         variableData.HasTimestamp   = true;
-        variableData.DataType       = mDataType;
         
         for (const auto& polledDatum : polledData)
         {
@@ -802,7 +864,8 @@ namespace muffin { namespace im {
         default:
             break;
         }
-        
+        ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
+
         variableData.DataType = jarvis::dt_e::STRING;
         variableData.Value.String = ToMuffinString(it->second);
     }
