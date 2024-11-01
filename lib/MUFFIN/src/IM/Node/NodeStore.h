@@ -38,6 +38,9 @@ namespace muffin { namespace im {
         std::map<std::string, Node>::iterator end();
         std::map<std::string, Node>::const_iterator begin() const;
         std::map<std::string, Node>::const_iterator end() const;
+
+    public:
+        std::vector<Node*> GetCyclicalNode();
     private:
         NodeStore();
         virtual ~NodeStore();

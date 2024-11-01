@@ -22,7 +22,6 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "DataFormat/JSON/JSON.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Variable.h"
 
@@ -1291,6 +1290,70 @@ namespace muffin { namespace im {
         sprintf(buffer, format, data);
 
         return std::string(buffer);
+    }
+
+    std::pair<bool, daq_struct_t> Variable::CreateDaqStruct()
+    {
+        daq_struct_t daq;
+
+        if (RetrieveCount() == 0)
+        {
+            return std::make_pair(false, daq);
+        }
+    
+        var_data_t variableData = RetrieveData();
+        
+        daq.Name = mDeprecableDisplayName;
+        daq.SourceTimestamp = variableData.Timestamp;
+        daq.Uid = mDeprecableUID;
+        daq.Unit = mDeprecableDisplayUnit;
+        daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
+                    mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
+                    mqtt::topic_e::DAQ_PARAM;
+
+        switch (variableData.DataType)
+        {
+        case jarvis::dt_e::BOOLEAN:
+            daq.Value = variableData.Value.Boolean ? "true" : "false";
+            break;
+        case jarvis::dt_e::FLOAT32 :
+            daq.Value = Float32ConvertToString(variableData.Value.Float32);
+            break;
+        case jarvis::dt_e::FLOAT64:
+            daq.Value = Float64ConvertToString(variableData.Value.Float64);
+            break;
+        case jarvis::dt_e::INT16:
+            daq.Value = std::to_string(variableData.Value.Int16);
+            break;
+        case jarvis::dt_e::INT32:
+            daq.Value = std::to_string(variableData.Value.Int32);
+            break;
+        case jarvis::dt_e::INT64:
+            daq.Value = std::to_string(variableData.Value.Int64);
+            break;
+        case jarvis::dt_e::INT8 :
+            daq.Value = std::to_string(variableData.Value.Int8);
+            break;
+        case jarvis::dt_e::STRING:
+            daq.Value = std::string(variableData.Value.String.Data);
+            break;
+        case jarvis::dt_e::UINT16:
+            daq.Value = std::to_string(variableData.Value.UInt16);
+            break;
+        case jarvis::dt_e::UINT32:
+            daq.Value = std::to_string(variableData.Value.UInt32);
+            break;
+        case jarvis::dt_e::UINT64:
+            daq.Value = std::to_string(variableData.Value.UInt64);
+            break;
+        case jarvis::dt_e::UINT8:
+            daq.Value = std::to_string(variableData.Value.UInt8);
+            break;
+        default:
+            break;
+        }
+
+        return std::make_pair(true, daq);
     }
 
 

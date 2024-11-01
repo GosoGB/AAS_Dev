@@ -28,7 +28,7 @@
 #include "Include/TypeDefinitions.h"
 #include "Jarvis/Config/Information/Node.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
-
+#include "DataFormat/JSON/JSON.h"
 
 
 namespace muffin { namespace im {
@@ -74,6 +74,8 @@ namespace muffin { namespace im {
         std::string GetDisplayName() const { return mDeprecableDisplayName; }
         std::string GetDisplayUnit() const { return mDeprecableDisplayUnit; }
         std::pair<bool, jarvis::scl_e> GetNumericScale() const { return mNumericScale; }
+        bool GetHasAttributeEvent() const { return mHasAttributeEvent; }
+        std::pair<bool, daq_struct_t> CreateDaqStruct();
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
         void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);

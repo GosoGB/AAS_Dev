@@ -134,6 +134,20 @@ namespace muffin { namespace im {
         return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), nullptr);
     }
 
+    std::vector<Node*> NodeStore::GetCyclicalNode()
+    {
+        std::vector<Node*> cyclicalNodeVector;
+
+        for (auto& node : mMapNode)
+        {
+            if(node.second.VariableNode.GetHasAttributeEvent() == false)
+            {
+                cyclicalNodeVector.emplace_back(&node.second);
+            }
+        }
+        
+        return cyclicalNodeVector;
+    }
 
 
     NodeStore* NodeStore::mInstance = nullptr;

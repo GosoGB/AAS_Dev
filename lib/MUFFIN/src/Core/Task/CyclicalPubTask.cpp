@@ -17,6 +17,7 @@
 #include <freertos/task.h>
 #include <functional>
 
+#include "DataFormat/JSON/JSON.h"
 #include "Common/Time/TimeUtils.h"
 #include "Common/Assert.h"
 #include "Common/Status.h"
@@ -24,8 +25,8 @@
 #include "Core/Core.h"
 #include "CyclicalPubTask.h"
 #include "Protocol/MQTT/CDO.h"
+#include "IM/Node/Node.h"
 #include "IM/Node/NodeStore.h"
-
 
 
 namespace muffin {
@@ -37,6 +38,15 @@ namespace muffin {
         if (xTaskMonitorHandle != NULL)
         {
             LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
+            return;
+        }
+
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
+        
+        if (cyclicalNodeVector.empty())
+        {
+            LOG_WARNING(logger, "Cyclical Data DD");
             return;
         }
         
@@ -100,13 +110,24 @@ namespace muffin {
             LOG_WARNING(logger,"1분 경과 %lu",currentTimestamp);
 
             im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-            //  mHasAttributeEvent false 인 데이터 전송 
+            std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
+            
+            for (auto& node : cyclicalNodeVector)
+            {
+                std::pair<bool, daq_struct_t> ret;
+                ret = node->VariableNode.CreateDaqStruct();
 
+                if (ret.first == true)
+                {
+                    JSON json;
+                    const std::string payload = json.Serialize(ret.second);
+                    mqtt::Message message(ret.second.Topic, payload);
 
+                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+                    cdo.Store(message);
+                }
+            }
         }
-        
-       
-
     }
 
 }
