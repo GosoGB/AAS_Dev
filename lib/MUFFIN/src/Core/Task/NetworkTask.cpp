@@ -153,14 +153,22 @@ namespace muffin {
             LOG_DEBUG(logger, "CatHTTP is already initialized");
         }
         
-        Status ret = catHttp->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
+        const auto mutexHandle = catM1.TakeMutex();
+        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+        {
+            return mutexHandle.first;
+        }
+        
+        Status ret = catHttp->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO INIT CatHTTP: %s", ret.c_str());
+            catM1.ReleaseMutex();
             return ret;
         }
         s_IsCatHttpInitialized = true;
         
+        catM1.ReleaseMutex();
         return Status(Status::Code::GOOD);
     }
 
@@ -229,21 +237,29 @@ namespace muffin {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
+        const auto mutexHandle = catM1.TakeMutex();
+        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+        {
+            return mutexHandle.first;
+        }
+
         if (s_IsCatMqttInitialized == false)
         {
-            Status ret = catMqtt->Init(network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+            Status ret = catMqtt->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO INIT CatMQTT: %s", ret.c_str());
+                catM1.ReleaseMutex();
                 return ret;
             }
             s_IsCatMqttInitialized = true;
         }
 
-        Status ret = catMqtt->Connect();
+        Status ret = catMqtt->Connect(mutexHandle.second);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
+            catM1.ReleaseMutex();
             return ret;
         }
 
@@ -256,17 +272,20 @@ namespace muffin {
         {
             LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s", 
                 retTopic01.c_str(), retTopic02.c_str());
+            catM1.ReleaseMutex();
             return ret;
         }
 
-        ret = catMqtt->Subscribe(vectorTopicsToSubscribe);
+        ret = catMqtt->Subscribe(mutexHandle.second, vectorTopicsToSubscribe);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
+            catM1.ReleaseMutex();
             return ret;
         }
         
         s_IsCatMQTTConnected = true;
+        catM1.ReleaseMutex();
         return ret;
     }
 

@@ -144,7 +144,9 @@ namespace muffin {
 
     void publishMqttTask(void* pvParameter)
     {
+        CatM1& catM1 = CatM1::GetInstance();
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
         const uint8_t MAX_RETRY_COUNT = 5;
 
         while (true)
@@ -157,7 +159,6 @@ namespace muffin {
 
             const auto pubMessage = cdo.Peek();
             const Status status = pubMessage.first;
-            
             if (status.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO PEEK MESSAGE FROM CDO: %s ", status.c_str());
@@ -165,10 +166,16 @@ namespace muffin {
                 continue;
             }
 
-            mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+            const auto mutexHandle = catM1.TakeMutex();
+            if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+            {
+                vTaskDelay(500 / portTICK_PERIOD_MS);
+                continue;
+            }
+            
             for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
             {
-                Status ret = catMqtt.Publish(pubMessage.second);
+                Status ret = catMqtt.Publish(mutexHandle.second, pubMessage.second);
                 if (ret == Status::Code::GOOD)
                 {
                     cdo.Retrieve();
@@ -192,9 +199,7 @@ namespace muffin {
                     LOG_WARNING(logger, "[TRIAL: #%u] PUBLISH WAS UNSUCCESSFUL: %s", i, ret.c_str());
                 }
             }
-
-
-    
+            catM1.ReleaseMutex();
         }
     }
 }

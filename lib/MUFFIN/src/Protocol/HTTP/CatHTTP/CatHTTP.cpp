@@ -70,7 +70,7 @@ namespace muffin { namespace http {
     #endif
     }
 
-    Status CatHTTP::Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader, const bool outputResponse)
+    Status CatHTTP::Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader, const bool outputResponse)
     {
         /**
          * @todo 임시로 assert를 해제해두었습니다. 
@@ -82,7 +82,7 @@ namespace muffin { namespace http {
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_PDP) == false)
         {
-            ret = setPdpContext(pdp);
+            ret = setPdpContext(mutexHandle, pdp);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET PDP CONTEXT: %s", ret.c_str());
@@ -93,7 +93,7 @@ namespace muffin { namespace http {
         
         if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
         {
-            ret = setSslContext(ssl);
+            ret = setSslContext(mutexHandle, ssl);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
@@ -104,7 +104,7 @@ namespace muffin { namespace http {
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_REQ) == false)
         {
-            ret = setCustomRequestHeader(customRequestHeader);
+            ret = setCustomRequestHeader(mutexHandle, customRequestHeader);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET REQUEST HEADER: %s", ret.c_str());
@@ -115,7 +115,7 @@ namespace muffin { namespace http {
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_RES) == false)
         {
-            ret = setResponseHeaderOutput(outputResponse);
+            ret = setResponseHeaderOutput(mutexHandle, outputResponse);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET RESPONSE OUTPUT: %s", ret.c_str());
@@ -134,13 +134,13 @@ namespace muffin { namespace http {
         return ret;
     }
 
-    Status CatHTTP::GET(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
+    Status CatHTTP::GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         ASSERT((0 < strlen(header.ToString().c_str()) && strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH");
         ASSERT((0 < timeout), "INVALID TIMEOUT VALUE");
 
         header.UpdateParamter(parameter.ToString().c_str());
-        Status ret = setRequestURL(header.GetURL(), timeout);
+        Status ret = setRequestURL(mutexHandle, header.GetURL(), timeout);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET REQUEST URL:%s, %s",
@@ -158,7 +158,7 @@ namespace muffin { namespace http {
         const uint32_t timeoutMillis = timeout * 1000;
         std::string rxd;
 
-        ret = mCatM1.Execute(command);
+        ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO REQUEST GET: %s", ret.c_str());
@@ -173,7 +173,7 @@ namespace muffin { namespace http {
                 ret.c_str(), processCmeErrorCode(rxd).c_str());
             return cmeErrorCode;
         }
-        ret = mCatM1.Execute(header.ToString().c_str());
+        ret = mCatM1.Execute(header.ToString().c_str(), mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO REQUEST GET: %s", ret.c_str());
@@ -268,16 +268,16 @@ namespace muffin { namespace http {
         }
 
     SINK_TO_CatFS:
-        return sendResponse2CatFS();
+        return sendResponse2CatFS(mutexHandle);
     }
 
-    Status CatHTTP::POST(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
+    Status CatHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
         ASSERT((0 < strlen(header.ToString().c_str()) && strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH");
         ASSERT((0 < strlen(body.ToString().c_str()) && strlen(body.ToString().c_str()) < 1021953), "INVALID BODY LENGTH");
         ASSERT((0 < timeout), "INVALID TIMEOUT VALUE");
 
-        Status ret = setRequestURL(header.GetURL(), timeout);
+        Status ret = setRequestURL(mutexHandle, header.GetURL(), timeout);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET REQUEST URL:%s, %s",
@@ -299,7 +299,7 @@ namespace muffin { namespace http {
         const uint32_t timeoutMillis = timeout * 1000;
         std::string rxd;
 
-        ret = mCatM1.Execute(command);
+        ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO REQUEST POST: %s", ret.c_str());
@@ -318,7 +318,7 @@ namespace muffin { namespace http {
 
         LOG_DEBUG(logger, "Content: %s", (header.ToString() + body.ToString()).c_str());
         LOG_DEBUG(logger, "Content: %u", (header.ToString() + body.ToString()).length());
-        ret = mCatM1.Execute(header.ToString() + body.ToString());
+        ret = mCatM1.Execute(header.ToString() + body.ToString(), mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO REQUEST POST: %s", ret.c_str());
@@ -413,10 +413,10 @@ namespace muffin { namespace http {
         }
 
     SINK_TO_CatFS:
-        return sendResponse2CatFS();
+        return sendResponse2CatFS(mutexHandle);
     }
 
-    Status CatHTTP::Retrieve(std::string* response)
+    Status CatHTTP::Retrieve(const size_t mutexHandle, std::string* response)
     {
         ASSERT((response != nullptr), "RESPONSE VECTOR CANNOT BE NULL POINTER");
         ASSERT((response->size() == 0), "RESPONSE VECTOR MUST BE EMPTY");
@@ -436,7 +436,7 @@ namespace muffin { namespace http {
         size_t pos;
         size_t length;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             goto CME_ERROR;
@@ -511,7 +511,7 @@ namespace muffin { namespace http {
         }
     }
 
-    Status CatHTTP::setPdpContext(const network::lte::pdp_ctx_e pdp)
+    Status CatHTTP::setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp)
     {
         constexpr uint8_t BUFFER_SIZE = 32;
 
@@ -523,7 +523,7 @@ namespace muffin { namespace http {
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET PDP CONTEXT: %s", ret.c_str());
@@ -544,7 +544,7 @@ namespace muffin { namespace http {
         }
     }
 
-    Status CatHTTP::setSslContext(const network::lte::ssl_ctx_e ssl)
+    Status CatHTTP::setSslContext(const size_t mutexHandle, const network::lte::ssl_ctx_e ssl)
     {
         constexpr uint8_t BUFFER_SIZE = 32;
 
@@ -556,7 +556,7 @@ namespace muffin { namespace http {
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET SSL CONTEXT: %s", ret.c_str());
@@ -577,7 +577,7 @@ namespace muffin { namespace http {
         }
     }
 
-    Status CatHTTP::setCustomRequestHeader(const bool enable)
+    Status CatHTTP::setCustomRequestHeader(const size_t mutexHandle, const bool enable)
     {
         constexpr uint8_t BUFFER_SIZE = 32;
 
@@ -589,7 +589,7 @@ namespace muffin { namespace http {
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET CUSTOM REQUEST HEADER: %s", ret.c_str());
@@ -610,7 +610,7 @@ namespace muffin { namespace http {
         }
     }
 
-    Status CatHTTP::setResponseHeaderOutput(const bool turnOff)
+    Status CatHTTP::setResponseHeaderOutput(const size_t mutexHandle, const bool turnOff)
     {
         constexpr uint8_t BUFFER_SIZE = 32;
         
@@ -622,7 +622,7 @@ namespace muffin { namespace http {
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET RESPONSE HEADER OUTPUT: %s", ret.c_str());
@@ -643,7 +643,7 @@ namespace muffin { namespace http {
         }
     }
 
-    Status CatHTTP::sendResponse2CatFS()
+    Status CatHTTP::sendResponse2CatFS(const size_t mutexHandle)
     {
         ASSERT((mSetSinkToCatFS == true), "CatFS STORAGE OPTION MUST BE TURNED ON");
 
@@ -661,7 +661,7 @@ namespace muffin { namespace http {
         size_t pos;
         size_t length;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             goto CME_ERROR;
@@ -704,7 +704,7 @@ namespace muffin { namespace http {
         return cmeErrorCode;
     }
 
-    Status CatHTTP::setRequestURL(const std::string& url, const uint16_t timeout)
+    Status CatHTTP::setRequestURL(const size_t mutexHandle, const std::string& url, const uint16_t timeout)
     {
         ASSERT(
             (url.substr(0, 7) == "http://" || url.substr(0, 8) == "https://"),
@@ -723,7 +723,7 @@ namespace muffin { namespace http {
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET REQUEST URL: %s", ret.c_str());
@@ -738,7 +738,7 @@ namespace muffin { namespace http {
             return ret;
         }
 
-        ret = mCatM1.Execute(url);
+        ret = mCatM1.Execute(url, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET REQUEST URL: %s", ret.c_str());

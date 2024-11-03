@@ -55,7 +55,8 @@ namespace muffin {
     }
 
     CatM1::CatM1()
-        : mConfig(std::make_pair(false, jarvis::config::CatM1()))
+        : xSemaphore(NULL)
+        , mConfig(std::make_pair(false, jarvis::config::CatM1()))
     {
         mInitFlags.reset();
         mConnFlags.reset();
@@ -74,6 +75,13 @@ namespace muffin {
 
     Status CatM1::Init()
     {
+        xSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphore == NULL)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE SEMAPHORE");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+
         if (mState == state_e::SUCCEDDED_TO_INITIALIZE)
         {
             LOG_WARNING(logger, "REINITIALIZATION IS NOT ALLOWED");
@@ -335,17 +343,40 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status CatM1::Execute(const std::string& command)
+    std::pair<Status, size_t> CatM1::TakeMutex()
     {
+        if (xSemaphoreTake(xSemaphore, 1000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "FAILED TO TAKE MUTEX FOP LTE Cat.M1. TRY LATER.");
+            return std::make_pair(Status(Status::Code::BAD_TOO_MANY_OPERATIONS), mMutexHandle);
+        }
+
+        ++mMutexHandle;
+        return std::make_pair(Status(Status::Code::GOOD), mMutexHandle);
+    }
+
+    Status CatM1::ReleaseMutex()
+    {
+        xSemaphoreGive(xSemaphore);
+        return Status(Status::Code::GOOD);
+    }
+
+    Status CatM1::Execute(const std::string& command, const size_t mutexHandle)
+    {
+        if (mutexHandle != mMutexHandle)
+        {
+            return Status(Status::Code::BAD_SEMPAHORE_FILE_MISSING);
+        }
+
         if (mConnFlags.test(conn_flags_e::STATUS_PIN_GOOD) == false)
         {
             LOG_ERROR(logger, "FAILED TO EXECUTE DUE TO BAD MODEM STATUS. CHECK CONNECTION CABLE");
-            Status(Status::Code::BAD_DEVICE_FAILURE);
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         else if (mState == state_e::CatM1_DISCONNECTED)
         {
             LOG_ERROR(logger, "FAILED TO EXECUTE DUE TO DISCONNECTED MODEM");
-            Status(Status::Code::BAD_DEVICE_FAILURE);
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
         return mProcessor.Write(command);

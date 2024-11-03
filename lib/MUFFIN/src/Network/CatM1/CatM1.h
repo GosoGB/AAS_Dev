@@ -99,7 +99,9 @@ namespace muffin {
         state_e GetState() const;
         Status SyncWithNTP();
     public:
-        Status Execute(const std::string& command);
+        std::pair<Status, size_t> TakeMutex();
+        Status ReleaseMutex();
+        Status Execute(const std::string& command, const size_t mutexHandle);
         size_t GetAvailableBytes();
         int16_t Read();
         std::string ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd);
@@ -123,6 +125,8 @@ namespace muffin {
         static void IRAM_ATTR handlePinStatusISR();
 
     private:
+        size_t mMutexHandle = 0;
+        SemaphoreHandle_t xSemaphore;
         Processor mProcessor;
         std::pair<bool, jarvis::config::CatM1> mConfig;
         static state_e mState;

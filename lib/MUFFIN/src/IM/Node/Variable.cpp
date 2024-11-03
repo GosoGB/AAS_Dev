@@ -737,8 +737,8 @@ namespace muffin { namespace im {
                     const uint8_t byteHigh  = static_cast<uint8_t>(((polledDatum.Value.UInt16 >> 8) & 0xFF));
                     const uint8_t byteLow   = static_cast<uint8_t>((polledDatum.Value.UInt16 & 0xFF));
                     
-                    outputFlattenVector->emplace_back(byteLow);
                     outputFlattenVector->emplace_back(byteHigh);
+                    outputFlattenVector->emplace_back(byteLow);
 
                     if (mDeprecableUID == "DI0E")
                     {
@@ -787,18 +787,19 @@ namespace muffin { namespace im {
         
         case jarvis::dt_e::INT16:
             castedData->ValueType = jarvis::dt_e::INT16;
-            memcpy(&castedData->Value.Int16, vectorBytes.data(), sizeof(int16_t));
+            castedData->Value.Int16 = 
+                static_cast<int16_t>(vectorBytes[0]) <<  8 | 
+                vectorBytes[1];
             break;
         
         case jarvis::dt_e::INT32:
             castedData->ValueType = jarvis::dt_e::INT32;
             ASSERT((vectorBytes.size() == 4), "BYTE ARRAY SIZE MUST BE EQUAL TO 4");
-            // castedData->Value.Int32 = 
-            //     static_cast<int32_t>(vectorBytes[2]) << 24 | 
-            //     static_cast<int32_t>(vectorBytes[3]) << 16 | 
-            //     static_cast<int32_t>(vectorBytes[0]) <<  8 | 
-            //     vectorBytes[1];
-            memcpy(&castedData->Value.Int32, vectorBytes.data(), sizeof(int32_t));
+            castedData->Value.Int32 = 
+                static_cast<int32_t>(vectorBytes[0]) << 24 | 
+                static_cast<int32_t>(vectorBytes[1]) << 16 | 
+                static_cast<int32_t>(vectorBytes[2]) <<  8 | 
+                vectorBytes[3];
 
             if (mDeprecableUID == "DI0E")
             {
@@ -808,7 +809,15 @@ namespace muffin { namespace im {
         
         case jarvis::dt_e::INT64:
             castedData->ValueType = jarvis::dt_e::INT64;
-            memcpy(&castedData->Value.Int64, vectorBytes.data(), sizeof(int64_t));
+            castedData->Value.Int64 = 
+                static_cast<int64_t>(vectorBytes[0]) << 52 | 
+                static_cast<int64_t>(vectorBytes[1]) << 48 | 
+                static_cast<int64_t>(vectorBytes[2]) << 40 | 
+                static_cast<int64_t>(vectorBytes[3]) << 32 | 
+                static_cast<int64_t>(vectorBytes[4]) << 24 | 
+                static_cast<int64_t>(vectorBytes[5]) << 16 | 
+                static_cast<int64_t>(vectorBytes[6]) <<  8 | 
+                vectorBytes[7];
             break;
         
         case jarvis::dt_e::UINT8:
@@ -817,24 +826,23 @@ namespace muffin { namespace im {
             break;
         
         case jarvis::dt_e::UINT16:
-            {
-                const uint8_t temporaryStoredValue = vectorBytes[1];
-                vectorBytes[1] = vectorBytes[0];
-                vectorBytes[0] = temporaryStoredValue;
-
-                castedData->ValueType = jarvis::dt_e::UINT16;
-                memcpy(&castedData->Value.UInt16, vectorBytes.data(), sizeof(uint16_t));
-                break;
-            }
+            ASSERT((vectorBytes.size() == 2), "BYTE ARRAY SIZE MUST BE EQUAL TO 2");
+            castedData->ValueType = jarvis::dt_e::UINT16;
+            castedData->Value.UInt16 = 
+                static_cast<uint16_t>(vectorBytes[0]) <<  8 | 
+                vectorBytes[1];
+            break;
         case jarvis::dt_e::UINT32:
         {
             castedData->ValueType = jarvis::dt_e::UINT32;
-            uint32_t value = 0;
-            memcpy(&value, vectorBytes.data(), sizeof(uint32_t));
-            castedData->Value.UInt32 = value;
-            if (mDeprecableUID == "DI0E")
+            castedData->Value.UInt32 = 
+                static_cast<int32_t>(vectorBytes[0]) << 24 | 
+                static_cast<int32_t>(vectorBytes[1]) << 16 | 
+                static_cast<int32_t>(vectorBytes[2]) <<  8 | 
+                vectorBytes[3];
+            if (mDeprecableUID == "DI10")
             {
-                LOG_DEBUG(logger, "DI0E: castedData->Value.UInt32: %u", castedData->Value.UInt32);
+                LOG_DEBUG(logger, "DI10: castedData->Value.UInt32: %u", castedData->Value.UInt32);
             }
             break;
         }

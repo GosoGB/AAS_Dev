@@ -169,6 +169,17 @@ namespace muffin {
         }
         ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
         
+        CatM1& catM1 = CatM1::GetInstance();
+        const auto mutexHandle = catM1.TakeMutex();
+        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+        {
+            validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
+            validationResult.SetDescription("UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
+
+            callback(validationResult);
+            vTaskDelete(NULL);
+        }
+
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             JSON json;
             JsonDocument doc;
@@ -181,10 +192,11 @@ namespace muffin {
         #ifdef DEBUG
             LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
         #endif
-            Status ret = catHttp.GET(header, parameters);
+            Status ret = catHttp.GET(mutexHandle.second, header, parameters);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
+                catM1.ReleaseMutex();
                 
                 switch (ret.ToCode())
                 {
@@ -215,12 +227,12 @@ namespace muffin {
 #endif
 
             s_JarvisApiPayload.clear();
-            ret = catHttp.Retrieve(&s_JarvisApiPayload);
+            ret = catHttp.Retrieve(mutexHandle.second, &s_JarvisApiPayload);
             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
-
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
+                catM1.ReleaseMutex();
                 
                 switch (ret.ToCode())
                 {
@@ -247,6 +259,7 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
         }
+        catM1.ReleaseMutex();
         ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
 
 

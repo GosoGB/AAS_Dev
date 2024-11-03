@@ -96,7 +96,7 @@ namespace muffin { namespace mqtt {
     #endif
     }
 
-    Status CatMQTT::Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
+    Status CatMQTT::Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
     {
         /**
          * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
@@ -107,7 +107,7 @@ namespace muffin { namespace mqtt {
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_PDP) == false)
         {
-            ret = setPdpContext(pdp);
+            ret = setPdpContext(mutexHandle, pdp);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET PDP CONTEXT: %s", ret.c_str());
@@ -118,7 +118,7 @@ namespace muffin { namespace mqtt {
         
         if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
         {
-            ret = setSslContext(ssl);
+            ret = setSslContext(mutexHandle, ssl);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
@@ -129,14 +129,14 @@ namespace muffin { namespace mqtt {
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_VSN) == false)
         {
-            ret = setVersion();
+            ret = setVersion(mutexHandle);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET VERSION: %s", ret.c_str());
                 goto INIT_FAILED;
             }
 
-            ret = checkVersion();
+            ret = checkVersion(mutexHandle);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "VERSION NOT APPLIED PROPERLY: %s", ret.c_str());
@@ -147,14 +147,14 @@ namespace muffin { namespace mqtt {
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_LWT) == false)
         {
-            ret = setLastWill();
+            ret = setLastWill(mutexHandle);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET LWT MESSAGE: %s", ret.c_str());
                 goto INIT_FAILED;
             }
 
-            ret = checkLastWill();
+            ret = checkLastWill(mutexHandle);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "LWT NOT APPLIED PROPERLY: %s", ret.c_str());
@@ -165,7 +165,7 @@ namespace muffin { namespace mqtt {
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_KAT) == false)
         {
-            ret = setKeepAlive();
+            ret = setKeepAlive(mutexHandle);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAIL TO SET KEEP ALIVE: %s", ret.c_str());
@@ -184,7 +184,7 @@ namespace muffin { namespace mqtt {
         return ret;
     }
 
-    Status CatMQTT::Connect()
+    Status CatMQTT::Connect(const size_t mutexHandle)
     {
         /**
          * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
@@ -197,14 +197,14 @@ namespace muffin { namespace mqtt {
             return Status(Status::Code::GOOD);
         }
 
-        Status ret = openSession();
+        Status ret = openSession(mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO OPEN MQTT SESSION: %s", ret.c_str());
             return ret;
         }
         
-        ret = connectBroker();
+        ret = connectBroker(mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO MQTT BROKER: %s", ret.c_str());
@@ -270,7 +270,7 @@ namespace muffin { namespace mqtt {
         }
     }
 
-    Status CatMQTT::Subscribe(const std::vector<Message>& messages)
+    Status CatMQTT::Subscribe(const size_t mutexHandle, const std::vector<Message>& messages)
     {
         ASSERT((mState == state_e::CONNECTED), "MUST BE CONNECTED TO THE BROKER PRIOR TO \"Subscribe()\"");
         ASSERT((messages.size() != 0), "NUMBER OF TOPICS TO SUBSCRIBE CANNOT BE 0");
@@ -302,7 +302,7 @@ namespace muffin { namespace mqtt {
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SUBSCRIBE: %s", ret.c_str());
@@ -424,7 +424,7 @@ namespace muffin { namespace mqtt {
         }
     }
 
-    Status CatMQTT::Unsubscribe(const std::vector<Message>& messages)
+    Status CatMQTT::Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages)
     {
         ASSERT((mState == state_e::CONNECTED), "MUST BE CONNECTED TO THE BROKER PRIOR TO \"Unsubscribe()\"");
         ASSERT((messages.size() != 0), "NUMBER OF TOPICS TO UNSUBSCRIBE CANNOT BE 0");
@@ -456,7 +456,7 @@ namespace muffin { namespace mqtt {
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO UNSUBSCRIBE: %s", ret.c_str());
@@ -550,7 +550,7 @@ namespace muffin { namespace mqtt {
         }
     }
 
-    Status CatMQTT::Publish(const Message& message)
+    Status CatMQTT::Publish(const size_t mutexHandle, const Message& message)
     {
         ASSERT((mState == state_e::CONNECTED), "MUST BE CONNECTED TO THE BROKER PRIOR TO \"Unsubscribe()\"");
         ASSERT((strlen(message.GetPayload()) < 4097), "PAYLOAD SIZE CANNOT EXCEED 4,096 BYTES");
@@ -584,7 +584,7 @@ namespace muffin { namespace mqtt {
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PUBLISH: %s", ret.c_str());
@@ -610,7 +610,7 @@ namespace muffin { namespace mqtt {
         }
 
 HAS_RTS_SIGNAL:
-        ret = mCatM1.Execute(message.GetPayload());
+        ret = mCatM1.Execute(message.GetPayload(), mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PUBLISH: %s", ret.c_str());
@@ -732,7 +732,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::setPdpContext(const network::lte::pdp_ctx_e pdp)
+    Status CatMQTT::setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp)
     {
         char command[32];
         memset(command, '\0', sizeof(command));
@@ -744,7 +744,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET PDP CONTEXT: %s", ret.c_str());
@@ -765,7 +765,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::setSslContext(const network::lte::ssl_ctx_e ssl)
+    Status CatMQTT::setSslContext(const size_t mutexHandle, const network::lte::ssl_ctx_e ssl)
     {
         char command[32];
         memset(command, '\0', sizeof(command));
@@ -785,7 +785,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET SSL CONTEXT: %s", ret.c_str());
@@ -806,7 +806,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::setVersion()
+    Status CatMQTT::setVersion(const size_t mutexHandle)
     {
         char command[32];
         memset(command, '\0', sizeof(command));
@@ -818,7 +818,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET VERSION: %s", ret.c_str());
@@ -838,7 +838,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::setLastWill()
+    Status CatMQTT::setLastWill(const size_t mutexHandle)
     {
         constexpr uint8_t COMMAND_BUFFER_SIZE = UINT8_MAX;
         char command[COMMAND_BUFFER_SIZE];
@@ -869,7 +869,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET LWT: %s", ret.c_str());
@@ -898,7 +898,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::setKeepAlive()
+    Status CatMQTT::setKeepAlive(const size_t mutexHandle)
     {
         char command[32];
         memset(command, '\0', sizeof(command));
@@ -911,7 +911,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET KEEPALIVE: %s", ret.c_str());
@@ -943,14 +943,14 @@ PATTERN_FOUND:
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }*/
 
-    Status CatMQTT::checkVersion()
+    Status CatMQTT::checkVersion(const size_t mutexHandle)
     {
         const std::string command = "AT+QMTCFG=\"version\"," + std::to_string(static_cast<uint8_t>(mBrokerInfo.GetSocketID()));
         const std::string expected = "OK";
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CHECK PROTOCOL VERSION: %s", ret.c_str());
@@ -994,7 +994,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::checkLastWill()
+    Status CatMQTT::checkLastWill(const size_t mutexHandle)
     {
         if (strlen(mMessageLWT.GetPayload()) == 0)
         {
@@ -1009,7 +1009,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CHECK PROTOCOL VERSION: %s", ret.c_str());
@@ -1083,7 +1083,7 @@ PATTERN_FOUND:
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }*/
 
-    Status CatMQTT::openSession()
+    Status CatMQTT::openSession(const size_t mutexHandle)
     {
         const uint8_t brokerSocketID = static_cast<uint8_t>(mBrokerInfo.GetSocketID());
 
@@ -1095,7 +1095,7 @@ PATTERN_FOUND:
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO OPEN SESSION: %s", ret.c_str());
@@ -1180,7 +1180,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::connectBroker()
+    Status CatMQTT::connectBroker(const size_t mutexHandle)
     {
         const uint8_t brokerSocketID = static_cast<uint8_t>(mBrokerInfo.GetSocketID());
         
@@ -1193,7 +1193,7 @@ PATTERN_FOUND:
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command);
+        Status ret = mCatM1.Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO BROKER: %s", ret.c_str());

@@ -42,25 +42,25 @@ namespace muffin { namespace http {
         static CatHTTP* mInstance;
 
     public:
-        Status Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader = true, const bool outputResponse = false);
-        Status GET(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        Status POST(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
-        Status Retrieve(std::string* response);
+        Status Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader = true, const bool outputResponse = false);
+        Status GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        Status POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
+        Status Retrieve(const size_t mutexHandle, std::string* response);
         void SetSinkToCatFS(const bool save2CatFS);
         Status IsInitialized() const;
     private:
-        Status setPdpContext(const network::lte::pdp_ctx_e pdp);
-        Status setSslContext(const network::lte::ssl_ctx_e ssl);
-        Status setCustomRequestHeader(const bool enable);
-        Status setResponseHeaderOutput(const bool turnOff);
+        Status setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp);
+        Status setSslContext(const size_t mutexHandle, const network::lte::ssl_ctx_e ssl);
+        Status setCustomRequestHeader(const size_t mutexHandle, const bool enable);
+        Status setResponseHeaderOutput(const size_t mutexHandle, const bool turnOff);
     private:
         // Status checkPdpContext();
         // Status checkSslContext();
         // Status checkCustomRequestHeader();
         // Status checkResponseHeaderOutput();
     private:
-        Status sendResponse2CatFS();
-        Status setRequestURL(const std::string& url, const uint16_t timeout = 60);
+        Status sendResponse2CatFS(const size_t mutexHandle);
+        Status setRequestURL(const size_t mutexHandle, const std::string& url, const uint16_t timeout = 60);
     private:
         Status readUntilCONNECT(const uint32_t timeoutMillis, std::string* rxd);
         Status readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd);

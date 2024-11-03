@@ -62,28 +62,28 @@ namespace muffin { namespace mqtt {
         static CatMQTT* mInstance;
 
     public:
-        Status Init(const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl);
-        Status Connect();
+        Status Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl);
+        Status Connect(const size_t mutexHandle);
         // Status Disconnect();
         Status IsConnected();
-        Status Subscribe(const std::vector<Message>& messages);
-        Status Unsubscribe(const std::vector<Message>& messages);
-        Status Publish(const Message& message);
+        Status Subscribe(const size_t mutexHandle, const std::vector<Message>& messages);
+        Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages);
+        Status Publish(const size_t mutexHandle, const Message& message);
     private:
-        Status setPdpContext(const network::lte::pdp_ctx_e pdp);
-        Status setSslContext(const network::lte::ssl_ctx_e ssl);
-        Status setVersion();
-        Status setLastWill();
-        Status setKeepAlive();
+        Status setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp);
+        Status setSslContext(const size_t mutexHandle, const network::lte::ssl_ctx_e ssl);
+        Status setVersion(const size_t mutexHandle);
+        Status setLastWill(const size_t mutexHandle);
+        Status setKeepAlive(const size_t mutexHandle);
     private:
         // Status checkPdpContext();
         // Status checkSslContext();
-        Status checkVersion();
-        Status checkLastWill();
+        Status checkVersion(const size_t mutexHandle);
+        Status checkLastWill(const size_t mutexHandle);
         // Status checkKeepAlive();
     private:
-        Status openSession();
-        Status connectBroker();
+        Status openSession(const size_t mutexHandle);
+        Status connectBroker(const size_t mutexHandle);
         // Status disconnectBroker();
         // Status closeSession();
     private:
