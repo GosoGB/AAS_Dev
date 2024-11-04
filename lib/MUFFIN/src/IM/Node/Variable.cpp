@@ -1357,8 +1357,13 @@ namespace muffin { namespace im {
     {
         if (mNumericScale.first == false)
         {
-            // scl 설정 없이 float32 변형이 이루어졌기 때문에 유효숫자를 따로 입력할 필요 없다
-            return std::to_string(data);
+            /**
+             * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
+             */
+            char buffer[20];    
+            sprintf(buffer, "%0.2f", data);
+            return std::string(buffer);  
+
         }
         
         const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
@@ -1377,8 +1382,12 @@ namespace muffin { namespace im {
     {
         if (mNumericScale.first == false)
         {
-            // scl 설정 없이 float32 변형이 이루어졌기 때문에 유효숫자를 따로 입력할 필요 없다
-            return std::to_string(data);
+            /**
+             * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
+             */
+            char buffer[32];    
+            sprintf(buffer, "%0.2f", data);
+            return std::string(buffer); 
         }
         
         const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
@@ -1400,7 +1409,12 @@ namespace muffin { namespace im {
         {
             if (mDataType == jarvis::dt_e::FLOAT32 || mDataType == jarvis::dt_e::FLOAT64)
             {
-                return std::to_string(data);
+                /**
+                * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
+                */
+                char buffer[32];    
+                sprintf(buffer, "%0.2f", data);
+                return std::string(buffer); 
             }
             else
             {
