@@ -13,6 +13,8 @@
 
 
 
+#include <sstream>
+
 #include "CatFS.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
@@ -66,7 +68,7 @@ namespace muffin {
             return mutexHandle.first;
         }
         
-        const std::string command = "AT+QFLDS";
+        const std::string command = "AT+QFLDS=UFS";
         const uint32_t timeoutMillis = 500;
         std::string rxd;
 
@@ -81,11 +83,34 @@ namespace muffin {
         mCatM1.ReleaseMutex();
         if (ret != Status::Code::GOOD)
         {
-            mCatM1.ReleaseMutex();
             return ret;
         }
         
-        mCatM1.ReleaseMutex();
+        const std::string prefix = "+QFLDS: ";
+        const std::string postfix = "\r\n";
+
+        size_t start = rxd.find(prefix);
+        size_t end   = rxd.find(postfix, (start+ 1));
+        if (start == std::string::npos || end == std::string::npos)
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+        start += prefix.length();
+
+        const std::string response = response.substr(start, (end - start));
+        std::istringstream iss(response);
+        std::string strFreeBytes;
+        std::string strTotalBytes;
+        if (!std::getline(iss, strFreeBytes, ',') || !std::getline(iss, strTotalBytes))
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+        const size_t freeBytes  = Convert.ToUInt32(strFreeBytes);
+        const size_t totalBytes = Convert.ToUInt32(strTotalBytes);
+        LOG_INFO(logger, "Free Space: %u, Total Space: %u", freeBytes, totalBytes);
         return ret;
     }
     
@@ -389,7 +414,7 @@ namespace muffin {
             }
             else if (rxd->find("+CME ERROR:") != std::string::npos)
             {
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
+                return processCmeErrorCode(*rxd);
             }
             else
             {
@@ -398,6 +423,93 @@ namespace muffin {
         }
 
         return Status(Status::Code::BAD_TIMEOUT);
+    }
+
+    Status CatFS::processCmeErrorCode(const std::string& rxd)
+    {
+        const std::string cmeErrorIndicator = "+CME ERROR: ";
+        const size_t cmeStartPosition  = rxd.find(cmeErrorIndicator) + cmeErrorIndicator.length();
+        const size_t cmeFinishPosition = rxd.find("\r", cmeStartPosition + 1);
+
+        if (cmeStartPosition == std::string::npos || cmeFinishPosition == std::string::npos)
+        {
+            LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+        const size_t length = cmeFinishPosition - cmeStartPosition;
+        const std::string strCode = rxd.substr(cmeStartPosition, length);
+        const uint32_t cmeErrorCode = Convert.ToUInt32(strCode);
+        
+        switch (cmeErrorCode)
+        {
+        case 400:
+            LOG_ERROR(logger, "INVALID INPUT VALUE");
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        case 401:
+            LOG_ERROR(logger, "LARGER THAN THE SIZE OF THE FILE");
+            return Status(Status::Code::BAD_DATA_UNAVAILABLE);
+        case 402:
+            LOG_ERROR(logger, "READ ZERO BYTE");
+            return Status(Status::Code::BAD_NO_DATA);
+        case 403:
+            LOG_ERROR(logger, "DRIVE FULL");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        case 405:
+            LOG_ERROR(logger, "FILE NOT FOUND");
+            return Status(Status::Code::BAD_NOT_FOUND);
+        case 406:
+            LOG_ERROR(logger, "INVALID FILE NAME");
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        case 407:
+            LOG_ERROR(logger, "FILE ALREADY EXISTS");
+            return Status(Status::Code::BAD_ENTRY_EXISTS);
+        case 409:
+            LOG_ERROR(logger, "FAIL TO WRITE FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        case 410:
+            LOG_ERROR(logger, "FAIL TO OPEN FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        case 411:
+            LOG_ERROR(logger, "FAIL TO READ THE FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        case 413:
+            LOG_ERROR(logger, "REACHED THE MAX NUMBER OF FILE TO OPEN");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        case 414:
+            LOG_ERROR(logger, "THE FILE IS READ-ONLY");
+            return Status(Status::Code::BAD_NOT_WRITABLE);
+        case 416:
+            LOG_ERROR(logger, "INVALID FILE DESCRIPTOR");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        case 417:
+            LOG_ERROR(logger, "FAIL TO LIST THE FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        case 418:
+            LOG_ERROR(logger, "FAIL TO DELETE THE FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        case 419:
+            LOG_ERROR(logger, "FAIL TO GET STORAGE INFO");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        case 420:
+            LOG_ERROR(logger, "NO SPACE LEFT");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        case 421:
+            LOG_ERROR(logger, "TIME OUT");
+            return Status(Status::Code::BAD_TIMEOUT);
+        case 423:
+            LOG_ERROR(logger, "FILE TOO LARGE");
+            return Status(Status::Code::BAD_REQUEST_TOO_LARGE);
+        case 425:
+            LOG_ERROR(logger, "INVALID PARAMETER");
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        case 426:
+            LOG_ERROR(logger, "FILE ALREADY OPENED");
+            return Status(Status::Code::BAD_NOTHING_TO_DO);
+        default:
+            LOG_ERROR(logger, "UNKNOWN CME ERROR CODE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
     }
 
 

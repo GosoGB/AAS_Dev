@@ -107,7 +107,9 @@ namespace muffin {
     {
         ESP32FS& esp32FS = ESP32FS::GetInstance();
         Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
-
+    #if !defined(CONFIG_WITHOUT_JARVIS)
+        ret = Status(Status::Code::BAD);
+    #endif
         if (ret == Status::Code::GOOD)
         {
             return configureWithJarvis();

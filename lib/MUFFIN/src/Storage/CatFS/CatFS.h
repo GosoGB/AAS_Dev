@@ -67,6 +67,7 @@ namespace muffin {
         Status Seek(const size_t offset);
     private:
         Status readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd);
+        Status processCmeErrorCode(const std::string& rxd);
     private:
         int32_t mFileHandle = -1;
     };
