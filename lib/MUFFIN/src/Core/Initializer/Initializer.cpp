@@ -105,11 +105,9 @@ namespace muffin {
 
     Status Initializer::Configure()
     {
+    #if !defined(CONFIG_WITHOUT_JARVIS)
         ESP32FS& esp32FS = ESP32FS::GetInstance();
         Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
-    #if !defined(CONFIG_WITHOUT_JARVIS)
-        ret = Status(Status::Code::BAD);
-    #endif
         if (ret == Status::Code::GOOD)
         {
             return configureWithJarvis();
@@ -118,6 +116,9 @@ namespace muffin {
         {
             return configureWithoutJarvis();
         }
+    #else
+        return configureWithoutJarvis();
+    #endif
     }
 
     Status Initializer::configureWithoutJarvis()

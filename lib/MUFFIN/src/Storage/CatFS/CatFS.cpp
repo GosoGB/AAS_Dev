@@ -68,7 +68,7 @@ namespace muffin {
             return mutexHandle.first;
         }
         
-        const std::string command = "AT+QFLDS=UFS";
+        const std::string command = "AT+QFLDS=\"UFS\"";
         const uint32_t timeoutMillis = 500;
         std::string rxd;
 
@@ -87,10 +87,10 @@ namespace muffin {
         }
         
         const std::string prefix = "+QFLDS: ";
-        const std::string postfix = "\r\n";
+        const std::string postfix = "\r";
 
         size_t start = rxd.find(prefix);
-        size_t end   = rxd.find(postfix, (start+ 1));
+        size_t end   = rxd.find(postfix, (start + 1));
         if (start == std::string::npos || end == std::string::npos)
         {
             LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
@@ -98,7 +98,7 @@ namespace muffin {
         }
         start += prefix.length();
 
-        const std::string response = response.substr(start, (end - start));
+        const std::string response = rxd.substr(start, (end - start));
         std::istringstream iss(response);
         std::string strFreeBytes;
         std::string strTotalBytes;
@@ -356,7 +356,7 @@ namespace muffin {
         constexpr uint8_t BUFFER_SIZE = 64;
 
         char command[BUFFER_SIZE] = { 0 };
-        sprintf(command, "AT+QFSEEK=%u,%llu,0", mFileHandle, offset);
+        sprintf(command, "AT+QFSEEK=%u,%u,0", mFileHandle, offset);
         ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
         
         const uint32_t timeoutMillis = 300;
