@@ -102,6 +102,7 @@ namespace muffin { namespace mqtt {
          * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
          */
         // ASSERT((mState != state_e::INITIALIZED), "REINITIALIZATION IS FORBIDDEN");
+        mState = state_e::DISCONNECTED;
 
         Status ret = Status(Status::Code::UNCERTAIN);
 
@@ -116,16 +117,16 @@ namespace muffin { namespace mqtt {
             mInitFlags.set(init_flag_e::INITIALIZED_PDP);
         }
         
-        if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
-        {
-            ret = setSslContext(mutexHandle, ssl);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
-                goto INIT_FAILED;
-            }
-            mInitFlags.set(init_flag_e::INITIALIZED_SSL);
-        }
+        // if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
+        // {
+        //     ret = setSslContext(mutexHandle, ssl);
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
+        //         goto INIT_FAILED;
+        //     }
+        //     mInitFlags.set(init_flag_e::INITIALIZED_SSL);
+        // }
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_VSN) == false)
         {
@@ -298,6 +299,8 @@ namespace muffin { namespace mqtt {
             command.append(buffer);
         }
 
+        LOG_INFO(logger,"command : %s", command.c_str());
+
         const uint32_t timeoutMillis = 15 * 1000;
         const uint32_t startedMillis = millis();
         std::string rxd;
@@ -308,7 +311,7 @@ namespace muffin { namespace mqtt {
             LOG_ERROR(logger, "FAILED TO SUBSCRIBE: %s", ret.c_str());
             return ret;
         }
-
+        LOG_INFO(logger,"HERE");
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret != Status::Code::GOOD)
         {

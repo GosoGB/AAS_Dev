@@ -39,11 +39,12 @@ namespace muffin {
 
     TaskHandle_t xTaskCatM1Handle;
 
-    static bool s_IsMqttTopicCreated     = false;
-    static bool s_IsCatM1Connected       = false;
-    static bool s_IsCatMqttInitialized   = false;
-    static bool s_IsCatMQTTConnected     = false;
-    static bool s_IsCatHttpInitialized   = false;
+    static bool s_IsMqttTopicCreated      = false;
+    static bool s_IsCatM1Connected        = false;
+    static bool s_IsCatMqttInitialized    = false;
+    static bool s_IsCatMQTTConnected      = false;
+    static bool s_IsCatHttpInitialized    = false;
+    static bool s_IsCatMqttTopicSubscribed = false;
 
 
     Status InitCatM1(jarvis::config::CatM1* cin)
@@ -80,11 +81,12 @@ namespace muffin {
         {
             LOG_INFO(logger, "New configuration for LTE Cat.M1 modem");
 
-            s_IsMqttTopicCreated     = false;
-            s_IsCatM1Connected       = false;
-            s_IsCatMqttInitialized   = false;
-            s_IsCatMQTTConnected     = false;
-            s_IsCatHttpInitialized   = false;
+            s_IsMqttTopicCreated      = false;
+            s_IsCatM1Connected        = false;
+            s_IsCatMqttInitialized    = false;
+            s_IsCatMQTTConnected      = false;
+            s_IsCatHttpInitialized    = false;
+            s_IsCatMqttTopicSubscribed = false;
         }
 
         jarvis::config::Base* baseCIN = static_cast<jarvis::config::Base*>(cin);
@@ -218,12 +220,12 @@ namespace muffin {
     #if defined(DEBUG)
         mqtt::BrokerInfo info(
             MacAddress::GetEthernet(),
-            "mqtt.vitcon.iotops.opsnow.com",
-            8883,
+            "112.171.127.186",
+            1133,
             40,
             mqtt::socket_e::SOCKET_0,
-            "vitcon",
-            "tkfkdgo5!@#$"
+            "admin",
+            "admin"
         );
     #else
         mqtt::BrokerInfo info(MacAddress::GetEthernet());
@@ -263,27 +265,38 @@ namespace muffin {
             return ret;
         }
 
-        mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
-        mqtt::Message topicRemoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
-        std::vector<mqtt::Message> vectorTopicsToSubscribe;
-        Status retTopic01 = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
-        Status retTopic02 = EmplaceBack(std::move(topicRemoteControl), &vectorTopicsToSubscribe);
-        if ((retTopic01 != Status::Code::GOOD) || (retTopic01 != Status::Code::GOOD))
+        if (s_IsCatMqttTopicSubscribed == false)
         {
-            LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s", 
-                retTopic01.c_str(), retTopic02.c_str());
-            catM1.ReleaseMutex();
-            return ret;
-        }
+            mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
+            mqtt::Message topicRemoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
+            mqtt::Message topicFotaConfig(mqtt::topic_e::FOTA_CONFIG, "");
+            std::vector<mqtt::Message> vectorTopicsToSubscribe;
+            Status retTopic01 = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
+            Status retTopic02 = EmplaceBack(std::move(topicRemoteControl), &vectorTopicsToSubscribe);
+            Status retTopic03 = EmplaceBack(std::move(topicFotaConfig), &vectorTopicsToSubscribe);
+            if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) || (retTopic03 != Status::Code::GOOD))
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
+                    retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());
+                catM1.ReleaseMutex();
+                s_IsCatMqttTopicSubscribed = false;
+                return ret;
+            }
 
-        ret = catMqtt->Subscribe(mutexHandle.second, vectorTopicsToSubscribe);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
-            catM1.ReleaseMutex();
-            return ret;
+            ret = catMqtt->Subscribe(mutexHandle.second, vectorTopicsToSubscribe);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
+                catM1.ReleaseMutex();
+                s_IsCatMqttTopicSubscribed = false;
+                return ret;
+            }
+
+            s_IsCatMqttTopicSubscribed = true;
         }
         
+
+
         s_IsCatMQTTConnected = true;
         catM1.ReleaseMutex();
         return ret;

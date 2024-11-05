@@ -138,7 +138,6 @@ namespace muffin { namespace http {
     {
         ASSERT((0 < strlen(header.ToString().c_str()) && strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH");
         ASSERT((0 < timeout), "INVALID TIMEOUT VALUE");
-
         header.UpdateParamter(parameter.ToString().c_str());
         Status ret = setRequestURL(mutexHandle, header.GetURL(), timeout);
         if (ret != Status::Code::GOOD)
@@ -147,6 +146,7 @@ namespace muffin { namespace http {
                 header.GetURL().c_str(), ret.c_str());
             return ret;
         }
+        LOG_WARNING(logger,"header.GetURL() : %s",header.GetURL().c_str());
 
         constexpr uint8_t BUFFER_SIZE = 32;
         

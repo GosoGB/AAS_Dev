@@ -55,7 +55,8 @@ namespace muffin { namespace mqtt {
         ERROR                   = 9,
         OPERATION               = 10,
         UPTIME                  = 11,
-        FINISHEDGOODS           = 12
+        FINISHEDGOODS           = 12,
+        FOTA_CONFIG             = 13
     } topic_e;
 
     typedef enum class MqttQoSEnum

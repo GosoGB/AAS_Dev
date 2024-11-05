@@ -54,5 +54,6 @@ namespace muffin { namespace mqtt {
         static std::string mOperation;
         static std::string mUptime;
         static std::string mFinishedGoods;
+        static std::string mFotaConfig;
     };
 }}
