@@ -61,12 +61,14 @@ namespace muffin {
         virtual Status RemoveDirectory(const char* path) override;
         virtual Status RemoveDirectory(const std::string &path) override;
     public:
-        Status Open(const std::string& path);
+        Status Open(const std::string& path, bool temporary = true);
         Status Close();
         Status Read(const size_t length, uint8_t outputBuffer[]);
         Status Seek(const size_t offset);
     private:
         Status readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd);
+        std::pair<Status, size_t> processMetadataForQFREAD(const uint32_t timeoutMillis);
+        Status readBytes(const uint32_t timeoutMillis, const size_t length, uint8_t outputBuffer[]);
         Status processCmeErrorCode(const std::string& rxd);
     private:
         int32_t mFileHandle = -1;

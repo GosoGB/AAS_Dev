@@ -130,8 +130,9 @@ namespace muffin {
             }
             vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
-
+    #if !defined(CATFS)
         StartTaskMQTT();
+    #endif
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)
