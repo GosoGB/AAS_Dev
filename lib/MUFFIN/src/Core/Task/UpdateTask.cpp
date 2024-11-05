@@ -344,7 +344,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download/", "MODLINK-L/0.0.1");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
