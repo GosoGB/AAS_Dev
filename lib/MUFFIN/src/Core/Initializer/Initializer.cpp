@@ -105,9 +105,9 @@ namespace muffin {
 
     Status Initializer::Configure()
     {
+    #if !defined(CATFS)
         ESP32FS& esp32FS = ESP32FS::GetInstance();
         Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
-
         if (ret == Status::Code::GOOD)
         {
             return configureWithJarvis();
@@ -116,6 +116,9 @@ namespace muffin {
         {
             return configureWithoutJarvis();
         }
+    #else
+        return configureWithoutJarvis();
+    #endif
     }
 
     Status Initializer::configureWithoutJarvis()
@@ -130,7 +133,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1");
             return ret;
         }
-
+    #if !defined(CATFS)
         ret = InitCatHTTP();
         if (ret != Status::Code::GOOD)
         {
@@ -144,8 +147,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO CONNECT TO THE BROKER");
             return ret;
         }
-        
-        StartCatM1Task();
+    #endif
         return ret;
     }
 
