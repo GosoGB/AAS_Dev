@@ -5,7 +5,7 @@
  * @brief 다중 Modbus 슬레이브에 대한 주소 정보를 표현하는 클래스를 정의합니다.
  * 
  * @date 2024-10-20
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -75,7 +75,7 @@ namespace muffin { namespace modbus {
         printAddressTable();
         printAddressTable();
     #else
-        CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
+        // CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
     #endif
     
         // countBufferSize();
@@ -99,7 +99,7 @@ namespace muffin { namespace modbus {
         #if defined(DEBUG)
             printAddressTable();
         #else
-            CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
+            // CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
         #endif
             // countBufferSize();
             return ret;

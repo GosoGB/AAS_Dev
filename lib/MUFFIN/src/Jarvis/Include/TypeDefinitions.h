@@ -5,7 +5,7 @@
  * @brief JARVIS에서 사용하는 데이터 타입들을 정의합니다.
  * 
  * @date 2024-10-14
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

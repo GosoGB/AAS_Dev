@@ -5,7 +5,7 @@
  * @brief MODLINK 동작과 관련된 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
  * @date 2024-10-12
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -58,7 +58,7 @@ namespace muffin { namespace jarvis {
         const bool isExpired    = json["exp"].as<bool>();
         const uint16_t pollingInverval = json["intvPoll"].as<uint16_t>();
         const uint16_t serverInverval  = json["intvSrv"].as<uint16_t>();
-        const bool factoryReset = json["fmt"].as<bool>();
+        const bool factoryReset = json["rst"].as<bool>();
 
         const std::string snic = json["snic"].as<std::string>();
         const auto retSNIC = convertToServerNIC(snic);
@@ -109,7 +109,7 @@ namespace muffin { namespace jarvis {
         isValid &= json.containsKey("exp");
         isValid &= json.containsKey("intvPoll");
         isValid &= json.containsKey("intvSrv");
-        isValid &= json.containsKey("fmt");
+        isValid &= json.containsKey("rst");
         
         if (isValid == true)
         {
@@ -128,11 +128,11 @@ namespace muffin { namespace jarvis {
         isValid &= json["exp"].isNull()             == false;
         isValid &= json["intvPoll"].isNull()        == false;
         isValid &= json["intvSrv"].isNull()         == false;
-        isValid &= json["fmt"].isNull()             == false;
+        isValid &= json["rst"].isNull()             == false;
         isValid &= json["exp"].is<bool>()           == true;
         isValid &= json["intvPoll"].is<uint16_t>()  == true;
         isValid &= json["intvSrv"].is<uint16_t>()   == true;
-        isValid &= json["fmt"].is<bool>()           == true;
+        isValid &= json["rst"].is<bool>()           == true;
         
         if (isValid == true)
         {

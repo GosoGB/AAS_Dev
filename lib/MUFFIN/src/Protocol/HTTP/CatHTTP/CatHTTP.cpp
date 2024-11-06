@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈의 HTTP 프로토콜 클래스를 선언합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -648,7 +648,7 @@ namespace muffin { namespace http {
         ASSERT((mSetSinkToCatFS == true), "CatFS STORAGE OPTION MUST BE TURNED ON");
 
         constexpr uint8_t BUFFER_SIZE = 64;
-        constexpr uint8_t TIMEOUT_IN_SECOND = 60;
+        constexpr uint16_t TIMEOUT_IN_SECOND = 60*10;
 
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));
@@ -878,6 +878,7 @@ namespace muffin { namespace http {
 
     Status CatHTTP::processCmeErrorCode(const std::string& rxd)
     {
+        LOG_ERROR(logger, "rxd: %s", rxd.c_str());
         const std::string cmeErrorIndicator = "+CME ERROR: ";
         const size_t cmeStartPosition  = rxd.find(cmeErrorIndicator) + cmeErrorIndicator.length();
         const size_t cmeFinishPosition = rxd.find("\r", cmeStartPosition);

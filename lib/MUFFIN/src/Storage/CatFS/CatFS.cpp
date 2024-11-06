@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈의 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 정의합니다.
  * 
  * @date 2024-11-04
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -372,14 +372,96 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO READ DATA: %s", ret.c_str());
             return ret;
         }
-        
+    #ifdef DEBUG
         for (size_t i = 0; i < length; ++i)
         {
             Serial.print(outputBuffer[i]);
             Serial.print(" ");
         }
         Serial.println();
+    #endif
+        
         return ret;
+    }
+
+    Status CatFS::DownloadFile(const std::string& path, std::string* data)
+    {
+        constexpr uint8_t BUFFER_SIZE = 64;
+        char command[BUFFER_SIZE] = { 0 };
+        // "AT+QFDWL=\"" + fileName + "\"";
+        sprintf(command, "AT+QFDWL=\"%s\"", path.c_str());
+        ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
+        
+        const uint32_t timeoutMillis = 20*1000;
+        std::string rxd;
+
+        const auto mutexHandle = mCatM1.TakeMutex();
+        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+        {
+            return mutexHandle.first;
+        }
+
+        Status ret = mCatM1.Execute(command, mutexHandle.second);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DOWNLOAD FILE: %s", ret.c_str());
+            mCatM1.ReleaseMutex();
+            return ret;
+        }
+
+        ret = readUntilOKorERROR(timeoutMillis, &rxd);
+        mCatM1.ReleaseMutex();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SEEK: %s, %s", ret.c_str(), rxd.c_str());
+        }
+        
+        size_t dataStartIdx = rxd.find("CONNECT");
+        if (dataStartIdx == std::string::npos) 
+        { 
+            LOG_ERROR(logger, "NOT FOUND IN THE RESPONSE STRING");
+            return Status(Status::Code::BAD);
+        }
+        dataStartIdx += std::string("CONNECT").length();
+        dataStartIdx = rxd.find_first_not_of("\r\n ", dataStartIdx); // 공백, 개행 제거
+
+        size_t dataEndIdx = rxd.find("+QFDWL:");
+        if (dataEndIdx == std::string::npos) 
+        { 
+            LOG_ERROR(logger, "NOT FOUND IN THE RESPONSE STRING");
+            return Status(Status::Code::BAD);
+        }
+
+        std::string metaData = rxd.substr(dataEndIdx);
+        *data = rxd.substr(dataStartIdx, (dataEndIdx - dataStartIdx)-2);
+
+        size_t sizeIdx = metaData.find_last_of(' ') + 1;
+        size_t commIdx = metaData.find_last_of(',');
+
+        size_t size = std::stoi(metaData.substr(sizeIdx, commIdx - sizeIdx));
+        size_t carriageReturnIdx = metaData.find('\r');
+        std::string checksumReceived = metaData.substr(commIdx + 1, carriageReturnIdx - (commIdx + 1));
+        uint16_t checksumReceivedUINT = std::stoi(checksumReceived,0,16);
+        uint16_t checksumValue = this->calculateChecksum(*data);
+        
+        if ( data->length() != size )
+        {
+            LOG_ERROR(logger,"Failed to download file \"%s\" because the length is different", path.c_str());
+            LOG_ERROR(logger,"Actual length is %d while expected length is %d \n", data->length(), size);
+            return Status(Status::Code::BAD);
+        }
+
+        if ( checksumValue != checksumReceivedUINT)
+        {
+            LOG_ERROR(logger,"Failed to download file \"%s\" due to invalid checksum ", path.c_str());
+            LOG_ERROR(logger,"Calculated checksum is %d while expected checksum is %d \n", checksumValue, checksumReceivedUINT);
+            return Status(Status::Code::BAD);
+        }
+        
+        LOG_DEBUG(logger,"Downloaded file \"%s\" with length %d and checksum %u \n", path.c_str(), size, checksumValue);
+
+        return Status(Status::Code::GOOD);
+
     }
 
     Status CatFS::Seek(const size_t offset)
@@ -666,6 +748,44 @@ namespace muffin {
         }
     }
 
+    
+    /**
+     * @brief 데이터 무결성을 검증하기 위한 16 비트 비트와이즈 XOR 체크섬 값을 반환하는 메서드입니다.
+     * 체크섬 값은 Cat.M1 모듈과 파일을 업로드하거나 다운로드 받을 때 데이터 무결성을 검증하기 위한
+     * 것으로 Cat.M1 모듈이 계산한 값과 MODLINK가 계산한 값을 비교하여 일치하는 경우에만 데이터가
+     * 정상적으로 송수신된 것입니다. 반대의 경우 데이터 송수신 과정에 오류가 있었음을 의미합니다.
+     * 
+     * 16 비트 비트와이즈 XOR 체크섬에 대해 알아보겠습니다. 먼저 16 비트인 이유는 체크섬 계산 시
+     * 8비트짜리 변수를 두 개를 사용한다는 의미입니다. 그 다음으로 비트와이즈(bitwise)란 비트의 
+     * 배열로 이루어진 숫자에 비트 단위로 적용되는 연산을 사용한다는 의미입니다. 마지막으로 XOR은
+     * 비트와이즈 연산의 하나로 두 비트 중 하나만 1일 때만 1을 출력하는 연산입니다. 다만 Cat.M1
+     * 모듈은 마지막 계산 시 남은 8비트 데이터가 1개일 경우에는 두 개의 바이트 중 상위 바이트에
+     * 할당하여 계산을 수행합니다.
+     * 
+     * @param contents Cat.M1 모듈에 저장할 데이터입니다.
+     * @return uint16_t 16 비트 XOR 체크섬 값
+     */
+    uint16_t CatFS::calculateChecksum(const std::string contents)
+    {
+        bool isEven = contents.length() % 2 == 0 ? true : false;
+        uint16_t rep = isEven == true ? contents.length() : contents.length() - 1;
+        uint8_t checksumArray[2] = { 0, 0 };
+
+        for (size_t i = 0; i < rep; i+=2)
+        {
+            checksumArray[0] ^= contents[i];
+            checksumArray[1] ^= contents[i+1];
+        }
+
+        if ( isEven == false )
+        {
+            uint16_t idx = contents.length() - 1;
+            checksumArray[0] ^= contents[idx];
+        }
+        
+        uint16_t checksum = checksumArray[1] | (checksumArray[0] << 8);
+        return checksum;
+    }
 
     CatFS* CatFS::mInstance = nullptr;
 }

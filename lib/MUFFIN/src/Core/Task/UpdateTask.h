@@ -5,7 +5,7 @@
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
  * 
  * @date 2024-10-29
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -20,11 +20,23 @@
 
 namespace muffin {
 
+    void StartManualFirmwareUpdate(JsonDocument& doc);
     void StartUpdateTask();
     void UpdateTask(void* pvParameter);
     bool HasNewFirmwareFOTA();
     bool DownloadFirmware();
-    bool PostDownloadResult();
+    bool PostDownloadResult(const std::string resultStr);
+    bool PostFinishResult(const std::string resultStr);
+    bool UpdateFirmware();
+    void SendStatusMSG();
+    void StopAllTask();
+
+    typedef struct UrlInfo
+    {
+        uint16_t Port;
+        std::string Host;
+       
+    } Fota_url_t;
  
     typedef struct McuInfo
     {
@@ -45,12 +57,10 @@ namespace muffin {
         mcu_t mcu2;
     } fota_Info_t;
 
-    constexpr uint8_t FIRMWARE_VERSION = 1;
+    constexpr uint8_t FIRMWARE_VERSION_CODE_MCU1 = 1;
+    const std::string FIRMWARE_VERSION_MCU1 = "1.0.0";
     constexpr uint8_t MAX_RETRY_COUNT = 5;
     
-    extern std::string FotaHost;
-    extern uint16_t FotaPort;
-#if !defined(DEBUG)
-    OTA 서버 릴리즈 주소 확인해야 함!!!
-#endif
+    extern Fota_url_t RelaseUrl;
+    extern Fota_url_t DownloadUrl;
 }

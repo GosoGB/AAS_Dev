@@ -6,7 +6,7 @@
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -34,6 +34,7 @@
 #include "Task/MqttTask.h"
 #include "Task/JarvisTask.h"
 #include "Task/UpdateTask.h"
+#include "Task/CyclicalPubTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
@@ -132,6 +133,7 @@ namespace muffin {
         }
     #if !defined(CATFS)
         StartTaskMQTT();
+        StartUpdateTask();
     #endif
     }
 
@@ -153,8 +155,8 @@ namespace muffin {
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
             startRemoteControll(payload);
             break;
-        case mqtt::topic_e::FOTA_CONFIG:
-            setFotaURL(payload);
+        case mqtt::topic_e::FOTA_UPDATE:
+            startOTA(payload);
             break;
         default:
             ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
@@ -567,6 +569,9 @@ ERROR_RESPONSE:
          * @todo 모든 태스크를 종료해야 합니다.
          */
         {
+            StopCyclicalsMSGTask();
+            StopModbusTask();
+
             AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
             alarmMonitor.StopTask();
             alarmMonitor.Clear();
@@ -579,7 +584,6 @@ ERROR_RESPONSE:
             operationTime.StopTask();
             operationTime.Clear();
 
-            StopModbusTask();
             ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
             modbusRTU->Clear();
 
@@ -649,7 +653,7 @@ ERROR_RESPONSE:
         ApplyJarvisTask();
     }
 
-    void Core::setFotaURL(const std::string& payload)
+    void Core::startOTA(const std::string& payload)
     {
         JSON json;
         JsonDocument doc;
@@ -688,11 +692,7 @@ ERROR_RESPONSE:
             return;
         }
 
-        FotaHost = doc["host"].as<std::string>();
-        FotaPort = static_cast<uint16_t>(std::stoi(doc["port"].as<const char*>()));
-        LOG_INFO(logger," host : %s, port : %d", FotaHost.c_str(), FotaPort);
-
-        StartUpdateTask();
+        StartManualFirmwareUpdate(doc);
     }
 
     Core* Core::mInstance = nullptr;

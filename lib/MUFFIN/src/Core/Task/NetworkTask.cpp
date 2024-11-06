@@ -5,7 +5,7 @@
  * @brief 네트워크 인터페이스 사용과 관련된 태스크를 정의합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -220,15 +220,24 @@ namespace muffin {
     #if defined(DEBUG)
         mqtt::BrokerInfo info(
             MacAddress::GetEthernet(),
-            "112.171.127.186",
-            1133,
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
             40,
             mqtt::socket_e::SOCKET_0,
-            "admin",
-            "admin"
+            "vitcon",
+            "tkfkdgo5!@#$"
         );
     #else
-        mqtt::BrokerInfo info(MacAddress::GetEthernet());
+        // mqtt::BrokerInfo info(MacAddress::GetEthernet());
+        mqtt::BrokerInfo info(
+            MacAddress::GetEthernet(),
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
+            40,
+            mqtt::socket_e::SOCKET_0,
+            "vitcon",
+            "tkfkdgo5!@#$"
+        );
     #endif
 
         CatM1& catM1 = CatM1::GetInstance();
@@ -269,12 +278,13 @@ namespace muffin {
         {
             mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
             mqtt::Message topicRemoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
-            mqtt::Message topicFotaConfig(mqtt::topic_e::FOTA_CONFIG, "");
+            mqtt::Message topicFotaUpdate(mqtt::topic_e::FOTA_UPDATE, "");
             std::vector<mqtt::Message> vectorTopicsToSubscribe;
             Status retTopic01 = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
             Status retTopic02 = EmplaceBack(std::move(topicRemoteControl), &vectorTopicsToSubscribe);
-            Status retTopic03 = EmplaceBack(std::move(topicFotaConfig), &vectorTopicsToSubscribe);
-            if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) || (retTopic03 != Status::Code::GOOD))
+            Status retTopic03 = EmplaceBack(std::move(topicFotaUpdate), &vectorTopicsToSubscribe);
+            if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) 
+            || (retTopic03 != Status::Code::GOOD) )
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
                     retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());

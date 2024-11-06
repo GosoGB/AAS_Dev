@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -343,9 +343,14 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
+    void CatM1::KillUrcTask(bool forOTA)
+    {
+        mProcessor.StopUrcHandleTask(forOTA);
+    }
+    
     std::pair<Status, size_t> CatM1::TakeMutex()
     {
-        if (xSemaphoreTake(xSemaphore, 1000)  != pdTRUE)
+        if (xSemaphoreTake(xSemaphore, 2000)  != pdTRUE)
         {
             LOG_WARNING(logger, "FAILED TO TAKE MUTEX FOP LTE Cat.M1. TRY LATER.");
             return std::make_pair(Status(Status::Code::BAD_TOO_MANY_OPERATIONS), mMutexHandle);

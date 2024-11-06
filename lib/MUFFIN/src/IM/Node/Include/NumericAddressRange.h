@@ -5,7 +5,7 @@
  * @brief 숫자형 주소의 범위를 표현하는 클래스를 선언합니다.
  * 
  * @date 2024-09-28
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

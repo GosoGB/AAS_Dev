@@ -5,7 +5,7 @@
  * @brief MUFFIN 프레임워크가 적용된 펌웨어의 진입점입니다.
  * 
  * @date 2024-10-16
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -15,23 +15,12 @@
 
 #include <MUFFIN.h>
 
-#include "Network/CatM1/CatM1.h"
-#include "Storage/CatFS/CatFS.h"
-
 
 
 void setup()
 {
     MUFFIN muffin;
     muffin.Start();
-
-
-    using namespace muffin;
-    
-    CatM1& catM1 = CatM1::GetInstance();
-    CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
-    Status ret = catFS->Begin();
-    LOG_DEBUG(logger, "Return: %s", ret.c_str());
 }
 
 void loop()

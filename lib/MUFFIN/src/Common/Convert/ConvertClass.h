@@ -5,7 +5,7 @@
  * @brief 다양한 데이터 타입 간의 변환을 지원하는 유틸리티 클래스를 선언합니다.
  * 
  * @date 2024-10-20
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

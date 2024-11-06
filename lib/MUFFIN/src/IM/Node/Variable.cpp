@@ -6,7 +6,7 @@
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
  * @date 2024-11-01
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -596,7 +596,7 @@ namespace muffin { namespace im {
         try
         {
             mDataBuffer.emplace_back(variableData);
-            logData(variableData);
+            // logData(variableData);
         }
         catch(const std::exception& e)
         {
@@ -900,13 +900,6 @@ namespace muffin { namespace im {
     {
         auto it = mMapMappingRules.second.end();
 
-        if (mDeprecableUID == "DI05")
-        {
-            LOG_DEBUG(logger, "[DI05] Data Type: %u", static_cast<uint8_t>(variableData.DataType));
-            LOG_DEBUG(logger, "[DI05] Value: %u", variableData.Value.UInt16);
-        }
-        
-
         switch (variableData.DataType)
         {
         case jarvis::dt_e::BOOLEAN:
@@ -928,9 +921,19 @@ namespace muffin { namespace im {
             break;
         }
         ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
-
-        variableData.DataType = jarvis::dt_e::STRING;
-        variableData.Value.String = ToMuffinString(it->second);
+        
+        if (it == mMapMappingRules.second.end())
+        {
+            variableData.DataType = jarvis::dt_e::STRING;
+            variableData.Value.String = ToMuffinString("UNDEFINED : " + std::to_string(variableData.Value.UInt16));
+        }
+        else
+        {
+            variableData.DataType = jarvis::dt_e::STRING;
+            variableData.Value.String = ToMuffinString(it->second);
+        }
+        
+        
     }
 
     void Variable::applyNumericScale(var_data_t& variableData)
@@ -1131,7 +1134,7 @@ namespace muffin { namespace im {
     {
         if (mHasAttributeEvent == false)
         {
-            LOG_INFO(logger,"HasAttributeEvent IS FALSE");
+            // LOG_INFO(logger,"HasAttributeEvent IS FALSE");
             return false;
         }
 

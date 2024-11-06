@@ -5,7 +5,7 @@
  * @brief MQTT 프로토콜의 토픽 클래스를 정의합니다.
  * 
  * @date 2024-09-12
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -36,20 +36,23 @@ namespace muffin { namespace mqtt {
             }
             
         #if defined(DEBUG)
-            mLastWill               = "test/scautr/modlink/status/network/will";
+            mLastWill               = "scautr/modlink/status/network/will";
             mJarvisRequest          = "mfm/" + macAddress;
             mJarvisResponse         = "mfm/resp/" + macAddress;
-            mRemoteControlRequest   = "test/scautr/req/" + macAddress;
-            mRemoteControlResponse  = "test/scautr/resp/" + macAddress;
-            mDaqIntput              = "test/scautr/equipment/daq/input";
-            mDaqOutput              = "test/scautr/equipment/daq/output";
-            mDaqParam               = "test/scautr/equipment/param";
-            mAlarm                  = "test/scautr/equipment/status/alarm";
-            mError                  = "test/scautr/equipment/status/error";
-            mOperation              = "test/scautr/equipment/status/operation";
-            mUptime                 = "test/progix/dashboard/ut";
-            mFinishedGoods          = "test/progix/dashboard/fg";
+            mRemoteControlRequest   = "scautr/req/" + macAddress;
+            mRemoteControlResponse  = "scautr/resp/" + macAddress;
+            mDaqIntput              = "scautr/equipment/daq/input";
+            mDaqOutput              = "scautr/equipment/daq/output";
+            mDaqParam               = "scautr/equipment/param";
+            mAlarm                  = "scautr/equipment/status/alarm";
+            mError                  = "scautr/equipment/status/error";
+            mPush                   = "progix/push";
+            mOperation              = "scautr/equipment/status/operation";
+            mUptime                 = "progix/dashboard/ut";
+            mFinishedGoods          = "progix/dashboard/fg";
             mFotaConfig             = "fota/config";
+            mFotaUpdate             = "fota/update/" + macAddress;
+            mFotaStatus             = "fota/status";
         #else
             mLastWill               = "scautr/modlink/status/network/will";
             mJarvisRequest          = "mfm/" + macAddress;
@@ -61,10 +64,13 @@ namespace muffin { namespace mqtt {
             mDaqParam               = "scautr/equipment/param";
             mAlarm                  = "scautr/equipment/status/alarm";
             mError                  = "scautr/equipment/status/error";
+            mPush                   = "progix/push";
             mOperation              = "scautr/equipment/status/operation";
             mUptime                 = "progix/dashboard/ut";
             mFinishedGoods          = "progix/dashboard/fg";
             mFotaConfig             = "fota/config";
+            mFotaUpdate             = "fota/update/" + macAddress;
+            mFotaStatus             = "fota/status";
         #endif
         }
 
@@ -115,6 +121,8 @@ namespace muffin { namespace mqtt {
             return mAlarm.c_str();
         case topic_e::ERROR:
             return mError.c_str();
+        case topic_e::PUSH:
+            return mPush.c_str();
         case topic_e::OPERATION:
             return mOperation.c_str();
         case topic_e::UPTIME:
@@ -123,6 +131,10 @@ namespace muffin { namespace mqtt {
             return mFinishedGoods.c_str();
         case topic_e::FOTA_CONFIG:
             return mFotaConfig.c_str();
+        case topic_e::FOTA_UPDATE:
+            return mFotaUpdate.c_str();
+        case topic_e::FOTA_STATUS:
+            return mFotaStatus.c_str();
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));
             return nullptr;
@@ -167,6 +179,10 @@ namespace muffin { namespace mqtt {
         {
             return std::make_pair(true, topic_e::ERROR);
         }
+        else if (topicString == mPush)
+        {
+            return std::make_pair(true, topic_e::PUSH);
+        }
         else if (topicString == mOperation)
         {
             return std::make_pair(true, topic_e::OPERATION);
@@ -182,6 +198,14 @@ namespace muffin { namespace mqtt {
         else if (topicString == mFotaConfig)
         {
             return std::make_pair(true, topic_e::FOTA_CONFIG);
+        }
+        else if (topicString == mFotaUpdate)
+        {
+            return std::make_pair(true, topic_e::FOTA_UPDATE);
+        }
+        else if (topicString == mFotaStatus)
+        {
+            return std::make_pair(true, topic_e::FOTA_STATUS);
         }
         else
         {
@@ -201,8 +225,11 @@ namespace muffin { namespace mqtt {
     std::string Topic::mDaqParam;
     std::string Topic::mAlarm;
     std::string Topic::mError;
+    std::string Topic::mPush;
     std::string Topic::mOperation;
     std::string Topic::mUptime;
     std::string Topic::mFinishedGoods;
     std::string Topic::mFotaConfig;
+    std::string Topic::mFotaUpdate;
+    std::string Topic::mFotaStatus;
 }}

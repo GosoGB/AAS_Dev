@@ -5,7 +5,7 @@
  * @brief 네트워크 모듈에서 공통적으로 사용할 수 있는 함수를 정의합니다.
  * 
  * @date 2024-09-12
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

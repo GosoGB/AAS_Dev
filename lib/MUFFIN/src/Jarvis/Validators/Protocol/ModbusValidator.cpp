@@ -5,7 +5,7 @@
  * @brief 시리얼 포트에 대한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
  * @date 2024-10-06
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -154,8 +154,6 @@ namespace muffin { namespace jarvis {
             const uint8_t prt       = cin["prt"].as<uint8_t>();
             const uint8_t sid       = cin["sid"].as<uint8_t>();
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
-
-            LOG_WARNING(logger, " sid  : %d ",sid);
             
             const auto retPRT  = convertToPortIndex(prt);
             const auto retSID  = convertToSlaveID(sid);

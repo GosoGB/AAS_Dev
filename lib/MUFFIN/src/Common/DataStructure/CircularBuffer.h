@@ -5,7 +5,7 @@
  * @brief Circular Buffer 클래스를 정의합니다.
  * 
  * @date 2024-09-08
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @note 멀티 쓰레딩 환경에서 race condition이 발생할 수 있으므로 동기화 관리가 필요합니다.
  * @todo 향후 필요한 경우에 한하여 race condition 방지를 위한 동기화 관리를 적용해야 합니다.

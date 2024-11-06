@@ -6,7 +6,7 @@
  * @brief Modbus RTU 프로토콜 설정 형식을 표현하는 클래스를 정의합니다.
  * 
  * @date 2024-10-14
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -72,7 +72,6 @@ namespace muffin { namespace jarvis { namespace config {
     void ModbusRTU::SetSlaveID(const uint8_t sid)
     {
         ASSERT((0 < sid && sid < 248), "INVALID SLAVED ID: %u", sid);
-        LOG_WARNING(logger, "sid : %d", sid);
         mSlaveID = sid;
         mIsSlaveIdSet = true;
     }

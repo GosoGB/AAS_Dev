@@ -5,7 +5,7 @@
  * @brief Node와 관련된 데이터 타입들을 선언합니다.
  * 
  * @date 2024-10-20
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @todo 향후 GUID, ByteString 형식의 Node ID를 구현해야 합니다.
  * 

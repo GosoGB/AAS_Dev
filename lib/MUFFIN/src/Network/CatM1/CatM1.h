@@ -7,7 +7,7 @@
  * 개발했습니다. 향후 향지에 따라서 별도의 칩셋을 사용한다면 추가 개발이 필요합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @todo 추후 버전 개발 시 FSM 수정 및 재적용이 필요함
  * @todo IPv6만 할당되고 있기 떄문에 인터페이스 수정이 필요함
@@ -98,6 +98,7 @@ namespace muffin {
         std::pair<bool, jarvis::config::CatM1> RetrieveConfig() const;
         state_e GetState() const;
         Status SyncWithNTP();
+        void KillUrcTask(bool forOTA);
     public:
         std::pair<Status, size_t> TakeMutex();
         Status ReleaseMutex();

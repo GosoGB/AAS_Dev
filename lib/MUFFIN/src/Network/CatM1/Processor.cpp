@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈과의 모든 통신을 처리하는 클래스를 선언합니다.
  * 
  * @date 2024-09-08
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -267,6 +267,22 @@ namespace muffin {
         }
     }
 
+    void Processor::StopUrcHandleTask(bool forOTA)
+    {
+        if (forOTA == true)
+        {
+            mHasOTA = true;
+            return;
+        }
+        
+        if (mInitFlags.test(init_flags_e::PROCESSOR_TASK_CREATED) == true)
+        {
+            LOG_INFO(logger, "Stopping URC handling task");
+            vTaskDelete(xHandle);
+            xHandle = NULL;
+        }
+    }
+    
     void Processor::implementUrcHandleTask()
     {
     #ifdef DEBUG
@@ -276,27 +292,38 @@ namespace muffin {
 
         while (true)
         {
-            if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+            if (mHasOTA == true)
             {
-                LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
-                continue;
+                while (mSerial.available() > 0)
+                {
+                    mRxBuffer.Write(mSerial.read());
+                }
+                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
             }
-
-            while (mSerial.available() > 0)
+            else
             {
-                mRxBuffer.Write(mSerial.read());
+                if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+                {
+                    LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
+                    continue;
+                }
+
+                while (mSerial.available() > 0)
+                {
+                    mRxBuffer.Write(mSerial.read());
+                }
+
+                parseRDY();
+                parseCFUN();
+                parseCPIN();
+                parseQIND();
+                parseAPPRDY();
+                parseQMTRECV();
+                // parseQMTSTAT(&rxd);
+
+                xSemaphoreGive(xSemaphore);
+                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
             }
-
-            parseRDY();
-            parseCFUN();
-            parseCPIN();
-            parseQIND();
-            parseAPPRDY();
-            parseQMTRECV();
-            // parseQMTSTAT(&rxd);
-
-            xSemaphoreGive(xSemaphore);
-            vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
 
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)

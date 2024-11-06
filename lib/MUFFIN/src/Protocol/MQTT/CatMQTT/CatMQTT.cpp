@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈의 MQTT 프로토콜 클래스를 정의합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -117,16 +117,16 @@ namespace muffin { namespace mqtt {
             mInitFlags.set(init_flag_e::INITIALIZED_PDP);
         }
         
-        // if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
-        // {
-        //     ret = setSslContext(mutexHandle, ssl);
-        //     if (ret != Status::Code::GOOD)
-        //     {
-        //         LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
-        //         goto INIT_FAILED;
-        //     }
-        //     mInitFlags.set(init_flag_e::INITIALIZED_SSL);
-        // }
+        if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
+        {
+            ret = setSslContext(mutexHandle, ssl);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
+                goto INIT_FAILED;
+            }
+            mInitFlags.set(init_flag_e::INITIALIZED_SSL);
+        }
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_VSN) == false)
         {
@@ -260,7 +260,7 @@ namespace muffin { namespace mqtt {
             LOG_WARNING(logger, "CONNECTION FAILED OR NOT INITIALIZED");
             return Status(Status::Code::BAD_REQUEST_NOT_COMPLETE);
         case state_e::CONNECTED:
-            LOG_INFO(logger, "Connected to the broker");
+            LOG_VERBOSE(logger, "Connected to the broker");
             return Status(Status::Code::GOOD);
         case state_e::DISCONNECTED:
             LOG_WARNING(logger, "DISCONNECTED FROM THE BROKER");
@@ -311,7 +311,6 @@ namespace muffin { namespace mqtt {
             LOG_ERROR(logger, "FAILED TO SUBSCRIBE: %s", ret.c_str());
             return ret;
         }
-        LOG_INFO(logger,"HERE");
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret != Status::Code::GOOD)
         {

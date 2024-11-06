@@ -5,7 +5,7 @@
  * @brief 네트워크 모듈이 공통으로 따르는 소프트웨어 인터페이스를 선언합니다.
  * 
  * @date 2024-09-04
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

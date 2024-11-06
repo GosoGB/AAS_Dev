@@ -6,7 +6,7 @@
  * @brief 가동시간 정보를 집계하고 매분 서버로 전송하는 클래스를 정의합니다.
  * 
  * @date 2024-10-29
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

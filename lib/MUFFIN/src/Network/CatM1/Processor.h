@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈과의 모든 통신을 처리하는 클래스를 선언합니다.
  * 
  * @date 2024-09-08
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @todo 시리얼 포트에 사용되는 핀(pin)을 사용 중이지 않은지 확인하는 클래스가 필요함
  *       MODLINK-L은 다른 링크를 사용할 수 없기 때문에 상관 없지만 MODLINK-B 또는 
@@ -79,6 +79,7 @@ namespace muffin {
         int16_t Read();
         std::string ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd);
         size_t GetAvailableBytes();
+        void StopUrcHandleTask(bool forOTA);
     private:
         void stopUrcHandleTask();
         void implementUrcHandleTask();
@@ -103,6 +104,7 @@ namespace muffin {
         TaskHandle_t xHandle;
         SemaphoreHandle_t xSemaphore;
         const uint8_t mTaskInterval;
+        bool mHasOTA = false;
 
     public:
         void RegisterCallbackRDY(const std::function<void()>& cb);

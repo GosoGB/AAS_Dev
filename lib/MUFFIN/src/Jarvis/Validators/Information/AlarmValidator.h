@@ -5,7 +5,7 @@
  * @brief 알람 이벤트를 생성하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
  * @date 2024-10-12
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

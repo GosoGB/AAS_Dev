@@ -7,7 +7,7 @@
  *       다만 OPC UA 표준에서는 "NodeId"로 정의되어 있기 때문에 MUFFIN 코딩 표준을 덮어씁니다.
  * 
  * @date 2024-10-25
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

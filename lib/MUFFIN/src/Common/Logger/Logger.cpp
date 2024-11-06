@@ -5,7 +5,7 @@
  * @brief 로그 메시지를 생성하고 관리하는 클래스를 정의합니다.
  * 
  * @date 2024-08-31
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2023-2024
  */

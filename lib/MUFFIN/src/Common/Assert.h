@@ -5,7 +5,7 @@
  * @brief MUFFIN 프레임워크에서 사용하는 ASSERT 매크로 함수를 정의합니다.
  * 
  * @date 2024-09-11
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

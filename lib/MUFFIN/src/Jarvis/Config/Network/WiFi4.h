@@ -5,7 +5,7 @@
  * @brief Wi-Fi 인터페이스 설정 정보를 관리하는 클래스를 선언합니다.
  * 
  * @date 2024-10-07
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @todo JARVIS 설계 문서에 WPA2 authentication method 속성을 추가로 정의해야 합니다.
  * 그러나 그에 앞서서 각 auth 모드에 따라 사용자로부터 추가로 입력을 받아야 하는 데이터가 
