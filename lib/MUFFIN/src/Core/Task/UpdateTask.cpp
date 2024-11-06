@@ -93,49 +93,46 @@ namespace muffin {
 
     void UpdateTask(void* pvParameter)
     {   
-        LOG_DEBUG(logger,"1회 실행");
-        if (HasNewFirmwareFOTA())
+        bool result;
+        result = HasNewFirmwareFOTA();
+        if (result == false)
         {
-            LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION, info.mcu1.VersionCode);
-            if (DownloadFirmware())
+            goto NO_OTA;
+        }
+
+        LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION, info.mcu1.VersionCode);
+        result = DownloadFirmware();
+        if (result == true)
+        {
+            LOG_INFO(logger, "Firmware Download Succsess");
+            result = PostDownloadResult("success");
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAIL TO FIRMWARE DOWNLOAD");
+            result = PostDownloadResult("fail");
+            goto NO_OTA;
+        }
+
+        if (result == true)
+        {
+            LOG_DEBUG(logger,"POST Method Succsess");
+            bool resultOTA = UpdateFirmware();
+            if ( resultOTA)
             {
-                LOG_INFO(logger, "Firmware Download Succsess");
-                for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+                if(PostFinishResult("success"))
                 {
-                    if (PostDownloadResult("success"))
-                    {
-                        LOG_DEBUG(logger,"POST Method Succsess");
-                        bool resultOTA = UpdateFirmware();
-                        if ( resultOTA)
-                        {
-                            if(PostFinishResult("success"))
-                            {
-                                ESP.restart();
-                            }
-                        }
-                        else
-                        {
-                            PostFinishResult("fail");
-                        }
-                        
-                        break;
-                    }
-                    else
-                    {
-                        LOG_WARNING(logger, "[TRIAL: #%u] FAIL TO POST METHOD ", i);
-                    }
-                    vTaskDelay((500) / portTICK_PERIOD_MS);
+                    ESP.restart();
                 }
             }
             else
             {
-                LOG_INFO(logger, "FAIL TO FIRMWARE DOWNLOAD");
-                PostDownloadResult("fail");
+                PostFinishResult("fail");
             }
-            
         }
         
-
+        
+     NO_OTA:  
         time_t currentTimestamp = GetTimestamp();
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
@@ -504,9 +501,9 @@ namespace muffin {
             LOG_ERROR(logger, "MANDATORY KEY'S VALUE CANNOT BE NULL");
             return;
         }
-
         
         info.OtaID = doc["otaId"].as<uint8_t>();
+        
 
         JsonObject obj = doc["mcu1"].as<JsonObject>();
         info.mcu1.VersionCode = obj["vc"].as<uint16_t>();
@@ -541,6 +538,38 @@ namespace muffin {
         {
             // MCU2 설정 값 저장
         }
+
+
+        bool result;
+        
+        result = DownloadFirmware();
+        if (result == true)
+        {
+            LOG_INFO(logger, "Firmware Download Succsess");
+            result = PostDownloadResult("success");
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAIL TO FIRMWARE DOWNLOAD");
+            PostDownloadResult("fail");
+            return;
+        }
+
+        if (result == true)
+        {
+            LOG_DEBUG(logger,"POST Method Succsess");
+            bool resultOTA = UpdateFirmware();
+            if ( resultOTA)
+            {
+                if(PostFinishResult("success"))
+                {
+                    ESP.restart();
+                }
+            }
+            else
+            {
+                PostFinishResult("fail");
+            }
+        }
     }
-    
 }

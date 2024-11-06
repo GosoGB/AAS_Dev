@@ -50,7 +50,7 @@ namespace muffin { namespace mqtt {
             mUptime                 = "test/progix/dashboard/ut";
             mFinishedGoods          = "test/progix/dashboard/fg";
             mFotaConfig             = "fota/config";
-            mFotaUpdate             = "fota/update";
+            mFotaUpdate             = "fota/update/" + macAddress;
         #else
             mLastWill               = "scautr/modlink/status/network/will";
             mJarvisRequest          = "mfm/" + macAddress;
@@ -66,7 +66,7 @@ namespace muffin { namespace mqtt {
             mUptime                 = "progix/dashboard/ut";
             mFinishedGoods          = "progix/dashboard/fg";
             mFotaConfig             = "fota/config";
-            mFotaUpdate             = "fota/update";
+            mFotaUpdate             = "fota/update/" + macAddress;
         #endif
         }
 
