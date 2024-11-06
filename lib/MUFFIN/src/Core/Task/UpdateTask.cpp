@@ -50,6 +50,8 @@ namespace muffin {
             return;
         }
 
+        SendStatusMSG();
+
         /**
          * @todo 스택 오버플로우를 방지하기 위해서 MQTT 메시지 크기에 따라서
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
@@ -100,7 +102,7 @@ namespace muffin {
             goto NO_OTA;
         }
 
-        LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION, info.mcu1.VersionCode);
+        LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION_CODE_MCU1, info.mcu1.VersionCode);
         result = DownloadFirmware();
         if (result == true)
         {
@@ -131,8 +133,7 @@ namespace muffin {
             }
         }
         
-        
-     NO_OTA:  
+    NO_OTA:  
         time_t currentTimestamp = GetTimestamp();
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
@@ -149,13 +150,43 @@ namespace muffin {
             currentTimestamp = GetTimestamp();
 
             LOG_WARNING(logger,"12시간 경과 %lu",currentTimestamp);
-            bool result = HasNewFirmwareFOTA();
-            if (result)
+            result = HasNewFirmwareFOTA();
+            if (result == false)
             {
-                LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION, info.mcu1.VersionCode);
-                DownloadFirmware();
+                goto NO_OTA_IN_TASK;
             }
 
+            LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION_CODE_MCU1, info.mcu1.VersionCode);
+            result = DownloadFirmware();
+            if (result == true)
+            {
+                LOG_INFO(logger, "Firmware Download Succsess");
+                result = PostDownloadResult("success");
+            }
+            else
+            {
+                LOG_ERROR(logger, "FAIL TO FIRMWARE DOWNLOAD");
+                result = PostDownloadResult("fail");
+                goto NO_OTA_IN_TASK;
+            }
+
+            if (result == true)
+            {
+                LOG_DEBUG(logger,"POST Method Succsess");
+                bool resultOTA = UpdateFirmware();
+                if ( resultOTA)
+                {
+                    if(PostFinishResult("success"))
+                    {
+                        ESP.restart();
+                    }
+                }
+                else
+                {
+                    PostFinishResult("fail");
+                }
+            }
+        NO_OTA_IN_TASK:
 
             vTaskDelay(100 / portTICK_PERIOD_MS); 
         #ifdef DEBUG
@@ -297,7 +328,7 @@ namespace muffin {
             // MCU2 설정 값 저장
         }
         
-        if (FIRMWARE_VERSION < info.mcu1.VersionCode)
+        if (FIRMWARE_VERSION_CODE_MCU1 < info.mcu1.VersionCode)
         {
             return true;
         }
@@ -551,7 +582,7 @@ namespace muffin {
         else
         {
             LOG_ERROR(logger, "FAIL TO FIRMWARE DOWNLOAD");
-            PostDownloadResult("fail");
+            PostDownloadResult("failure");
             return;
         }
 
@@ -568,8 +599,33 @@ namespace muffin {
             }
             else
             {
-                PostFinishResult("fail");
+                PostFinishResult("failure");
+                ESP.restart();
             }
         }
+    }
+
+    void SendStatusMSG()
+    {
+        fota_status_t status;
+
+        status.VersionCodeMcu1 = FIRMWARE_VERSION_CODE_MCU1;
+        status.VersionMcu1 = FIRMWARE_VERSION_MCU1;
+
+        JSON json;
+        std::string payload = json.Serialize(status);
+        mqtt::Message message(mqtt::topic_e::FOTA_STATUS, payload);
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+
+        Status ret = cdo.Store(message);
+        if (ret != Status::Code::GOOD)
+        {
+            /**
+             * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
+             */
+            LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
+            return;
+        }
+
     }
 }

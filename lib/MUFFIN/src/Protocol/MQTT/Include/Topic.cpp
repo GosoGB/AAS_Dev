@@ -51,6 +51,7 @@ namespace muffin { namespace mqtt {
             mFinishedGoods          = "test/progix/dashboard/fg";
             mFotaConfig             = "fota/config";
             mFotaUpdate             = "fota/update/" + macAddress;
+            mFotaStatus             = "fota/status";
         #else
             mLastWill               = "scautr/modlink/status/network/will";
             mJarvisRequest          = "mfm/" + macAddress;
@@ -67,6 +68,7 @@ namespace muffin { namespace mqtt {
             mFinishedGoods          = "progix/dashboard/fg";
             mFotaConfig             = "fota/config";
             mFotaUpdate             = "fota/update/" + macAddress;
+            mFotaStatus             = "fota/status";
         #endif
         }
 
@@ -127,6 +129,8 @@ namespace muffin { namespace mqtt {
             return mFotaConfig.c_str();
         case topic_e::FOTA_UPDATE:
             return mFotaUpdate.c_str();
+        case topic_e::FOTA_STATUS:
+            return mFotaStatus.c_str();
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));
             return nullptr;
@@ -191,6 +195,10 @@ namespace muffin { namespace mqtt {
         {
             return std::make_pair(true, topic_e::FOTA_UPDATE);
         }
+        else if (topicString == mFotaStatus)
+        {
+            return std::make_pair(true, topic_e::FOTA_STATUS);
+        }
         else
         {
             return std::make_pair(false, topic_e::LAST_WILL);
@@ -214,4 +222,5 @@ namespace muffin { namespace mqtt {
     std::string Topic::mFinishedGoods;
     std::string Topic::mFotaConfig;
     std::string Topic::mFotaUpdate;
+    std::string Topic::mFotaStatus;
 }}

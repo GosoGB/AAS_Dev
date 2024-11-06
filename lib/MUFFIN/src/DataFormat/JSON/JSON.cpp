@@ -176,4 +176,28 @@ namespace muffin {
 
         return payload;
     }
+
+    std::string JSON::Serialize(const fota_status_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["mac"]  =  MacAddress::GetEthernet();
+        JsonObject mcu1 = doc.createNestedObject("mcu1");
+        mcu1["vc"] = _struct.VersionCodeMcu1;  
+        mcu1["version"] = _struct.VersionMcu1; 
+
+
+        #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        doc["deviceType"] = "MODLINK-L";
+        #else
+        doc["deviceType"] = "MODLINK-T2";
+        JsonObject mcu1 = doc.createNestedObject("mcu2");
+        mcu2["vc"] = _struct.VersionCodeMcu2;  
+        mcu2["version"] = _struct.VersionMcu2; 
+        #endif
+    
+        serializeJson(doc,payload);
+        return payload;
+    }
 }

@@ -28,6 +28,7 @@ namespace muffin {
     bool PostDownloadResult(const std::string resultStr);
     bool PostFinishResult(const std::string resultStr);
     bool UpdateFirmware();
+    void SendStatusMSG();
  
     typedef struct McuInfo
     {
@@ -48,7 +49,8 @@ namespace muffin {
         mcu_t mcu2;
     } fota_Info_t;
 
-    constexpr uint8_t FIRMWARE_VERSION = 5;
+    constexpr uint8_t FIRMWARE_VERSION_CODE_MCU1 = 6;
+    const std::string FIRMWARE_VERSION_MCU1 = "0.0.6";
     constexpr uint8_t MAX_RETRY_COUNT = 5;
     
     extern std::string FotaHost;

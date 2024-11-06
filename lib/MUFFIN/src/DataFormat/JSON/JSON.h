@@ -26,6 +26,16 @@
 
 namespace muffin {
 
+    
+    typedef struct FotaStatusStruct
+    {
+        mqtt::topic_e Topic;
+        uint32_t VersionCodeMcu1;
+        uint32_t VersionCodeMcu2;
+        std::string VersionMcu1;
+        std::string VersionMcu2;
+    } fota_status_t;
+
     typedef struct JarvisStruct
     {
         mqtt::topic_e Topic;
@@ -91,6 +101,7 @@ namespace muffin {
         std::string Serialize(const alarm_struct_t& _struct);
         std::string Serialize(const operation_struct_t& _struct);
         std::string Serialize(const progix_struct_t& _struct);
+        std::string Serialize(const fota_status_t& _struct);
     public:
         Status Deserialize(const std::string& payload, JsonDocument* json);
     
