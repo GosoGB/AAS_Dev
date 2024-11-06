@@ -49,8 +49,8 @@ namespace muffin {
         mcu_t mcu2;
     } fota_Info_t;
 
-    constexpr uint8_t FIRMWARE_VERSION_CODE_MCU1 = 6;
-    const std::string FIRMWARE_VERSION_MCU1 = "0.0.6";
+    constexpr uint8_t FIRMWARE_VERSION_CODE_MCU1 = 1;
+    const std::string FIRMWARE_VERSION_MCU1 = "0.0.1";
     constexpr uint8_t MAX_RETRY_COUNT = 5;
     
     extern std::string FotaHost;

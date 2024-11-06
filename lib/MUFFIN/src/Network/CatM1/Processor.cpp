@@ -257,8 +257,14 @@ namespace muffin {
         return std::string(rxd.begin(), rxd.end());
     }
 
-    void Processor::stopUrcHandleTask()
+    void Processor::StopUrcHandleTask(bool forOTA)
     {
+        if (forOTA == true)
+        {
+            mHasOTA = true;
+            return;
+        }
+        
         if (mInitFlags.test(init_flags_e::PROCESSOR_TASK_CREATED) == true)
         {
             LOG_INFO(logger, "Stopping URC handling task");
@@ -276,27 +282,39 @@ namespace muffin {
 
         while (true)
         {
-            if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+            if (mHasOTA == true)
             {
-                LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
-                continue;
+                while (mSerial.available() > 0)
+                {
+                    mRxBuffer.Write(mSerial.read());
+                }
+                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
+            }
+            else
+            {
+                if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+                {
+                    LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
+                    continue;
+                }
+
+                while (mSerial.available() > 0)
+                {
+                    mRxBuffer.Write(mSerial.read());
+                }
+
+                parseRDY();
+                parseCFUN();
+                parseCPIN();
+                parseQIND();
+                parseAPPRDY();
+                parseQMTRECV();
+                // parseQMTSTAT(&rxd);
+
+                xSemaphoreGive(xSemaphore);
+                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
             }
 
-            while (mSerial.available() > 0)
-            {
-                mRxBuffer.Write(mSerial.read());
-            }
-
-            parseRDY();
-            parseCFUN();
-            parseCPIN();
-            parseQIND();
-            parseAPPRDY();
-            parseQMTRECV();
-            // parseQMTSTAT(&rxd);
-
-            xSemaphoreGive(xSemaphore);
-            vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
 
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)

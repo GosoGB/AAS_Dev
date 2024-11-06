@@ -648,7 +648,7 @@ namespace muffin { namespace http {
         ASSERT((mSetSinkToCatFS == true), "CatFS STORAGE OPTION MUST BE TURNED ON");
 
         constexpr uint8_t BUFFER_SIZE = 64;
-        constexpr uint8_t TIMEOUT_IN_SECOND = 60*4;
+        constexpr uint16_t TIMEOUT_IN_SECOND = 60*10;
 
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));

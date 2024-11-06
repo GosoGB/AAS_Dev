@@ -65,6 +65,7 @@ namespace muffin {
         const auto mutexHandle = mCatM1.TakeMutex();
         if (mutexHandle.first.ToCode() != Status::Code::GOOD)
         {
+            LOG_ERROR(logger, "UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
             return mutexHandle.first;
         }
         

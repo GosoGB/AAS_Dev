@@ -98,6 +98,7 @@ namespace muffin {
         std::pair<bool, jarvis::config::CatM1> RetrieveConfig() const;
         state_e GetState() const;
         Status SyncWithNTP();
+        void KillUrcTask(bool forOTA);
     public:
         std::pair<Status, size_t> TakeMutex();
         Status ReleaseMutex();

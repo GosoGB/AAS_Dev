@@ -117,16 +117,16 @@ namespace muffin { namespace mqtt {
             mInitFlags.set(init_flag_e::INITIALIZED_PDP);
         }
         
-        // if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
-        // {
-        //     ret = setSslContext(mutexHandle, ssl);
-        //     if (ret != Status::Code::GOOD)
-        //     {
-        //         LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
-        //         goto INIT_FAILED;
-        //     }
-        //     mInitFlags.set(init_flag_e::INITIALIZED_SSL);
-        // }
+        if (mInitFlags.test(init_flag_e::INITIALIZED_SSL) == false)
+        {
+            ret = setSslContext(mutexHandle, ssl);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAIL TO SET SSL CONTEXT: %s", ret.c_str());
+                goto INIT_FAILED;
+            }
+            mInitFlags.set(init_flag_e::INITIALIZED_SSL);
+        }
 
         if (mInitFlags.test(init_flag_e::INITIALIZED_VSN) == false)
         {

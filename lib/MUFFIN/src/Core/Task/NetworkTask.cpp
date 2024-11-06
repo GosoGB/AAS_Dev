@@ -220,12 +220,12 @@ namespace muffin {
     #if defined(DEBUG)
         mqtt::BrokerInfo info(
             MacAddress::GetEthernet(),
-            "112.171.127.186",
-            1133,
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
             40,
             mqtt::socket_e::SOCKET_0,
-            "admin",
-            "admin"
+            "vitcon",
+            "tkfkdgo5!@#$"
         );
     #else
         mqtt::BrokerInfo info(MacAddress::GetEthernet());

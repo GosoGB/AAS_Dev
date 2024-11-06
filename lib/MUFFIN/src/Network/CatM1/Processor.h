@@ -79,8 +79,8 @@ namespace muffin {
         int16_t Read();
         std::string ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd);
         size_t GetAvailableBytes();
+        void StopUrcHandleTask(bool forOTA);
     private:
-        void stopUrcHandleTask();
         void implementUrcHandleTask();
         static void wrapUrcHandleTask(void* pvParameters);
     private:
@@ -103,6 +103,7 @@ namespace muffin {
         TaskHandle_t xHandle;
         SemaphoreHandle_t xSemaphore;
         const uint8_t mTaskInterval;
+        bool mHasOTA = false;
 
     public:
         void RegisterCallbackRDY(const std::function<void()>& cb);

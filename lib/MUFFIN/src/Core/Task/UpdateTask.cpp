@@ -300,6 +300,11 @@ namespace muffin {
         info.mcu1.FileTotalSize = obj["fileTotalSize"].as<uint64_t>();
         info.mcu1.FileTotalChecksum = obj["checksum"].as<std::string>();
 
+        ASSERT((info.mcu1.FileNumberVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+        ASSERT((info.mcu1.FilePathVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+        ASSERT((info.mcu1.FileSizeVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+        ASSERT((info.mcu1.FileChecksumVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+
         for (auto num : obj["fileNo"].as<JsonArray>())
         {
             info.mcu1.FileNumberVector.emplace_back(num.as<uint8_t>());
@@ -444,12 +449,13 @@ namespace muffin {
     bool UpdateFirmware()
     {
         CatM1& catM1 = CatM1::GetInstance();
+        catM1.KillUrcTask(true);
+        
         CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
         Status ret = catFS->Begin();
         if (ret != Status::Code::GOOD)
         {
-            /* code */
-            catM1.ReleaseMutex();
+            LOG_ERROR(logger," FAIL TO BEGIN CATFS");
             return false;
         }
         
@@ -457,14 +463,14 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             /* code */
-            catM1.ReleaseMutex();
             return false;
         }
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        ASSERT((info.mcu1.FileSizeVector.size() != 0),"FILE SIZE VECTOR MUST HAS VALUE");
 
         if ( Update.begin(info.mcu1.FileSizeVector.at(0)) == false )
         {
             LOG_ERROR(logger,"Can't begin OTA since the file size is bigger than the memory");
-            catM1.ReleaseMutex();
             return false;
         }
 
@@ -473,6 +479,7 @@ namespace muffin {
         while ( writtenSize < info.mcu1.FileSizeVector.at(0) )
         {
             uint16_t length = 4096;
+
             if ( (info.mcu1.FileSizeVector.at(0) - writtenSize) < 4096 )
             {
                 length = info.mcu1.FileSizeVector.at(0) - writtenSize;
@@ -496,7 +503,6 @@ namespace muffin {
         LOG_DEBUG(logger, "Update.end() : %s", CheckUpdate ? "true" : "false");
         LOG_DEBUG(logger, "Update.isFinished() : %s", CheckFinished ? "true" : "false");
 
-        catM1.ReleaseMutex();
         if (CheckFinished  == false || CheckUpdate == false)
         {
             return false;
@@ -533,6 +539,25 @@ namespace muffin {
             return;
         }
         
+        if (doc["url"].isNull() == false)
+        {
+            std::string url = doc["url"].as<std::string>();
+
+            size_t pos = url.find("://");
+            if (pos != std::string::npos) 
+            {
+                url = url.substr(pos + 3);
+            }
+            pos = url.find(":");
+
+            if (pos != std::string::npos) 
+            {
+                FotaHost = url.substr(0, pos);
+                FotaPort = static_cast<uint16_t>(atoi(url.substr(pos + 1).c_str())); 
+            }
+        }
+        
+
         info.OtaID = doc["otaId"].as<uint8_t>();
         
 
@@ -541,7 +566,12 @@ namespace muffin {
         info.mcu1.FirmwareVersion = obj["version"].as<std::string>();
         info.mcu1.FileTotalSize = obj["fileTotalSize"].as<uint64_t>();
         info.mcu1.FileTotalChecksum = obj["checksum"].as<std::string>();
-
+        
+        ASSERT((info.mcu1.FileNumberVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+        ASSERT((info.mcu1.FilePathVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+        ASSERT((info.mcu1.FileSizeVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+        ASSERT((info.mcu1.FileChecksumVector.size() == 0) , "ALL DATA MUST BE EMBTY");
+   
         for (auto num : obj["fileNo"].as<JsonArray>())
         {
             info.mcu1.FileNumberVector.emplace_back(num.as<uint8_t>());
