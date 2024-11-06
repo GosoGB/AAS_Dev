@@ -12,7 +12,7 @@
 
 
 
-
+#include <Update.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <functional>
@@ -30,6 +30,7 @@
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "IM/MacAddress/MacAddress.h"
+#include "Storage/CatFS/CatFS.h"
 
 
 
@@ -93,19 +94,30 @@ namespace muffin {
     void UpdateTask(void* pvParameter)
     {   
         LOG_DEBUG(logger,"1회 실행");
-        bool result = HasNewFirmwareFOTA();
-        if (result)
+        if (HasNewFirmwareFOTA())
         {
             LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION, info.mcu1.VersionCode);
-            result = DownloadFirmware();
-            if (result)
+            if (DownloadFirmware())
             {
                 LOG_INFO(logger, "Firmware Download Succsess");
                 for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
                 {
-                    if (PostDownloadResult())
+                    if (PostDownloadResult("success"))
                     {
                         LOG_DEBUG(logger,"POST Method Succsess");
+                        bool resultOTA = UpdateFirmware();
+                        if ( resultOTA)
+                        {
+                            if(PostFinishResult("success"))
+                            {
+                                ESP.restart();
+                            }
+                        }
+                        else
+                        {
+                            PostFinishResult("fail");
+                        }
+                        
                         break;
                     }
                     else
@@ -114,11 +126,11 @@ namespace muffin {
                     }
                     vTaskDelay((500) / portTICK_PERIOD_MS);
                 }
-                
             }
             else
             {
                 LOG_INFO(logger, "FAIL TO FIRMWARE DOWNLOAD");
+                PostDownloadResult("fail");
             }
             
         }
@@ -322,8 +334,8 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO FETCH FOTA FROM SERVER: %s", ret.c_str());
-            catM1.ReleaseMutex();
             catHttp.SetSinkToCatFS(false);
+            catM1.ReleaseMutex();
 
             return false;
         }
@@ -333,7 +345,7 @@ namespace muffin {
         return true;
     }
 
-    bool PostDownloadResult()
+    bool PostFinishResult(const std::string resultStr)
     {
         CatM1& catM1 = CatM1::GetInstance();
         const auto mutexHandle = catM1.TakeMutex();
@@ -344,16 +356,14 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download/", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
         body.AddProperty("otaId", std::to_string(info.OtaID));
         body.AddProperty("mcu1.vc", std::to_string(info.mcu1.VersionCode));
         body.AddProperty("mcu1.version", info.mcu1.FirmwareVersion);
-        body.AddProperty("mcu1.fileNo", std::to_string(info.mcu1.FileNumberVector.at(0)));
-        body.AddProperty("mcu1.filepath", info.mcu1.FilePathVector.at(0));
-        body.AddProperty("mcu1.result", "success");
+        body.AddProperty("mcu1.result", resultStr);
 
         Status ret = catHttp.POST(mutexHandle.second, header, body);
         if (ret != Status::Code::GOOD)
@@ -363,7 +373,174 @@ namespace muffin {
 
            return false;
         }
-
+        
+        catM1.ReleaseMutex();
         return true;
     }
+
+    bool PostDownloadResult(const std::string resultStr)
+    {
+        CatM1& catM1 = CatM1::GetInstance();
+        const auto mutexHandle = catM1.TakeMutex();
+        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
+            return false;
+        }
+
+        http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestBody body("application/x-www-form-urlencoded");
+    
+        body.AddProperty("mac", MacAddress::GetEthernet());
+        body.AddProperty("otaId", std::to_string(info.OtaID));
+        body.AddProperty("mcu1.vc", std::to_string(info.mcu1.VersionCode));
+        body.AddProperty("mcu1.version", info.mcu1.FirmwareVersion);
+        body.AddProperty("mcu1.fileNo", std::to_string(info.mcu1.FileNumberVector.at(0)));
+        body.AddProperty("mcu1.filepath", info.mcu1.FilePathVector.at(0));
+        body.AddProperty("mcu1.result", resultStr);
+
+        Status ret = catHttp.POST(mutexHandle.second, header, body);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO FETCH FOTA FROM SERVER: %s", ret.c_str());
+            catM1.ReleaseMutex();
+
+           return false;
+        }
+        
+        catM1.ReleaseMutex();
+        return true;
+    }
+
+    bool UpdateFirmware()
+    {
+        CatM1& catM1 = CatM1::GetInstance();
+        CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
+        Status ret = catFS->Begin();
+        if (ret != Status::Code::GOOD)
+        {
+            /* code */
+            catM1.ReleaseMutex();
+            return false;
+        }
+        
+        ret = catFS->Open("http_response_file", true);
+        if (ret != Status::Code::GOOD)
+        {
+            /* code */
+            catM1.ReleaseMutex();
+            return false;
+        }
+
+        if ( Update.begin(info.mcu1.FileSizeVector.at(0)) == false )
+        {
+            LOG_ERROR(logger,"Can't begin OTA since the file size is bigger than the memory");
+            catM1.ReleaseMutex();
+            return false;
+        }
+
+        uint32_t startMillis = millis();
+        uint32_t writtenSize = 0;
+        while ( writtenSize < info.mcu1.FileSizeVector.at(0) )
+        {
+            uint16_t length = 4096;
+            if ( (info.mcu1.FileSizeVector.at(0) - writtenSize) < 4096 )
+            {
+                length = info.mcu1.FileSizeVector.at(0) - writtenSize;
+            }
+            
+            uint8_t bytes[length] = {0};
+            catFS->Read(length, bytes);
+            writtenSize += Update.write(bytes, length);
+
+            LOG_DEBUG(logger ,"Written %d bytes", writtenSize);
+        }
+        uint32_t finishMillis = millis();
+        LOG_DEBUG(logger ,"\n\nProcessing time : %d \n\n", finishMillis - startMillis);
+
+        Serial.print("Update Error : ");
+        Update.printError(Serial);
+        Serial.print("\n");
+
+        bool CheckUpdate = Update.end();
+        bool CheckFinished = Update.isFinished();
+        LOG_DEBUG(logger, "Update.end() : %s", CheckUpdate ? "true" : "false");
+        LOG_DEBUG(logger, "Update.isFinished() : %s", CheckFinished ? "true" : "false");
+
+        catM1.ReleaseMutex();
+        if (CheckFinished  == false || CheckUpdate == false)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    void StartManualFirmwareUpdate(JsonDocument& doc)
+    {
+        /**
+         * @todo Validator 부분 만들어야 함!!!!!!!!!!
+         */
+        bool isValid = true;
+        isValid &= doc.containsKey("mac");
+        isValid &= doc.containsKey("deviceType");
+        isValid &= doc.containsKey("otaId");
+        isValid &= doc.containsKey("mcu1");
+
+        if (isValid == false)
+        {
+            LOG_ERROR(logger, "MANDATORY KEY CANNOT BE MISSING");
+            return;
+        }
+
+        isValid &= doc["otaId"].isNull() == false;
+        isValid &= doc["mcu1"].isNull() == false;
+        isValid &= doc["otaId"].is<uint8_t>();
+        isValid &= doc["mcu1"].is<JsonObject>();
+
+        if (isValid == false)
+        {
+            LOG_ERROR(logger, "MANDATORY KEY'S VALUE CANNOT BE NULL");
+            return;
+        }
+
+        
+        info.OtaID = doc["otaId"].as<uint8_t>();
+
+        JsonObject obj = doc["mcu1"].as<JsonObject>();
+        info.mcu1.VersionCode = obj["vc"].as<uint16_t>();
+        info.mcu1.FirmwareVersion = obj["version"].as<std::string>();
+        info.mcu1.FileTotalSize = obj["fileTotalSize"].as<uint64_t>();
+        info.mcu1.FileTotalChecksum = obj["checksum"].as<std::string>();
+
+        for (auto num : obj["fileNo"].as<JsonArray>())
+        {
+            info.mcu1.FileNumberVector.emplace_back(num.as<uint8_t>());
+        }
+
+        
+        for (auto path : obj["filePath"].as<JsonArray>())
+        {
+            info.mcu1.FilePathVector.emplace_back(path.as<std::string>());
+        }
+
+        
+        for (auto size : obj["fileSize"].as<JsonArray>())
+        {
+            info.mcu1.FileSizeVector.emplace_back(size.as<std::uint32_t>());
+        }
+
+        
+        for (auto cks : obj["fileChecksum"].as<JsonArray>())
+        {
+            info.mcu1.FileChecksumVector.emplace_back(cks.as<std::string>());
+        }
+
+        if (doc["mcu2"].isNull() == false)
+        {
+            // MCU2 설정 값 저장
+        }
+    }
+    
 }

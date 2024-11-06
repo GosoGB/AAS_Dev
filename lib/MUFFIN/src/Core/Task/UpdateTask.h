@@ -20,11 +20,14 @@
 
 namespace muffin {
 
+    void StartManualFirmwareUpdate(JsonDocument& doc);
     void StartUpdateTask();
     void UpdateTask(void* pvParameter);
     bool HasNewFirmwareFOTA();
     bool DownloadFirmware();
-    bool PostDownloadResult();
+    bool PostDownloadResult(const std::string resultStr);
+    bool PostFinishResult(const std::string resultStr);
+    bool UpdateFirmware();
  
     typedef struct McuInfo
     {

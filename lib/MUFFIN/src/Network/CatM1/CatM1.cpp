@@ -345,7 +345,7 @@ namespace muffin {
 
     std::pair<Status, size_t> CatM1::TakeMutex()
     {
-        if (xSemaphoreTake(xSemaphore, 1000)  != pdTRUE)
+        if (xSemaphoreTake(xSemaphore, 2000)  != pdTRUE)
         {
             LOG_WARNING(logger, "FAILED TO TAKE MUTEX FOP LTE Cat.M1. TRY LATER.");
             return std::make_pair(Status(Status::Code::BAD_TOO_MANY_OPERATIONS), mMutexHandle);

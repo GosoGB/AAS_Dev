@@ -57,6 +57,7 @@ namespace muffin {
         void startJarvisTask(const std::string& payload);
         void startRemoteControll(const std::string& payload);
         void setFotaURL(const std::string& payload);
+        void startOTA(const std::string& payload);
         static void onJarvisValidationResult(jarvis::ValidationResult result);
     private:
         static jarvis::ValidationResult mJarvisValidationResult;

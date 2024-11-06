@@ -648,7 +648,7 @@ namespace muffin { namespace http {
         ASSERT((mSetSinkToCatFS == true), "CatFS STORAGE OPTION MUST BE TURNED ON");
 
         constexpr uint8_t BUFFER_SIZE = 64;
-        constexpr uint8_t TIMEOUT_IN_SECOND = 60;
+        constexpr uint8_t TIMEOUT_IN_SECOND = 60*4;
 
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));
@@ -878,6 +878,7 @@ namespace muffin { namespace http {
 
     Status CatHTTP::processCmeErrorCode(const std::string& rxd)
     {
+        LOG_ERROR(logger, "rxd: %s", rxd.c_str());
         const std::string cmeErrorIndicator = "+CME ERROR: ";
         const size_t cmeStartPosition  = rxd.find(cmeErrorIndicator) + cmeErrorIndicator.length();
         const size_t cmeFinishPosition = rxd.find("\r", cmeStartPosition);

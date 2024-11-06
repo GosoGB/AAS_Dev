@@ -270,14 +270,17 @@ namespace muffin {
             mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
             mqtt::Message topicRemoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
             mqtt::Message topicFotaConfig(mqtt::topic_e::FOTA_CONFIG, "");
+            mqtt::Message topicFotaUpdate(mqtt::topic_e::FOTA_UPDATE, "");
             std::vector<mqtt::Message> vectorTopicsToSubscribe;
             Status retTopic01 = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
             Status retTopic02 = EmplaceBack(std::move(topicRemoteControl), &vectorTopicsToSubscribe);
             Status retTopic03 = EmplaceBack(std::move(topicFotaConfig), &vectorTopicsToSubscribe);
-            if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) || (retTopic03 != Status::Code::GOOD))
+            Status retTopic04 = EmplaceBack(std::move(topicFotaUpdate), &vectorTopicsToSubscribe);
+            if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) 
+            || (retTopic03 != Status::Code::GOOD) || (retTopic04 != Status::Code::GOOD))
             {
-                LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
-                    retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());
+                LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s, %s", 
+                    retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str(),  retTopic04.c_str());
                 catM1.ReleaseMutex();
                 s_IsCatMqttTopicSubscribed = false;
                 return ret;

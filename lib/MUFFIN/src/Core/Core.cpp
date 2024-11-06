@@ -156,6 +156,9 @@ namespace muffin {
         case mqtt::topic_e::FOTA_CONFIG:
             setFotaURL(payload);
             break;
+        case mqtt::topic_e::FOTA_UPDATE:
+            startOTA(payload);
+            break;
         default:
             ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
             break;
@@ -693,6 +696,48 @@ ERROR_RESPONSE:
         LOG_INFO(logger," host : %s, port : %d", FotaHost.c_str(), FotaPort);
 
         StartUpdateTask();
+    }
+
+    void Core::startOTA(const std::string& payload)
+    {
+        JSON json;
+        JsonDocument doc;
+        Status retJSON = json.Deserialize(payload, &doc);
+        std::string Description;
+
+        if (retJSON != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
+
+            switch (retJSON.ToCode())
+            {
+            case Status::Code::BAD_END_OF_STREAM:
+                Description = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
+                break;
+            case Status::Code::BAD_NO_DATA:
+                Description ="PAYLOAD EMPTY";
+                break;
+            case Status::Code::BAD_DATA_ENCODING_INVALID:
+                Description = "PAYLOAD INVALID ENCODING";
+                break;
+            case Status::Code::BAD_OUT_OF_MEMORY:
+                Description = "PAYLOAD OUT OF MEMORY";
+                break;
+            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
+                Description = "PAYLOAD EXCEEDED NESTING LIMIT";
+                break;
+            case Status::Code::BAD_UNEXPECTED_ERROR:
+                Description = "UNDEFINED CONDITION";
+                break;
+            default:
+                Description = "UNDEFINED CONDITION";
+                break;
+            }
+            LOG_ERROR(logger, Description.c_str());
+            return;
+        }
+
+        StartManualFirmwareUpdate(doc);
     }
 
     Core* Core::mInstance = nullptr;

@@ -15,23 +15,12 @@
 
 #include <MUFFIN.h>
 
-#include "Network/CatM1/CatM1.h"
-#include "Storage/CatFS/CatFS.h"
-
 
 
 void setup()
 {
     MUFFIN muffin;
     muffin.Start();
-
-
-    using namespace muffin;
-    
-    CatM1& catM1 = CatM1::GetInstance();
-    CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
-    Status ret = catFS->Begin();
-    LOG_DEBUG(logger, "Return: %s", ret.c_str());
 }
 
 void loop()

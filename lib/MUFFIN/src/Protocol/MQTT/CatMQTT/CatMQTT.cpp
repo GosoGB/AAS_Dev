@@ -311,7 +311,6 @@ namespace muffin { namespace mqtt {
             LOG_ERROR(logger, "FAILED TO SUBSCRIBE: %s", ret.c_str());
             return ret;
         }
-        LOG_INFO(logger,"HERE");
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret != Status::Code::GOOD)
         {
