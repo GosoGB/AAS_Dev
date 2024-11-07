@@ -596,7 +596,9 @@ namespace muffin { namespace im {
         try
         {
             mDataBuffer.emplace_back(variableData);
+            #if defined(DEBUG)
             logData(variableData);
+            #endif
         }
         catch(const std::exception& e)
         {
@@ -899,13 +901,6 @@ namespace muffin { namespace im {
     void Variable::applyMappingRules(var_data_t& variableData)
     {
         auto it = mMapMappingRules.second.end();
-
-        if (mDeprecableUID == "DI05")
-        {
-            LOG_DEBUG(logger, "[DI05] Data Type: %u", static_cast<uint8_t>(variableData.DataType));
-            LOG_DEBUG(logger, "[DI05] Value: %u", variableData.Value.UInt16);
-        }
-        
 
         switch (variableData.DataType)
         {

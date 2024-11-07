@@ -373,13 +373,14 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO READ DATA: %s", ret.c_str());
             return ret;
         }
-        
-        for (size_t i = 0; i < length; ++i)
-        {
-            Serial.print(outputBuffer[i]);
-            Serial.print(" ");
-        }
-        Serial.println();
+    #ifdef DEBUG
+        // for (size_t i = 0; i < length; ++i)
+        // {
+        //     Serial.print(outputBuffer[i]);
+        //     Serial.print(" ");
+        // }
+        // Serial.println();
+    #endif
         return ret;
     }
 

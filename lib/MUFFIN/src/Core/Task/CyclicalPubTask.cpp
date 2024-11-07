@@ -47,7 +47,6 @@ namespace muffin {
         
         if (cyclicalNodeVector.empty())
         {
-            LOG_WARNING(logger, "Cyclical Data DD");
             return;
         }
         
@@ -143,5 +142,17 @@ namespace muffin {
             }
         #endif
         }
+    }
+
+    void StopCyclicalsMSGTask()
+    {
+        if (xTaskMonitorHandle == NULL)
+        {
+            LOG_WARNING(logger, "NO MODBUS RTU TASK TO STOP!");
+            return;
+        }
+        
+        vTaskDelete(xTaskMonitorHandle);
+        xTaskMonitorHandle = NULL;
     }
 }

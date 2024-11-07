@@ -190,7 +190,7 @@ namespace muffin {
 
     void ProductionInfo::updateCountTotal(const im::var_data_t& datum)
     {
-        uint64_t TotalValue;
+        uint64_t TotalValue = 0;
 
         switch (datum.DataType)
         {

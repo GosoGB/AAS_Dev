@@ -22,7 +22,6 @@
 #include "Core.h"
 #include "Core/Task/ModbusTask.h"
 #include "DataFormat/JSON/JSON.h"
-#include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/Node/NodeStore.h"
@@ -139,7 +138,7 @@ namespace muffin {
     {
         const mqtt::topic_e topic = message.GetTopicCode();
         const std::string payload = message.GetPayload();
-
+        LOG_INFO(logger, "payload : %s",payload.c_str());
         switch (topic)
         {
         /**
@@ -736,7 +735,7 @@ ERROR_RESPONSE:
             LOG_ERROR(logger, Description.c_str());
             return;
         }
-
+        LOG_INFO(logger, "Manual Firmware Update Start");
         StartManualFirmwareUpdate(doc);
     }
 

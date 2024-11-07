@@ -142,7 +142,7 @@ namespace muffin {
         static const uint32_t mBaudRate = 115200;
         bool mIsFilePathVerbose = false;
     #if defined(DEBUG)
-        log_level_e mLevel = log_level_e::LOG_LEVEL_VERBOSE;
+        log_level_e mLevel = log_level_e::LOG_LEVEL_INFO;
     #else
         log_level_e mLevel = log_level_e::LOG_LEVEL_INFO;
     #endif

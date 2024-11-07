@@ -260,7 +260,7 @@ namespace muffin { namespace mqtt {
             LOG_WARNING(logger, "CONNECTION FAILED OR NOT INITIALIZED");
             return Status(Status::Code::BAD_REQUEST_NOT_COMPLETE);
         case state_e::CONNECTED:
-            LOG_INFO(logger, "Connected to the broker");
+            LOG_VERBOSE(logger, "Connected to the broker");
             return Status(Status::Code::GOOD);
         case state_e::DISCONNECTED:
             LOG_WARNING(logger, "DISCONNECTED FROM THE BROKER");

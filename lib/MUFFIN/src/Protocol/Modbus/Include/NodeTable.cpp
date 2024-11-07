@@ -66,7 +66,7 @@ namespace muffin { namespace modbus {
         {
             it->second.emplace_back(&node);
             LOG_VERBOSE(muffin::logger, "Emplaced Node reference: %s", node.GetNodeID().c_str());
-            printReferenceTable();
+            // printReferenceTable();
             return Status(Status::Code::GOOD);
         }
         catch(const std::bad_alloc& e)
@@ -97,7 +97,7 @@ namespace muffin { namespace modbus {
             {
                 references.erase(it);
                 LOG_VERBOSE(muffin::logger, "Removed node: %s", node.GetNodeID().c_str());
-                printReferenceTable();
+                // printReferenceTable();
                 return Status(Status::Code::GOOD);
             }
         }

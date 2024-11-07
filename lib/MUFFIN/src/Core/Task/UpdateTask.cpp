@@ -24,13 +24,19 @@
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
 #include "Core/Core.h"
+#include "CyclicalPubTask.h"
 #include "UpdateTask.h"
+#include "ModbusTask.h"
+#include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "IM/MacAddress/MacAddress.h"
 #include "Storage/CatFS/CatFS.h"
+#include "IM/AC/Alarm/DeprecableAlarm.h"
+#include "IM/EA/DeprecableOperationTime.h"
+#include "IM/EA/DeprecableProductionInfo.h"
 
 
 
@@ -103,6 +109,7 @@ namespace muffin {
         }
 
         LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION_CODE_MCU1, info.mcu1.VersionCode);
+        StopAllTask();
         result = DownloadFirmware();
         if (result == true)
         {
@@ -112,8 +119,8 @@ namespace muffin {
         else
         {
             LOG_ERROR(logger, "FAIL TO FIRMWARE DOWNLOAD");
-            result = PostDownloadResult("fail");
-            goto NO_OTA;
+            result = PostDownloadResult("failure");
+            ESP.restart();
         }
 
         if (result == true)
@@ -129,7 +136,11 @@ namespace muffin {
             }
             else
             {
-                PostFinishResult("fail");
+                if(PostFinishResult("failure"))
+                {
+                    ESP.restart();
+                }
+                
             }
         }
         
@@ -157,6 +168,7 @@ namespace muffin {
             }
 
             LOG_INFO(logger, "NEW FIRMWARE EXIST!!! currnet : %u, server : %u",FIRMWARE_VERSION_CODE_MCU1, info.mcu1.VersionCode);
+            StopAllTask();
             result = DownloadFirmware();
             if (result == true)
             {
@@ -166,8 +178,8 @@ namespace muffin {
             else
             {
                 LOG_ERROR(logger, "FAIL TO FIRMWARE DOWNLOAD");
-                result = PostDownloadResult("fail");
-                goto NO_OTA_IN_TASK;
+                result = PostDownloadResult("failure");
+                ESP.restart();
             }
 
             if (result == true)
@@ -183,7 +195,10 @@ namespace muffin {
                 }
                 else
                 {
-                    PostFinishResult("fail");
+                    if(PostFinishResult("failure"))
+                    {
+                        ESP.restart();
+                    }
                 }
             }
         NO_OTA_IN_TASK:
@@ -299,6 +314,11 @@ namespace muffin {
         info.mcu1.FirmwareVersion = obj["version"].as<std::string>();
         info.mcu1.FileTotalSize = obj["fileTotalSize"].as<uint64_t>();
         info.mcu1.FileTotalChecksum = obj["checksum"].as<std::string>();
+
+        info.mcu1.FileNumberVector.clear();
+        info.mcu1.FilePathVector.clear();
+        info.mcu1.FileSizeVector.clear();
+        info.mcu1.FileChecksumVector.clear();
 
         ASSERT((info.mcu1.FileNumberVector.size() == 0) , "ALL DATA MUST BE EMBTY");
         ASSERT((info.mcu1.FilePathVector.size() == 0) , "ALL DATA MUST BE EMBTY");
@@ -466,6 +486,24 @@ namespace muffin {
             return false;
         }
         LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
+
         ASSERT((info.mcu1.FileSizeVector.size() != 0),"FILE SIZE VECTOR MUST HAS VALUE");
 
         if ( Update.begin(info.mcu1.FileSizeVector.at(0)) == false )
@@ -492,7 +530,7 @@ namespace muffin {
             LOG_DEBUG(logger ,"Written %d bytes", writtenSize);
         }
         uint32_t finishMillis = millis();
-        LOG_DEBUG(logger ,"\n\nProcessing time : %d \n\n", finishMillis - startMillis);
+        LOG_INFO(logger ,"\n\nProcessing time : %d \n\n", finishMillis - startMillis);
 
         Serial.print("Update Error : ");
         Update.printError(Serial);
@@ -567,6 +605,11 @@ namespace muffin {
         info.mcu1.FileTotalSize = obj["fileTotalSize"].as<uint64_t>();
         info.mcu1.FileTotalChecksum = obj["checksum"].as<std::string>();
         
+        info.mcu1.FileNumberVector.clear();
+        info.mcu1.FilePathVector.clear();
+        info.mcu1.FileSizeVector.clear();
+        info.mcu1.FileChecksumVector.clear();
+        
         ASSERT((info.mcu1.FileNumberVector.size() == 0) , "ALL DATA MUST BE EMBTY");
         ASSERT((info.mcu1.FilePathVector.size() == 0) , "ALL DATA MUST BE EMBTY");
         ASSERT((info.mcu1.FileSizeVector.size() == 0) , "ALL DATA MUST BE EMBTY");
@@ -602,7 +645,7 @@ namespace muffin {
 
 
         bool result;
-        
+        StopAllTask();
         result = DownloadFirmware();
         if (result == true)
         {
@@ -657,5 +700,30 @@ namespace muffin {
             return;
         }
 
+    }
+
+    void StopAllTask()
+    {
+        StopCyclicalsMSGTask();
+        
+        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+        alarmMonitor.StopTask();
+        alarmMonitor.Clear();
+        
+        ProductionInfo& productionInfo = ProductionInfo::GetInstance();
+        productionInfo.StopTask();
+        productionInfo.Clear();
+        
+        OperationTime& operationTime = OperationTime::GetInstance();
+        operationTime.StopTask();
+        operationTime.Clear();
+
+        StopModbusTask();
+        ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
+        modbusRTU->Clear();
+
+        im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
+        nodeStore->Clear();
+        
     }
 }
