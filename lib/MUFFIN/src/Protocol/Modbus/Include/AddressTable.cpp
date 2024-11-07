@@ -75,7 +75,7 @@ namespace muffin { namespace modbus {
         printAddressTable();
         printAddressTable();
     #else
-        CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
+        // CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
     #endif
     
         // countBufferSize();
@@ -99,7 +99,7 @@ namespace muffin { namespace modbus {
         #if defined(DEBUG)
             printAddressTable();
         #else
-            CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
+            // CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
         #endif
             // countBufferSize();
             return ret;

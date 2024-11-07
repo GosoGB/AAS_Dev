@@ -75,7 +75,7 @@ namespace muffin { namespace mqtt {
         
         Message* movedMessage = new(std::nothrow) Message(message);
         ASSERT((movedMessage != nullptr), "MOVE OPERATION ON MQTT MESSAGE CANNOT FAIL");
-
+        LOG_INFO(logger, " Stored Message size : %u", sizeof(Message));
         BaseType_t ret = xQueueSend(mQueueHandle, (void*)&movedMessage, static_cast<TickType_t>(timeoutMillis));
         
         if (ret == pdTRUE)

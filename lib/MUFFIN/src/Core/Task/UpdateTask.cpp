@@ -43,8 +43,8 @@
 namespace muffin {
 
     fota_Info_t info;
-    std::string FotaHost;
-    uint16_t FotaPort;
+    std::string FotaHost = "112.171.127.186";
+    uint16_t FotaPort = 8125;
 
     TaskHandle_t xTaskFotaHandle = NULL;
 
@@ -486,23 +486,6 @@ namespace muffin {
             return false;
         }
         LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
-        LOG_INFO(logger,"info.mcu1.FileSizeVector.at(0) : %u", info.mcu1.FileSizeVector.at(0));
 
         ASSERT((info.mcu1.FileSizeVector.size() != 0),"FILE SIZE VECTOR MUST HAS VALUE");
 
@@ -689,7 +672,7 @@ namespace muffin {
         std::string payload = json.Serialize(status);
         mqtt::Message message(mqtt::topic_e::FOTA_STATUS, payload);
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
+        LOG_INFO(logger, "FOTA/STAUTS PAYLOAD : %s",payload.c_str());
         Status ret = cdo.Store(message);
         if (ret != Status::Code::GOOD)
         {

@@ -148,6 +148,8 @@ namespace muffin {
             return ret;
         }
     #endif
+    
+        StartCatM1Task();
         return ret;
     }
 

@@ -257,6 +257,16 @@ namespace muffin {
         return std::string(rxd.begin(), rxd.end());
     }
 
+    void Processor::stopUrcHandleTask()
+    {
+        if (mInitFlags.test(init_flags_e::PROCESSOR_TASK_CREATED) == true)
+        {
+            LOG_INFO(logger, "Stopping URC handling task");
+            vTaskDelete(xHandle);
+            xHandle = NULL;
+        }
+    }
+
     void Processor::StopUrcHandleTask(bool forOTA)
     {
         if (forOTA == true)
@@ -272,7 +282,7 @@ namespace muffin {
             xHandle = NULL;
         }
     }
-
+    
     void Processor::implementUrcHandleTask()
     {
     #ifdef DEBUG
@@ -282,39 +292,27 @@ namespace muffin {
 
         while (true)
         {
-            if (mHasOTA == true)
+            if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
             {
-                while (mSerial.available() > 0)
-                {
-                    mRxBuffer.Write(mSerial.read());
-                }
-                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
-            }
-            else
-            {
-                if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
-                {
-                    LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
-                    continue;
-                }
-
-                while (mSerial.available() > 0)
-                {
-                    mRxBuffer.Write(mSerial.read());
-                }
-
-                parseRDY();
-                parseCFUN();
-                parseCPIN();
-                parseQIND();
-                parseAPPRDY();
-                parseQMTRECV();
-                // parseQMTSTAT(&rxd);
-
-                xSemaphoreGive(xSemaphore);
-                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
+                LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
+                continue;
             }
 
+            while (mSerial.available() > 0)
+            {
+                mRxBuffer.Write(mSerial.read());
+            }
+
+            parseRDY();
+            parseCFUN();
+            parseCPIN();
+            parseQIND();
+            parseAPPRDY();
+            parseQMTRECV();
+            // parseQMTSTAT(&rxd);
+
+            xSemaphoreGive(xSemaphore);
+            vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
 
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)

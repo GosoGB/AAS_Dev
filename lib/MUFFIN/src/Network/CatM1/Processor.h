@@ -81,6 +81,7 @@ namespace muffin {
         size_t GetAvailableBytes();
         void StopUrcHandleTask(bool forOTA);
     private:
+        void stopUrcHandleTask();
         void implementUrcHandleTask();
         static void wrapUrcHandleTask(void* pvParameters);
     private:

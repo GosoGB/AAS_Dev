@@ -22,6 +22,7 @@
 #include "Core.h"
 #include "Core/Task/ModbusTask.h"
 #include "DataFormat/JSON/JSON.h"
+#include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/Node/NodeStore.h"
@@ -33,6 +34,7 @@
 #include "Task/MqttTask.h"
 #include "Task/JarvisTask.h"
 #include "Task/UpdateTask.h"
+#include "Task/CyclicalPubTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
@@ -131,6 +133,7 @@ namespace muffin {
         }
     #if !defined(CATFS)
         StartTaskMQTT();
+        StartUpdateTask();
     #endif
     }
 
@@ -138,7 +141,7 @@ namespace muffin {
     {
         const mqtt::topic_e topic = message.GetTopicCode();
         const std::string payload = message.GetPayload();
-        LOG_INFO(logger, "payload : %s",payload.c_str());
+
         switch (topic)
         {
         /**
@@ -569,6 +572,9 @@ ERROR_RESPONSE:
          * @todo 모든 태스크를 종료해야 합니다.
          */
         {
+            StopCyclicalsMSGTask();
+            StopModbusTask();
+
             AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
             alarmMonitor.StopTask();
             alarmMonitor.Clear();
@@ -581,7 +587,6 @@ ERROR_RESPONSE:
             operationTime.StopTask();
             operationTime.Clear();
 
-            StopModbusTask();
             ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
             modbusRTU->Clear();
 
@@ -693,8 +698,6 @@ ERROR_RESPONSE:
         FotaHost = doc["host"].as<std::string>();
         FotaPort = static_cast<uint16_t>(std::stoi(doc["port"].as<const char*>()));
         LOG_INFO(logger," host : %s, port : %d", FotaHost.c_str(), FotaPort);
-
-        StartUpdateTask();
     }
 
     void Core::startOTA(const std::string& payload)
@@ -735,7 +738,7 @@ ERROR_RESPONSE:
             LOG_ERROR(logger, Description.c_str());
             return;
         }
-        LOG_INFO(logger, "Manual Firmware Update Start");
+
         StartManualFirmwareUpdate(doc);
     }
 

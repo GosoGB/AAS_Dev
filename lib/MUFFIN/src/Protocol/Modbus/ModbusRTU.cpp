@@ -66,13 +66,17 @@ namespace muffin {
     Status ModbusRTU::SetPort(jarvis::config::Rs485* portConfig)
     {
         const jarvis::prt_e portIndex = portConfig->GetPortIndex().second;
+       
         Status ret = configurePort(portIndex, portConfig);
+     
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONFIGURE RS-485 PORT: %s", ret.c_str());
             return ret;
         }
+
         xSemaphoreModbusRTU = xSemaphoreCreateMutex();
+
         if (xSemaphoreModbusRTU == NULL)
         {
             LOG_ERROR(logger, "FAILED TO CREATE MODBUS RTU SEMAPHORE");
@@ -504,6 +508,8 @@ namespace muffin {
             {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
+                
+                // LOG_WARNING(logger, "[INPUT REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
@@ -537,7 +543,7 @@ namespace muffin {
 
             if (lastError != nullptr)
             {
-                LOG_ERROR(logger, "[HOLDING REGISTERS] FAILED TO POLL: %s", lastError);
+                LOG_ERROR(logger, "[HOLDING REGISTERS] FAILED TO POLL: %s, startAddress : %u, pollQuantity : %u", lastError, startAddress, pollQuantity);
                 ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
                 for (size_t i = 0; i < pollQuantity; i++)
                 {
@@ -553,6 +559,7 @@ namespace muffin {
                 const uint16_t address = startAddress + i;
                 const int32_t value = ModbusRTUClient.read();
                 
+                // LOG_WARNING(logger, "[HOLDING REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");

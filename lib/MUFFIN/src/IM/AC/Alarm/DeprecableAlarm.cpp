@@ -745,7 +745,7 @@ namespace muffin {
 
         }
 
-        return false;
+        return true;
     }
 
     bool AlarmMonitor::ConvertLCL(std::string lcluid, std::string lcl)
@@ -785,7 +785,7 @@ namespace muffin {
             }
         }
         
-        return false;
+        return true;
     }
 
     void AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)

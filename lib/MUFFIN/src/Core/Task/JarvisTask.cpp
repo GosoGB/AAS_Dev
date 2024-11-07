@@ -97,7 +97,6 @@ namespace muffin {
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
-
             if (retJSON != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
@@ -139,7 +138,6 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
             ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
-
             const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
             if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
             {
@@ -151,7 +149,6 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
             ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
-
             if (doc.containsKey("rqi") == true)
             {
                 const char* rqi = doc["rqi"].as<const char*>();
@@ -175,7 +172,7 @@ namespace muffin {
         {
             validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
             validationResult.SetDescription("UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
-
+            s_IsJarvisTaskRunning = false;
             callback(validationResult);
             vTaskDelete(NULL);
         }
@@ -185,7 +182,7 @@ namespace muffin {
             JsonDocument doc;
 
             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.demo.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
             http::RequestParameter parameters;
             parameters.Add("mac", MacAddress::GetEthernet());
 
@@ -405,12 +402,16 @@ namespace muffin {
                 break;
             case jarvis::cfg_key_e::MODBUS_RTU:
                 {
+    
                     for (auto cin : jarvis)
                     {
                         if (cin.first == jarvis::cfg_key_e::RS485)
-                        {
+                        {   
+                       
                             jarvis::config::Rs485* rs485CIN = static_cast<jarvis::config::Rs485*>(cin.second[0]);
+                  
                             applyModbusRtuCIN(pair.second, rs485CIN);
+                  
                             break;
                         }
                     }
@@ -572,12 +573,12 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
             return;
         }
-
         modbusRTU->SetPort(rs485CIN);
         mVectorModbusRTU.clear();
 
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
+        
             jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
             Status ret = modbusRTU->Config(cin);
             if (ret != Status::Code::GOOD)

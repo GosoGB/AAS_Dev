@@ -172,7 +172,7 @@ namespace muffin {
                 vTaskDelay(500 / portTICK_PERIOD_MS);
                 continue;
             }
-            LOG_INFO(logger, "pubMessage : %s",pubMessage.second.GetPayload());
+            
             for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
             {
                 Status ret = catMqtt.Publish(mutexHandle.second, pubMessage.second);

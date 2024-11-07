@@ -228,7 +228,16 @@ namespace muffin {
             "tkfkdgo5!@#$"
         );
     #else
-        mqtt::BrokerInfo info(MacAddress::GetEthernet());
+        // mqtt::BrokerInfo info(MacAddress::GetEthernet());
+        mqtt::BrokerInfo info(
+            MacAddress::GetEthernet(),
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
+            40,
+            mqtt::socket_e::SOCKET_0,
+            "vitcon",
+            "tkfkdgo5!@#$"
+        );
     #endif
 
         CatM1& catM1 = CatM1::GetInstance();

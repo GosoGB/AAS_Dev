@@ -347,7 +347,7 @@ namespace muffin {
     {
         mProcessor.StopUrcHandleTask(forOTA);
     }
-
+    
     std::pair<Status, size_t> CatM1::TakeMutex()
     {
         if (xSemaphoreTake(xSemaphore, 2000)  != pdTRUE)

@@ -596,9 +596,7 @@ namespace muffin { namespace im {
         try
         {
             mDataBuffer.emplace_back(variableData);
-            #if defined(DEBUG)
-            logData(variableData);
-            #endif
+            // logData(variableData);
         }
         catch(const std::exception& e)
         {
@@ -1126,7 +1124,7 @@ namespace muffin { namespace im {
     {
         if (mHasAttributeEvent == false)
         {
-            LOG_INFO(logger,"HasAttributeEvent IS FALSE");
+            // LOG_INFO(logger,"HasAttributeEvent IS FALSE");
             return false;
         }
 
