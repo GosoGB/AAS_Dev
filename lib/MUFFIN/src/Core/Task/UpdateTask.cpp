@@ -43,8 +43,8 @@
 namespace muffin {
 
     fota_Info_t info;
-    std::string FotaHost = "112.171.127.186";
-    uint16_t FotaPort = 8125;
+    std::string FotaHost = "api.fota.edgecross.ai";
+    uint16_t FotaPort = 443;
 
     TaskHandle_t xTaskFotaHandle = NULL;
 
@@ -225,7 +225,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/version/release", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/version/release", "MODLINK-L/0.0.1");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         
@@ -373,7 +373,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         parameters.Add("otaId", std::to_string(info.OtaID));
@@ -409,7 +409,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
@@ -442,7 +442,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
