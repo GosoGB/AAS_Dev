@@ -72,7 +72,6 @@ namespace muffin { namespace jarvis { namespace config {
     void ModbusRTU::SetSlaveID(const uint8_t sid)
     {
         ASSERT((0 < sid && sid < 248), "INVALID SLAVED ID: %u", sid);
-        LOG_WARNING(logger, "sid : %d", sid);
         mSlaveID = sid;
         mIsSlaveIdSet = true;
     }

@@ -111,7 +111,7 @@ namespace muffin {
 
             currentTimestamp = GetTimestamp();
 
-            LOG_WARNING(logger,"1분 경과 %lu",currentTimestamp);
+            LOG_DEBUG(logger,"1분 경과 %lu",currentTimestamp);
 
             im::NodeStore& nodeStore = im::NodeStore::GetInstance();
             std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
