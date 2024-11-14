@@ -424,11 +424,11 @@ namespace muffin { namespace jarvis {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
-        if (mAddress.second.Numeric > 0x270F)
-        {
-            const std::string message = "EXTENDED REGISTER ADDRESS FOR MODBUS PROTOCOL IS NOT SUPPORTED, NODE ID :  "+ mNodeID;
-            return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
-        }
+        // if (mAddress.second.Numeric > 0x270F)
+        // {
+        //     const std::string message = "EXTENDED REGISTER ADDRESS FOR MODBUS PROTOCOL IS NOT SUPPORTED, NODE ID :  "+ mNodeID;
+        //     return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
+        // }
 
         if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
         {

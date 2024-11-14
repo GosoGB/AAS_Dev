@@ -292,27 +292,38 @@ namespace muffin {
 
         while (true)
         {
-            if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+            if (mHasOTA == true)
             {
-                LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
-                continue;
+                while (mSerial.available() > 0)
+                {
+                    mRxBuffer.Write(mSerial.read());
+                }
+                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
             }
-
-            while (mSerial.available() > 0)
+            else
             {
-                mRxBuffer.Write(mSerial.read());
+                if (xSemaphoreTake(xSemaphore, 100) != pdTRUE)
+                {
+                    LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
+                    continue;
+                }
+
+                while (mSerial.available() > 0)
+                {
+                    mRxBuffer.Write(mSerial.read());
+                }
+
+                parseRDY();
+                parseCFUN();
+                parseCPIN();
+                parseQIND();
+                parseAPPRDY();
+                parseQMTRECV();
+                // parseQMTSTAT(&rxd);
+
+                xSemaphoreGive(xSemaphore);
+                vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
             }
-
-            parseRDY();
-            parseCFUN();
-            parseCPIN();
-            parseQIND();
-            parseAPPRDY();
-            parseQMTRECV();
-            // parseQMTSTAT(&rxd);
-
-            xSemaphoreGive(xSemaphore);
-            vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
 
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)

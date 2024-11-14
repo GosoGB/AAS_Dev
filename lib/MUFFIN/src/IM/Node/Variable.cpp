@@ -921,7 +921,7 @@ namespace muffin { namespace im {
             break;
         }
         ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
-
+        
         variableData.DataType = jarvis::dt_e::STRING;
         variableData.Value.String = ToMuffinString(it->second);
     }

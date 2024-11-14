@@ -43,8 +43,12 @@
 namespace muffin {
 
     fota_Info_t info;
-    std::string FotaHost = "api.fota.edgecross.ai";
-    uint16_t FotaPort = 443;
+    Fota_url_t DownloadUrl;
+    Fota_url_t ReleaseUrl =
+    {
+        .Port = 443,
+        .Host = "api.fota.edgecross.ai"
+    };
 
     TaskHandle_t xTaskFotaHandle = NULL;
 
@@ -57,6 +61,8 @@ namespace muffin {
         }
 
         SendStatusMSG();
+
+        delay(1000);
 
         /**
          * @todo 스택 오버플로우를 방지하기 위해서 MQTT 메시지 크기에 따라서
@@ -160,7 +166,7 @@ namespace muffin {
             }
             currentTimestamp = GetTimestamp();
 
-            LOG_WARNING(logger,"12시간 경과 %lu",currentTimestamp);
+            LOG_DEBUG(logger,"12시간 경과 %lu",currentTimestamp);
             result = HasNewFirmwareFOTA();
             if (result == false)
             {
@@ -225,7 +231,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/version/release", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, ReleaseUrl.Host, ReleaseUrl.Port, "/firmware/file/version/release", "MODLINK-L/0.0.1");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         
@@ -306,6 +312,24 @@ namespace muffin {
             return false;
         }
 
+        if (doc["url"].isNull() == false)
+        {
+            std::string url = doc["url"].as<std::string>();
+
+            size_t pos = url.find("://");
+            if (pos != std::string::npos) 
+            {
+                url = url.substr(pos + 3);
+            }
+            pos = url.find(":");
+
+            if (pos != std::string::npos) 
+            {
+                DownloadUrl.Host = url.substr(0, pos);
+                DownloadUrl.Port = static_cast<uint16_t>(atoi(url.substr(pos + 1).c_str())); 
+            }
+        }
+
         
         info.OtaID = doc["otaId"].as<uint8_t>();
 
@@ -373,7 +397,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/0.0.1");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         parameters.Add("otaId", std::to_string(info.OtaID));
@@ -409,7 +433,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
@@ -442,7 +466,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/0.0.1");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
@@ -573,8 +597,8 @@ namespace muffin {
 
             if (pos != std::string::npos) 
             {
-                FotaHost = url.substr(0, pos);
-                FotaPort = static_cast<uint16_t>(atoi(url.substr(pos + 1).c_str())); 
+                DownloadUrl.Host = url.substr(0, pos);
+                DownloadUrl.Port = static_cast<uint16_t>(atoi(url.substr(pos + 1).c_str())); 
             }
         }
         
@@ -625,7 +649,6 @@ namespace muffin {
         {
             // MCU2 설정 값 저장
         }
-
 
         bool result;
         StopAllTask();
@@ -688,6 +711,7 @@ namespace muffin {
     void StopAllTask()
     {
         StopCyclicalsMSGTask();
+        StopModbusTask();
         
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         alarmMonitor.StopTask();
@@ -701,7 +725,6 @@ namespace muffin {
         operationTime.StopTask();
         operationTime.Clear();
 
-        StopModbusTask();
         ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
         modbusRTU->Clear();
 
