@@ -5,7 +5,7 @@
  * @brief MQTT 프로토콜에서 사용하는 데이터 타입들을 정의합니다.
  * 
  * @date 2024-09-12
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -53,12 +53,13 @@ namespace muffin { namespace mqtt {
         DAQ_PARAM               = 7,
         ALARM                   = 8,
         ERROR                   = 9,
-        OPERATION               = 10,
-        UPTIME                  = 11,
-        FINISHEDGOODS           = 12,
-        FOTA_CONFIG             = 13,
-        FOTA_UPDATE             = 14,
-        FOTA_STATUS             = 15
+        PUSH                    = 10,
+        OPERATION               = 11,
+        UPTIME                  = 12,
+        FINISHEDGOODS           = 13,
+        FOTA_CONFIG             = 14,
+        FOTA_UPDATE             = 15,
+        FOTA_STATUS             = 16,
     } topic_e;
 
     typedef enum class MqttQoSEnum

@@ -5,7 +5,7 @@
  * @brief MUFFIN 프레임워크가 적용된 펌웨어의 진입점입니다.
  * 
  * @date 2024-10-16
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

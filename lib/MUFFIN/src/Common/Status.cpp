@@ -5,7 +5,7 @@
  * @brief MUFFIN 프레임워크 내에서 상태를 표현하는 클래스를 정의합니다.
  * 
  * @date 2024-10-25
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2023-2024
  */

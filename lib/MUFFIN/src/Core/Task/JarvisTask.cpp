@@ -5,7 +5,7 @@
  * @brief 수신한 JARIVS 설정 정보를 검증하여 유효하다면 적용하는 태스크를 정의합니다.
  * 
  * @date 2024-10-18
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) EdgecrBoss Inc. 2024
  */
@@ -38,7 +38,7 @@
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "IM/MacAddress/MacAddress.h"
 #include "Storage/ESP32FS/ESP32FS.h"
-
+#include "Storage/CatFS/CatFS.h"
 
 
 namespace muffin {
@@ -182,14 +182,16 @@ namespace muffin {
             JsonDocument doc;
 
             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.demo.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/1.0.0");
             http::RequestParameter parameters;
             parameters.Add("mac", MacAddress::GetEthernet());
 
         #ifdef DEBUG
             LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
         #endif
+            catHttp.SetSinkToCatFS(true);
             Status ret = catHttp.GET(mutexHandle.second, header, parameters);
+            catHttp.SetSinkToCatFS(false);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
@@ -221,10 +223,17 @@ namespace muffin {
             }
 #ifdef DEBUG
     LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-
+#endif      
+            catM1.ReleaseMutex();
+            CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
+            ret = catFS->Begin();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger," FAIL TO BEGIN CATFS");
+                return;
+            }
             s_JarvisApiPayload.clear();
-            ret = catHttp.Retrieve(mutexHandle.second, &s_JarvisApiPayload);
+            ret = catFS->DownloadFile("http_response_file", &s_JarvisApiPayload);
             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
             if (ret != Status::Code::GOOD)
             {

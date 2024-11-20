@@ -5,7 +5,7 @@
  * @brief CSV 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 선언합니다.
  * 
  * @date 2024-10-17
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @todo 구현한 다음 LTE Cat.M1 모뎀과 관련된 모든 클래스에 적용해야 합니다.
  * @details LTE Cat.M1 모뎀과 MODLINK가 주고 받는 데이터가 주로 CSV 형식과 비슷합니다.

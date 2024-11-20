@@ -6,7 +6,7 @@
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
  * @date 2024-11-01
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -922,8 +922,18 @@ namespace muffin { namespace im {
         }
         ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
         
-        variableData.DataType = jarvis::dt_e::STRING;
-        variableData.Value.String = ToMuffinString(it->second);
+        if (it == mMapMappingRules.second.end())
+        {
+            variableData.DataType = jarvis::dt_e::STRING;
+            variableData.Value.String = ToMuffinString("UNDEFINED : " + std::to_string(variableData.Value.UInt16));
+        }
+        else
+        {
+            variableData.DataType = jarvis::dt_e::STRING;
+            variableData.Value.String = ToMuffinString(it->second);
+        }
+        
+        
     }
 
     void Variable::applyNumericScale(var_data_t& variableData)

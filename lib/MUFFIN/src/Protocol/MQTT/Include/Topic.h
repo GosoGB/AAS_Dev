@@ -5,7 +5,7 @@
  * @brief MQTT 프로토콜의 토픽 클래스를 선언합니다.
  * 
  * @date 2024-10-17
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -51,6 +51,7 @@ namespace muffin { namespace mqtt {
         static std::string mDaqParam;
         static std::string mAlarm;
         static std::string mError;
+        static std::string mPush;
         static std::string mOperation;
         static std::string mUptime;
         static std::string mFinishedGoods;

@@ -9,7 +9,7 @@
  * @todo 현재는 LTE Cat.M1 만 구현이 되어있습니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

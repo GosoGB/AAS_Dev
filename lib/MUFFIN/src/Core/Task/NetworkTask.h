@@ -5,7 +5,7 @@
  * @brief 네트워크 인터페이스 사용과 관련된 태스크를 선언합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

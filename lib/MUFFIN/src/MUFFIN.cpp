@@ -5,7 +5,7 @@
  * @brief MUFFIN 프레임워크에 대한 공개 인터페이스를 정의합니다.
  * 
  * @date 2024-10-15
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

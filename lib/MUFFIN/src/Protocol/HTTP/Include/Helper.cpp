@@ -5,7 +5,7 @@
  * @brief HTTP 프로토콜 전반에 걸쳐 공통으로 사용할 수 있는 함수를 선언합니다.
  * 
  * @date 2024-09-14
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

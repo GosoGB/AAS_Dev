@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈의 MQTT 프로토콜 클래스를 정의합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

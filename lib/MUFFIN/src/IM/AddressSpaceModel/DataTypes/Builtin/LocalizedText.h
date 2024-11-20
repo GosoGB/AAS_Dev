@@ -5,7 +5,7 @@
  * @brief OPC UA 표준의 LocalizedText DataType을 정의합니다.
  * 
  * @date 2024-10-25
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

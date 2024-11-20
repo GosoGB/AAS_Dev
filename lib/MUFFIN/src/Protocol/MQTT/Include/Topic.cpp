@@ -5,7 +5,7 @@
  * @brief MQTT 프로토콜의 토픽 클래스를 정의합니다.
  * 
  * @date 2024-09-12
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -46,6 +46,7 @@ namespace muffin { namespace mqtt {
             mDaqParam               = "scautr/equipment/param";
             mAlarm                  = "scautr/equipment/status/alarm";
             mError                  = "scautr/equipment/status/error";
+            mPush                   = "progix/push";
             mOperation              = "scautr/equipment/status/operation";
             mUptime                 = "progix/dashboard/ut";
             mFinishedGoods          = "progix/dashboard/fg";
@@ -63,6 +64,7 @@ namespace muffin { namespace mqtt {
             mDaqParam               = "scautr/equipment/param";
             mAlarm                  = "scautr/equipment/status/alarm";
             mError                  = "scautr/equipment/status/error";
+            mPush                   = "progix/push";
             mOperation              = "scautr/equipment/status/operation";
             mUptime                 = "progix/dashboard/ut";
             mFinishedGoods          = "progix/dashboard/fg";
@@ -119,6 +121,8 @@ namespace muffin { namespace mqtt {
             return mAlarm.c_str();
         case topic_e::ERROR:
             return mError.c_str();
+        case topic_e::PUSH:
+            return mPush.c_str();
         case topic_e::OPERATION:
             return mOperation.c_str();
         case topic_e::UPTIME:
@@ -175,6 +179,10 @@ namespace muffin { namespace mqtt {
         {
             return std::make_pair(true, topic_e::ERROR);
         }
+        else if (topicString == mPush)
+        {
+            return std::make_pair(true, topic_e::PUSH);
+        }
         else if (topicString == mOperation)
         {
             return std::make_pair(true, topic_e::OPERATION);
@@ -217,6 +225,7 @@ namespace muffin { namespace mqtt {
     std::string Topic::mDaqParam;
     std::string Topic::mAlarm;
     std::string Topic::mError;
+    std::string Topic::mPush;
     std::string Topic::mOperation;
     std::string Topic::mUptime;
     std::string Topic::mFinishedGoods;

@@ -6,7 +6,7 @@
  * @brief 가동 시간 설정 형식을 표현하는 클래스를 선언합니다.
  * 
  * @date 2024-10-07
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

@@ -5,7 +5,7 @@
  * @brief 가동시간 정보를 수집하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
  * @date 2024-10-11
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

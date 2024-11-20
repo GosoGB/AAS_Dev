@@ -5,7 +5,7 @@
  * @brief HTTP 프로토콜 요청 파라미터를 표현하는 클래스를 선언합니다.
  * 
  * @date 2024-09-23
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

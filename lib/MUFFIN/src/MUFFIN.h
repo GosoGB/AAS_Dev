@@ -10,7 +10,7 @@
  *          될 수 있기 떄문입니다.
  * 
  * @date 2024-10-15
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

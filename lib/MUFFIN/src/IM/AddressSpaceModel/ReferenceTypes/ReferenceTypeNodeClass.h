@@ -5,7 +5,7 @@
  * @brief 기본 노드 클래스를 상속받는 참조 타입 노드 클래스를 선언합니다.
  * 
  * @date 2024-10-26
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

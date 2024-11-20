@@ -5,7 +5,7 @@
  * @brief 네트워크 모듈에서 공통적으로 사용하는 데이터 타입들을 정의합니다.
  * 
  * @date 2024-09-12
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

@@ -5,7 +5,7 @@
  * @brief JSON 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 선언합니다.
  * 
  * @date 2024-09-27
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @todo 인코딩 함수를 추가로 구현해야 합니다.
  * 
@@ -82,6 +82,13 @@ namespace muffin {
         std::string Status;
     } operation_struct_t;
 
+    typedef struct PushStruct
+    {
+        mqtt::topic_e Topic;
+        uint64_t SourceTimestamp;
+        std::string Name;
+    } push_struct_t;
+
     typedef struct ProgixStruct
     {
         mqtt::topic_e Topic;
@@ -100,6 +107,7 @@ namespace muffin {
         std::string Serialize(const daq_struct_t& _struct);
         std::string Serialize(const alarm_struct_t& _struct);
         std::string Serialize(const operation_struct_t& _struct);
+        std::string Serialize(const push_struct_t& _struct);
         std::string Serialize(const progix_struct_t& _struct);
         std::string Serialize(const fota_status_t& _struct);
     public:

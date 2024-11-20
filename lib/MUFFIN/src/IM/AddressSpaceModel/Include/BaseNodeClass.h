@@ -5,7 +5,7 @@
  * @brief 정보 모델의 기본 단위인 BaseNodeClass 클래스를 선언합니다.
  * 
  * @date 2024-10-25
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

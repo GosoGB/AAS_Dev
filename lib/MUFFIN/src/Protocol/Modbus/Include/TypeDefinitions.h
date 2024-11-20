@@ -5,7 +5,7 @@
  * @brief Modbus와 관련된 데이터 타입들을 선언합니다.
  * 
  * @date 2024-10-01
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

@@ -5,7 +5,7 @@
  * @brief JARVIS 설정 정보에 대한 유효성 검사 결과를 표현하기 위한 클래스를 선언합니다.
  * 
  * @date 2024-10-15
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

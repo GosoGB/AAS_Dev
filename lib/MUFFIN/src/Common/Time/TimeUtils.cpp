@@ -5,7 +5,7 @@
  * @brief 시간 정보를 생성, 관리, 교환하기 위한 기능을 정의
  * 
  * @date 2024-10-29
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */

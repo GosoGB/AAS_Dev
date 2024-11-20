@@ -5,7 +5,7 @@
  * @brief 노드, 변수, 속성, 이벤트를 모니터링 할 때 사용되는 MonitoredItem 클래스를 정의합니다.
  * 
  * @date 2024-10-25
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) EdgecrBoss Inc. 2024
  */

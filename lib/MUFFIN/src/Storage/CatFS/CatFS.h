@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈의 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
  * @date 2024-11-04
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @note 현재 Ver.0.0.1에서는 OTA에 필요한 최소한의 기능만을 구현합니다.
  * @todo IStorage 인터페이스를 구현해야 합니다.
@@ -65,6 +65,9 @@ namespace muffin {
         Status Close();
         Status Read(const size_t length, uint8_t outputBuffer[]);
         Status Seek(const size_t offset);
+        Status DownloadFile(const std::string& path, std::string* data);
+    private:
+	    uint16_t calculateChecksum(const std::string contents);
     private:
         Status readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd);
         std::pair<Status, size_t> processMetadataForQFREAD(const uint32_t timeoutMillis);

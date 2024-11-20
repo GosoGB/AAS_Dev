@@ -8,7 +8,7 @@
  *          한 곳에 집적해서 관리하기 위한 기능을 제공합니다.
  * 
  * @date 2024-10-30
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

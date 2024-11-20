@@ -6,7 +6,7 @@
  * @note MUFFIN Ver.0.0.1 개발 이후 또는 정보 모델 구현이 완료되면 재설계 할 예정입니다.
  * 
  * @date 2024-10-28
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -566,6 +566,10 @@ namespace muffin {
     void AlarmMonitor::activateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin, const im::Variable& node)
     {
         alarm_struct_t alarm;
+        push_struct_t push;
+        push.SourceTimestamp = GetTimestampInMillis();
+        push.Topic = mqtt::topic_e::PUSH;
+
         alarm.Topic = mqtt::topic_e::ALARM;
         alarm.AlarmType = "start";
         alarm.AlarmStartTime = GetTimestampInMillis();
@@ -576,10 +580,12 @@ namespace muffin {
         case jarvis::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
             alarm.Name = node.GetDisplayName() + " 하한 도달";
+            push.Name = node.GetDisplayName() + " 하한 도달";
             break;
         case jarvis::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
             alarm.Name = node.GetDisplayName() + " 상한 초과";
+            push.Name = node.GetDisplayName() + " 상한 초과";
             break;
         case jarvis::alarm_type_e::CONDITION:
             {
@@ -590,6 +596,7 @@ namespace muffin {
                     {
                         alarm.Uid = nodeRef.second.GetUID();
                         alarm.Name = std::string(node.RetrieveData().Value.String.Data);
+                        push.Name = std::string(node.RetrieveData().Value.String.Data);
                         break;
                     }
                 }
@@ -604,10 +611,15 @@ namespace muffin {
         JSON json;
         const std::string payload = json.Serialize(alarm);
         const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
-        mqtt::Message message(topic, payload);
+        mqtt::Message AlarmMessage(topic, payload);
+        
+        const std::string pushPayload = json.Serialize(push);
+        const mqtt::topic_e pushTopic = push.Topic;
+        mqtt::Message pushMessage(pushTopic, pushPayload);
 
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(message);
+        cdo.Store(AlarmMessage);
+        cdo.Store(pushMessage);
 
         mVectorAlarmInfo.emplace_back(alarm);
     }

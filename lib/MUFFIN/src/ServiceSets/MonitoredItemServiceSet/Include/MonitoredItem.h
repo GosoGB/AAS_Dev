@@ -10,7 +10,7 @@
  * @todo CreateMonitoredItemService에서 256개 이상의 개체가 생성되지 않도록 검사하는 기능을 구현해야 합니다.
  * 
  * @date 2024-10-25
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) EdgecrBoss Inc. 2024
  */

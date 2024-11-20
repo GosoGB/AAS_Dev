@@ -5,7 +5,7 @@
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
  * 
  * @date 2024-10-29
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -231,7 +231,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, ReleaseUrl.Host, ReleaseUrl.Port, "/firmware/file/version/release", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, ReleaseUrl.Host, ReleaseUrl.Port, "/firmware/file/version/release", "MODLINK-L/1.0.0");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         
@@ -397,7 +397,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/1.0.0");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         parameters.Add("otaId", std::to_string(info.OtaID));
@@ -433,7 +433,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download/finish", "MODLINK-L/1.0.0");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
@@ -466,7 +466,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/1.0.0");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());

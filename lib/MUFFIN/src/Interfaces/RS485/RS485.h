@@ -6,7 +6,7 @@
  * @note 본 클래스는 ANANLOG DEVICES 사의 MAX485 트랜스시버를 사용합니다.
  * 
  * @date 2024-10-21
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @note 하드웨어 개발팀의 김병우 수석께 확인한 결과 MODLINK-L, MODLINK-ML10 모델의 경우
  *       MAX485 칩셋의 DE/RE 핀은 ESP32에 연결되어 있지 않습니다. MAX485 칩셋 실장 시 
