@@ -26,16 +26,10 @@ namespace muffin { namespace jarvis { namespace config {
     WiFi4::WiFi4()
         : Base(cfg_key_e::WIFI4)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     WiFi4::~WiFi4()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     WiFi4& WiFi4::operator=(const WiFi4& obj)

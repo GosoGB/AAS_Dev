@@ -51,16 +51,10 @@ namespace muffin { namespace mqtt {
 
     CIA::CIA()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     CIA::~CIA()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     uint8_t CIA::Count()

@@ -18,10 +18,10 @@
 #include <set>
 #include <string>
 #include <sys/_stdint.h>
+#include <IPAddress.h>
 
 #include "IM/Node/Include/NumericAddressRange.h"
 #include "Common/Status.h"
-
 
 
 namespace muffin { namespace modbus {
@@ -33,4 +33,10 @@ namespace muffin { namespace modbus {
         uint16_t  Value;
         bool IsOK;
     } datum_t;
+
+    typedef struct ModbusTcpServerStruct  /* 32 bits */
+    {
+        IPAddress serverIP;
+        uint16_t serverPort;
+    } modbusTcpServer_t;
 }}

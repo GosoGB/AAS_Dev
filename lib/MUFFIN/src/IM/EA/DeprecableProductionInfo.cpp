@@ -44,16 +44,10 @@ namespace muffin {
         , mNodeIdNG(std::make_pair(false, ""))
         , xHandle(NULL)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     ProductionInfo::~ProductionInfo()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     void ProductionInfo::StartTask()
@@ -84,7 +78,7 @@ namespace muffin {
         switch (taskCreationResult)
         {
         case pdPASS:
-            LOG_INFO(logger, "The ProductionInfo task has been started");
+            // LOG_INFO(logger, "The ProductionInfo task has been started");
             break;
         case pdFAIL:
             LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
@@ -130,7 +124,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                LOG_DEBUG(logger, "[TASK: ProductionInfo] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
+                //LOG_DEBUG(logger, "[TASK: ProductionInfo] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
                 checkRemainedStackMillis = millis();
             }
         #endif
@@ -266,13 +260,6 @@ namespace muffin {
                 mVectorNodeReference.emplace_back(node);
             }
         }
-        
-    #if defined(DEBUG)
-        for (uint8_t i = 0; i < mVectorNodeReference.size(); ++i)
-        {
-            LOG_DEBUG(logger, "Node Reference [#%01u]: %s", i, mVectorNodeReference[i].get().first.c_str());
-        }
-    #endif
     }
     
     void ProductionInfo::Clear()
@@ -291,7 +278,7 @@ namespace muffin {
 
         mVectorNodeReference.clear();
 
-        LOG_INFO(logger, "Production Info configurations and data have been cleared");
+        // LOG_INFO(logger, "Production Info configurations and data have been cleared");
     }
 
     void ProductionInfo::publishInfo(const uint64_t productionValue)

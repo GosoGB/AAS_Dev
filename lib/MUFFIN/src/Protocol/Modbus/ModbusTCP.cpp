@@ -1,12 +1,12 @@
 /**
- * @file ModbusRTU.cpp
+ * @file ModbusTCP.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
  * 
- * @brief Modbus RTU 프로토콜 클래스를 정의합니다.
+ * @brief Modbus TCP 프로토콜 클래스를 정의합니다.
  * 
  * @date 2024-10-22
- * @version 1.0.0
+ * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -21,18 +21,22 @@
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
 #include "IM/Node/NodeStore.h"
-#include "Include/ArduinoModbus/src/ModbusRTUClient.h"
-#include "ModbusRTU.h"
+#include "Include/ArduinoModbus/src/ModbusTCPClient.h"
+#include "ModbusTCP.h"
 #include "ModbusMutex.h"
 
 
 namespace muffin {
 
-    ModbusRTU* ModbusRTU::CreateInstanceOrNULL()
+    WiFiClient wifiClient;
+    ModbusTCPClient modbusTCPClient(wifiClient);
+
+
+    ModbusTCP* ModbusTCP::CreateInstanceOrNULL()
     {
         if (mInstance == nullptr)
         {
-            mInstance = new(std::nothrow) ModbusRTU();
+            mInstance = new(std::nothrow) ModbusTCP();
             if (mInstance == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MODBUS RTU");
@@ -43,64 +47,61 @@ namespace muffin {
         return mInstance;
     }
 
-    ModbusRTU& ModbusRTU::GetInstance()
+    ModbusTCP& ModbusTCP::GetInstance()
     {
         ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"CreateInstanceOrNULL\" INSTEAD");
         return *mInstance;
     }
 
-    ModbusRTU::ModbusRTU()
+    ModbusTCP::ModbusTCP()
     {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
     }
     
-    ModbusRTU::~ModbusRTU()
+    ModbusTCP::~ModbusTCP()
     {   
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
-    Status ModbusRTU::SetPort(jarvis::config::Rs485* portConfig)
+    Status ModbusTCP::Config(jarvis::config::ModbusTCP* config)
     {
-        const jarvis::prt_e portIndex = portConfig->GetPortIndex().second;
-       
-        Status ret = configurePort(portIndex, portConfig);
-     
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO CONFIGURE RS-485 PORT: %s", ret.c_str());
-            return ret;
-        }
+        mConfig = new jarvis::config::ModbusTCP();
+        *mConfig = *config;
 
-        xSemaphoreModbusRTU = xSemaphoreCreateMutex();
-
-        if (xSemaphoreModbusRTU == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MODBUS RTU SEMAPHORE");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-        
-        LOG_INFO(logger, "Created task Modbus RTU semaphore");
-        return ret;
-    }
-
-    Status ModbusRTU::Config(jarvis::config::ModbusRTU* config)
-    {
-        if (config->GetNodes().second.empty())
-        {
-            
-        }
-        
         const uint8_t slaveID = config->GetSlaveID().second;
         addNodeReferences(slaveID, config->GetNodes().second);
+        xSemaphoreModbusTCP = xSemaphoreCreateMutex();
+        if (xSemaphoreModbusTCP == NULL)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MODBUS TCP SEMAPHORE");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
         return Status(Status::Code::GOOD);
     }
 
-    void ModbusRTU::Clear()
+    Status ModbusTCP::RetrieveConfig(jarvis::config::ModbusTCP* config)
+    {
+        if (mConfig == nullptr)
+        {
+            return Status(Status::Code::BAD_NOT_FOUND);
+        }
+        
+        *config = *mConfig;
+        return Status(Status::Code::GOOD);
+    }
+
+    void ModbusTCP::Clear()
     {
         mNodeTable.Clear();
         mAddressTable.Clear();
         mPolledDataTable.Clear();
     }
 
-    SerialConfig ModbusRTU::convert2SerialConfig(const jarvis::dbit_e dbit, const jarvis::sbit_e sbit, const jarvis::pbit_e pbit)
+    SerialConfig ModbusTCP::convert2SerialConfig(const jarvis::dbit_e dbit, const jarvis::sbit_e sbit, const jarvis::pbit_e pbit)
     {
         const uint8_t dataBits    = (static_cast<uint8_t>(dbit) - 0x05) << 0x2;
         const uint8_t stopBits    = (sbit == jarvis::sbit_e::SBIT_1 ? 0x01 : 0x03) << 0x4;        
@@ -112,27 +113,8 @@ namespace muffin {
         return static_cast<SerialConfig>(config);
     }
 
-    Status ModbusRTU::configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig)
-    {
-        if (portIndex == jarvis::prt_e::PORT_2)
-        {
-            const jarvis::bdr_e baudrate   = portConfig->GetBaudRate().second;
-            const jarvis::dbit_e dataBit   = portConfig->GetDataBit().second;
-            const jarvis::pbit_e parityBit = portConfig->GetParityBit().second;
-            const jarvis::sbit_e stopBit   = portConfig->GetStopBit().second;
 
-            SerialConfig serialConfig = convert2SerialConfig(dataBit, stopBit, parityBit);
-            ModbusRTUClient.begin(*RS485, Convert.ToUInt32(baudrate), serialConfig);
-            return Status(Status::Code::GOOD);
-        }
-        else
-        {
-            ASSERT(false, "UNDEFINED OR UNSUPPORTED CONFIGURATION");
-            return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-        }
-    }
-
-    Status ModbusRTU::addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID)
+    Status ModbusTCP::addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID)
     {
         Status ret(Status::Code::UNCERTAIN);
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
@@ -168,8 +150,8 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-/** * @brief 향후 개발 예정입니다. --> Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
-     Status ModbusRTU::RemoveReferece(const uint8_t slaveID, im::Node& node)
+/** * @brief 향후 개발 예정입니다. --> Status ModbusTCP::RemoveReferece(const uint8_t slaveID, im::Node& node)
+     Status ModbusTCP::RemoveReferece(const uint8_t slaveID, im::Node& node)
     {
         Status ret = mNodeTable.Remove(slaveID, node);
         if (ret != Status::Code::GOOD)
@@ -193,12 +175,12 @@ namespace muffin {
     }
  */
 
-    im::NumericAddressRange ModbusRTU::createAddressRange(const uint16_t address, const uint16_t quantity) const
+    im::NumericAddressRange ModbusTCP::createAddressRange(const uint16_t address, const uint16_t quantity) const
     {
         return AddressRange(address, quantity);
     }
 
-    Status ModbusRTU::Poll()
+    Status ModbusTCP::Poll()
     {
         Status ret = implementPolling();
         if (ret != Status::Code::GOOD)
@@ -215,7 +197,7 @@ namespace muffin {
         return ret;
     }
 
-    Status ModbusRTU::implementPolling()
+    Status ModbusTCP::implementPolling()
     {
         Status ret(Status::Code::UNCERTAIN);
 
@@ -242,7 +224,7 @@ namespace muffin {
                 return Status(Status::Code::BAD);
             }
 
-            if (xSemaphoreTake(xSemaphoreModbusRTU, 2000)  != pdTRUE)
+            if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
             {
                 LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
                 return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
@@ -278,11 +260,11 @@ namespace muffin {
                 }
             }
         }
-        xSemaphoreGive(xSemaphoreModbusRTU);
+        xSemaphoreGive(xSemaphoreModbusTCP);
         return ret;
     }
 
-    Status ModbusRTU::updateVariableNodes()
+    Status ModbusTCP::updateVariableNodes()
     {
         Status ret(Status::Code::UNCERTAIN);
 
@@ -322,7 +304,7 @@ namespace muffin {
                 polledData.Timestamp = timestampInMillis;
 
                 /**
-                 * @todo ModbusRTU 클래스에서 얻은 상태 코드에 따라서 MUFFIN 상태 코드로 변환하는 작업이 필요합니다.
+                 * @todo ModbusTCP 클래스에서 얻은 상태 코드에 따라서 MUFFIN 상태 코드로 변환하는 작업이 필요합니다.
                  *       현재는 시간 상 IsOK로 Boolean 값을 받지만 향후에는 MUFFIN Status::Code로 변환해야 합니다.
                  */
                 switch (area)
@@ -380,7 +362,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status ModbusRTU::pollCoil(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
+    Status ModbusTCP::pollCoil(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
     {
         Status ret(Status::Code::GOOD);
         constexpr int8_t INVALID_VALUE = -1;
@@ -390,27 +372,27 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
+            modbusTCPClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
             delay(80);
-            const char* lastError = ModbusRTUClient.lastError();
-            ModbusRTUClient.clearError();
+            // const char* lastError = modbusTCPClient.lastError();
+            // modbusTCPClient.clearError();
 
-            if (lastError != nullptr)
-            {
-                ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
-                for (size_t i = 0; i < pollQuantity; i++)
-                {
-                    const uint16_t address = startAddress + i;
-                    mPolledDataTable.UpdateCoil(slaveID, address, INVALID_VALUE);
-                }
-                continue;
-            }
+            // if (lastError != nullptr)
+            // {
+            //     ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
+            //     for (size_t i = 0; i < pollQuantity; i++)
+            //     {
+            //         const uint16_t address = startAddress + i;
+            //         mPolledDataTable.UpdateCoil(slaveID, address, INVALID_VALUE);
+            //     }
+            //     continue;
+            // }
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = ModbusRTUClient.read();
+                const int8_t value = modbusTCPClient.read();
                 
                 switch (value)
                 {
@@ -428,7 +410,7 @@ namespace muffin {
         return ret;
     }
 
-    Status ModbusRTU::pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
+    Status ModbusTCP::pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
     {
         Status ret(Status::Code::GOOD);
         constexpr int8_t INVALID_VALUE = -1;
@@ -437,28 +419,28 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
+            modbusTCPClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             delay(80);
-            const char* lastError = ModbusRTUClient.lastError();
-            ModbusRTUClient.clearError();
+            // const char* lastError = modbusTCPClient.lastError();
+            // modbusTCPClient.clearError();
 
-            if (lastError != nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO POLL: %s", lastError);
-                ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
-                for (size_t i = 0; i < pollQuantity; i++)
-                {
-                    const uint16_t address = startAddress + i;
-                    mPolledDataTable.UpdateDiscreteInput(slaveID, address, INVALID_VALUE);
-                }
-                continue;
-            }
+            // if (lastError != nullptr)
+            // {
+            //     LOG_ERROR(logger, "FAILED TO POLL: %s", lastError);
+            //     ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
+            //     for (size_t i = 0; i < pollQuantity; i++)
+            //     {
+            //         const uint16_t address = startAddress + i;
+            //         mPolledDataTable.UpdateDiscreteInput(slaveID, address, INVALID_VALUE);
+            //     }
+            //     continue;
+            // }
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = ModbusRTUClient.read();
+                const int8_t value = modbusTCPClient.read();
                 switch (value)
                 {
                 case 1:
@@ -476,7 +458,7 @@ namespace muffin {
         return ret;
     }
 
-    Status ModbusRTU::pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
+    Status ModbusTCP::pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
     {
         Status ret(Status::Code::GOOD);
         constexpr int8_t INVALID_VALUE = -1;
@@ -485,30 +467,30 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
+            modbusTCPClient.requestFrom(1, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            const char* lastError = ModbusRTUClient.lastError();
-            ModbusRTUClient.clearError();
+            // const char* lastError = modbusTCPClient.lastError();
+            // modbusTCPClient.clearError();
 
-            if (lastError != nullptr)
-            {
-                LOG_ERROR(logger, "[INPUT REGISTERS] FAILED TO POLL: %s", lastError);
-                ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
-                for (size_t i = 0; i < pollQuantity; i++)
-                {
-                    const uint16_t address = startAddress + i;
-                    mPolledDataTable.UpdateInputRegister(slaveID, address, INVALID_VALUE);
-                }
-                continue;
-            }
+            // if (lastError != nullptr)
+            // {
+            //     LOG_ERROR(logger, "[INPUT REGISTERS] FAILED TO POLL: %s", lastError);
+            //     ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
+            //     for (size_t i = 0; i < pollQuantity; i++)
+            //     {
+            //         const uint16_t address = startAddress + i;
+            //         mPolledDataTable.UpdateInputRegister(slaveID, address, INVALID_VALUE);
+            //     }
+            //     continue;
+            // }
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = ModbusRTUClient.read();
+                const int32_t value = modbusTCPClient.read();
                 
-                // LOG_WARNING(logger, "[INPUT REGISTERS][Address: %u] value : %d", address, value);
+                LOG_WARNING(logger, "[INPUT REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
@@ -526,7 +508,7 @@ namespace muffin {
         return ret;
     }
 
-    Status ModbusRTU::pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
+    Status ModbusTCP::pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet)
     {
         Status ret(Status::Code::GOOD);
         constexpr int8_t INVALID_VALUE = -1;
@@ -535,28 +517,28 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
+            modbusTCPClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            const char* lastError = ModbusRTUClient.lastError();
-            ModbusRTUClient.clearError();
+            // const char* lastError = modbusTCPClient.lastError();
+            // modbusTCPClient.clearError();
 
-            if (lastError != nullptr)
-            {
-                LOG_ERROR(logger, "[HOLDING REGISTERS] FAILED TO POLL: %s, startAddress : %u, pollQuantity : %u", lastError, startAddress, pollQuantity);
-                ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
-                for (size_t i = 0; i < pollQuantity; i++)
-                {
-                    const uint16_t address = startAddress + i;
-                    mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
-                }
-                continue;
-            }
+            // if (lastError != nullptr)
+            // {
+            //     LOG_ERROR(logger, "[HOLDING REGISTERS] FAILED TO POLL: %s, startAddress : %u, pollQuantity : %u", lastError, startAddress, pollQuantity);
+            //     ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
+            //     for (size_t i = 0; i < pollQuantity; i++)
+            //     {
+            //         const uint16_t address = startAddress + i;
+            //         mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
+            //     }
+            //     continue;
+            // }
 
 
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = ModbusRTUClient.read();
+                const int32_t value = modbusTCPClient.read();
                 
                 // LOG_WARNING(logger, "[HOLDING REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
@@ -576,7 +558,7 @@ namespace muffin {
         return ret;
     }
 
-    modbus::datum_t ModbusRTU::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area)
+    modbus::datum_t ModbusTCP::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area)
     {
         modbus::datum_t data;
         data.IsOK = false;
@@ -603,5 +585,5 @@ namespace muffin {
     }
 
 
-    ModbusRTU* ModbusRTU::mInstance = nullptr;
+    ModbusTCP* ModbusTCP::mInstance = nullptr;
 }

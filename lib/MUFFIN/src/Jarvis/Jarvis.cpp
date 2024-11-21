@@ -58,16 +58,10 @@ namespace muffin {
 
     Jarvis::Jarvis()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     Jarvis::~Jarvis()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     jarvis::ValidationResult Jarvis::Validate(JsonDocument& json)

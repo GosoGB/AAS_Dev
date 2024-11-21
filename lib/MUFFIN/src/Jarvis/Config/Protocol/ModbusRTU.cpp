@@ -25,16 +25,10 @@ namespace muffin { namespace jarvis { namespace config {
     ModbusRTU::ModbusRTU()
         : Base(cfg_key_e::MODBUS_RTU)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     ModbusRTU::~ModbusRTU()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     ModbusRTU& ModbusRTU::operator=(const ModbusRTU& obj)

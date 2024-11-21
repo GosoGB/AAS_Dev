@@ -111,8 +111,6 @@ namespace muffin {
 
             currentTimestamp = GetTimestamp();
 
-            LOG_DEBUG(logger,"1분 경과 %lu",currentTimestamp);
-
             im::NodeStore& nodeStore = im::NodeStore::GetInstance();
             std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
             
@@ -137,7 +135,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                LOG_DEBUG(logger, "[TASK: Modbus] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                //DEBUG(logger, "[TASK: Modbus] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif

@@ -24,16 +24,10 @@ namespace muffin {
     
     CSV::CSV()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     CSV::~CSV()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status CSV::Deserialize(const std::string& input, std::vector<std::string>* output)

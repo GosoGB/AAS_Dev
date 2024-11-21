@@ -54,16 +54,10 @@ namespace muffin {
 
     RS485::RS485()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     RS485::~RS485()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "[PORT #%u] Destroyed at address: %p", mPortIndexForDebugging, this);
-    #endif
     }
     
     void RS485::Config(jarvis::config::Rs485* config)
@@ -74,16 +68,6 @@ namespace muffin {
         if (cfg.second == jarvis::prt_e::PORT_2)
         {
             mPort = &Serial2;
-        }
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-        else if (cfg.second == jarvis::prt_e::PORT_3)
-        {
-            mPort = &Serial3;
-        }
-    #endif
-        else
-        {
-            ASSERT(false, "UNDEFINED OR UPSUPPORTED PORT INDEX");
         }
     }
 
@@ -122,14 +106,14 @@ namespace muffin {
 
     void RS485::begin(const uint32_t baudrate, const uint32_t config, const uint16_t predelay, const uint16_t postdelay)
     {
-        constexpr uint8_t DEFAULT_DELAY_IN_MILLIS = 50;
+        // constexpr uint8_t DEFAULT_DELAY_IN_MILLIS = 50;
 
-        mBaudRate      = baudrate;
-        mPortConfig    = static_cast<SerialConfig>(config);
-        mPreDelay      = predelay < DEFAULT_DELAY_IN_MILLIS  ? DEFAULT_DELAY_IN_MILLIS : predelay;
-        mPostDelay     = postdelay < DEFAULT_DELAY_IN_MILLIS ? DEFAULT_DELAY_IN_MILLIS : predelay;
+        // mBaudRate      = baudrate;
+        // mPortConfig    = static_cast<SerialConfig>(config);
+        // mPreDelay      = predelay < DEFAULT_DELAY_IN_MILLIS  ? DEFAULT_DELAY_IN_MILLIS : predelay;
+        // mPostDelay     = postdelay < DEFAULT_DELAY_IN_MILLIS ? DEFAULT_DELAY_IN_MILLIS : predelay;
 
-        mPort->begin(mBaudRate, mPortConfig, RX_PIN_NUMBER, TX_PIN_NUMBER);
+        // mPort->begin(mBaudRate, mPortConfig, RX_PIN_NUMBER, TX_PIN_NUMBER);
     }
 
     void RS485::end()
@@ -211,28 +195,28 @@ namespace muffin {
 
     void RS485::sendBreak(const uint32_t duration)
     {
-        mPort->flush();
-        mPort->end();
+        // mPort->flush();
+        // mPort->end();
 
-        pinMode(TX_PIN_NUMBER, OUTPUT);
-        digitalWrite(TX_PIN_NUMBER, LOW);
+        // pinMode(TX_PIN_NUMBER, OUTPUT);
+        // digitalWrite(TX_PIN_NUMBER, LOW);
 
-        delay(duration);
+        // delay(duration);
         
-        mPort->begin(mBaudRate, mPortConfig, RX_PIN_NUMBER, TX_PIN_NUMBER);
+        // mPort->begin(mBaudRate, mPortConfig, RX_PIN_NUMBER, TX_PIN_NUMBER);
     }
 
     void RS485::sendBreakMicroseconds(const uint32_t duration)
     {
-        mPort->flush();
-        mPort->end();
+        // mPort->flush();
+        // mPort->end();
 
-        pinMode(TX_PIN_NUMBER, OUTPUT);
-        digitalWrite(TX_PIN_NUMBER, LOW);
+        // pinMode(TX_PIN_NUMBER, OUTPUT);
+        // digitalWrite(TX_PIN_NUMBER, LOW);
 
-        delayMicroseconds(duration);
+        // delayMicroseconds(duration);
 
-        mPort->begin(mBaudRate, mPortConfig, RX_PIN_NUMBER, TX_PIN_NUMBER);
+        // mPort->begin(mBaudRate, mPortConfig, RX_PIN_NUMBER, TX_PIN_NUMBER);
     }
 
 

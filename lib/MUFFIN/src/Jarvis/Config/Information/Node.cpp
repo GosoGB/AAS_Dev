@@ -25,16 +25,10 @@ namespace muffin { namespace jarvis { namespace config {
     Node::Node()
         : Base(cfg_key_e::NODE)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Node::~Node()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Node& Node::operator=(const Node& obj)

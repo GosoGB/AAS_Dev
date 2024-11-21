@@ -68,10 +68,6 @@ namespace muffin { namespace mqtt {
         mInitFlags.reset();
         mInitFlags.set(init_flag_e::ENABLE_LWT_MSG);
         mState = state_e::CONSTRUCTED;
-
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker)
@@ -82,18 +78,11 @@ namespace muffin { namespace mqtt {
         mInitFlags.reset();
         mInitFlags.reset(init_flag_e::ENABLE_LWT_MSG);
         mState = state_e::CONSTRUCTED;
-
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
-    #endif
         LOG_WARNING(logger, "LWT FEATURE IS TURNED OFF");
     }
 
     CatMQTT::~CatMQTT()
     {
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status CatMQTT::Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
@@ -260,7 +249,7 @@ namespace muffin { namespace mqtt {
             LOG_WARNING(logger, "CONNECTION FAILED OR NOT INITIALIZED");
             return Status(Status::Code::BAD_REQUEST_NOT_COMPLETE);
         case state_e::CONNECTED:
-            LOG_VERBOSE(logger, "Connected to the broker");
+            // LOG_VERBOSE(logger, "Connected to the broker");
             return Status(Status::Code::GOOD);
         case state_e::DISCONNECTED:
             LOG_WARNING(logger, "DISCONNECTED FROM THE BROKER");
@@ -370,12 +359,12 @@ namespace muffin { namespace mqtt {
 
         if (rxdSocketID == INT32_MAX || rxdMessageID == INT32_MAX || rxdResult == INT32_MAX)
         {
-            LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else if (rxdSocketID != brokerSocketID || rxdMessageID != MESSAGE_ID)
         {
-            LOG_DEBUG(logger, "INVALID SOCKET OR MESSAGE ID: %u, %u", rxdSocketID, rxdMessageID);
+            //LOG_DEBUG(logger, "INVALID SOCKET OR MESSAGE ID: %u, %u", rxdSocketID, rxdMessageID);
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else
@@ -394,7 +383,7 @@ namespace muffin { namespace mqtt {
                 const int32_t val = Convert.ToInt32(str.c_str());
                 if (val == INT32_MAX)
                 {
-                    LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+                    //LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
                     return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
                 }
                 mArrayValue[i] = val;
@@ -524,12 +513,12 @@ namespace muffin { namespace mqtt {
 
         if (rxdSocketID == INT32_MAX || rxdMessageID == INT32_MAX || rxdResult == INT32_MAX)
         {
-            LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else if (rxdSocketID != brokerSocketID || rxdMessageID != MESSAGE_ID)
         {
-            LOG_DEBUG(logger, "INVALID SOCKET OR MESSAGE ID: %u, %u", rxdSocketID, rxdMessageID);
+            //LOG_DEBUG(logger, "INVALID SOCKET OR MESSAGE ID: %u, %u", rxdSocketID, rxdMessageID);
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else
@@ -620,7 +609,7 @@ HAS_RTS_SIGNAL:
         }
 
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
-        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+        //LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PUBLISH: %s: %s", ret.c_str(),
@@ -646,7 +635,7 @@ HAS_RTS_SIGNAL:
         {
             const size_t startPos = rxd.find(patternBegin);
             rxd.erase(0, startPos);
-            LOG_DEBUG(logger, "goto the label \"PATTERN_FOUND\"");
+            //LOG_DEBUG(logger, "goto the label \"PATTERN_FOUND\"");
             goto PATTERN_FOUND;
         }
 
@@ -658,14 +647,14 @@ HAS_RTS_SIGNAL:
                 vTaskDelay(50 / portTICK_PERIOD_MS);
                 continue;
             }
-            LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
             rxd.append(betweenPatterns);
-            LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
             break;
         }
 
 PATTERN_FOUND:
-        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+        //LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
         std::vector<size_t> vecDelimiter;
         vecDelimiter.emplace_back(rxd.find(' '));
         if (vecDelimiter.front() == std::string::npos)
@@ -706,12 +695,12 @@ PATTERN_FOUND:
 
         if (rxdSocketID == INT32_MAX || rxdMessageID == INT32_MAX || rxdResult == INT32_MAX || rxdRetrans == INT32_MAX)
         {
-            LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else if (rxdSocketID != msgSocketID || rxdMessageID != msgMessageID)
         {
-            LOG_DEBUG(logger, "INVALID SOCKET OR MESSAGE ID: %u, %u", rxdSocketID, rxdMessageID);
+            //LOG_DEBUG(logger, "INVALID SOCKET OR MESSAGE ID: %u, %u", rxdSocketID, rxdMessageID);
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else
@@ -881,14 +870,6 @@ PATTERN_FOUND:
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret == Status::Code::GOOD)
         {
-        #if defined(DEBUG)
-            LOG_DEBUG(logger, "--------------------------------------------------");
-            LOG_DEBUG(logger, "          Last Will and Testament Message         ");
-            LOG_DEBUG(logger, "--------------------------------------------------");
-            LOG_DEBUG(logger, "Topic: %s", mMessageLWT.GetTopicString());
-            LOG_DEBUG(logger, "Payload: %s", mMessageLWT.GetPayload());
-            LOG_DEBUG(logger, "--------------------------------------------------\n\n");
-        #endif
             LOG_INFO(logger, "LWT message: Set");
             mInitFlags.set(init_flag_e::INITIALIZED_LWT);
             return ret;
@@ -1142,12 +1123,12 @@ PATTERN_FOUND:
         const int32_t rxdResult   = Convert.ToInt32(strResult.c_str());
         if (rxdSocketID == INT32_MAX || rxdResult == INT32_MAX)
         {
-            LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else if (rxdSocketID != brokerSocketID)
         {
-            LOG_DEBUG(logger, "INVALID SOCKET ID: %u", rxdSocketID);
+            //LOG_DEBUG(logger, "INVALID SOCKET ID: %u", rxdSocketID);
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else
@@ -1251,12 +1232,12 @@ PATTERN_FOUND:
 
         if (rxdSocketID == INT32_MAX || rxdResult == INT32_MAX)
         {
-            LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else if (rxdSocketID != brokerSocketID)
         {
-            LOG_DEBUG(logger, "INVALID SOCKET ID: %u", rxdSocketID);
+            //LOG_DEBUG(logger, "INVALID SOCKET ID: %u", rxdSocketID);
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         else
@@ -1372,7 +1353,7 @@ PATTERN_FOUND:
         const size_t cmeFinishPosition = rxd.find("\r", cmeStartPosition);
         if (cmeStartPosition == std::string::npos || cmeFinishPosition == std::string::npos)
         {
-            LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
 
@@ -1490,7 +1471,7 @@ PATTERN_FOUND:
             LOG_ERROR(logger, "CORPORATE PERSONALIZATION PUK REQUIRED");
             return Status(Status::Code::BAD_TICKET_REQUIRED);
         default:
-            LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
     }

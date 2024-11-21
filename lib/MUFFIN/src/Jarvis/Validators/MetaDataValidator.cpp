@@ -28,16 +28,10 @@ namespace muffin { namespace jarvis {
     MetaDataValidator::MetaDataValidator()
         : mHasNoError(false)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     MetaDataValidator::~MetaDataValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     /**
@@ -65,7 +59,6 @@ namespace muffin { namespace jarvis {
             pairUncertainRSC.first = true;
             pairUncertainRSC.second = rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES;
         }
-        LOG_VERBOSE(logger, "Version: %s", mResponseDescription.c_str());
 
         rsc = validateRequestID(json);
         if (rsc != rsc_e::GOOD)
@@ -73,7 +66,6 @@ namespace muffin { namespace jarvis {
             LOG_ERROR(logger, "%s", mResponseDescription.c_str());
             return std::make_pair(rsc, mResponseDescription);
         }
-        LOG_VERBOSE(logger, "Request ID: %s", mResponseDescription.c_str());
 
         rsc = validateContainer(json);
         if (rsc != rsc_e::GOOD && rsc != rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES)
@@ -86,7 +78,6 @@ namespace muffin { namespace jarvis {
             pairUncertainRSC.first = true;
             pairUncertainRSC.second = rsc_e::UNCERTAIN_VERSION_CONFIG_INSTANCES;
         }
-        LOG_VERBOSE(logger, "Container: %s", mResponseDescription.c_str());
         mHasNoError = true;
 
         if (pairUncertainRSC.first == false)
@@ -262,7 +253,6 @@ namespace muffin { namespace jarvis {
             
             if ((config.value().isNull() == true) || (config.value().as<JsonArray>().size() == 0))
             {
-                LOG_VERBOSE(logger, "CONFIG IS  A NULL OR AN EMPTY ARRAY: %s", config.key().c_str());
                 continue;
             }/*키(key)에 맵핑된 JSON ARRAY가 NULL이 아니며 길이가 0도 아닙니다.*/
 
@@ -291,7 +281,6 @@ namespace muffin { namespace jarvis {
     {
         if (mHasNoError == true)
         {
-            LOG_VERBOSE(logger, "JARVIS Version: %u", static_cast<uint8_t>(mVersion));
             return std::make_pair(Status(Status::Code::GOOD), mVersion);
         }
         else
@@ -305,7 +294,6 @@ namespace muffin { namespace jarvis {
     {
         if (mHasNoError == true)
         {
-            LOG_VERBOSE(logger, "JARVIS Request ID: %s", mRequestID.c_str());
             return std::make_pair(Status(Status::Code::GOOD), mRequestID);
         }
         else
@@ -319,7 +307,6 @@ namespace muffin { namespace jarvis {
     {
         if (mHasNoError == true)
         {
-            LOG_VERBOSE(logger, "The size of container key set: %u", mContainerKeySet.size());
             return std::make_pair(Status(Status::Code::GOOD), mContainerKeySet);
         }
         else

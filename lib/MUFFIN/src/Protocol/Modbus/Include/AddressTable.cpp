@@ -25,16 +25,10 @@ namespace muffin { namespace modbus {
     
     AddressTable::AddressTable()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     AddressTable::~AddressTable()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status AddressTable::Update(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range)
@@ -61,7 +55,7 @@ namespace muffin { namespace modbus {
                 return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
 
-            LOG_VERBOSE(logger, "Emplaced a new slave-address pair to the address table");
+            // LOG_VERBOSE(logger, "Emplaced a new slave-address pair to the address table");
         }
 
         ret = it->second.Update(area, range);
@@ -70,7 +64,7 @@ namespace muffin { namespace modbus {
             LOG_ERROR(logger, "FAILED TO UPDATE ADDRESS RANGE: %s", ret.c_str());
             return ret;
         }
-        LOG_VERBOSE(logger, "Address range updated: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+        // LOG_VERBOSE(logger, "Address range updated: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
     #if defined(DEBUG)
         printAddressTable();
         printAddressTable();
@@ -87,7 +81,7 @@ namespace muffin { namespace modbus {
         auto it = mMapAddressBySlave.find(slaveID);
         if (it == mMapAddressBySlave.end())
         {
-            LOG_VERBOSE(logger, "No matching slave ID");
+            // LOG_VERBOSE(logger, "No matching slave ID");
             return Status(Status::Code::BAD_NOT_FOUND);
         }
 
@@ -95,9 +89,9 @@ namespace muffin { namespace modbus {
         switch (ret.ToCode())
         {
         case Status::Code::GOOD:
-            LOG_VERBOSE(logger, "Removed address range: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
+            // LOG_VERBOSE(logger, "Removed address range: %u, %u, [%u, %u]", slaveID, static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
         #if defined(DEBUG)
-            printAddressTable();
+            // printAddressTable();
         #else
             // CSV 형태로 로그를 만들어서 서버로 전송할 수 있게끔 해줘야 함
         #endif

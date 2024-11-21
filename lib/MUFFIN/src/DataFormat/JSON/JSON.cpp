@@ -25,16 +25,10 @@ namespace muffin {
 
     JSON::JSON()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     JSON::~JSON()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status JSON::Deserialize(const std::string& payload, JsonDocument* json)
@@ -90,7 +84,6 @@ namespace muffin {
         for (auto& key : _struct.Config)
         {
             keyWithNG.add(key);
-            LOG_DEBUG(logger, "Key with NG: %s", key.c_str());
         }
         
         std::string payload;

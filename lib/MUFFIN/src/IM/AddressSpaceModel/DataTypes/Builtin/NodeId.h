@@ -65,9 +65,6 @@ namespace muffin { namespace im {
             , mIdType(idType)
             , mIdentifier(identifier)
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Constructed at address: %p", this);
-        #endif
         }
 
         NodeId(const NodeId& obj)
@@ -75,16 +72,10 @@ namespace muffin { namespace im {
             , mIdType(obj.mIdType)
             , mIdentifier(obj.mIdentifier)
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Constructed at address: %p", this);
-        #endif
         }
 
         virtual ~NodeId() override
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-        #endif
         }
 
         uint16_t GetNamespaceIndex() const

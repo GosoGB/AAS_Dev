@@ -26,16 +26,10 @@ namespace muffin { namespace modbus {
 
     PolledData::PolledData()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     PolledData::~PolledData()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status PolledData::UpdateCoil(const uint16_t address, const int8_t value)

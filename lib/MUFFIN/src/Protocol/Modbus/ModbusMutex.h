@@ -20,5 +20,6 @@
 namespace muffin {
 
     extern SemaphoreHandle_t xSemaphoreModbusRTU;
+    extern SemaphoreHandle_t xSemaphoreModbusTCP;
     
 }

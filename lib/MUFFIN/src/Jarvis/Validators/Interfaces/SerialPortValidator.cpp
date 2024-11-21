@@ -27,16 +27,10 @@ namespace muffin { namespace jarvis {
 
     SerialPortValidator::SerialPortValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     SerialPortValidator::~SerialPortValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::pair<rsc_e, std::string> SerialPortValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)

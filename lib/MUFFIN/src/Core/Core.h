@@ -27,6 +27,8 @@
 #include "Common/Status.h"
 #include "Protocol/MQTT/Include/Message.h"
 #include "Jarvis/Config/Protocol/ModbusRTU.h"
+#include "Jarvis/Config/Protocol/ModbusTCP.h"
+#include "Jarvis/Config/Network/Ethernet.h"
 #include "Jarvis/Validators/ValidationResult.h"
 
 
@@ -34,6 +36,9 @@
 namespace muffin {
     
     extern std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
+    extern std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
+    extern muffin::jarvis::config::Ethernet mEthernet;
+    
     class Core
     {
     public:

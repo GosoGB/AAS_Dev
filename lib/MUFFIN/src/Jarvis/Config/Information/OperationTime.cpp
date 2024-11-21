@@ -25,16 +25,10 @@ namespace muffin { namespace jarvis { namespace config {
     OperationTime::OperationTime()
         : Base(cfg_key_e::OPERATION_TIME)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     OperationTime::~OperationTime()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     OperationTime& OperationTime::operator=(const OperationTime& obj)

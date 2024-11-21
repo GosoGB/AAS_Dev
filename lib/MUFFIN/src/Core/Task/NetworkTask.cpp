@@ -5,7 +5,7 @@
  * @brief 네트워크 인터페이스 사용과 관련된 태스크를 정의합니다.
  * 
  * @date 2024-10-30
- * @version 1.0.0
+ * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -152,7 +152,7 @@ namespace muffin {
 
         if (catHttp->IsInitialized() == Status::Code::GOOD)
         {
-            LOG_DEBUG(logger, "CatHTTP is already initialized");
+            // LOG_DEBUG(logger, "CatHTTP is already initialized");
         }
         
         const auto mutexHandle = catM1.TakeMutex();
@@ -284,7 +284,7 @@ namespace muffin {
             Status retTopic02 = EmplaceBack(std::move(topicRemoteControl), &vectorTopicsToSubscribe);
             Status retTopic03 = EmplaceBack(std::move(topicFotaUpdate), &vectorTopicsToSubscribe);
             if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) 
-            || (retTopic03 != Status::Code::GOOD) )
+            || (retTopic03 != Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
                     retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());
@@ -363,7 +363,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                // LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif

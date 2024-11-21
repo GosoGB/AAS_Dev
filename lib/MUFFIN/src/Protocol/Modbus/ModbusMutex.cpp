@@ -27,4 +27,5 @@
 namespace muffin {
 
     SemaphoreHandle_t xSemaphoreModbusRTU = NULL;
+    SemaphoreHandle_t xSemaphoreModbusTCP = NULL;
 }

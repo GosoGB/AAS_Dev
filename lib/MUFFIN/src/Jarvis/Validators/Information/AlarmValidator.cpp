@@ -25,16 +25,10 @@ namespace muffin { namespace jarvis {
 
     AlarmValidator::AlarmValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     AlarmValidator::~AlarmValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::pair<rsc_e, std::string> AlarmValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)

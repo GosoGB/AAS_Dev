@@ -46,16 +46,10 @@ namespace muffin {
 
     ESP32FS::ESP32FS()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     ESP32FS::~ESP32FS()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status ESP32FS::Begin(const bool formatOnFail, const char* basePath, const uint8_t maxOpenFiles, const char* partitionLabel)
@@ -106,7 +100,7 @@ namespace muffin {
 
     File ESP32FS::Open(const char* path, const char* mode, const bool create)
     {
-        LOG_DEBUG(logger, "Path: %s, Mode: %s, Create: %s", path, mode, create ? "true" : "false");
+        //LOG_DEBUG(logger, "Path: %s, Mode: %s, Create: %s", path, mode, create ? "true" : "false");
         return LittleFS.open(path, mode, create);
     }
 
@@ -119,12 +113,12 @@ namespace muffin {
     {
         if (LittleFS.exists(path) == true)
         {
-            LOG_DEBUG(logger, "Found: %s", path);
+            //LOG_DEBUG(logger, "Found: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
         {
-            LOG_DEBUG(logger, "Not found: %s", path);
+            //LOG_DEBUG(logger, "Not found: %s", path);
             return Status(Status::Code::BAD_NOT_FOUND);
         }
     }
@@ -138,7 +132,7 @@ namespace muffin {
     {
         if (LittleFS.remove(path) == true)
         {
-            LOG_DEBUG(logger, "Removed: %s", path);
+            //LOG_DEBUG(logger, "Removed: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -157,7 +151,7 @@ namespace muffin {
     {
         if (LittleFS.rename(pathFrom, pathTo) == true)
         {
-            LOG_DEBUG(logger, "Renamed: %s to %s", pathFrom, pathTo);
+            //LOG_DEBUG(logger, "Renamed: %s to %s", pathFrom, pathTo);
             return Status(Status::Code::GOOD);
         }
         else
@@ -176,7 +170,7 @@ namespace muffin {
     {
         if (LittleFS.mkdir(path) == true)
         {
-            LOG_DEBUG(logger, "Directory created: %s", path);
+            //LOG_DEBUG(logger, "Directory created: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -195,7 +189,7 @@ namespace muffin {
     {
         if (LittleFS.rmdir(path) == true)
         {
-            LOG_DEBUG(logger, "Directory removed: %s", path);
+            //LOG_DEBUG(logger, "Directory removed: %s", path);
             return Status(Status::Code::GOOD);
         }
         else

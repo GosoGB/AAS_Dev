@@ -24,16 +24,10 @@ namespace muffin { namespace http {
 
     RequestParameter::RequestParameter()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     RequestParameter::~RequestParameter()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::string RequestParameter::ToString() const
@@ -54,9 +48,7 @@ namespace muffin { namespace http {
             param += "&" + it->first + "=" + it->second;
             ++it;
         }
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "HTTP Parameter: %s", param.c_str());
-    #endif
+        
         return param;
     }
 

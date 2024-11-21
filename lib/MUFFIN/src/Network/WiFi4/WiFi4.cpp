@@ -28,22 +28,14 @@ namespace muffin {
         memset(mMacAddress, '\0', sizeof(mMacAddress));
         memset(mHostname,   '\0', sizeof(mHostname));
     
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     WiFi4::~WiFi4()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status WiFi4::Init()
     {
-        LOG_DEBUG(logger, "Initializing Wi-Fi interface");
-
         uint8_t baseMAC[6] = { 0, 0, 0, 0, 0, 0 };
         const esp_err_t ret = esp_read_mac(baseMAC, ESP_MAC_WIFI_STA);
         if (ret != ESP_OK)
@@ -55,12 +47,10 @@ namespace muffin {
         sprintf(mMacAddress, "%02X%02X%02X%02X%02X%02X", 
             baseMAC[0], baseMAC[1], baseMAC[2], baseMAC[3], baseMAC[4], baseMAC[5]
         );
-        LOG_DEBUG(logger, "MAC Address: %s", mMacAddress);
         
         sprintf(mHostname, "%02X-%02X-%02X-%02X-%02X-%02X", 
             baseMAC[0], baseMAC[1], baseMAC[2], baseMAC[3], baseMAC[4], baseMAC[5]
         );
-        LOG_DEBUG(logger, "Hostname: %s", mHostname);
 
         if (WiFi.mode(mMode) == false)
         {
@@ -88,7 +78,7 @@ namespace muffin {
             }
             else
             {
-                LOG_VERBOSE(logger, "Registered Wi-Fi event callback");
+                //LOG_VERBOSE(logger, "Registered Wi-Fi event callback");
                 mIsArduinoEventCallbackRegistered = true;
             }
         }
@@ -232,10 +222,10 @@ namespace muffin {
         switch (event)
         {
         case ARDUINO_EVENT_WIFI_READY:
-            LOG_VERBOSE(logger, "Wi-Fi is ready");
+            //LOG_VERBOSE(logger, "Wi-Fi is ready");
             break;
         case ARDUINO_EVENT_WIFI_SCAN_DONE:
-            LOG_VERBOSE(logger, "Wi-Fi scanning is done");
+            //LOG_VERBOSE(logger, "Wi-Fi scanning is done");
             break;
         case ARDUINO_EVENT_WIFI_STA_START:
             LOG_INFO(logger, "Wi-Fi client is started");

@@ -25,16 +25,10 @@ namespace muffin {
     MonitoredItem::MonitoredItem(const uint8_t monitoredItemID)
         : mMonitoredItemID(monitoredItemID)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     MonitoredItem::~MonitoredItem()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
 }

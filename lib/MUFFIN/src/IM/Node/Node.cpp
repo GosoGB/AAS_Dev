@@ -28,16 +28,10 @@ namespace muffin { namespace im {
     {
         VariableNode.Init(cin);
         
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Node::~Node()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     const std::string& Node::GetNodeID() const

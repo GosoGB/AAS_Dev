@@ -24,16 +24,10 @@ namespace muffin { namespace modbus {
 
     PolledDataTable::PolledDataTable()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     PolledDataTable::~PolledDataTable()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status PolledDataTable::UpdateCoil(const uint8_t slaveID, const uint16_t address, const int8_t value)

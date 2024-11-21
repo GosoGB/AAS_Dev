@@ -58,16 +58,10 @@ namespace muffin {
     
     Initializer::Initializer()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     Initializer::~Initializer()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     void Initializer::StartOrCrash()
@@ -164,8 +158,6 @@ namespace muffin {
             payload += file.read();
         }
 
-        LOG_DEBUG(logger, "%s", payload.c_str());
-        
         JSON json;
         JsonDocument doc;
         Status ret = json.Deserialize(payload, &doc);

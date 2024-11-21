@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈의 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 정의합니다.
  * 
  * @date 2024-11-04
- * @version 1.0.0
+ * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -48,16 +48,10 @@ namespace muffin {
     CatFS::CatFS(CatM1& catM1)
         : mCatM1(catM1)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     CatFS::~CatFS()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status CatFS::Begin(const bool formatOnFail, const char* basePath, const uint8_t maxOpenFiles, const char* partitionLabel)
@@ -270,7 +264,7 @@ namespace muffin {
         start += prefix.length();
 
         const std::string strFileHandle = rxd.substr(start, (end - start));
-        LOG_DEBUG(logger, "strFileHandle: %s", strFileHandle.c_str());
+        //LOG_DEBUG(logger, "strFileHandle: %s", strFileHandle.c_str());
         mFileHandle = Convert.ToInt32(strFileHandle);
         if (mFileHandle < 0 || mFileHandle == SIZE_MAX)
         {
@@ -386,6 +380,7 @@ namespace muffin {
 
     Status CatFS::DownloadFile(const std::string& path, std::string* data)
     {
+
         constexpr uint8_t BUFFER_SIZE = 64;
         char command[BUFFER_SIZE] = { 0 };
         // "AT+QFDWL=\"" + fileName + "\"";
@@ -458,7 +453,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
         
-        LOG_DEBUG(logger,"Downloaded file \"%s\" with length %d and checksum %u \n", path.c_str(), size, checksumValue);
+        //LOG_DEBUG(logger,"Downloaded file \"%s\" with length %d and checksum %u \n", path.c_str(), size, checksumValue);
 
         return Status(Status::Code::GOOD);
 
@@ -618,7 +613,7 @@ namespace muffin {
 
                 if (byteCount == length)
                 {
-                    LOG_DEBUG(logger, "Byte Count: %u", byteCount);
+                    //LOG_DEBUG(logger, "Byte Count: %u", byteCount);
                     goto READ_FINISHED;
                 }
             }
@@ -652,7 +647,7 @@ namespace muffin {
                 }
                 rxd += value;
             }
-            LOG_DEBUG(logger, "rxd: %s", rxd.c_str());
+            //LOG_DEBUG(logger, "rxd: %s", rxd.c_str());
 
             if (rxd.find(result) != std::string::npos)
             {

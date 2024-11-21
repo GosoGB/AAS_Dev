@@ -31,25 +31,16 @@ namespace muffin { namespace im {
             : mNamespaceIndex(namespaceIndex)
             , mName(name)
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Constructed at address: %p", this);
-        #endif
         }
 
         QualifiedName(const QualifiedName& obj)
             : mNamespaceIndex(obj.mNamespaceIndex)
             , mName(obj.mName)
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Constructed by Copy from %p to %p", &obj, this);
-        #endif
         }
 
         virtual ~QualifiedName()
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-        #endif
         }
 
         uint16_t GetNamespaceIndex() const

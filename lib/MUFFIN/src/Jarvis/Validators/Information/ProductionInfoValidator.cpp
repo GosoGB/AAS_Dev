@@ -24,16 +24,10 @@ namespace muffin { namespace jarvis {
 
     ProductionInfoValidator::ProductionInfoValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     ProductionInfoValidator::~ProductionInfoValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::pair<rsc_e, std::string> ProductionInfoValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)

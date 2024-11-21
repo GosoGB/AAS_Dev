@@ -25,17 +25,10 @@ namespace muffin { namespace jarvis {
     {
         ASSERT((sizeOfOrder != 0), "THE SIZE OF ORDER CANNOT BE 0");
         mVectorOrder.reserve(sizeOfOrder);
-
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p, Size of Order: %u", this, sizeOfOrder);
-    #endif
     }
     
     DataUnitOrder::~DataUnitOrder()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     DataUnitOrder& DataUnitOrder::operator=(const DataUnitOrder& obj)

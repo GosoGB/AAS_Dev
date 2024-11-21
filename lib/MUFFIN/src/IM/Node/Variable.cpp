@@ -41,16 +41,10 @@ namespace muffin { namespace im {
         , mNodeID(nodeID)
         , mDeprecableUID(UID)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Variable::~Variable()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     void Variable::Init(const jarvis::config::Node* cin)
@@ -584,10 +578,6 @@ namespace muffin { namespace im {
 
                 mqtt::CDO& cdo = mqtt::CDO::GetInstance();
                 cdo.Store(message);
-
-            #if defined(DEBUG)
-                LOG_DEBUG(logger,"[NodeId: %s][UID: %s]: NEW EVENT", mNodeID.c_str(), mDeprecableUID.c_str());
-            #endif
             }
         }
 
@@ -606,47 +596,47 @@ namespace muffin { namespace im {
 
     void Variable::logData(const var_data_t& data)
     {
-        switch (data.DataType)
-        {
-        case jarvis::dt_e::BOOLEAN:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
-            break;
-        case jarvis::dt_e::INT8:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
-            break;
-        case jarvis::dt_e::UINT8:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
-            break;
-        case jarvis::dt_e::INT16:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
-            break;
-        case jarvis::dt_e::UINT16:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
-            break;
-        case jarvis::dt_e::INT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
-            break;
-        case jarvis::dt_e::UINT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
-            break;
-        case jarvis::dt_e::INT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
-            break;
-        case jarvis::dt_e::UINT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
-            break;
-        case jarvis::dt_e::FLOAT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
-            break;
-        case jarvis::dt_e::FLOAT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
-            break;
-        case jarvis::dt_e::STRING:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
-            break;
-        default:
-            break;
-        }
+        // switch (data.DataType)
+        // {
+        // case jarvis::dt_e::BOOLEAN:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
+        //     break;
+        // case jarvis::dt_e::INT8:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
+        //     break;
+        // case jarvis::dt_e::UINT8:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
+        //     break;
+        // case jarvis::dt_e::INT16:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
+        //     break;
+        // case jarvis::dt_e::UINT16:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
+        //     break;
+        // case jarvis::dt_e::INT32:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
+        //     break;
+        // case jarvis::dt_e::UINT32:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
+        //     break;
+        // case jarvis::dt_e::INT64:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
+        //     break;
+        // case jarvis::dt_e::UINT64:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
+        //     break;
+        // case jarvis::dt_e::FLOAT32:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
+        //     break;
+        // case jarvis::dt_e::FLOAT64:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
+        //     break;
+        // case jarvis::dt_e::STRING:
+        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
+        //     break;
+        // default:
+        //     break;
+        // }
     }
 
 
@@ -1102,7 +1092,7 @@ namespace muffin { namespace im {
 
                 if (mDeprecableUID == "DI1E")
                 {
-                    LOG_DEBUG(logger, "[DI1E] 0x%X 0x%X", vectorFlattened[startByteIndex], vectorFlattened[finishByteIndex]);
+                    //LOG_DEBUG(logger, "[DI1E] 0x%X 0x%X", vectorFlattened[startByteIndex], vectorFlattened[finishByteIndex]);
                 }
             }
 

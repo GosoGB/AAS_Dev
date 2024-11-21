@@ -183,19 +183,19 @@ namespace muffin {
 				CatM1& catM1 = CatM1::GetInstance();
 				return catM1.SyncWithNTP();
 			}
-	#if defined(MODLINK_T2) || defined(MODLINK_B)
-		case jarvis::snic_e::Ethernet,:
-			{
-				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-			}
-    #elif defined(MODLINK_B)
-		case jarvis::snic_e::Ethernet,:
-			{
-				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-			}
-        case jarvis::snic_e::WiFi4,:
-			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
-	#endif
+	// #if defined(MODLINK_T2) || defined(MODLINK_B)
+	// 	case jarvis::snic_e::Ethernet,:
+	// 		{
+	// 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+	// 		}
+    // #elif defined(MODLINK_B)
+	// 	case jarvis::snic_e::Ethernet,:
+	// 		{
+	// 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+	// 		}
+    //     case jarvis::snic_e::WiFi4,:
+	// 		return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
+	// #endif
 		default:
 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 		}

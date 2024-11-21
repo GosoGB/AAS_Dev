@@ -24,16 +24,10 @@ namespace muffin { namespace jarvis { namespace config {
     CatM1::CatM1()
         : Base(cfg_key_e::LTE_CatM1)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     CatM1::~CatM1()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     CatM1& CatM1::operator=(const CatM1& obj)

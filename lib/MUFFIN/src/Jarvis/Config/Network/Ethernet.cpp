@@ -24,16 +24,10 @@ namespace muffin { namespace jarvis { namespace config {
     Ethernet::Ethernet()
         : Base(cfg_key_e::ETHERNET)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Ethernet::~Ethernet()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Ethernet& Ethernet::operator=(const Ethernet& obj)

@@ -61,16 +61,10 @@ namespace muffin {
         mInitFlags.reset();
         mConnFlags.reset();
         
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     CatM1::~CatM1()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status CatM1::Init()
@@ -674,20 +668,12 @@ namespace muffin {
             digitalWrite(mPinReset, LOW);
             delay(110);
             digitalWrite(mPinReset, HIGH);
-
-        #if defined(DEBUG)
-            LOG_DEBUG(logger, "Resetting the LM5 modem");
-        #endif
         }
         else
         {
             digitalWrite(mPinReset, HIGH);
             delay(110);
             digitalWrite(mPinReset, LOW);
-            
-        #if defined(DEBUG)
-            LOG_DEBUG(logger, "Resetting the LCM300 modem");
-        #endif
         }
 
         LOG_INFO(logger, "Reset LTE Cat.M1 module");
