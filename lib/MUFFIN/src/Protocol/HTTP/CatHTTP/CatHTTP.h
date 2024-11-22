@@ -48,6 +48,8 @@ namespace muffin { namespace http {
         Status Retrieve(const size_t mutexHandle, std::string* response);
         void SetSinkToCatFS(const bool save2CatFS);
         Status IsInitialized() const;
+    public:
+        void OnEventReset();
     private:
         Status setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp);
         Status setSslContext(const size_t mutexHandle, const network::lte::ssl_ctx_e ssl);

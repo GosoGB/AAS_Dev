@@ -43,8 +43,13 @@
 namespace muffin {
 
     fota_Info_t info;
+#if defined(DEBUG)
     std::string FotaHost = "112.171.127.186";
     uint16_t FotaPort = 8125;
+#else
+    std::string FotaHost = "api.fota.edgecross.ai";
+    uint16_t FotaPort = 443;
+#endif
 
     TaskHandle_t xTaskFotaHandle = NULL;
 

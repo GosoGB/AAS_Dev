@@ -85,6 +85,11 @@ namespace muffin { namespace mqtt {
     {
     }
 
+    void CatMQTT::OnEventReset()
+    {
+        this->mInitFlags.reset();
+    }
+
     Status CatMQTT::Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
     {
         /**
@@ -206,25 +211,25 @@ namespace muffin { namespace mqtt {
         return ret;
     }
 
-/*    Status CatMQTT::Disconnect()
+    Status CatMQTT::Disconnect(const size_t mutexHandle)
     {
-        ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Disconnect()\"");
+    /*  ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Disconnect()\"");
 
         Status ret = IsConnected();
         if (ret != Status::Code::GOOD)
         {
             LOG_WARNING(logger, "NO CONNECTION OR SESSION TO DISCONNECT");
             return Status(Status::Code::GOOD);
-        }
+        }*/
 
-        ret = disconnectBroker();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO DISCONNECT FROM THE MQTT BROKER: %s", ret.c_str());
-            return ret;
-        }
+        Status ret = disconnectBroker(mutexHandle);
+        // if (ret != Status::Code::GOOD)
+        // {
+        //     LOG_ERROR(logger, "FAILED TO DISCONNECT FROM THE MQTT BROKER: %s", ret.c_str());
+        //     return ret;
+        // }
         
-        ret = closeSession();
+        ret = closeSession(mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CLOSE MQTT SESSION: %s", ret.c_str());
@@ -235,7 +240,6 @@ namespace muffin { namespace mqtt {
         mState = state_e::DISCONNECTED;
         return ret;
     }
-*/
 
     Status CatMQTT::IsConnected()
     {
@@ -1288,17 +1292,138 @@ PATTERN_FOUND:
         }
     }
 
-/*    Status CatMQTT::disconnectBroker()
+    Status CatMQTT::disconnectBroker(const size_t mutexHandle)
     {
-        ASSERT(false, "THE FUNCTION IS NOT IMPLEMENTED!");
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-    }*/
+        const uint8_t brokerSocketID = static_cast<uint8_t>(mBrokerInfo.GetSocketID());
+        
+        const std::string command = "AT+QMTDISC=" + std::to_string(brokerSocketID);
+        const uint32_t timeoutMillis = 500;
+        const uint32_t startedMillis = millis();
+        std::string rxd;
 
-/*    Status CatMQTT::closeSession()
+        Status ret = mCatM1.Execute(command, mutexHandle);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DISCONNECT: %s", ret.c_str());
+            return ret;
+        }
+
+        ret = readUntilOKorERROR(timeoutMillis, &rxd);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DISCONNECT: %s: %s", ret.c_str(), processCmeErrorCode(rxd).c_str());
+            return ret;
+        }
+        return ret;
+        
+        // const std::string patternBegin = "\r\n+QMTDISC: ";
+        // const std::string patternEnd   = "\r\n";
+        // LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+        // rxd.clear();
+        
+        // while (millis() - startedMillis < timeoutMillis)
+        // {
+        //     const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+        //     if (betweenPatterns.length() == 0)
+        //     {
+        //         vTaskDelay(50 / portTICK_PERIOD_MS);
+        //         continue;
+        //     }
+        //     rxd.append(betweenPatterns);
+        //     break;
+        // }
+        // LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+
+        // const size_t delimiter1 = rxd.find(' ');
+        // const size_t delimiter2 = rxd.find(',',  delimiter1 + 1);
+        // if (delimiter1 == std::string::npos || delimiter2 == std::string::npos)
+        // {
+        //     LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+        //     return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        // }
+
+        // const std::string strSocketID = rxd.substr(delimiter1 + 1, delimiter2 - delimiter1 - 1);
+        // const std::string strResult   = rxd.substr(delimiter2 + 1);
+        // const int32_t rxdSocketID = Convert.ToInt32(strSocketID.c_str());
+        // const int32_t rxdResult   = Convert.ToInt32(strResult.c_str());
+        // LOG_DEBUG(logger, "Socket ID: %d", rxdSocketID);
+        // LOG_DEBUG(logger, "Result: %d", rxdResult);
+
+        // if (rxdResult == 0)
+        // {
+        //     return Status(Status::Code::GOOD);
+        // }
+        // else
+        // {
+        //     return Status(Status::Code::BAD);
+        // }
+    }
+
+    Status CatMQTT::closeSession(const size_t mutexHandle)
     {
-        ASSERT(false, "THE FUNCTION IS NOT IMPLEMENTED!");
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-    }*/
+        const uint8_t brokerSocketID = static_cast<uint8_t>(mBrokerInfo.GetSocketID());
+        
+        const std::string command = "AT+QMTCLOSE=" + std::to_string(brokerSocketID);
+        const uint32_t timeoutMillis = 300;
+        const uint32_t startedMillis = millis();
+        std::string rxd;
+
+        Status ret = mCatM1.Execute(command, mutexHandle);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CLOSE: %s", ret.c_str());
+            return ret;
+        }
+
+        ret = readUntilOKorERROR(timeoutMillis, &rxd);
+        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CLOSE: %s: %s", ret.c_str(), processCmeErrorCode(rxd).c_str());
+            return ret;
+        }
+        return ret;
+        
+        // const std::string patternBegin = "\r\n+QMTCLOSE: ";
+        // const std::string patternEnd   = "\r\n";
+        // rxd.clear();
+        
+        // while (millis() - startedMillis < timeoutMillis)
+        // {
+        //     const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+        //     if (betweenPatterns.length() == 0)
+        //     {
+        //         vTaskDelay(50 / portTICK_PERIOD_MS);
+        //         continue;
+        //     }
+        //     rxd.append(betweenPatterns);
+        //     break;
+        // }
+
+        // const size_t delimiter1 = rxd.find(' ');
+        // const size_t delimiter2 = rxd.find(',',  delimiter1 + 1);
+        // if (delimiter1 == std::string::npos || delimiter2 == std::string::npos)
+        // {
+        //     LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+        //     return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        // }
+
+        // const std::string strSocketID = rxd.substr(delimiter1 + 1, delimiter2 - delimiter1 - 1);
+        // const std::string strResult   = rxd.substr(delimiter2 + 1);
+        // const int32_t rxdSocketID = Convert.ToInt32(strSocketID.c_str());
+        // const int32_t rxdResult   = Convert.ToInt32(strResult.c_str());
+        // LOG_DEBUG(logger, "Socket ID: %d", rxdSocketID);
+        // LOG_DEBUG(logger, "Result: %d", rxdResult);
+
+        // if (rxdResult == 0)
+        // {
+        //     return Status(Status::Code::GOOD);
+        // }
+        // else
+        // {
+        //     return Status(Status::Code::BAD);
+        // }
+    }
 
 /*    void CatMQTT::onEventQMTSTAT(const uint8_t socketID, const uint8_t errorCode)
     {
