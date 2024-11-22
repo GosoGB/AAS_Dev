@@ -80,14 +80,6 @@ namespace muffin {
         return *mInstance;
     }
 
-    Core::Core()
-    {
-    }
-
-    Core::~Core()
-    {
-    }
-
     void Core::Init()
     {
         /**

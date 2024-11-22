@@ -47,8 +47,8 @@ namespace muffin {
         static Core* CreateInstance() noexcept;
         static Core& GetInstance() noexcept;
     private:
-        Core();
-        virtual ~Core();
+        Core() {}
+        virtual ~Core() {}
     private:
         static Core* mInstance;
 

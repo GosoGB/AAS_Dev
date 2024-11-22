@@ -12,28 +12,15 @@
 
 
 
-#include <Arduino.h>
+
 #include <MUFFIN.h>
-#include <OTA/MEGA2560/MEGA2560.h>
 
 
 
 void setup()
 {
-    delay(10 * 1000); // MEGA 펌웨어 업로드 시간 확보용
-
     MUFFIN muffin;
     muffin.Start();
-    
-    muffin::ota::MEGA2560 mega2560;
-    mega2560.Init();
-    mega2560.LoadAddress(0);
-    mega2560.ProgramFlashISP();
-    delay(100);
-    mega2560.LeaveProgrammingMode();
-    mega2560.TearDown();
-    // mega2560.LoadAddress(1100);
-    // mega2560.ReadFlashISP(256);
 }
 
 void loop()

@@ -21,5 +21,5 @@
 void MUFFIN::Start()
 {
     muffin::Core* core = muffin::Core::CreateInstance();
-    // core->Init();
+    core->Init();
 }
