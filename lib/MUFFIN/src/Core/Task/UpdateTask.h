@@ -30,6 +30,13 @@ namespace muffin {
     bool UpdateFirmware();
     void SendStatusMSG();
     void StopAllTask();
+
+    typedef struct UrlInfo
+    {
+        uint16_t Port;
+        std::string Host;
+       
+    } Fota_url_t;
  
     typedef struct McuInfo
     {
@@ -51,15 +58,15 @@ namespace muffin {
     } fota_Info_t;
 
     constexpr uint8_t FIRMWARE_VERSION_CODE_MCU1 = 1;
-    const std::string FIRMWARE_VERSION_MCU1 = "1.0.0";
-
+    const std::string FIRMWARE_VERSION_MCU1 = "1.1.0";
+#ifdef MODLINK_T2
     constexpr uint8_t FIRMWARE_VERSION_CODE_MCU2 = 1;
-    const std::string FIRMWARE_VERSION_MCU2 = "1.0.0";
+    const std::string FIRMWARE_VERSION_MCU2 = "1.1.0";
+#endif
+    
+
     constexpr uint8_t MAX_RETRY_COUNT = 5;
     
-    extern std::string FotaHost;
-    extern uint16_t FotaPort;
-// #if !defined(DEBUG)
-//     OTA 서버 릴리즈 주소 확인해야 함!!!
-// #endif
+    extern Fota_url_t ReleaseUrl;
+    extern Fota_url_t DownloadUrl;
 }

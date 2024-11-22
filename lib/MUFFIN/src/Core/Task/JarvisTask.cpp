@@ -423,7 +423,7 @@ namespace muffin {
                 applyOperationTimeCIN(pair.second);
                 break;
             case jarvis::cfg_key_e::RS485:
-                // applyRS485CIN(pair.second);
+                applyRS485CIN(pair.second);
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);

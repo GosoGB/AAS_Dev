@@ -5,7 +5,7 @@
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
  * 
  * @date 2024-10-29
- * @version 0.0.1
+ * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -43,8 +43,12 @@
 namespace muffin {
 
     fota_Info_t info;
-    std::string FotaHost = "112.171.127.186";
-    uint16_t FotaPort = 8125;
+    Fota_url_t DownloadUrl;
+    Fota_url_t ReleaseUrl =
+    {
+        .Port = 443,
+        .Host = "api.fota.edgecross.ai"
+    };
 
     TaskHandle_t xTaskFotaHandle = NULL;
 
@@ -57,6 +61,8 @@ namespace muffin {
         }
 
         SendStatusMSG();
+
+        delay(1000);
 
         /**
          * @todo 스택 오버플로우를 방지하기 위해서 MQTT 메시지 크기에 따라서
@@ -125,6 +131,7 @@ namespace muffin {
 
         if (result == true)
         {
+            LOG_DEBUG(logger,"POST Method Succsess");
             bool resultOTA = UpdateFirmware();
             if ( resultOTA)
             {
@@ -159,7 +166,7 @@ namespace muffin {
             }
             currentTimestamp = GetTimestamp();
 
-            LOG_WARNING(logger,"12시간 경과 %lu",currentTimestamp);
+            LOG_DEBUG(logger,"12시간 경과 %lu",currentTimestamp);
             result = HasNewFirmwareFOTA();
             if (result == false)
             {
@@ -183,6 +190,7 @@ namespace muffin {
 
             if (result == true)
             {
+                LOG_DEBUG(logger,"POST Method Succsess");
                 bool resultOTA = UpdateFirmware();
                 if ( resultOTA)
                 {
@@ -205,6 +213,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
+                LOG_DEBUG(logger, "[TASK: Fota] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif
@@ -222,7 +231,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/version/release", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, ReleaseUrl.Host, ReleaseUrl.Port, "/firmware/file/version/release", "MODLINK-L/1.0.0");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         
@@ -303,6 +312,24 @@ namespace muffin {
             return false;
         }
 
+        if (doc["url"].isNull() == false)
+        {
+            std::string url = doc["url"].as<std::string>();
+
+            size_t pos = url.find("://");
+            if (pos != std::string::npos) 
+            {
+                url = url.substr(pos + 3);
+            }
+            pos = url.find(":");
+
+            if (pos != std::string::npos) 
+            {
+                DownloadUrl.Host = url.substr(0, pos);
+                DownloadUrl.Port = static_cast<uint16_t>(atoi(url.substr(pos + 1).c_str())); 
+            }
+        }
+
         
         info.OtaID = doc["otaId"].as<uint8_t>();
 
@@ -370,7 +397,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/1.0.0");
         http::RequestParameter parameters;
         parameters.Add("mac", MacAddress::GetEthernet());
         parameters.Add("otaId", std::to_string(info.OtaID));
@@ -406,7 +433,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download/finish", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download/finish", "MODLINK-L/1.0.0");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
@@ -439,7 +466,7 @@ namespace muffin {
         }
 
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTP, FotaHost, FotaPort, "/firmware/file/download", "MODLINK-L/0.0.1");
+        http::RequestHeader header(rest_method_e::POST, http_scheme_e::HTTPS, DownloadUrl.Host, DownloadUrl.Port, "/firmware/file/download", "MODLINK-L/1.0.0");
         http::RequestBody body("application/x-www-form-urlencoded");
     
         body.AddProperty("mac", MacAddress::GetEthernet());
@@ -506,6 +533,8 @@ namespace muffin {
             uint8_t bytes[length] = {0};
             catFS->Read(length, bytes);
             writtenSize += Update.write(bytes, length);
+
+            LOG_DEBUG(logger ,"Written %d bytes", writtenSize);
         }
         uint32_t finishMillis = millis();
         LOG_INFO(logger ,"\n\nProcessing time : %d \n\n", finishMillis - startMillis);
@@ -516,6 +545,8 @@ namespace muffin {
 
         bool CheckUpdate = Update.end();
         bool CheckFinished = Update.isFinished();
+        LOG_DEBUG(logger, "Update.end() : %s", CheckUpdate ? "true" : "false");
+        LOG_DEBUG(logger, "Update.isFinished() : %s", CheckFinished ? "true" : "false");
 
         if (CheckFinished  == false || CheckUpdate == false)
         {
@@ -566,8 +597,8 @@ namespace muffin {
 
             if (pos != std::string::npos) 
             {
-                FotaHost = url.substr(0, pos);
-                FotaPort = static_cast<uint16_t>(atoi(url.substr(pos + 1).c_str())); 
+                DownloadUrl.Host = url.substr(0, pos);
+                DownloadUrl.Port = static_cast<uint16_t>(atoi(url.substr(pos + 1).c_str())); 
             }
         }
         
@@ -619,7 +650,6 @@ namespace muffin {
             // MCU2 설정 값 저장
         }
 
-
         bool result;
         StopAllTask();
         result = DownloadFirmware();
@@ -637,6 +667,7 @@ namespace muffin {
 
         if (result == true)
         {
+            LOG_DEBUG(logger,"POST Method Succsess");
             bool resultOTA = UpdateFirmware();
             if ( resultOTA)
             {
@@ -680,7 +711,9 @@ namespace muffin {
     void StopAllTask()
     {
         StopCyclicalsMSGTask();
-        
+        StopModbusTcpTask();
+        StopModbusRtuTask();
+    
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         alarmMonitor.StopTask();
         alarmMonitor.Clear();
@@ -693,8 +726,6 @@ namespace muffin {
         operationTime.StopTask();
         operationTime.Clear();
 
-        StopModbusRtuTask();
-        StopModbusTcpTask();
         ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
         modbusRTU->Clear();
 
