@@ -161,6 +161,7 @@ namespace muffin {
             return mutexHandle.first;
         }
         
+        catHttp->OnEventReset();
         Status ret = catHttp->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
         if (ret != Status::Code::GOOD)
         {
@@ -256,6 +257,7 @@ namespace muffin {
 
         if (s_IsCatMqttInitialized == false)
         {
+            catMqtt->OnEventReset();
             Status ret = catMqtt->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
             if (ret != Status::Code::GOOD)
             {

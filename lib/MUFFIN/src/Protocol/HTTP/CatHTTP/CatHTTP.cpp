@@ -499,6 +499,11 @@ namespace muffin { namespace http {
         }
     }
 
+    void CatHTTP::OnEventReset()
+    {
+        this->mInitFlags.reset();
+    }
+
     Status CatHTTP::setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp)
     {
         constexpr uint8_t BUFFER_SIZE = 32;

@@ -64,11 +64,13 @@ namespace muffin { namespace mqtt {
     public:
         Status Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl);
         Status Connect(const size_t mutexHandle);
-        // Status Disconnect();
+        Status Disconnect(const size_t mutexHandle);
         Status IsConnected();
         Status Subscribe(const size_t mutexHandle, const std::vector<Message>& messages);
         Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages);
         Status Publish(const size_t mutexHandle, const Message& message);
+    public:
+        void OnEventReset();
     private:
         Status setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp);
         Status setSslContext(const size_t mutexHandle, const network::lte::ssl_ctx_e ssl);
@@ -84,8 +86,8 @@ namespace muffin { namespace mqtt {
     private:
         Status openSession(const size_t mutexHandle);
         Status connectBroker(const size_t mutexHandle);
-        // Status disconnectBroker();
-        // Status closeSession();
+        Status disconnectBroker(const size_t mutexHandle);
+        Status closeSession(const size_t mutexHandle);
     private:
         // void onEventQMTSTAT(const uint8_t socketID, const uint8_t errorCode);
         Status readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd);
