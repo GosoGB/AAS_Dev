@@ -838,7 +838,6 @@ namespace muffin {
         }
         file.close();
 
-
         JSON json;
         JsonDocument doc;
         json.Deserialize(payload, &doc);

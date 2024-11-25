@@ -702,6 +702,12 @@ namespace muffin { namespace jarvis {
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
+
+        if (mMappingRules.first == rsc_e::GOOD)
+        {
+            const std::string message = "NUMERIC SCALE CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID :  "+ mNodeID;
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+        }
         
         switch (mDataTypes.second.front())
         {
@@ -756,6 +762,12 @@ namespace muffin { namespace jarvis {
                 const std::string message = "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
+        }
+
+        if (mMappingRules.first == rsc_e::GOOD)
+        {
+            const std::string message = "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID :  "+ mNodeID;
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
         switch (mDataTypes.second.front())
@@ -1140,7 +1152,6 @@ namespace muffin { namespace jarvis {
         
         if (length == 0)
         {
-            
             LOG_ERROR(logger, "THE ARRAY OF DATA TYPES CANNOT BE EMPTY");
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataTypes);
         }
