@@ -81,7 +81,7 @@ namespace muffin { namespace mqtt {
         // Status checkPdpContext();
         // Status checkSslContext();
         Status checkVersion(const size_t mutexHandle);
-        Status checkLastWill(const size_t mutexHandle);
+        // Status checkLastWill(const size_t mutexHandle);
         // Status checkKeepAlive();
     private:
         Status openSession(const size_t mutexHandle);

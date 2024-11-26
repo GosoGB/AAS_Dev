@@ -240,9 +240,13 @@ namespace muffin {
             "tkfkdgo5!@#$"
         );
     #endif
-
+        
+        char buffer[32] = { '\0' };
+        sprintf(buffer, "%s,disconnected", MacAddress::GetEthernet());
+        mqtt::Message lwt(mqtt::topic_e::LAST_WILL, buffer);
+        
         CatM1& catM1 = CatM1::GetInstance();
-        mqtt::CatMQTT* catMqtt = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, info);
+        mqtt::CatMQTT* catMqtt = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, info, lwt);
         if (catMqtt == nullptr)
         {
             LOG_ERROR(logger, "FAILED TO CREATE CatMQTT DUE TO OUT OF MEMORY");
@@ -257,6 +261,11 @@ namespace muffin {
 
         if (s_IsCatMqttInitialized == false)
         {
+            /**
+             * @todo onEventReset 코드로 인해 LWT 설정이 지워지는 문제로 인해 
+             *       setLastWill 함수 내부에 임시로 코드를 변경하는 해킹을 넣었습니다.
+             *       향후에는 전반적인 로직을 수정해야 합니다.
+             */
             catMqtt->OnEventReset();
             Status ret = catMqtt->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
             if (ret != Status::Code::GOOD)

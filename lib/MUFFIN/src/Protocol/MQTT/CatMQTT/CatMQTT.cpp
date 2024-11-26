@@ -140,7 +140,8 @@ namespace muffin { namespace mqtt {
             mInitFlags.set(init_flag_e::INITIALIZED_VSN);
         }
 
-        if (mInitFlags.test(init_flag_e::INITIALIZED_LWT) == false)
+        // if (mInitFlags.test(init_flag_e::INITIALIZED_LWT) == false)
+        if (true)
         {
             ret = setLastWill(mutexHandle);
             if (ret != Status::Code::GOOD)
@@ -149,12 +150,12 @@ namespace muffin { namespace mqtt {
                 goto INIT_FAILED;
             }
 
-            ret = checkLastWill(mutexHandle);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "LWT NOT APPLIED PROPERLY: %s", ret.c_str());
-                goto INIT_FAILED;
-            }
+            // ret = checkLastWill(mutexHandle);
+            // if (ret != Status::Code::GOOD)
+            // {
+            //     LOG_ERROR(logger, "LWT NOT APPLIED PROPERLY: %s", ret.c_str());
+            //     goto INIT_FAILED;
+            // }
             mInitFlags.set(init_flag_e::INITIALIZED_LWT);
         }
 
@@ -840,14 +841,16 @@ PATTERN_FOUND:
         memset(command, '\0', sizeof(command));
 
         const uint8_t socketID    = static_cast<uint8_t>(mBrokerInfo.GetSocketID());
-        const uint8_t enableFlag  = static_cast<uint8_t>(mInitFlags.test(init_flag_e::ENABLE_LWT_MSG));
+        // const uint8_t enableFlag  = static_cast<uint8_t>(mInitFlags.test(init_flag_e::ENABLE_LWT_MSG));
         const uint8_t qosLevel    = static_cast<uint8_t>(mMessageLWT.GetQoS());
         const uint8_t retainFlag  = static_cast<uint8_t>(mMessageLWT.IsRetain());
 
-        if (mInitFlags.test(init_flag_e::ENABLE_LWT_MSG) == true)
-        {
+        LOG_WARNING(logger, "ENABLE_LWT_MSG: %s", mInitFlags.test(init_flag_e::ENABLE_LWT_MSG) ? "true" : "false");
+        // if (mInitFlags.test(init_flag_e::ENABLE_LWT_MSG) == true)
+        // {
             sprintf(command, "AT+QMTCFG=\"will\",%u,%u,%u,%u,\"%s\",\"%s\"", 
-                socketID, enableFlag, qosLevel, retainFlag,
+                // socketID, enableFlag, qosLevel, retainFlag,
+                socketID, 1, qosLevel, retainFlag,
                 mMessageLWT.GetTopicString(), mMessageLWT.GetPayload()
             );
             
@@ -855,16 +858,17 @@ PATTERN_FOUND:
                 (strlen(command) < (COMMAND_BUFFER_SIZE - 1)), 
                 "COMMAND SIZE CANNOT EXCEED %u", COMMAND_BUFFER_SIZE
             );
-        }
-        else
-        {
-            sprintf(command, "AT+QMTCFG=\"will\",%u,%u", socketID, enableFlag);
-        }
+        // }
+        // else
+        // {
+        //     sprintf(command, "AT+QMTCFG=\"will\",%u,%u", socketID, enableFlag);
+        // }
         
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
         Status ret = mCatM1.Execute(command, mutexHandle);
+        LOG_WARNING(logger, "LWT: %s", command);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET LWT: %s", ret.c_str());
@@ -981,7 +985,7 @@ PATTERN_FOUND:
         }
     }
 
-    Status CatMQTT::checkLastWill(const size_t mutexHandle)
+/*    Status CatMQTT::checkLastWill(const size_t mutexHandle)
     {
         if (strlen(mMessageLWT.GetPayload()) == 0)
         {
@@ -1062,7 +1066,7 @@ PATTERN_FOUND:
 
         LOG_INFO(logger, "Check result: OK");
         return Status(Status::Code::GOOD);
-    }
+    }*/ 
 
 /*    Status CatMQTT::checkKeepAlive()
     {
