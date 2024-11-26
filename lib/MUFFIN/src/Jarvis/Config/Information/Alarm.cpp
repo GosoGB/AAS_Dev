@@ -29,16 +29,10 @@ namespace muffin { namespace jarvis { namespace config {
     Alarm::Alarm()
         : Base(cfg_key_e::ALARM)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Alarm::~Alarm()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Alarm& Alarm::operator=(const Alarm& obj)

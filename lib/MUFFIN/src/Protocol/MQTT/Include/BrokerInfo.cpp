@@ -38,28 +38,6 @@ namespace muffin { namespace mqtt {
         ASSERT((0 < port), "INVALID PORT NUMBER");
         ASSERT((keepalive < 3601), "INVALID KEEP ALIVE");
         ASSERT((0 < strlen(clientID) && strlen(clientID) < 24), "CLIENT ID IS INVALID");
-
-    #if defined(DEBUG)
-        char buffer[1024] = {0};
-        sprintf(buffer, "\n \
---------------------------------------------------\n \
-Constructed at address: %p\n \
---------------------------------------------------\n \
-Host: %s\n \
-Port: %u\n \
-KeepAlive: %u\n \
-User: %s\n \
-Pass: %s\n \
-Version: %s\n \
-Client ID: %s\n \
-SSL Enabled: %s\n \
-Socket ID: %u\n \
---------------------------------------------------\n\n"
-, this, GetHost(), GetPort(), GetKeepAlive(), GetUsername(), GetPassword(), 
-GetVersion() == version_e::Ver_3_1_0 ? "3.1.0" : "3.1.1",
-GetClientID(), IsSslEnabled() ? "true" : "false", static_cast<uint8_t>(GetSocketID()));
-        LOG_VERBOSE(logger, "%s", buffer);
-    #endif
     }
 
     BrokerInfo::BrokerInfo(const BrokerInfo&& obj) noexcept
@@ -73,34 +51,10 @@ GetClientID(), IsSslEnabled() ? "true" : "false", static_cast<uint8_t>(GetSocket
         , mClientID(std::move(obj.mClientID))
         , mEnableSSL(std::move(obj.mEnableSSL))
     {
-    #if defined(DEBUG)
-        char buffer[1024] = {0};
-        sprintf(buffer, "\n \
---------------------------------------------------\n \
-Constructed by Move from %p to %p\n \
---------------------------------------------------\n \
-Host: %s\n \
-Port: %u\n \
-KeepAlive: %u\n \
-User: %s\n \
-Pass: %s\n \
-Version: %s\n \
-Client ID: %s\n \
-SSL Enabled: %s\n \
-Socket ID: %u\n \
---------------------------------------------------\n\n"
-, &obj, this, GetHost(), GetPort(), GetKeepAlive(), GetUsername(), GetPassword(), 
-GetVersion() == version_e::Ver_3_1_0 ? "3.1.0" : "3.1.1",
-GetClientID(), IsSslEnabled() ? "true" : "false", static_cast<uint8_t>(GetSocketID()));
-        LOG_VERBOSE(logger, "%s", buffer);
-    #endif
     }
 
     BrokerInfo::~BrokerInfo()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     BrokerInfo& BrokerInfo::operator=(const BrokerInfo& obj)

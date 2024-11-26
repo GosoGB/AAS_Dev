@@ -35,9 +35,6 @@ namespace muffin { namespace mqtt {
         , mIsTopicSet(false)
         , mIsPayloadSet(false)
     {
-    #if defined(DEBUG)
-        LOG_WARNING(logger, "CONSTRUCTED WITHOUT ANY DATA: %p", this);
-    #endif
     }
 
     Message::Message(const topic_e topic, const std::string& payload, const socket_e socketID, const uint16_t messageID, const qos_e qos, const bool isRetain)
@@ -54,23 +51,6 @@ namespace muffin { namespace mqtt {
         , mTopicCode(topic)
         , mPayload(payload)
     {
-    #if defined(DEBUG)
-        char buffer[1024] = {0};
-        sprintf(buffer, "\n \
---------------------------------------------------\n \
-Constructed at address: %p\n \
---------------------------------------------------\n \
-SocketID: %u\n \
-MessageID: %u\n \
-QoS Level: %u\n \
-Retain: %s\n \
-Topic: %s\n \
-Payload: %s\n \
---------------------------------------------------\n\n"
-, this, static_cast<uint8_t>(GetSocketID()), GetMessageID(), static_cast<uint8_t>(GetQoS()),
-IsRetain() ? "true" : "false", GetTopicString(), GetPayload());
-        LOG_VERBOSE(logger, "%s", buffer);
-    #endif
     }
 
     Message::Message(const Message& obj)
@@ -87,23 +67,6 @@ IsRetain() ? "true" : "false", GetTopicString(), GetPayload());
         , mTopicCode(obj.mTopicCode)
         , mPayload(obj.mPayload)
     {
-    #if defined(DEBUG)
-        char buffer[1024] = {0};
-        sprintf(buffer, "\n \
---------------------------------------------------\n \
-Constructed by Copy from %p to %p\n \
---------------------------------------------------\n \
-SocketID: %u\n \
-MessageID: %u\n \
-QoS Level: %u\n \
-Retain: %s\n \
-Topic: %s\n \
-Payload: %s\n \
---------------------------------------------------\n\n"
-, &obj, this, static_cast<uint8_t>(GetSocketID()), GetMessageID(), static_cast<uint8_t>(GetQoS()),
-IsRetain() ? "true" : "false", GetTopicString(), GetPayload());
-        LOG_VERBOSE(logger, "%s", buffer);
-    #endif
     }
 
     Message::Message(Message&& obj) noexcept
@@ -120,25 +83,10 @@ IsRetain() ? "true" : "false", GetTopicString(), GetPayload());
         , mTopicCode(std::move(obj.mTopicCode))
         , mPayload(std::move(obj.mPayload))
     {
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "Constructed by Move from %p to %p", &obj, this);
-        LOG_DEBUG(logger, "--------------------------------------------------");
-        LOG_DEBUG(logger, "SocketID: %u", mSocketID);
-        LOG_DEBUG(logger, "MessageID: %u", mMessageID);
-        LOG_DEBUG(logger, "QoS Level: %u", mQoS);
-        LOG_DEBUG(logger, "Retain: %s", mRetainFlag ? "true" : "false");
-        LOG_DEBUG(logger, "Topic: %s", Topic::ToString(mTopicCode));
-        LOG_DEBUG(logger, "Payload: %s", mPayload.c_str());
-        LOG_DEBUG(logger, "--------------------------------------------------\n\n");
-    #endif
     }
 
     Message::~Message()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     void Message::SetSocketID(const socket_e socketID)

@@ -64,16 +64,10 @@ namespace muffin { namespace im {
 
     NodeStore::NodeStore()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     NodeStore::~NodeStore()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status NodeStore::Create(const jarvis::config::Node* cin)

@@ -85,16 +85,10 @@ namespace muffin { namespace mqtt {
     
     Topic::Topic(const std::string& macAddress)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     Topic::~Topic()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     const char* Topic::ToString(const topic_e topicCode)

@@ -58,16 +58,10 @@ namespace muffin { namespace http {
         , mState(state_e::CONSTRUCTED)
     {
         mInitFlags.reset();
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     CatHTTP::~CatHTTP()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status CatHTTP::Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader, const bool outputResponse)
@@ -146,7 +140,6 @@ namespace muffin { namespace http {
                 header.GetURL().c_str(), ret.c_str());
             return ret;
         }
-        LOG_WARNING(logger,"header.GetURL() : %s",header.GetURL().c_str());
 
         constexpr uint8_t BUFFER_SIZE = 32;
         
@@ -182,7 +175,6 @@ namespace muffin { namespace http {
         rxd.clear();
 
         ret = readUntilRSC(timeoutMillis, &rxd);
-        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
         if (ret != Status::Code::GOOD)
         {
             Status cmeErrorCode = processCmeErrorCode(rxd);
@@ -307,7 +299,6 @@ namespace muffin { namespace http {
         }
 
         ret = readUntilCONNECT(timeoutMillis, &rxd);
-        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
         if (ret != Status::Code::GOOD)
         {
             Status cmeErrorCode = processCmeErrorCode(rxd);
@@ -316,8 +307,6 @@ namespace muffin { namespace http {
             return cmeErrorCode;
         }
 
-        LOG_DEBUG(logger, "Content: %s", (header.ToString() + body.ToString()).c_str());
-        LOG_DEBUG(logger, "Content: %u", (header.ToString() + body.ToString()).length());
         ret = mCatM1.Execute(header.ToString() + body.ToString(), mutexHandle);
         if (ret != Status::Code::GOOD)
         {
@@ -327,7 +316,6 @@ namespace muffin { namespace http {
         rxd.clear();
 
         ret = readUntilRSC(timeoutMillis, &rxd);
-        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
         if (ret != Status::Code::GOOD)
         {
             Status cmeErrorCode = processCmeErrorCode(rxd);
@@ -511,6 +499,11 @@ namespace muffin { namespace http {
         }
     }
 
+    void CatHTTP::OnEventReset()
+    {
+        this->mInitFlags.reset();
+    }
+
     Status CatHTTP::setPdpContext(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp)
     {
         constexpr uint8_t BUFFER_SIZE = 32;
@@ -648,7 +641,7 @@ namespace muffin { namespace http {
         ASSERT((mSetSinkToCatFS == true), "CatFS STORAGE OPTION MUST BE TURNED ON");
 
         constexpr uint8_t BUFFER_SIZE = 64;
-        constexpr uint16_t TIMEOUT_IN_SECOND = 60*10;
+        constexpr uint8_t TIMEOUT_IN_SECOND = 60*4;
 
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));
@@ -884,7 +877,6 @@ namespace muffin { namespace http {
         const size_t cmeFinishPosition = rxd.find("\r", cmeStartPosition);
         if (cmeStartPosition == std::string::npos || cmeFinishPosition == std::string::npos)
         {
-            LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
 

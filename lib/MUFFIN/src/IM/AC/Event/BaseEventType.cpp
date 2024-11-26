@@ -25,9 +25,6 @@ namespace muffin { namespace im {
         : mEventID(generateEventID())
         , mReceiveTime(GetTimestampInMillis())
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     BaseEventType::BaseEventType(const std::string& sourceNodeID)
@@ -35,9 +32,6 @@ namespace muffin { namespace im {
         , mSourceNodeID(sourceNodeID)
         , mReceiveTime(GetTimestampInMillis())
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     BaseEventType::BaseEventType(const std::string& sourceNodeID, const std::string& eventMessage)
@@ -46,16 +40,10 @@ namespace muffin { namespace im {
         , mEventMessage(eventMessage)
         , mReceiveTime(GetTimestampInMillis())
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     BaseEventType::~BaseEventType()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     void BaseEventType::SetSourceNodeID(const std::string& nodeID)

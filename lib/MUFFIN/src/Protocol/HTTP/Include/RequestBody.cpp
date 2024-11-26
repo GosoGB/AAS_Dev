@@ -24,18 +24,11 @@ namespace muffin { namespace http {
     RequestBody::RequestBody(const std::string& contentType)
         : mContentType(contentType)
     {
-    #if defined(DEBUG)
-        ASSERT((contentType == "application/x-www-form-urlencoded"),
-            "CURRENTY, ONLY \"application/x-www-form-urlencoded\" IS SUPPORTED");
-        LOG_DEBUG(logger, "Constructed at address: %p", this);
-    #endif
+        ASSERT((contentType == "application/x-www-form-urlencoded"), "CURRENTY, ONLY \"application/x-www-form-urlencoded\" IS SUPPORTED");
     }
     
     RequestBody::~RequestBody()
     {
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::string RequestBody::ToString() const
@@ -49,9 +42,7 @@ namespace muffin { namespace http {
             body += "&" + it->first + "=" + it->second;
             ++it;
         }
-    #if defined(DEBUG)
-        LOG_DEBUG(logger, "HTTP Body: %s", body.c_str());
-    #endif
+        
         return body;
     }
 

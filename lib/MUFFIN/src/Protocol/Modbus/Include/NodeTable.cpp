@@ -25,16 +25,10 @@ namespace muffin { namespace modbus {
     
     NodeTable::NodeTable()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     NodeTable::~NodeTable()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status NodeTable::Update(const uint8_t slaveID, NodeRef& node)
@@ -65,7 +59,7 @@ namespace muffin { namespace modbus {
         try
         {
             it->second.emplace_back(&node);
-            LOG_VERBOSE(muffin::logger, "Emplaced Node reference: %s", node.GetNodeID().c_str());
+            //LOG_VERBOSE(muffin::logger, "Emplaced Node reference: %s", node.GetNodeID().c_str());
             // printReferenceTable();
             return Status(Status::Code::GOOD);
         }
@@ -96,7 +90,7 @@ namespace muffin { namespace modbus {
             if ((*it)->GetNodeID() == node.GetNodeID())
             {
                 references.erase(it);
-                LOG_VERBOSE(muffin::logger, "Removed node: %s", node.GetNodeID().c_str());
+                //LOG_VERBOSE(muffin::logger, "Removed node: %s", node.GetNodeID().c_str());
                 // printReferenceTable();
                 return Status(Status::Code::GOOD);
             }

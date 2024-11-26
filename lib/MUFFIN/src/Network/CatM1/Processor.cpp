@@ -107,16 +107,10 @@ namespace muffin {
         , mTaskInterval(50)
     {
         mInitFlags.reset();
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Processor::~Processor()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status Processor::Init()
@@ -328,7 +322,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                LOG_DEBUG(logger, "Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                // LOG_DEBUG(logger, "Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif

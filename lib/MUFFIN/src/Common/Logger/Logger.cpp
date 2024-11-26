@@ -61,7 +61,6 @@ namespace muffin {
 
 	Logger::~Logger()
 	{
-		LOG_DEBUG(logger, "Destroyed at address: %p", this);
 	}
 
 	bool Logger::GetFilePathVerbosity() const

@@ -25,17 +25,11 @@ namespace muffin { namespace im {
         : mStart(startAddress)
         , mQuantity(quantity)
     {
-    #if defined(DEBUG)
         ASSERT((quantity != 0 ), "quantity cannot be 0");
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     NumericAddressRange::~NumericAddressRange()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     bool NumericAddressRange::operator<(const NumericAddressRange& obj) const
@@ -55,18 +49,15 @@ namespace muffin { namespace im {
 
         if ((lastAddressInRange >= obj.mStart) && (lastAddressInGivenRange >= mStart))
         {
-            LOG_VERBOSE(logger, "Mergeable ranges: Overlapping");
             return true;
         }
         else if ((mStart - lastAddressInGivenRange == CONSECUTIVE_DIFFERENCE) ||
                  (obj.mStart - lastAddressInRange  == CONSECUTIVE_DIFFERENCE))
         {
-            LOG_VERBOSE(logger, "Mergeable ranges: Consecutive");
             return true;
         }
         else
         {
-            LOG_VERBOSE(logger, "Not a mergeable ranges");
             return false;
         }
     }
@@ -75,23 +66,11 @@ namespace muffin { namespace im {
     {
         ASSERT((IsMergeable(obj) == true), "CANNOT MERGE NON-OVERLAPPING RANGES");
 
-        LOG_VERBOSE(logger, "Range: [%u, %u]", mStart, mQuantity);
-        LOG_VERBOSE(logger, "Given: [%u, %u]", obj.mStart, obj.mQuantity);
-        
         const uint16_t lastAddressInRange = GetLastAddress();
         const uint16_t lastAddressInGivenRange = obj.GetLastAddress();
-        LOG_VERBOSE(logger, "lastAddressInRange: [%u]", lastAddressInRange);
-        LOG_VERBOSE(logger, "lastAddressInGivenRange: [%u]", lastAddressInGivenRange);
-        
-        LOG_VERBOSE(logger, "mStart: [%u]", mStart);
-        LOG_VERBOSE(logger, "mQuantity: [%u]", mQuantity);
 
         mStart = std::min(mStart, obj.mStart);
         mQuantity = std::max(lastAddressInRange, lastAddressInGivenRange) - mStart + 1;
-        LOG_VERBOSE(logger, "mStart: [%u]", mStart);
-        LOG_VERBOSE(logger, "mQuantity: [%u]", mQuantity);
-        
-        LOG_VERBOSE(logger, "Merged: [%u, %u]", mStart, mQuantity);
     }
 
     bool NumericAddressRange::IsRemovable(const NumericAddressRange& obj) const
@@ -101,7 +80,6 @@ namespace muffin { namespace im {
 
         if ((lastAddressInGivenRange < mStart) || (lastAddressInRange < obj.mStart))
         {
-            LOG_VERBOSE(logger, "No matching range to remove");
             return false;
         }
         else
@@ -122,7 +100,6 @@ namespace muffin { namespace im {
 
         if ((obj.mStart < mStart) || (lastAddressInRange < lastAddressInGivenRange))
         {
-            LOG_VERBOSE(logger, "No matching range to remove");
             return Status(Status::Code::BAD_OUT_OF_RANGE);
         }
 
@@ -132,7 +109,6 @@ namespace muffin { namespace im {
 
         if (mStart == obj.mStart && lastAddressInRange == lastAddressInGivenRange)
         {
-            LOG_VERBOSE(logger, "Entire range is removable");
             *isRemovableRange = true;
         }
         else if (mStart == obj.mStart && lastAddressInRange != lastAddressInGivenRange)
@@ -141,16 +117,10 @@ namespace muffin { namespace im {
 
             mStart     = lastAddressInGivenRange + 1;
             mQuantity -= obj.mQuantity;
-
-            LOG_VERBOSE(logger, "Removed head of the range: [%u, %u] -> [%u, %u]",
-                backupStart, lastAddressInRange, mStart, GetLastAddress());
         }
         else if (mStart < obj.mStart && lastAddressInRange == lastAddressInGivenRange)
         {
             mQuantity = obj.mStart - mStart;
-
-            LOG_VERBOSE(logger, "Removed tail of the range: [%u, %u] -> [%u, %u]",
-                mStart, lastAddressInRange, mStart, GetLastAddress());
         }
         else if (mStart < obj.mStart && lastAddressInRange != lastAddressInGivenRange)
         {

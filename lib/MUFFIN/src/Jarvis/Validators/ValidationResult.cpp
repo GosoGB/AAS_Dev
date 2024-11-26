@@ -23,16 +23,10 @@ namespace muffin { namespace jarvis {
     
     ValidationResult::ValidationResult()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     ValidationResult::~ValidationResult()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     void ValidationResult::SetRSC(const rsc_e rsc)

@@ -27,16 +27,10 @@ namespace muffin { namespace jarvis {
 
     NetworkValidator::NetworkValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     NetworkValidator::~NetworkValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
@@ -592,7 +586,6 @@ namespace muffin { namespace jarvis {
     {
         if (auth.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi AUTH values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, WIFI_AUTH_OPEN);
         }
 
@@ -624,7 +617,6 @@ namespace muffin { namespace jarvis {
     {
         if (wpaAuth.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi EAP AUTH values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, WPA2_AUTH_TLS);
         }
 
@@ -666,7 +658,6 @@ namespace muffin { namespace jarvis {
     {
         if (psk.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi PSK values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, "WiFi PSK values were not provied");
         }
 
@@ -691,7 +682,6 @@ namespace muffin { namespace jarvis {
     {
         if (id.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi EAP Identity values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, "WiFi EAP Identity values were not provied");
         }
 
@@ -716,7 +706,6 @@ namespace muffin { namespace jarvis {
     {
         if (user.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi EAP username values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, "WiFi EAP username values were not provied");
         }
 
@@ -741,7 +730,6 @@ namespace muffin { namespace jarvis {
     {
         if (pass.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi EAP password values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, "WiFi EAP password values were not provied");
         }
 
@@ -766,7 +754,6 @@ namespace muffin { namespace jarvis {
     {
         if (caCert.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi CA Certificate values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, "WiFi CA Certificate values were not provied");
         }
 
@@ -784,7 +771,6 @@ namespace muffin { namespace jarvis {
     {
         if (crt.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi Client Certificate values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, "WiFi Client Certificate values were not provied");
         }
 
@@ -802,7 +788,6 @@ namespace muffin { namespace jarvis {
     {
         if (key.isNull() == true)
         {
-            LOG_VERBOSE(logger, "WiFi Client key values were not provied");
             return std::make_pair(rsc_e::GOOD_NO_DATA, "WiFi Client key values were not provied");
         }
 

@@ -23,24 +23,15 @@ namespace muffin { namespace modbus {
 
     Address::Address()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Address::Address(const Address& obj)
         : mMapAddressByArea(obj.mMapAddressByArea)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed by Copy from %p to %p", &obj, this);
-    #endif
     }
 
     Address::~Address()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status Address::Update(const jarvis::mb_area_e area, const AddressRange& range)
@@ -66,7 +57,7 @@ namespace muffin { namespace modbus {
                 LOG_ERROR(logger, "%s: %u, [%u, %u]", e.what(), static_cast<uint8_t>(area), range.GetStartAddress(), range.GetLastAddress());
                 return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
-            LOG_VERBOSE(logger, "Emplaced a new area-range pair to the address map");
+            //LOG_VERBOSE(logger, "Emplaced a new area-range pair to the address map");
         }
         
         auto& addressRangeSet = it->second;
@@ -75,7 +66,7 @@ namespace muffin { namespace modbus {
             ret = emplaceAddressRange(area, range, &addressRangeSet);
             if (ret == Status::Code::GOOD)
             {
-                LOG_VERBOSE(logger, "Emplaced the given address range to an empty set");
+                //LOG_VERBOSE(logger, "Emplaced the given address range to an empty set");
             }
             else
             {
@@ -96,7 +87,7 @@ namespace muffin { namespace modbus {
                 ret = emplaceAddressRange(area, retrieved, &addressRangeSet);
                 if (ret == Status::Code::GOOD)
                 {
-                    LOG_VERBOSE(logger, "Merged the given address range");
+                    //LOG_VERBOSE(logger, "Merged the given address range");
                     goto UPDATE_CONSECUTIVES;
                 }
                 else
@@ -110,7 +101,7 @@ namespace muffin { namespace modbus {
         ret = emplaceAddressRange(area, range, &addressRangeSet);
         if (ret == Status::Code::GOOD)
         {
-            LOG_VERBOSE(logger, "Added a new address range");
+            //LOG_VERBOSE(logger, "Added a new address range");
             goto UPDATE_CONSECUTIVES;
         }
         else
@@ -123,7 +114,7 @@ namespace muffin { namespace modbus {
         ret = updateConsecutiveRanges(area, &addressRangeSet);
         if (ret == Status::Code::GOOD)
         {
-            LOG_VERBOSE(logger, "Updated the address map for area code: %u", static_cast<uint8_t>(area));
+            //LOG_VERBOSE(logger, "Updated the address map for area code: %u", static_cast<uint8_t>(area));
         }
         else
         {
@@ -162,7 +153,7 @@ namespace muffin { namespace modbus {
     {
         ASSERT((ranges != nullptr), "ADDRESS RANGE SET CANNOT BE A NULL POINTER");
         
-        LOG_DEBUG(logger, "Start to update consecutive ranges to merge");
+        //LOG_DEBUG(logger, "Start to update consecutive ranges to merge");
         Status ret(Status::Code::GOOD);
 
         bool hasMergeableRange = true;
@@ -186,8 +177,8 @@ namespace muffin { namespace modbus {
                     ASSERT((it != ranges->end()), "it cannot be end of ranges");
                     ranges->erase(it);
                     it = ranges->begin();
-                    LOG_DEBUG(logger, "it->GetLastAddress(): %u", it->GetLastAddress());
-                    LOG_DEBUG(logger, "it->GetQuantity(): %u", it->GetQuantity());
+                    //LOG_DEBUG(logger, "it->GetLastAddress(): %u", it->GetLastAddress());
+                    //LOG_DEBUG(logger, "it->GetQuantity(): %u", it->GetQuantity());
 
                     ret = emplaceAddressRange(area, formerRange, ranges);
                     if (ret != Status::Code::GOOD)
@@ -196,8 +187,8 @@ namespace muffin { namespace modbus {
                         return ret;
                     }
                     
-                    LOG_VERBOSE(logger, "Merged consecutive ranges");
-                    LOG_DEBUG(logger, "ranges size: %u", ranges->size());
+                    //LOG_VERBOSE(logger, "Merged consecutive ranges");
+                    //LOG_DEBUG(logger, "ranges size: %u", ranges->size());
 
                     hasMergeableRange = true;
                     break;
@@ -238,11 +229,11 @@ namespace muffin { namespace modbus {
         //             return ret;
         //         }
                 
-        //         LOG_VERBOSE(logger, "Merged consecutive ranges");
+        //         //LOG_VERBOSE(logger, "Merged consecutive ranges");
         //         LOG_DEBUG(logger, "ranges size: %u", ranges->size());
         //     }
         // }
-        LOG_DEBUG(logger, "End of updating consecutive ranges to merge");
+        //LOG_DEBUG(logger, "End of updating consecutive ranges to merge");
         return ret;
     }
 
@@ -277,7 +268,7 @@ namespace muffin { namespace modbus {
 
             if (isRemovableRange == true)
             {
-                LOG_VERBOSE(logger, "Removed the entire address range");
+                //LOG_VERBOSE(logger, "Removed the entire address range");
                 return Status(Status::Code::GOOD);
             }
             else if (remainedAddress != 0 && remainedQuantity != 0)
@@ -285,7 +276,7 @@ namespace muffin { namespace modbus {
                 AddressRange remainedRange(remainedAddress, remainedQuantity);
                 for (const auto& e : addressRangeSet)
                 {
-                    LOG_DEBUG(logger, "%u", e.GetStartAddress());
+                    //LOG_DEBUG(logger, "%u", e.GetStartAddress());
                 }
 
                 Status ret = emplaceAddressRange(area, retrieved, &addressRangeSet);
@@ -302,7 +293,7 @@ namespace muffin { namespace modbus {
                     return ret;
                 }
                 
-                LOG_VERBOSE(logger, "Removed middle of a range set and remained parts were emplaced");
+                //LOG_VERBOSE(logger, "Removed middle of a range set and remained parts were emplaced");
                 return ret;
             }
             else
@@ -310,7 +301,7 @@ namespace muffin { namespace modbus {
                 Status ret = emplaceAddressRange(area, retrieved, &addressRangeSet);
                 if (ret == Status::Code::GOOD)
                 {
-                    LOG_VERBOSE(logger, "Removed head or tail part of given address range");
+                    //LOG_VERBOSE(logger, "Removed head or tail part of given address range");
                 }
                 else
                 {
@@ -321,7 +312,7 @@ namespace muffin { namespace modbus {
         }
 
     NO_DATA_TO_REMOVE:
-        LOG_VERBOSE(logger, "No address in the range to remove");
+        //LOG_VERBOSE(logger, "No address in the range to remove");
         return Status(Status::Code::GOOD_NO_DATA);
     }
 

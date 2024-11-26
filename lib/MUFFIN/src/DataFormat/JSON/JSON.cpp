@@ -25,16 +25,10 @@ namespace muffin {
 
     JSON::JSON()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     JSON::~JSON()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status JSON::Deserialize(const std::string& payload, JsonDocument* json)
@@ -90,7 +84,6 @@ namespace muffin {
         for (auto& key : _struct.Config)
         {
             keyWithNG.add(key);
-            LOG_DEBUG(logger, "Key with NG: %s", key.c_str());
         }
         
         std::string payload;
@@ -205,10 +198,10 @@ namespace muffin {
         #if defined(MODLINK_L) || defined(MODLINK_ML10)
         doc["deviceType"] = "MODLINK-L";
         #else
-        // doc["deviceType"] = "MODLINK-T2";
-        // JsonObject mcu2 = doc.createNestedObject("mcu2");
-        // mcu2["vc"] = _struct.VersionCodeMcu2;  
-        // mcu2["version"] = _struct.VersionMcu2; 
+        doc["deviceType"] = "MODLINK-T2";
+        JsonObject mcu2 = doc.createNestedObject("mcu2");
+        mcu2["vc"] = _struct.VersionCodeMcu2;  
+        mcu2["version"] = _struct.VersionMcu2; 
         #endif
     
         serializeJson(doc,payload);

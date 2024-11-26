@@ -58,16 +58,10 @@ namespace muffin {
     
     Initializer::Initializer()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     Initializer::~Initializer()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     void Initializer::StartOrCrash()
@@ -164,14 +158,38 @@ namespace muffin {
             payload += file.read();
         }
 
-        LOG_DEBUG(logger, "%s", payload.c_str());
-        
+        file.close();
+
         JSON json;
         JsonDocument doc;
         Status ret = json.Deserialize(payload, &doc);
         if (ret != Status::Code::GOOD)
         {
             return ret;
+        }
+
+        /**
+         * @todo DEMO용 디바이스들은 "fmt"로 저장되어있기 때문에 처리하기위해 임시로 구현하였음 1.2.0 버전 이후로 삭제 예정
+         * 
+         */
+        JsonArray operation = doc["cnt"]["op"];
+        for(JsonObject op : operation)
+        {
+            if(op.containsKey("fmt"))
+            {
+                const bool value = op["fmt"].as<bool>();
+                op["rst"] = value;
+                op.remove("fmt");
+
+                std::string Updatepayload;
+                serializeJson(doc, Updatepayload);
+                file = esp32FS.Open(JARVIS_FILE_PATH, "w", true);
+                for (size_t i = 0; i < Updatepayload.length(); ++i)
+                {
+                    file.write(Updatepayload[i]);
+                }
+                file.close();
+            }
         }
         
         Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();

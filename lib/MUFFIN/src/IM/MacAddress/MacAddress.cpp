@@ -51,16 +51,10 @@ namespace muffin {
     
     MacAddress::MacAddress()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     MacAddress::~MacAddress()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     const char* MacAddress::GetEthernet()

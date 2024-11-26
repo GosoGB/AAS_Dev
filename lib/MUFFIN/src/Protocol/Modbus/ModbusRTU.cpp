@@ -51,16 +51,10 @@ namespace muffin {
 
     ModbusRTU::ModbusRTU()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     ModbusRTU::~ModbusRTU()
     {   
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status ModbusRTU::SetPort(jarvis::config::Rs485* portConfig)
@@ -89,6 +83,11 @@ namespace muffin {
 
     Status ModbusRTU::Config(jarvis::config::ModbusRTU* config)
     {
+        if (config->GetNodes().second.empty())
+        {
+            
+        }
+        
         const uint8_t slaveID = config->GetSlaveID().second;
         addNodeReferences(slaveID, config->GetNodes().second);
         return Status(Status::Code::GOOD);

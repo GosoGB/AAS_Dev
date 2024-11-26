@@ -25,22 +25,14 @@ namespace muffin {
     {
         memset(mMacAddress, '\0', sizeof(mMacAddress));
         memset(mHostname,   '\0', sizeof(mHostname));
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     Ethernet::~Ethernet()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status Ethernet::Init()
     {
-        LOG_DEBUG(logger, "Initializing Ethernet interface");
-
         uint8_t baseMAC[6] = { 0, 0, 0, 0, 0, 0 };
         const esp_err_t ret = esp_read_mac(baseMAC, ESP_MAC_ETH);
         if (ret != ESP_OK)
@@ -52,12 +44,10 @@ namespace muffin {
         sprintf(mMacAddress, "%02X%02X%02X%02X%02X%02X", 
             baseMAC[0], baseMAC[1], baseMAC[2], baseMAC[3], baseMAC[4], baseMAC[5]
         );
-        LOG_DEBUG(logger, "MAC Address: %s", mMacAddress);
         
         sprintf(mHostname, "%02X-%02X-%02X-%02X-%02X-%02X", 
             baseMAC[0], baseMAC[1], baseMAC[2], baseMAC[3], baseMAC[4], baseMAC[5]
         );
-        LOG_DEBUG(logger, "Hostname: %s", mHostname);
 
         mState = state_e::SUCCEDDED_TO_INITIALIZE;
         return Status(Status::Code::GOOD);
@@ -79,7 +69,7 @@ namespace muffin {
             }
             else
             {
-                LOG_VERBOSE(logger, "Registered Ethernet event callback");
+                //LOG_VERBOSE(logger, "Registered Ethernet event callback");
                 mIsArduinoEventCallbackRegistered = true;
             }
         }
@@ -92,14 +82,18 @@ namespace muffin {
     Status Ethernet::Connect()
     {
         assert(mState > state_e::SUCCEDDED_TO_INITIALIZE);
-
-        if (ETH.begin(mPhyAddress, mPhyPower, mPhyMDC, mPhyMDIO, mPhyChipsetType, mPhyClockMode) == false)
+        LOG_WARNING(logger, "mHasBegun : %s", mHasBegun == true ? "true": "false");
+        if (mHasBegun == false)
         {
-            mState = state_e::FAILED_TO_START_PHY;
-            LOG_ERROR(logger, "FAILED TO START ETHERNET PHY");
-            return Status(Status::Code::UNCERTAIN);
+            if (ETH.begin(mPhyAddress, mPhyPower, mPhyMDC, mPhyMDIO, mPhyChipsetType, mPhyClockMode) == false)
+            {
+                mState = state_e::FAILED_TO_START_PHY;
+                LOG_ERROR(logger, "FAILED TO START ETHERNET PHY");
+                return Status(Status::Code::UNCERTAIN);
+            }
+            mState = state_e::SUCCEDDED_TO_START_PHY;
+            mHasBegun = true;
         }
-        mState = state_e::SUCCEDDED_TO_START_PHY;
 
         bool isConfigured = false;
         if (mConfig.GetDHCP().second == true)
@@ -135,7 +129,7 @@ namespace muffin {
 
     Status Ethernet::Disconnect()
     {
-        LOG_ERROR(logger, "DISCONNECT IS NOT SUPPORTED SERVICE");
+        LOG_ERROR(logger, "RECONNECT IS NOT SUPPORTED SERVICE");
         assert(false);
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
@@ -208,4 +202,7 @@ namespace muffin {
             break;
         }
     }
+
+
+    Ethernet* ethernet = nullptr;
 }

@@ -42,17 +42,10 @@ namespace muffin { namespace http {
         mPropertyFlags.set();
         mPropertyFlags.reset(static_cast<uint8_t>(property_flag_e::CONTENT_LENGTH));
         mPropertyFlags.reset(static_cast<uint8_t>(property_flag_e::CONTENT_TYPE));
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-        LOG_INFO(logger, "HTTP Header:\n%s", ToString().c_str());
-    #endif
     }
 
     RequestHeader::~RequestHeader()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::string RequestHeader::ToString() const
@@ -76,9 +69,6 @@ namespace muffin { namespace http {
         }
 
         header += "\r\n";
-    #if defined(DEBUG)
-        LOG_INFO(logger, "HTTP Header:\n%s", header.c_str());
-    #endif
         return header;
     }
 

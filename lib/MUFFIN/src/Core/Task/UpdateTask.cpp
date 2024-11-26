@@ -711,8 +711,9 @@ namespace muffin {
     void StopAllTask()
     {
         StopCyclicalsMSGTask();
-        StopModbusTask();
-        
+        StopModbusTcpTask();
+        StopModbusRtuTask();
+    
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         alarmMonitor.StopTask();
         alarmMonitor.Clear();

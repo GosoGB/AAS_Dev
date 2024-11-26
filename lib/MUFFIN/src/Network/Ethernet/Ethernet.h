@@ -79,7 +79,11 @@ namespace muffin {
         static void getArduinoEthernetEvent(arduino_event_id_t event);
     private:
         static state_e mState;
+        bool mHasBegun = false;
         jarvis::config::Ethernet mConfig;
         bool mIsArduinoEventCallbackRegistered = false;
     };
+
+
+    extern Ethernet* ethernet;
 }

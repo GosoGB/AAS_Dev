@@ -15,12 +15,17 @@
 
 #pragma once
 
+#include "Protocol/Modbus/Include/TypeDefinitions.h"
 
 
 namespace muffin {
 
-    void StartModbusTask();
-    void StopModbusTask();
     void SetPollingInterval(const uint16_t pollingInterval);
-    bool HasModbusTask();
+    void StartModbusRtuTask();
+    void StopModbusRtuTask();
+    bool HasModbusRtuTask();
+
+    void StartModbusTcpTask(modbus::modbusTcpServer_t serverInfo);
+    void StopModbusTcpTask();
+    bool HasModbusTcpTask();
 }

@@ -27,6 +27,7 @@
 
 namespace muffin {
 
+    CatM1* CatM1::mInstance = nullptr;
     CatM1::state_e CatM1::mState = CatM1::state_e::NOT_INITIALIZED_YET;
     std::bitset<8> CatM1::mInitFlags;
     std::bitset<6> CatM1::mConnFlags;
@@ -60,17 +61,10 @@ namespace muffin {
     {
         mInitFlags.reset();
         mConnFlags.reset();
-        
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     CatM1::~CatM1()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Status CatM1::Init()
@@ -674,20 +668,12 @@ namespace muffin {
             digitalWrite(mPinReset, LOW);
             delay(110);
             digitalWrite(mPinReset, HIGH);
-
-        #if defined(DEBUG)
-            LOG_DEBUG(logger, "Resetting the LM5 modem");
-        #endif
         }
         else
         {
             digitalWrite(mPinReset, HIGH);
             delay(110);
             digitalWrite(mPinReset, LOW);
-            
-        #if defined(DEBUG)
-            LOG_DEBUG(logger, "Resetting the LCM300 modem");
-        #endif
         }
 
         LOG_INFO(logger, "Reset LTE Cat.M1 module");
@@ -727,7 +713,13 @@ namespace muffin {
         {
             mLastInterruptMillis = millis();
             BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-            BaseType_t pendingCreated = xTimerPendFunctionCallFromISR(onEventPinStatusFalling, NULL, 0, &xHigherPriorityTaskWoken);
+            BaseType_t pendingCreated = xTimerPendFunctionCallFromISR(
+                                            onEventPinStatusFalling, 
+                                            NULL, 
+                                            0, 
+                                            &xHigherPriorityTaskWoken
+                                        );
+
             if (pendingCreated != pdPASS)
             {
                 mConnFlags.reset(conn_flags_e::STATUS_PIN_GOOD);
@@ -795,6 +787,4 @@ namespace muffin {
             mState = state_e::SUCCEDDED_TO_START;
         }
     }
-
-    CatM1* CatM1::mInstance = nullptr;
 }

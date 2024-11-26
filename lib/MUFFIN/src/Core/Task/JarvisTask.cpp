@@ -32,12 +32,15 @@
 #include "JarvisTask.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
+#include "Protocol/Modbus/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/Modbus/ModbusRTU.h"
+#include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "IM/MacAddress/MacAddress.h"
 #include "Storage/ESP32FS/ESP32FS.h"
+#include "Network/Ethernet/Ethernet.h"
 #include "Storage/CatFS/CatFS.h"
 
 
@@ -46,6 +49,7 @@ namespace muffin {
     static bool s_IsJarvisTaskRunning = false;
     static std::string s_JarvisApiPayload;
 
+    static bool s_HasNode = false;
     static bool s_HasFactoryResetCommand   = false;
     static bool s_HasPlanExpirationCommand = false;
     static uint16_t s_PollingInterval =  1;
@@ -69,7 +73,7 @@ namespace muffin {
 
 
 #ifdef DEBUG
-    LOG_DEBUG(logger, "[TASK: JARVIS][PARAMS RECEIVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+    //LOG_DEBUG(logger, "[TASK: JARVIS][PARAMS RECEIVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
 
         {/* JARVIS 설정 태스크는 한 번에 하나의 요청만 처리하도록 설계되어 있습니다. */
@@ -86,16 +90,15 @@ namespace muffin {
         s_IsJarvisTaskRunning = true;
 
 #ifdef DEBUG
-    LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+    //LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
-
 
         {/* JARVIS 설정 요청 메시지가 JSON 형식인 경우에만 태스크를 이어가도록 설계되어 있습니다. */
             JSON json;
             JsonDocument doc;
             Status retJSON = json.Deserialize(payload, &doc);
 #ifdef DEBUG
-    LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+    //LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
             if (retJSON != Status::Code::GOOD)
             {
@@ -182,12 +185,16 @@ namespace muffin {
             JsonDocument doc;
 
             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/1.0.0");
+        #if defined(DEBUG)
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+        #else
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+        #endif
             http::RequestParameter parameters;
             parameters.Add("mac", MacAddress::GetEthernet());
 
         #ifdef DEBUG
-            LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+            //LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
         #endif
             catHttp.SetSinkToCatFS(true);
             Status ret = catHttp.GET(mutexHandle.second, header, parameters);
@@ -222,8 +229,9 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
 #ifdef DEBUG
-    LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif      
+    //LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+
             catM1.ReleaseMutex();
             CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
             ret = catFS->Begin();
@@ -376,8 +384,10 @@ namespace muffin {
             if (key == jarvis::cfg_key_e::NODE)
             {
                 applyNodeCIN(pair.second);
+                s_HasNode = true;
                 break;
             }
+            s_HasNode = false;
         }
 
         for (auto& pair : jarvis)
@@ -390,6 +400,15 @@ namespace muffin {
             }
         }
         
+        for (auto& pair : jarvis)
+        {
+            const jarvis::cfg_key_e key = pair.first;
+            if (key == jarvis::cfg_key_e::ETHERNET)
+            {
+                applyEthernetCIN(pair.second);
+                break;
+            }
+        }
 
         for (auto& pair : jarvis)
         {
@@ -426,16 +445,16 @@ namespace muffin {
                     }
                 }
                 break;
-
             case jarvis::cfg_key_e::NODE:
             case jarvis::cfg_key_e::LTE_CatM1:
             case jarvis::cfg_key_e::OPERATION:
-                break;
-                
             case jarvis::cfg_key_e::RS232:
             case jarvis::cfg_key_e::WIFI4:
             case jarvis::cfg_key_e::ETHERNET:
+                break;
             case jarvis::cfg_key_e::MODBUS_TCP:
+                applyModbusTcpCIN(pair.second);
+                break;
             default:
                 ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
                 break;
@@ -454,7 +473,7 @@ namespace muffin {
 
     void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
     {
-        LOG_DEBUG(logger, "Start applying Alarm CIN");
+        //LOG_DEBUG(logger, "Start applying Alarm CIN");
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         for (auto cin : vectorAlarmCIN)
         {
@@ -481,7 +500,6 @@ namespace muffin {
     
     void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN)
     {
-        LOG_DEBUG(logger, "Start applying Operation time CIN");
         OperationTime& operationTime = OperationTime::GetInstance();
         for (auto cin : vectorOperationTimeCIN)
         {
@@ -492,7 +510,6 @@ namespace muffin {
     
     void applyProductionInfoCIN(std::vector<jarvis::config::Base*>& vectorProductionInfoCIN)
     {
-        LOG_DEBUG(logger, "Start applying Production CIN");
         ProductionInfo& productionInfo = ProductionInfo::GetInstance();
         for (auto cin : vectorProductionInfoCIN)
         {
@@ -507,7 +524,7 @@ namespace muffin {
         ASSERT((vectorOperationCIN.size() == 1), "THERE MUST BE ONLY ONE OPERATION CIN");
     #endif
 
-        LOG_DEBUG(logger, "Start applying Operation CIN");
+        //LOG_DEBUG(logger, "Start applying Operation CIN");
         jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
 
         s_HasFactoryResetCommand   = cin->GetFactoryReset().second;
@@ -516,7 +533,6 @@ namespace muffin {
         s_PollingInterval = cin->GetIntervalPolling().second;
         s_PublishInterval = cin->GetIntervalServer().second;
         s_ServerNIC = cin->GetServerNIC().second;
-
 
         if (s_HasFactoryResetCommand == true)
         {
@@ -570,6 +586,12 @@ namespace muffin {
 
     void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN)
     {
+        if (s_HasNode == false)
+        {
+            LOG_WARNING(logger, "NO NODE");
+            return;
+        }
+        
         if (s_HasPlanExpirationCommand == true)
         {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
@@ -601,8 +623,100 @@ namespace muffin {
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
         
         SetPollingInterval(s_PollingInterval);
-        StartModbusTask();
+        StartModbusRtuTask();
         StartTaskCyclicalsMSG(s_PublishInterval);
         
+    }
+
+    void applyEthernetCIN(std::vector<jarvis::config::Base*>& vectorEthernetCIN)
+    {
+
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
+    #endif
+        ASSERT((vectorEthernetCIN.size() == 1), "THERE MUST BE ONLY ONE ETHERNET CIN FOR MODLINK-B AND MODLINK-T2");
+        jarvis::config::Ethernet* cin = Convert.ToEthernetCIN(vectorEthernetCIN[0]);
+        Status ret = Status(Status::Code::UNCERTAIN);
+        if (ethernet == nullptr)
+        {
+            ethernet = new Ethernet();
+            ret = ethernet->Init();
+            LOG_INFO(logger,"ethernet->Init() : %s",ret.c_str());
+            ret = ethernet->Config(cin);
+            LOG_INFO(logger,"ethernet->Config() : %s",ret.c_str());
+            ret = ethernet->Connect();
+            LOG_INFO(logger,"ethernet->Connect() : %s",ret.c_str());
+            mEthernet = *cin;
+        }
+        else
+        {
+            if (mEthernet != *cin)
+            {
+                LOG_INFO(logger,"Ethernet settings have been changed. Device Reset!");
+                delay(3000);
+                ESP.restart();
+            }
+            else
+            {
+                LOG_INFO(logger,"Ethernet settings have not been changed.");
+            }
+        }
+    }
+
+    void applyModbusTcpCIN(std::vector<jarvis::config::Base*>& vectorModbusTCPCIN)
+    {
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
+    #endif
+
+        if (s_HasNode == false)
+        {
+            LOG_WARNING(logger, "NO NODE");
+            return;
+        }
+
+        if (s_HasPlanExpirationCommand == true)
+        {
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
+            return;
+        }
+        
+        ModbusTCP* modbusTCP = ModbusTCP::CreateInstanceOrNULL();
+        if (modbusTCP == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
+            return;
+        }
+        mVectorModbusTCP.clear();
+
+        jarvis::config::ModbusTCP* cin = static_cast<jarvis::config::ModbusTCP*>(vectorModbusTCPCIN[0]);
+        
+        mVectorModbusTCP.emplace_back(*cin);
+        
+        jarvis::config::ModbusTCP retrievedConfig;
+        Status retRetrieve = modbusTCP->RetrieveConfig(&retrievedConfig);
+        if (retRetrieve == Status::Code::BAD_NOT_FOUND)
+        {
+            Status ret = modbusTCP->Config(cin);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
+                return;
+            }
+
+            modbus::modbusTcpServer_t serverInfo;
+            serverInfo.serverIP   = cin->GetIPv4().second;
+            serverInfo.serverPort = cin->GetPort().second;
+
+            SetPollingInterval(s_PollingInterval);
+            StartModbusTcpTask(serverInfo);
+            StartTaskCyclicalsMSG(s_PublishInterval);
+        }
+        else
+        {
+            LOG_INFO(logger,"Modbus TCP settings have been changed. Device Reset!");
+            delay(3000);
+            ESP.restart();
+        }
     }
 }

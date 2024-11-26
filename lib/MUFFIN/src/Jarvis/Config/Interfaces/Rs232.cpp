@@ -29,16 +29,10 @@ namespace muffin { namespace jarvis { namespace config {
         ASSERT(false, "RS-232 CANNOT BE USED WITH MODLINK-L AND MODLINK-ML10");
     #endif
 
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Rs232::~Rs232()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Rs232& Rs232::operator=(const Rs232& obj)

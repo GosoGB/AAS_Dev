@@ -42,16 +42,10 @@ namespace muffin {
     AlarmMonitor::AlarmMonitor()
         : xHandle(NULL)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     AlarmMonitor::~AlarmMonitor()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     void AlarmMonitor::Add(jarvis::config::Alarm* cin)
@@ -164,7 +158,6 @@ namespace muffin {
 #ifdef DEBUG
     if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
     {
-        LOG_DEBUG(logger, "[TASK: ALARM] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
         checkRemainedStackMillis = millis();
     }
 #endif
@@ -844,7 +837,6 @@ namespace muffin {
             payload += file.read();
         }
         file.close();
-
 
         JSON json;
         JsonDocument doc;

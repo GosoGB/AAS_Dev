@@ -24,16 +24,10 @@ namespace muffin { namespace jarvis {
 
     OperationValidator::OperationValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     OperationValidator::~OperationValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
     
     std::pair<rsc_e, std::string> OperationValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)

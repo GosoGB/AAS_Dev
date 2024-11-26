@@ -25,16 +25,10 @@ namespace muffin { namespace jarvis { namespace config {
     Rs485::Rs485()
         : Base(cfg_key_e::RS485)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
 
     Rs485::~Rs485()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     Rs485& Rs485::operator=(const Rs485& obj)

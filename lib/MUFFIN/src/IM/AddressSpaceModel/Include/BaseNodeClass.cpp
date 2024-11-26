@@ -27,16 +27,10 @@ namespace muffin { namespace im {
         , mBrowseName(browseName)
         , mDisplayName(displayName)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     BaseNodeClass::~BaseNodeClass()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::shared_ptr<const BaseNodeId> BaseNodeClass::GetNodeID() const

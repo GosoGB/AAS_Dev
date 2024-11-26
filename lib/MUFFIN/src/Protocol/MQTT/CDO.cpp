@@ -5,7 +5,7 @@
  * @brief MQTT 브로커로부터 수신한 메시지를 집적하여 관리하는 클래스를 선언합니다.
  * 
  * @date 2024-10-30
- * @version 1.0.0
+ * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -52,16 +52,10 @@ namespace muffin { namespace mqtt {
 
     CDO::CDO()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     CDO::~CDO()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     uint8_t CDO::Count()
@@ -75,7 +69,7 @@ namespace muffin { namespace mqtt {
         
         Message* movedMessage = new(std::nothrow) Message(message);
         ASSERT((movedMessage != nullptr), "MOVE OPERATION ON MQTT MESSAGE CANNOT FAIL");
-        LOG_DEBUG(logger, " Stored Message size : %u", sizeof(Message));
+        
         BaseType_t ret = xQueueSend(mQueueHandle, (void*)&movedMessage, static_cast<TickType_t>(timeoutMillis));
         
         if (ret == pdTRUE)
@@ -94,8 +88,6 @@ namespace muffin { namespace mqtt {
         
         Message* pMessage;
         BaseType_t ret = xQueueReceive(mQueueHandle, &pMessage, static_cast<TickType_t>(timeoutMillis));
-        LOG_DEBUG(logger, "Retrieve message PAYLOAD: %s", pMessage->GetPayload());
-        LOG_DEBUG(logger, "Retrieve message TOPIC: %s", pMessage->GetTopicString());
 
         if (ret == pdTRUE)
         {
@@ -118,9 +110,6 @@ namespace muffin { namespace mqtt {
     
         Message* pMessage;
         BaseType_t ret = xQueuePeek(mQueueHandle, &pMessage, static_cast<TickType_t>(timeoutMillis));
-
-        LOG_DEBUG(logger, "Peek message PAYLOAD: %s", pMessage->GetPayload());
-        LOG_DEBUG(logger, "Peek message TOPIC: %s", pMessage->GetTopicString());
       
         if (ret == pdTRUE)
         {

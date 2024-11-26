@@ -25,16 +25,10 @@ namespace muffin { namespace jarvis {
 
     ModbusValidator::ModbusValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     ModbusValidator::~ModbusValidator()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     std::pair<rsc_e, std::string> ModbusValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)

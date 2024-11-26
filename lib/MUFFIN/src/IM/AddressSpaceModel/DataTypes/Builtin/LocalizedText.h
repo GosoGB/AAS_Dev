@@ -41,34 +41,22 @@ namespace muffin { namespace im {
             : mLocaleId(locale_id_e::EN_US)
             , mText("")
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Constructed at address: %p", this);
-        #endif
         }
 
         LocalizedText(const locale_id_e localeId, const std::string& text)
             : mLocaleId(localeId)
             , mText(text)
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Constructed at address: %p", this);
-        #endif
         }
 
         LocalizedText(const LocalizedText& obj)
             : mLocaleId(obj.mLocaleId)
             , mText(obj.mText)
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Constructed by Copy from %p to %p", &obj, this);
-        #endif
         }
         
         virtual ~LocalizedText()
         {
-        #if defined(DEBUG)
-            LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-        #endif
         }
 
         const char* GetLocaleId() const

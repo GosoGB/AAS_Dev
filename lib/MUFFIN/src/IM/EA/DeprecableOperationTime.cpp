@@ -44,16 +44,10 @@ namespace muffin {
         , mOperator(std::make_pair(Status(Status::Code::BAD), jarvis::cmp_op_e::EQUAL))
         , xHandle(NULL)
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
     }
     
     OperationTime::~OperationTime()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
-    #endif
     }
 
     void OperationTime::Config(jarvis::config::OperationTime* cin)
@@ -75,9 +69,6 @@ namespace muffin {
             if (node.first == mNodeId)
             {
                 mVectorNodeReference.emplace_back(node);
-            #if defined(DEBUG)
-                LOG_DEBUG(logger, "Node Reference: %s", mVectorNodeReference.front().get().first.c_str());
-            #endif
             }
         }
     }
@@ -171,7 +162,6 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                LOG_DEBUG(logger, "[TASK: OperationTime] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
                 checkRemainedStackMillis = millis();
             }
         #endif

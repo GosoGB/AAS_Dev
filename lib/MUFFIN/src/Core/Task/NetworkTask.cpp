@@ -5,7 +5,7 @@
  * @brief 네트워크 인터페이스 사용과 관련된 태스크를 정의합니다.
  * 
  * @date 2024-10-30
- * @version 1.0.0
+ * @version 0.0.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -152,7 +152,7 @@ namespace muffin {
 
         if (catHttp->IsInitialized() == Status::Code::GOOD)
         {
-            LOG_DEBUG(logger, "CatHTTP is already initialized");
+            // LOG_DEBUG(logger, "CatHTTP is already initialized");
         }
         
         const auto mutexHandle = catM1.TakeMutex();
@@ -161,6 +161,7 @@ namespace muffin {
             return mutexHandle.first;
         }
         
+        catHttp->OnEventReset();
         Status ret = catHttp->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
         if (ret != Status::Code::GOOD)
         {
@@ -239,9 +240,13 @@ namespace muffin {
             "tkfkdgo5!@#$"
         );
     #endif
-
+        
+        char buffer[32] = { '\0' };
+        sprintf(buffer, "%s,disconnected", MacAddress::GetEthernet());
+        mqtt::Message lwt(mqtt::topic_e::LAST_WILL, buffer);
+        
         CatM1& catM1 = CatM1::GetInstance();
-        mqtt::CatMQTT* catMqtt = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, info);
+        mqtt::CatMQTT* catMqtt = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, info, lwt);
         if (catMqtt == nullptr)
         {
             LOG_ERROR(logger, "FAILED TO CREATE CatMQTT DUE TO OUT OF MEMORY");
@@ -256,6 +261,12 @@ namespace muffin {
 
         if (s_IsCatMqttInitialized == false)
         {
+            /**
+             * @todo onEventReset 코드로 인해 LWT 설정이 지워지는 문제로 인해 
+             *       setLastWill 함수 내부에 임시로 코드를 변경하는 해킹을 넣었습니다.
+             *       향후에는 전반적인 로직을 수정해야 합니다.
+             */
+            catMqtt->OnEventReset();
             Status ret = catMqtt->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
             if (ret != Status::Code::GOOD)
             {
@@ -284,7 +295,7 @@ namespace muffin {
             Status retTopic02 = EmplaceBack(std::move(topicRemoteControl), &vectorTopicsToSubscribe);
             Status retTopic03 = EmplaceBack(std::move(topicFotaUpdate), &vectorTopicsToSubscribe);
             if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) 
-            || (retTopic03 != Status::Code::GOOD) )
+            || (retTopic03 != Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
                     retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());
@@ -363,7 +374,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                // LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif
