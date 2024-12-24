@@ -294,13 +294,17 @@ namespace muffin {
         isValid &= doc.containsKey("deviceType");
         isValid &= doc.containsKey("otaId");
         isValid &= doc.containsKey("mcu1");
-
         if (isValid == false)
         {
             LOG_ERROR(logger, "MANDATORY KEY CANNOT BE MISSING");
             return false;
         }
 
+        if (doc["mcu1"].isNull() == true)
+        {
+            return false;
+        }
+        
         isValid &= doc["otaId"].isNull() == false;
         isValid &= doc["mcu1"].isNull() == false;
         isValid &= doc["otaId"].is<uint8_t>();
@@ -384,7 +388,6 @@ namespace muffin {
 
         return false;
     }
-
 
     bool DownloadFirmware()
     {
@@ -725,9 +728,6 @@ namespace muffin {
         OperationTime& operationTime = OperationTime::GetInstance();
         operationTime.StopTask();
         operationTime.Clear();
-
-        ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
-        modbusRTU->Clear();
 
         im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
         nodeStore->Clear();

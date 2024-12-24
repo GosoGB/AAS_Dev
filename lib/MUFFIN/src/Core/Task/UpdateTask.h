@@ -60,8 +60,8 @@ namespace muffin {
     constexpr uint8_t FIRMWARE_VERSION_CODE_MCU1 = 1;
     const std::string FIRMWARE_VERSION_MCU1 = "1.1.0";
 #ifdef MODLINK_T2
-    constexpr uint8_t FIRMWARE_VERSION_CODE_MCU2 = 1;
-    const std::string FIRMWARE_VERSION_MCU2 = "1.1.0";
+    static uint8_t FIRMWARE_VERSION_CODE_MCU2 = 1;
+    static std::string FIRMWARE_VERSION_MCU2 = "1.1.0";
 #endif
     
 

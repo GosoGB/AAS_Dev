@@ -82,6 +82,17 @@ namespace muffin {
 
     void Core::Init()
     {
+        Status result = mSPEAR.Init();
+        if (result != Status::Code::GOOD)
+        {
+           LOG_ERROR(logger, "FAILED TO SIGN-ON FROM THE MEGA2560");
+        }
+
+        result = mSPEAR.VersionEnquiryService();
+        if (result != Status::Code::GOOD)
+        {
+           LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
+        }
         /**
          * @todo Reset 사유에 따라 자동으로 초기화 하는 기능의 개발이 필요합니다.
          * @details JARVIS 설정으로 인해 런타임에 크래시 같은 문제가 있을 수 있습니다.
@@ -429,9 +440,6 @@ namespace muffin {
             }
             return ;
         }
-    
-        
-        
         retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
         if (retConvertModbus.first != Status::Code::GOOD)
         {
@@ -453,123 +461,157 @@ namespace muffin {
         }
         else
         {
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
             uint8_t writeResult = 0;
             if (mVectorModbusTCP.size() != 0)
             {
                 for (auto& TCP : mVectorModbusTCP)
                 {
-                    std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
-                    if (retVector.first == Status(Status::Code::GOOD))
+                    for (auto& modbusTCP : ModbusTcpVector)
                     {
-                        for (auto& nodeId : retVector.second )
+                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
                         {
-                            if (nodeId == ret.second->GetNodeID())
+                            continue;
+                        }
+                        
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
                             {
-                                std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
-                                if (retSlaveID.first != Status(Status::Code::GOOD))
-                                {
-                                    retSlaveID.second = 0;
-                                }
-                                jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-                    
-                                if (retBit.first == true)
-                                {
-                                    ModbusTCP& modbusTCP = ModbusTCP::GetInstance();
-                                    modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                    LOG_INFO(logger, "RAW DATA : %u ", registerData.Value);
-                                    retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                    LOG_INFO(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                if (nodeId == ret.second->GetNodeID())
+                                {   
+                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
+                                    if (retSlaveID.first != Status(Status::Code::GOOD))
+                                    {
+                                        retSlaveID.second = 0;
+                                    }
+                                    jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
+                        
+                                    if (retBit.first == true)
+                                    {
+                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
+                                        LOG_INFO(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
+                                        LOG_INFO(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }
+                                    
+                                    writeResult = 0;
+                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto ERROR_RESPONSE;
+                                    }
+                                    modbusTCPClient.end();
+
+                                    modbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort());
+                                    LOG_WARNING(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
+                                    switch (modbusArea)
+                                    {
+                                    case jarvis::mb_area_e::COILS:
+                                        writeResult = modbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    case jarvis::mb_area_e::HOLDING_REGISTER:
+                                        writeResult = modbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    default:
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
+                                        break;
+                                    }
+
+                                    xSemaphoreGive(xSemaphoreModbusTCP);
+                                    break;
                                 }
                                 
-                                writeResult = 0;
-                                if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
-                                {
-                                    LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                    goto ERROR_RESPONSE;
-                                }
-
-                                switch (modbusArea)
-                                {
-                                case jarvis::mb_area_e::COILS:
-                                    writeResult = modbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                    break;
-                                case jarvis::mb_area_e::HOLDING_REGISTER:
-                                    writeResult = modbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                    break;
-                                default:
-                                    LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
-                                    break;
-                                }
-
-                                xSemaphoreGive(xSemaphoreModbusTCP);
-                                break;
                             }
                             
                         }
-                        
                     }
+                    
                 }
             }
+        #endif
+
             if (mVectorModbusRTU.size() != 0)
             {
                 for (auto& RTU : mVectorModbusRTU)
                 {
-                    std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
-                    if (retVector.first == Status(Status::Code::GOOD))
+                    for (auto& modbusRTU : ModbusRtuVector)
                     {
-                        for (auto& nodeId : retVector.second )
+                        if (RTU.GetPort().second != modbusRTU.mPort)
                         {
-                            if (nodeId == ret.second->GetNodeID())
+                            continue;
+                        }
+
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
                             {
-                                std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
-                                if (retSlaveID.first != Status(Status::Code::GOOD))
+                                if (nodeId == ret.second->GetNodeID())
                                 {
-                                    retSlaveID.second = 0;
-                                }
+                                    std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
+                                    if (retSlaveID.first != Status(Status::Code::GOOD))
+                                    {
+                                        retSlaveID.second = 0;
+                                    }
 
-                                jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-                    
-                                if (retBit.first == true)
-                                {
-                                    ModbusRTU& modbusRTU = ModbusRTU::GetInstance();
-                                    modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                    LOG_INFO(logger, "RAW DATA : %u ", registerData.Value);
-                                    retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                    LOG_INFO(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                }
-                                
-                                writeResult = 0;
-                                if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
-                                {
-                                    LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                    goto ERROR_RESPONSE;
-                                }
+                                    jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
+                        
+                                    if (retBit.first == true)
+                                    {
+                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
+                                        LOG_INFO(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
+                                        LOG_INFO(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }
+                                    
+                                    writeResult = 0;
+                                #if defined(MODLINK_L) || defined(MODLINK_ML10)
+                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto ERROR_RESPONSE;
+                                    }
 
-                                switch (modbusArea)
-                                {
-                                case jarvis::mb_area_e::COILS:
-                                    writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                    break;
-                                case jarvis::mb_area_e::HOLDING_REGISTER:
-                                    writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                    break;
-                                default:
-                                    LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
+                                    switch (modbusArea)
+                                    {
+                                    case jarvis::mb_area_e::COILS:
+                                        writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    case jarvis::mb_area_e::HOLDING_REGISTER:
+                                        writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    default:
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
+                                        break;
+                                    }
+
+                                    xSemaphoreGive(xSemaphoreModbusRTU);
+                                #else
+                                    spear_remote_control_msg_t msg;
+                                    msg.Link = modbusRTU.mPort;
+                                    msg.SlaveID = retSlaveID.second;
+                                    msg.Area = modbusArea;
+                                    msg.Address = modbusAddress.Numeric;
+                                    msg.Value = retConvertModbus.second;
+                                    
+                                    Status result = mSPEAR.ExecuteService(msg);
+                                    if (result == Status(Status::Code::GOOD))
+                                    {
+                                        writeResult = 1;
+                                    }
+                                #endif
                                     break;
                                 }
-
-                                xSemaphoreGive(xSemaphoreModbusRTU);
-                                break;
                             }
                         }
                     }
                 }
-                
-                
             }
             
 ERROR_RESPONSE:
@@ -634,35 +676,6 @@ ERROR_RESPONSE:
             return;
         }
 
-
-        /**
-         * @todo 모든 태스크를 종료해야 합니다.
-         */
-        {
-            StopCyclicalsMSGTask();
-            StopModbusRtuTask();
-            StopModbusTcpTask();
-
-            AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-            alarmMonitor.StopTask();
-            alarmMonitor.Clear();
-            
-            ProductionInfo& productionInfo = ProductionInfo::GetInstance();
-            productionInfo.StopTask();
-            productionInfo.Clear();
-            
-            OperationTime& operationTime = OperationTime::GetInstance();
-            operationTime.StopTask();
-            operationTime.Clear();
-
-            ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
-            modbusRTU->Clear();
-
-            im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
-            nodeStore->Clear();
-        }
-
-        
         /**
          * @todo 설정 값 적용한 다음에 문제가 없으면 결과 값을 전송하도록 순서를 변경해야 합니다.
          */
@@ -721,6 +734,10 @@ ERROR_RESPONSE:
         /**
          * @todo 설정 정보가 올바르게 설정되었는지 확인하는 기능을 추가해야 합니다.
          */
+
+        muffin::Core& core = muffin::Core::GetInstance();
+        core.mSPEAR.reset();
+        
         ApplyJarvisTask();
     }
 

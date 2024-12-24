@@ -180,6 +180,35 @@ namespace muffin {
             vTaskDelete(NULL);
         }
 
+        /**
+         * @todo 모든 태스크를 종료해야 합니다.
+         */
+        {
+            StopCyclicalsMSGTask();
+            StopModbusRtuTask();
+            StopModbusTcpTask();
+
+            AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+            alarmMonitor.StopTask();
+            alarmMonitor.Clear();
+            
+            ProductionInfo& productionInfo = ProductionInfo::GetInstance();
+            productionInfo.StopTask();
+            productionInfo.Clear();
+            
+            OperationTime& operationTime = OperationTime::GetInstance();
+            operationTime.StopTask();
+            operationTime.Clear();
+
+            im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
+            nodeStore->Clear();
+
+            ModbusRtuVector.clear();
+            ModbusTcpVector.clear();
+
+        }
+
+
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             JSON json;
             JsonDocument doc;
@@ -242,6 +271,7 @@ namespace muffin {
             }
             s_JarvisApiPayload.clear();
             ret = catFS->DownloadFile("http_response_file", &s_JarvisApiPayload);
+
             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
             if (ret != Status::Code::GOOD)
             {
@@ -275,8 +305,7 @@ namespace muffin {
         }
         catM1.ReleaseMutex();
         ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
-
-
+    
         JsonDocument jsonDocument;
         {/* JARVIS 설정 정보가 JSON 형식인 경우에만 태스크를 이어가도록 설계되어 있습니다. */
             JSON json;
@@ -324,6 +353,7 @@ namespace muffin {
             }
             ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
         }
+
 
         {/* JARVIS 설정 정보의 유효성을 검증한 다음 그 결과를 호출자에게 전달합니다. */
             /**
@@ -435,11 +465,8 @@ namespace muffin {
                     {
                         if (cin.first == jarvis::cfg_key_e::RS485)
                         {   
-                       
                             jarvis::config::Rs485* rs485CIN = static_cast<jarvis::config::Rs485*>(cin.second[0]);
-                  
                             applyModbusRtuCIN(pair.second, rs485CIN);
-                  
                             break;
                         }
                     }
@@ -460,6 +487,9 @@ namespace muffin {
                 break;
             }
         }
+
+        muffin::Core& core = muffin::Core::GetInstance();
+        core.mSPEAR.resendSetService();
 
         for (auto& pair : jarvis)
         {
@@ -556,8 +586,6 @@ namespace muffin {
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND MODLINK-ML10");
-    #endif
-
         jarvis::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
         if (cin->GetPortIndex().second == jarvis::prt_e::PORT_2)
         {
@@ -567,6 +595,13 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
         }
+    #endif
+        muffin::Core& core = muffin::Core::GetInstance();
+        for (auto& Rs485CIN : vectorRS485CIN)
+        {
+            core.mSPEAR.SetJarvisLinkConfig(Rs485CIN,jarvis::cfg_key_e::RS485);
+        }
+
     }
     
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
@@ -598,18 +633,15 @@ namespace muffin {
             return;
         }
         
-        ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
-        if (modbusRTU == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
-            return;
-        }
-        modbusRTU->SetPort(rs485CIN);
-        mVectorModbusRTU.clear();
 
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        ModbusRtuVector.clear();
+        mVectorModbusRTU.clear();
+        
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
-        
+            ModbusRTU* modbusRTU = new ModbusRTU();
+            modbusRTU->SetPort(rs485CIN);
             jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
             Status ret = modbusRTU->Config(cin);
             if (ret != Status::Code::GOOD)
@@ -617,14 +649,42 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
-
             mVectorModbusRTU.emplace_back(*cin);
+            ModbusRtuVector.emplace_back(*modbusRTU);
         }
+
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
-        
+
         SetPollingInterval(s_PollingInterval);
         StartModbusRtuTask();
         StartTaskCyclicalsMSG(s_PublishInterval);
+    #else
+
+        ModbusRtuVector.clear();
+        mVectorModbusRTU.clear();
+        muffin::Core& core = muffin::Core::GetInstance();
+        std::set<jarvis::prt_e> link;
+        for (auto& modbusRTUCIN : vectorModbusRTUCIN)
+        {
+            ModbusRTU* modbusRTU = new ModbusRTU();
+            jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
+            modbusRTU->mPort = cin->GetPort().second;
+            link.insert(modbusRTU->mPort);
+            Status ret = modbusRTU->Config(cin);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
+                return;
+            }
+            mVectorModbusRTU.emplace_back(*cin);
+            ModbusRtuVector.emplace_back(*modbusRTU);
+        }
+
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
+        core.mSPEAR.SetJarvisProtocolConfig(link);
+        StartModbusRtuTask();
+        StartTaskCyclicalsMSG(s_PublishInterval);
+    #endif
         
     }
 
@@ -680,43 +740,26 @@ namespace muffin {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
         }
-        
-        ModbusTCP* modbusTCP = ModbusTCP::CreateInstanceOrNULL();
-        if (modbusTCP == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
-            return;
-        }
+        ModbusTcpVector.clear();
         mVectorModbusTCP.clear();
-
-        jarvis::config::ModbusTCP* cin = static_cast<jarvis::config::ModbusTCP*>(vectorModbusTCPCIN[0]);
         
-        mVectorModbusTCP.emplace_back(*cin);
-        
-        jarvis::config::ModbusTCP retrievedConfig;
-        Status retRetrieve = modbusTCP->RetrieveConfig(&retrievedConfig);
-        if (retRetrieve == Status::Code::BAD_NOT_FOUND)
+        for (auto& modbusTCPCIN : vectorModbusTCPCIN)
         {
+            ModbusTCP* modbusTCP = new ModbusTCP();
+            jarvis::config::ModbusTCP* cin = static_cast<jarvis::config::ModbusTCP*>(modbusTCPCIN);
             Status ret = modbusTCP->Config(cin);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
                 return;
             }
-
-            modbus::modbusTcpServer_t serverInfo;
-            serverInfo.serverIP   = cin->GetIPv4().second;
-            serverInfo.serverPort = cin->GetPort().second;
-
-            SetPollingInterval(s_PollingInterval);
-            StartModbusTcpTask(serverInfo);
-            StartTaskCyclicalsMSG(s_PublishInterval);
+            mVectorModbusTCP.emplace_back(*cin);
+            ModbusTcpVector.emplace_back(*modbusTCP);
         }
-        else
-        {
-            LOG_INFO(logger,"Modbus TCP settings have been changed. Device Reset!");
-            delay(3000);
-            ESP.restart();
-        }
+
+        SetPollingInterval(s_PollingInterval);
+        StartModbusTcpTask();
+        StartTaskCyclicalsMSG(s_PublishInterval);
+        
     }
 }

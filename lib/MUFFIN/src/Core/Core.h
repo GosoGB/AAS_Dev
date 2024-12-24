@@ -30,7 +30,7 @@
 #include "Jarvis/Config/Protocol/ModbusTCP.h"
 #include "Jarvis/Config/Network/Ethernet.h"
 #include "Jarvis/Validators/ValidationResult.h"
-
+#include "Protocol/SPEAR/SPEAR.h"
 
 
 namespace muffin {
@@ -71,6 +71,9 @@ namespace muffin {
         static constexpr uint8_t MAX_RETRY_COUNT = 5;
         static constexpr uint16_t SECOND_IN_MILLIS = 1000;
         static constexpr uint16_t KILLOBYTE = 1024;
+
+    public:
+        SPEAR mSPEAR;
         
     };
 }

@@ -19,6 +19,8 @@
 
 #include <ArduinoJson.h>
 #include <Protocol/MQTT/Include/TypeDefinitions.h>
+#include "Protocol/SPEAR/Include/TypeDefinitions.h"
+
 #include <vector>
 
 #include "Common/Status.h"
@@ -110,8 +112,19 @@ namespace muffin {
         std::string Serialize(const push_struct_t& _struct);
         std::string Serialize(const progix_struct_t& _struct);
         std::string Serialize(const fota_status_t& _struct);
+
+    public:
+        void Serialize(const req_head_t& msg, const uint8_t size, char output[]);
+        void Serialize(const req_start_head_t& msg, const uint8_t size, char output[]);
+        void Serialize(const resp_head_t& msg, const uint8_t size, char output[]);
+        void Serialize(const resp_vsn_t& msg, const uint8_t size, char output[]);
+        void Serialize(const resp_mem_t& msg, const uint16_t size, char output[]);
+        void Serialize(const resp_status_t& msg, const uint8_t size, char output[]);
+        void Serialize(const spear_remote_control_msg_t& msg, const uint8_t size, char output[]);
+
     public:
         Status Deserialize(const std::string& payload, JsonDocument* json);
+        Status Deserialize(const spear_msg_t& message, JsonDocument* json);
     
     // private:
     //     std::string serializeJarvisResponse(const jarvis_struct_t& _struct);

@@ -1317,17 +1317,21 @@ namespace muffin { namespace im {
 
             if (mNumericScale.first == true)
             {
+                const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+                const double denominator = pow(10, exponent);
+                
                 if (mNumericOffset.first == true)
                 {
-                    const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-                    const double denominator = pow(10, exponent);
-                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp/ denominator));
+                    floatTemp = (floatTemp / denominator);
+                    uint16_t result = static_cast<uint16_t>(std::ceil(floatTemp));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
                 }
                 else
                 {
-                    const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-                    const double denominator = pow(10, exponent);
-                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(Convert.ToFloat(data)/ denominator));
+                    float value = Convert.ToFloat(data) / denominator;
+
+                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
                 }
             }
 

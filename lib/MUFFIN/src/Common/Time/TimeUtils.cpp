@@ -43,11 +43,11 @@ namespace muffin {
 
 	Status SetSystemTime(const time_t& ts)
 	{
-		ASSERT(
-			(
-				(ts >= BUILD_TIME) || ((ts + 9 * 3600) >= BUILD_TIME)
-			), "TIMESTAMP SMALLER THAN BUILD TIME: %u > %u", Convert.ToUInt32(ts), BUILD_TIME
-		);
+		// ASSERT(
+		// 	(
+		// 		(ts >= BUILD_TIME) || ((ts + 9 * 3600) >= BUILD_TIME)
+		// 	), "TIMESTAMP SMALLER THAN BUILD TIME: %u > %u", Convert.ToUInt32(ts), BUILD_TIME
+		// );
 		
 		struct timeval now = {
             .tv_sec = ts, 
