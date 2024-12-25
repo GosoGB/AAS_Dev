@@ -16,7 +16,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "Core/Core.h"
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
@@ -24,13 +23,10 @@
 
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/ModbusTCP.h"
-#include "Protocol/Modbus/ModbusMutex.h"
+
 
 
 namespace muffin {
-
-    std::vector<ModbusTCP> ModbusTcpVector;
-    std::vector<ModbusRTU> ModbusRtuVector;
 
     TaskHandle_t xTaskModbusRtuHandle = NULL;
     TaskHandle_t xTaskModbusTcpHandle = NULL;
@@ -50,36 +46,24 @@ namespace muffin {
 
     void implModbusRtuTask(void* pvParameters)
     {
-        
+        ModbusRTU& modbusRTU = ModbusRTU::GetInstance();
+
         while (true)
         {
-            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
-            
-            for(auto& modbusRTU : ModbusRtuVector)
+            Status ret = modbusRTU.Poll();
+            if (ret != Status::Code::GOOD)
             {
-
-            #if defined(MODLINK_L) || defined(MODLINK_ML10)
-                Status ret = modbusRTU.Poll();
-                if (ret != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
-                }
-            #else
-                Status ret = modbusRTU.PollTemp();
-                if (ret != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
-                }
-            #endif
-
-            #ifdef DEBUG
-                if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-                {
-                    //LOG_DEBUG(logger, "[TASK: Modbus RTU] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                    checkRemainedStackMillis = millis();
-                }
-            #endif
+                LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
             }
+        
+            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+            {
+                //LOG_DEBUG(logger, "[TASK: Modbus RTU] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
         }
     }
 
@@ -90,7 +74,7 @@ namespace muffin {
             LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
             return;
         }
-
+        
         /**
          * @todo 스택 오버플로우를 방지하기 위해 태스크의 메모리 사용량에 따라
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
@@ -159,44 +143,44 @@ namespace muffin {
 
     void implModbusTcpTask(void* pvParameters)
     {
+        modbus::modbusTcpServer_t ServerInfo = *(modbus::modbusTcpServer_t*) pvParameters;
+        ModbusTCP& modbusTCP = ModbusTCP::GetInstance();
         while (true)
         {
-            for(auto& modbusTCP : ModbusTcpVector)
+            if (!modbusTCPClient.connected()) 
             {
-                if (!modbusTCPClient.connected()) 
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                if (modbusTCPClient.begin(ServerInfo.serverIP, ServerInfo.serverPort) != 1) 
                 {
-                    if (modbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
-                    {
-                        LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
-                        continue;
-                    } 
-                    else
-                    {
-                        LOG_INFO(logger,"Modbus TCP Client connected");
-                    }
-
-                }
-                Status ret = modbusTCP.Poll();
-                if (ret != Status::Code::GOOD)
+                    LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", ServerInfo.serverIP.toString().c_str(), ServerInfo.serverPort);
+                    continue;
+                } 
+                else
                 {
-                    LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
+                    LOG_INFO(logger,"Modbus TCP Client connected");
                 }
 
-                modbusTCPClient.end();
-            #ifdef DEBUG
-                if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-                {
-                    //LOG_DEBUG(logger, "[TASK: Modbus TCP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                    checkRemainedStackMillis = millis();
-                }
-            #endif
             }
-            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);   
+            
+            Status ret = modbusTCP.Poll();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
+            }
+        
+            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+            {
+                //LOG_DEBUG(logger, "[TASK: Modbus TCP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
         }
     }
 
 
-    void StartModbusTcpTask()
+    void StartModbusTcpTask(modbus::modbusTcpServer_t serverInfo)
     {
         if (xTaskModbusTcpHandle != NULL)
         {
@@ -204,13 +188,6 @@ namespace muffin {
             return;
         }
         
-        xSemaphoreModbusTCP = xSemaphoreCreateMutex();
-        if (xSemaphoreModbusTCP == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MODBUS TCP SEMAPHORE");
-            return;
-        }
-
         /**
          * @todo 스택 오버플로우를 방지하기 위해 태스크의 메모리 사용량에 따라
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
@@ -219,7 +196,7 @@ namespace muffin {
             implModbusTcpTask,      // Function to be run inside of the task
             "implModbusTcpTask",    // The identifier of this task for men
             10 * KILLOBYTE,		    // Stack memory size to allocate
-            NULL,			        // Task parameters to be passed to the function
+            &serverInfo,			        // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusTcpHandle,       // The identifier of this task for machines
             0				        // Index of MCU core where the function to run

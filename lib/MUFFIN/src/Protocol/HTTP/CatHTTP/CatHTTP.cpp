@@ -308,6 +308,154 @@ namespace muffin { namespace http {
         }
 
         ret = mCatM1.Execute(header.ToString() + body.ToString(), mutexHandle);
+        LOG_DEBUG(logger, "HTTP POST REQUEST\n%s\n", (header.ToString() + body.ToString()).c_str());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO REQUEST POST: %s", ret.c_str());
+            return ret;
+        }
+        rxd.clear();
+
+        ret = readUntilRSC(timeoutMillis, &rxd);
+        if (ret != Status::Code::GOOD)
+        {
+            Status cmeErrorCode = processCmeErrorCode(rxd);
+            LOG_ERROR(logger, "FAILED TO REQUEST POST: %s: %s", 
+                ret.c_str(), processCmeErrorCode(rxd).c_str());
+            return cmeErrorCode;
+        }
+
+        std::vector<size_t> vecDelimiter;
+        vecDelimiter.emplace_back(rxd.find(' '));
+        if (vecDelimiter.front() == std::string::npos)
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+        size_t position = std::string::npos;
+        do
+        {
+            position = rxd.find(',', vecDelimiter.back() + 1);
+            if (position != std::string::npos && position != rxd.length())
+            {
+                vecDelimiter.emplace_back(position);
+            }
+        } while (position != std::string::npos);
+        vecDelimiter.emplace_back(rxd.find('\r', vecDelimiter.back() + 1));
+
+        constexpr uint8_t MINIMUM_DELIMITER_COUNT = 3;
+        constexpr uint8_t MAXIMUM_DELIMITER_COUNT = 4;
+        if (vecDelimiter.size() != MINIMUM_DELIMITER_COUNT &&
+            MAXIMUM_DELIMITER_COUNT != vecDelimiter.size())
+        {
+            LOG_ERROR(logger, "INVALID NUMBER OF DELIMITER: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+        std::vector<size_t>::iterator it = vecDelimiter.begin();
+        const std::string strCME = rxd.substr(*it + 1, *(it + 1) - *it - 1);
+        const std::string strRSC = rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
+        const std::string strLen = (it + 1) == vecDelimiter.end() ?
+            "" : 
+            rxd.substr(*(++it) + 1, *(it + 1) - *(it) - 1);
+
+        const int32_t rxdCME = Convert.ToInt32(strCME.c_str());
+        const http_rsc_e rxdRSC = ConvertInt32ToRSC(Convert.ToInt32(strRSC.c_str()));
+        const int32_t rxdLen = strLen == "" ? 
+            -1 : 
+            Convert.ToInt32(strLen.c_str());
+
+        if (rxdCME == INT32_MAX || rxdRSC == http_rsc_e::UNDEFINED_RSC || rxdLen == INT32_MAX)
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+        switch (rxdRSC)
+        {
+        case http_rsc_e::OK:
+            LOG_INFO(logger, "RSC: %s, ContentLength: %d", ConvertRscToString(rxdRSC), rxdLen);
+            if (mSetSinkToCatFS == true)
+            {
+                goto SINK_TO_CatFS;
+            }
+            return Status(Status::Code::GOOD);
+        case http_rsc_e::FORBIDDEN:
+            LOG_INFO(logger, "RSC: %s", ConvertRscToString(rxdRSC));
+            return Status(Status::Code::BAD_REQUEST_NOT_ALLOWED);
+        case http_rsc_e::NOT_FOUND:
+            LOG_INFO(logger, "RSC: %s", ConvertRscToString(rxdRSC));
+            return Status(Status::Code::BAD_NOT_FOUND);
+        case http_rsc_e::CONFLICT:
+            LOG_INFO(logger, "RSC: %s", ConvertRscToString(rxdRSC));
+            return Status(Status::Code::BAD_REQUEST_INTERRUPTED);
+        case http_rsc_e::LENGTH_REQUIRED:
+            LOG_INFO(logger, "RSC: %s", ConvertRscToString(rxdRSC));
+            return Status(Status::Code::BAD_REQUEST_HEADER_INVALID);
+        case http_rsc_e::INTERNAL_SERVER_ERRROR:
+            LOG_INFO(logger, "RSC: %s", ConvertRscToString(rxdRSC));
+            return Status(Status::Code::BAD_SERVER_HALTED);
+        default:
+            LOG_ERROR(logger, "UNDEFINED RSC");
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+    SINK_TO_CatFS:
+        return sendResponse2CatFS(mutexHandle);
+    }
+
+    Status CatHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
+    {
+        ASSERT((0 < strlen(header.ToString().c_str()) && strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH");
+        ASSERT((0 < timeout), "INVALID TIMEOUT VALUE");
+
+        Status ret = setRequestURL(mutexHandle, header.GetURL(), timeout);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET REQUEST URL:%s, %s",
+                header.GetURL().c_str(), ret.c_str());
+            return ret;
+        }
+
+        header.UpdateParamter(parameter.ToString().c_str());
+        ret = setRequestURL(mutexHandle, header.GetURL(), timeout);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET REQUEST URL:%s, %s",
+                header.GetURL().c_str(), ret.c_str());
+            return ret;
+        }
+        ASSERT((strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH INCLUDING REQUEST PARAMETERS");
+
+        constexpr uint8_t BUFFER_SIZE = 64;
+
+        char command[BUFFER_SIZE];
+        memset(command, '\0', sizeof(command));
+        sprintf(command, "AT+QHTTPPOST=%u,%u,%u",
+            strlen(header.ToString().c_str()), timeout, timeout);
+        ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
+
+        const uint32_t timeoutMillis = timeout * 1000;
+        std::string rxd;
+
+        ret = mCatM1.Execute(command, mutexHandle);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO REQUEST POST: %s", ret.c_str());
+            return ret;
+        }
+
+        ret = readUntilCONNECT(timeoutMillis, &rxd);
+        if (ret != Status::Code::GOOD)
+        {
+            Status cmeErrorCode = processCmeErrorCode(rxd);
+            LOG_ERROR(logger, "FAILED TO REQUEST POST: %s: %s", 
+                ret.c_str(), processCmeErrorCode(rxd).c_str());
+            return cmeErrorCode;
+        }
+
+        ret = mCatM1.Execute(header.ToString(), mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO REQUEST POST: %s", ret.c_str());
@@ -482,9 +630,11 @@ namespace muffin { namespace http {
         return cmeErrorCode;
     }
 
-    void CatHTTP::SetSinkToCatFS(const bool save2CatFS)
+    void CatHTTP::SetSinkToCatFS(const bool save2CatFS, const std::string catFsPath)
     {
         mSetSinkToCatFS = save2CatFS;
+        mCatFsPath = catFsPath;
+        LOG_INFO(logger,"mCatFsPath : %s",mCatFsPath.c_str());
     }
 
     Status CatHTTP::IsInitialized() const
@@ -645,7 +795,9 @@ namespace muffin { namespace http {
 
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));
-        sprintf(command, "AT+QHTTPREADFILE=\"http_response_file\",%u", TIMEOUT_IN_SECOND);
+        sprintf(command, "AT+QHTTPREADFILE=\"%s\",%u", mCatFsPath.c_str(),TIMEOUT_IN_SECOND);
+
+        
         ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
         
         const uint32_t timeoutMillis = TIMEOUT_IN_SECOND * 1000;
@@ -687,7 +839,7 @@ namespace muffin { namespace http {
             LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
-        LOG_INFO(logger, "Saved into CatFS with file name: \"http_response_file\"");
+        LOG_INFO(logger, "Saved into CatFS with file name: %s", mCatFsPath.c_str());
         return convertErrorCode(errorCode);
 
     CME_ERROR:

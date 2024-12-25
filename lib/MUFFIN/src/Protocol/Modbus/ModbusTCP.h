@@ -40,17 +40,26 @@ namespace muffin {
     class ModbusTCP
     {
     public:
+        ModbusTCP(ModbusTCP const&) = delete;
+        void operator=(ModbusTCP const&) = delete;
+        static ModbusTCP* CreateInstanceOrNULL();
+        static ModbusTCP& GetInstance();
+    private:
         ModbusTCP();
         virtual ~ModbusTCP();
     private:
+        static ModbusTCP* mInstance;
+    
+    private:
         using AddressRange = im::NumericAddressRange;
     public:
+        Status begin();
         Status Config(jarvis::config::ModbusTCP* config);
+        Status RetrieveConfig(jarvis::config::ModbusTCP* config);
         void Clear();
-    public:
-        IPAddress GetServerIP();
-        uint16_t GetServerPort();
     private:
+        SerialConfig convert2SerialConfig(const jarvis::dbit_e dataBit, const jarvis::sbit_e stopBit, const jarvis::pbit_e parityBit);
+        Status configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig);
         Status addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID);
         // Status removeNodeReference(const uint8_t slaveID, im::Node& node);
     private:
@@ -71,9 +80,6 @@ namespace muffin {
         modbus::NodeTable mNodeTable;
         modbus::AddressTable mAddressTable;
         modbus::PolledDataTable mPolledDataTable;
-    
-    private:
-        IPAddress mServerIP;
-        uint16_t mServerPort;
+        jarvis::config::ModbusTCP* mConfig = nullptr;
     };
 }

@@ -4,12 +4,16 @@
  * 
  * @brief ATmega2560 MCU를 업데이트 하는 클래스를 선언합니다.
  * 
- * @date 2024-11-15
+ * @date 2024-11-28
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
+
+
+
+#if defined(MODLINK_T2)
 
 
 
@@ -27,19 +31,16 @@ namespace muffin { namespace ota {
     class MEGA2560
     {
     public:
-        MEGA2560();
-        virtual ~MEGA2560();
+        MEGA2560() {}
+        virtual ~MEGA2560() {}
     public:
-        Status Init();
+        Status Init(const size_t totalSize);
         void TearDown();
     public:
         Status LoadAddress(const uint32_t address);
-        Status ProgramFlashISP();
-        Status ReadFlashISP(const uint16_t readLength);
+        Status ProgramFlashISP(const page_t page);
+        Status ReadFlashISP(const uint16_t readLength, page_t* outputPage);
         Status LeaveProgrammingMode();
-        // Status Parse();
-        // Status Write();
-        // Status Read();
     private:
         void initUART();
         void initGPIO();
@@ -50,7 +51,7 @@ namespace muffin { namespace ota {
         Status enterProgrammingMode();
     private:
         int sendCommand(const msg_t command);
-        Status receiveResponse(const uint16_t timeout, msg_t* outputResponse);
+        Status receiveResponse(const timeout_e timeout, msg_t* outputResponse);
         void calculateChecksum(msg_t* outputMessage);
         void calculateChecksum(std::vector<uint8_t>& vector, uint8_t* outputChecksum);
     private:
@@ -60,12 +61,9 @@ namespace muffin { namespace ota {
         const uint8_t RESET_PIN = 13;
         const uint8_t MESSAGE_OVERHEAD = 5;
         const uint8_t MESSAGE_CHECKSUM = 1;
-        const uint8_t MIN_DELAY_IN_MILLIS = 2;
-        const uint8_t MAX_DELAY_IN_MILLIS = 100;
-        const uint16_t BLOCK_SIZE = 256;
-        const uint16_t PAGE_SIZE_MAX = 20 * 1024;
-        uint8_t* mPage = nullptr;
-        int32_t mBlockCount = 0;
-        size_t mByteCount = 0;
     };
 }}
+
+
+
+#endif

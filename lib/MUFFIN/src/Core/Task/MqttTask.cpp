@@ -82,7 +82,7 @@ namespace muffin {
         taskCreationResult = xTaskCreatePinnedToCore(
             publishMqttTask,      // Function to be run inside of the task
             "publishMqttTask",    // The identifier of this task for men
-            10240,			   // Stack memory size to allocate
+            20480,			   // Stack memory size to allocate
             NULL,			   // Task parameters to be passed to the function
             0,				   // Task Priority for scheduling
             &xTaskMqttHandle,  // The identifier of this task for machines

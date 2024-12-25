@@ -29,7 +29,6 @@
 #include "Jarvis/Config/Protocol/ModbusRTU.h"
 #include "Jarvis/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
-#include "Protocol/SPEAR/Include/TypeDefinitions.h"
 
 
 
@@ -38,8 +37,16 @@ namespace muffin {
     class ModbusRTU
     {
     public:
+        ModbusRTU(ModbusRTU const&) = delete;
+        void operator=(ModbusRTU const&) = delete;
+        static ModbusRTU* CreateInstanceOrNULL();
+        static ModbusRTU& GetInstance();
+    private:
         ModbusRTU();
         virtual ~ModbusRTU();
+    private:
+        static ModbusRTU* mInstance;
+    
     private:
         using AddressRange = im::NumericAddressRange;
     public:
@@ -56,7 +63,6 @@ namespace muffin {
 
     public:
         Status Poll();
-        Status PollTemp();
         modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area);
     private:
         Status implementPolling();
@@ -65,12 +71,10 @@ namespace muffin {
         Status pollDiscreteInput(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         Status pollInputRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
         Status pollHoldingRegister(const uint8_t slaveID, const std::set<AddressRange>& addressRangeSet);
-    
-    public:
-        modbus::AddressTable mAddressTable;
-        jarvis::prt_e mPort;
+
     private:
         modbus::NodeTable mNodeTable;
+        modbus::AddressTable mAddressTable;
         modbus::PolledDataTable mPolledDataTable;
     };
 }

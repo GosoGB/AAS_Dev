@@ -188,23 +188,26 @@ namespace muffin {
     {
         JsonDocument doc;
         std::string payload;
+    
+    #if defined(MODLINK_L)
+        doc["deviceType"] = "MODLINK-L";
+    #elif defined(MODLINK_ML10)
+        doc["deviceType"] = "MODLINK-ML10";
+    #elif defined(MODLINK_T2)
+        doc["deviceType"] = "MODLINK-T2";
+    #endif
 
         doc["mac"]  =  MacAddress::GetEthernet();
         JsonObject mcu1 = doc["mcu1"].to<JsonObject>();
         mcu1["vc"] = _struct.VersionCodeMcu1;  
-        mcu1["version"] = _struct.VersionMcu1; 
-
-
-        #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        doc["deviceType"] = "MODLINK-L";
-        #else
-        doc["deviceType"] = "MODLINK-T2";
-        JsonObject mcu2 = doc["mcu2"].to<JsonObject>();;
+        mcu1["version"] = _struct.VersionMcu1;
+    #if defined(MODLINK_T2)
+        JsonObject mcu2 = doc["mcu2"].to<JsonObject>();
         mcu2["vc"] = _struct.VersionCodeMcu2;  
         mcu2["version"] = _struct.VersionMcu2; 
-        #endif
+    #endif
     
-        serializeJson(doc,payload);
+        serializeJson(doc, payload);
         return payload;
     }
     

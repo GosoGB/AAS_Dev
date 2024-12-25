@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -30,7 +29,7 @@
 #include "Jarvis/Config/Protocol/ModbusTCP.h"
 #include "Jarvis/Config/Network/Ethernet.h"
 #include "Jarvis/Validators/ValidationResult.h"
-#include "Protocol/SPEAR/SPEAR.h"
+
 
 
 namespace muffin {
@@ -54,10 +53,7 @@ namespace muffin {
 
     public:
         void Init();
-        void RouteMqttMessage(const mqtt::Message& message);
-    public:
-        esp_reset_reason_t RetrieveResetReason() const;
-    
+        void RouteMqttMessage(const mqtt::Message& message);    
     private:
         void startJarvisTask(const std::string& payload);
         void startRemoteControll(const std::string& payload);
@@ -67,13 +63,8 @@ namespace muffin {
     private:
         static jarvis::ValidationResult mJarvisValidationResult;
     private:
-        esp_reset_reason_t mResetReason;
         static constexpr uint8_t MAX_RETRY_COUNT = 5;
         static constexpr uint16_t SECOND_IN_MILLIS = 1000;
         static constexpr uint16_t KILLOBYTE = 1024;
-
-    public:
-        SPEAR mSPEAR;
-        
     };
 }

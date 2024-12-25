@@ -4,7 +4,7 @@
  * 
  * @brief ATmega2560 MCU를 업데이트 하는 클래스를 정의합니다.
  * 
- * @date 2024-11-15
+ * @date 2024-11-28
  * @version 0.0.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
@@ -13,12 +13,15 @@
 
 
 
+#if defined(MODLINK_T2)
+
+
+
 #include <HardwareSerial.h>
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Include/Command.h"
-#include "Include/HexParser.h"
 #include "MEGA2560.h"
 
 
@@ -48,28 +51,23 @@ namespace muffin { namespace ota {
         }
     }
 
-    MEGA2560::MEGA2560()
+    Status MEGA2560::Init(const size_t totalSize)
     {
-    }
-    
-    MEGA2560::~MEGA2560()
-    {
-    }
-
-    Status MEGA2560::Init()
-    {
-        mPage = new(std::nothrow) uint8_t[PAGE_SIZE_MAX];
-        if (mPage == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR OTA ATmega2560");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-        
-        HexParser parser;
-        parser.Parse("/ota_test.hex", mPage, &mBlockCount, &mByteCount);
-        LOG_DEBUG(logger, "Block Count: %u", mBlockCount);
-        LOG_DEBUG(logger, "Byte Count: %u", mByteCount);
-
+/**
+ * @todo 향후에 파라미터 설정 기능 구현해야 합니다.
+ * @todo 설정해야 하는 파라미터가 있을지 생각해봐야 합니다.
+ * 
+ * @code {.cpp}
+ * 
+ * ret = setParameters();
+ * if (ret != Status::Code::GOOD)
+ * {
+ *     LOG_ERROR(logger, "FAILED TO SET PROGRAMMING PARAMETERS");
+ *     return ret;
+ * }
+ * 
+ * @endcode
+ */
         initUART();
         initGPIO();
         resetMEGA2560();
@@ -77,24 +75,22 @@ namespace muffin { namespace ota {
         Status ret = signOn();
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO GET SYNC WITH MEGA2560");
-            return ret;
+            LOG_ERROR(logger, "FAILED TO SIGN ON ATmega2560 ISP");
+            goto ON_FAIL;
         }
-        
-        // ret = setParameters();
-        // if (ret != Status::Code::GOOD)
-        // {
-        //     LOG_ERROR(logger, "FAILED TO SET PROGRAMMING PARAMETERS");
-        //     return ret;
-        // }
 
         ret = enterProgrammingMode();
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO ENTER PROGRAMMING MODE");
-            return ret;
+            goto ON_FAIL;
         }
 
+        LOG_INFO(logger, "Initialized for OTA");
+        return ret;
+
+    ON_FAIL:
+        TearDown();
         return ret;
     }
     
@@ -103,7 +99,7 @@ namespace muffin { namespace ota {
         digitalWrite(RELAY_PIN, LOW);
         Serial2.end();
     }
-
+    
     Status MEGA2560::LoadAddress(const uint32_t address)
     {
         LOG_INFO(logger, "Loading address 0x%X", address);
@@ -115,12 +111,14 @@ namespace muffin { namespace ota {
         const uint8_t address04 = extendedAddress & 0xFF;
 
         msg_t command;
+        command.Size = MESSAGE_OVERHEAD + 5 + MESSAGE_CHECKSUM;
+        ASSERT((command.Size <= MAX_MESSAGE_SIZE), "COMMAND SIZE CANNOT EXCEED MAX MESSAGE SIZE");
         command.Header.Start           =  MESSAGE_START;
         command.Header.SequnceID       =  mSequenceID;
         command.Header.SizeHighByte    =  0x00;
         command.Header.SizeLowByte     =  0x05;
         command.Header.Token           =  TOKEN;
-        command.MessageBody[0]         =  CMD_LOAD_ADDRESS; // Command ID
+        command.MessageBody[0]         =  CMD_LOAD_ADDRESS;
         command.MessageBody[1]         =  address01;
         command.MessageBody[2]         =  address02;
         command.MessageBody[3]         =  address03;
@@ -129,7 +127,7 @@ namespace muffin { namespace ota {
         sendCommand(command);
 
         msg_t response;
-        Status ret = receiveResponse(1000, &response);
+        Status ret = receiveResponse(timeout_e::ALL_OTHER_COMMANDS, &response);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO LOAD ADDRESSS 0x%X", address);
@@ -159,108 +157,47 @@ namespace muffin { namespace ota {
         LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
 
         ++mSequenceID;
+        LOG_INFO(logger, "Loaded address 0x%X", address);
         return Status(Status::Code::GOOD);
     }
     
-    Status MEGA2560::ProgramFlashISP()
+    Status MEGA2560::ProgramFlashISP(const page_t page)
     {
-        LOG_INFO(logger, "Writing Flash ISP");
+        ASSERT((page.Size == PAGE_SIZE), "INVALID PAGE SIZE");
+        LOG_INFO(logger, "Programming Flash ISP");
 
-        size_t writtenBytes = 0;
-
-        while (true)
-        {
-            const uint16_t remainedBytes = mByteCount - writtenBytes;
-            const uint16_t bytesToWrite  = remainedBytes < BLOCK_SIZE ? 
-                remainedBytes : 
-                BLOCK_SIZE;
-            uint16_t commandSize = 10 + bytesToWrite;
-
-            msg_t command;
-            command.Header.Start           =  MESSAGE_START;
-            command.Header.SequnceID       =  mSequenceID;
-            command.Header.SizeHighByte    =  (commandSize >> 8) & 0xFF;
-            command.Header.SizeLowByte     =  commandSize & 0xFF;
-            command.Header.Token           =  TOKEN;
-            command.MessageBody[0]         =  CMD_PROGRAM_FLASH_ISP;        // Command ID
-            command.MessageBody[1]         =  (bytesToWrite >> 8) & 0xFF;   // NumBytes High
-            command.MessageBody[2]         =  bytesToWrite & 0xFF;          // NumBytes Low
-            command.MessageBody[3]         =  0xC1;                         // mode
-            command.MessageBody[4]         =    10;                         // delay in milliseconds
-            command.MessageBody[5]         =  0x40;                         // cmd1
-            command.MessageBody[6]         =  0x4C;                         // cmd2
-            command.MessageBody[7]         =  0x00;                         // cmd3
-            command.MessageBody[8]         =  0x00;                         // poll1
-            command.MessageBody[9]         =  0x00;                         // poll2
-            for (uint16_t i = 0; i < bytesToWrite; ++i)                     // data
-            {
-                command.MessageBody[10 + i] = mPage[writtenBytes++];
-            }
-        
-            calculateChecksum(&command);
-            sendCommand(command);
-            msg_t response;
-            Status ret = receiveResponse(1000, &response);
-            if (ret != Status::Code::GOOD)
-            {
-                // LOG_ERROR(logger, "FAILED TO READ FROM FLASH ISP: %u", readLength);
-                return ret;
-            }
-            
-            if (command.Header.SequnceID != response.Header.SequnceID)
-            {
-                LOG_ERROR(logger, "SEQUENCE ID DOES NOT MATCH");
-                return Status(Status::Code::BAD_SEQUENCE_NUMBER_INVALID);
-            }
-            
-            if (command.MessageBody[0] != response.MessageBody[0])
-            {
-                LOG_ERROR(logger, "ANSWER ID DOES NOT MATCH WITH COMMAND ID");
-                return Status(Status::Code::BAD_IDENTITY_TOKEN_INVALID);
-            }
-
-            if (STATUS_CMD_OK != response.MessageBody[1])
-            {
-                LOG_ERROR(logger, "FAILED WITH STATUS CODE: 0x%X", response.MessageBody[1]);
-                return Status(Status::Code::BAD);
-            }
-
-            LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
-            LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
-            LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
-
-            ++mSequenceID;
-            --mBlockCount;
-        }
-        return Status(Status::Code::GOOD);
-    }
-
-    Status MEGA2560::ReadFlashISP(const uint16_t readLength)
-    {
-        LOG_INFO(logger, "Reading Flash ISP: %u", readLength);
-
-        const uint8_t lengthByteHIGH = (readLength >>  8) & 0xFF;
-        const uint8_t lengthByteLOW  = readLength & 0xFF;
-        const uint8_t byteSelection  = 0x01 < 2;
+        constexpr uint16_t bodySize  = 10 + PAGE_SIZE;
 
         msg_t command;
+        command.Size = MESSAGE_OVERHEAD + bodySize + MESSAGE_CHECKSUM;
+        ASSERT((command.Size <= MAX_MESSAGE_SIZE), "COMMAND SIZE CANNOT EXCEED MAX MESSAGE SIZE");
         command.Header.Start           =  MESSAGE_START;
         command.Header.SequnceID       =  mSequenceID;
-        command.Header.SizeHighByte    =  0x00;
-        command.Header.SizeLowByte     =  0x04;
+        command.Header.SizeHighByte    =  (bodySize >> 8) & 0xFF;
+        command.Header.SizeLowByte     =  bodySize & 0xFF;
         command.Header.Token           =  TOKEN;
-        command.MessageBody[0]         =  CMD_READ_FLASH_ISP; // Command ID
-        command.MessageBody[1]         =  lengthByteHIGH;
-        command.MessageBody[2]         =  lengthByteLOW;
-        command.MessageBody[3]         =  byteSelection;
+        command.MessageBody[0]         =  CMD_PROGRAM_FLASH_ISP;        // Command ID
+        command.MessageBody[1]         =  (PAGE_SIZE >> 8) & 0xFF;      // NumBytes High
+        command.MessageBody[2]         =  PAGE_SIZE & 0xFF;             // NumBytes Low
+        command.MessageBody[3]         =  0xC1;                         // Mode
+        command.MessageBody[4]         =    10;                         // Delay in milliseconds
+        command.MessageBody[5]         =  0x40;                         // Command 1
+        command.MessageBody[6]         =  0x4C;                         // Command 2
+        command.MessageBody[7]         =  0x00;                         // Command 3
+        command.MessageBody[8]         =  0x00;                         // Poll 1
+        command.MessageBody[9]         =  0x00;                         // Poll 2
+        for (uint16_t i = 0; i < PAGE_SIZE; ++i)                        // Data
+        {
+            command.MessageBody[10 + i] = page.Data[i];
+        }
         calculateChecksum(&command);
         sendCommand(command);
-
+    
         msg_t response;
-        Status ret = receiveResponse(1000, &response);
+        Status ret = receiveResponse(timeout_e::CMD_PROGRAM_FLASH_ISP, &response);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO READ FROM FLASH ISP: %u", readLength);
+            LOG_ERROR(logger, "FAILED TO PROGRAM FLASH ISP: %s", ret.c_str());
             return ret;
         }
         
@@ -285,14 +222,82 @@ namespace muffin { namespace ota {
         LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
         LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
         LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
+        
+        ++mSequenceID;
+        LOG_INFO(logger, "Programmed Flash ISP");
+        return Status(Status::Code::GOOD);
+    }
+
+    Status MEGA2560::ReadFlashISP(const uint16_t readLength, page_t* outputPage)
+    {
+        ASSERT((outputPage != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
+        LOG_INFO(logger, "Reading Flash ISP: %u", readLength);
+
+        const uint8_t lengthByteHIGH = (readLength >>  8) & 0xFF;
+        const uint8_t lengthByteLOW  = readLength & 0xFF;
+        const uint8_t byteSelection  = 0x01 < 2;
+
+        msg_t command;
+        command.Size = MESSAGE_OVERHEAD + 4 + MESSAGE_CHECKSUM;
+        ASSERT((command.Size <= MAX_MESSAGE_SIZE), "COMMAND SIZE CANNOT EXCEED MAX MESSAGE SIZE");
+        command.Header.Start           =  MESSAGE_START;
+        command.Header.SequnceID       =  mSequenceID;
+        command.Header.SizeHighByte    =  0x00;
+        command.Header.SizeLowByte     =  0x04;
+        command.Header.Token           =  TOKEN;
+        command.MessageBody[0]         =  CMD_READ_FLASH_ISP;
+        command.MessageBody[1]         =  lengthByteHIGH;
+        command.MessageBody[2]         =  lengthByteLOW;
+        command.MessageBody[3]         =  byteSelection;
+        calculateChecksum(&command);
+        sendCommand(command);
+
+        msg_t response;
+        Status ret = receiveResponse(timeout_e::CMD_READ_FLASH_ISP, &response);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO READ FROM FLASH ISP: %s", ret.c_str());
+            return ret;
+        }
+        
+        if (command.Header.SequnceID != response.Header.SequnceID)
+        {
+            LOG_ERROR(logger, "SEQUENCE ID DOES NOT MATCH");
+            return Status(Status::Code::BAD_SEQUENCE_NUMBER_INVALID);
+        }
+        
+        if (command.MessageBody[0] != response.MessageBody[0])
+        {
+            LOG_ERROR(logger, "ANSWER ID DOES NOT MATCH WITH COMMAND ID");
+            return Status(Status::Code::BAD_IDENTITY_TOKEN_INVALID);
+        }
+
+        if (STATUS_CMD_OK != response.MessageBody[1])
+        {
+            LOG_ERROR(logger, "FAILED WITH STATUS CODE: 0x%X", response.MessageBody[1]);
+            return Status(Status::Code::BAD);
+        }
+    #if defined(DEBUG)
+        const uint8_t ANSWER_FORMAT_LENGTH = 3;
+    #endif
+        ASSERT((response.Size == (ANSWER_FORMAT_LENGTH + readLength + MESSAGE_OVERHEAD + MESSAGE_CHECKSUM)), 
+            "THE LENGTH OF RESPONSE READ DOES NOT MATCH WHAT EXPECTED TO BE");
+
+        outputPage->Size = 0;
+        memset(outputPage->Data, 0, PAGE_SIZE);
 
         for (uint16_t i = 0; i < readLength; ++i)
         {
-            Serial.printf("0x%02X,", response.MessageBody[2+i]);
+            outputPage->Data[i] = response.MessageBody[2+i];
+            ++outputPage->Size;
         }
-        Serial.println();
+
+        LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
+        LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
+        LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
 
         ++mSequenceID;
+        LOG_INFO(logger, "Finished reading Flash ISP: %u", readLength);
         return Status(Status::Code::GOOD);
     }
 
@@ -301,19 +306,21 @@ namespace muffin { namespace ota {
         LOG_INFO(logger, "Leaving programming mode ISP");
 
         msg_t command;
+        command.Size = MESSAGE_OVERHEAD + 3 + MESSAGE_CHECKSUM;
+        ASSERT((command.Size <= MAX_MESSAGE_SIZE), "COMMAND SIZE CANNOT EXCEED MAX MESSAGE SIZE");
         command.Header.Start           =   MESSAGE_START;
         command.Header.SequnceID       =   mSequenceID;
         command.Header.SizeHighByte    =   0x00;
         command.Header.SizeLowByte     =   0x03;
         command.Header.Token           =   TOKEN;
         command.MessageBody[0]         =   CMD_LEAVE_PROGMODE_ISP;   // Command ID
-        command.MessageBody[1]         =   1;                        // preDelay
-        command.MessageBody[2]         =   1;                        // postDelay
+        command.MessageBody[1]         =   1;                        // PreDelay
+        command.MessageBody[2]         =   1;                        // PostDelay
         calculateChecksum(&command);
         sendCommand(command);
 
         msg_t response;
-        Status ret = receiveResponse(1000, &response);
+        Status ret = receiveResponse(timeout_e::ALL_OTHER_COMMANDS, &response);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO LEAVE PROGRAMMING MODE ISP");
@@ -397,29 +404,25 @@ namespace muffin { namespace ota {
         digitalWrite(RESET_PIN, HIGH);
         vTaskDelay(800 / portTICK_PERIOD_MS);
 
-        while (Serial2.available())
-        {
-            Serial2.read();
-        }
-        
-
-        LOG_INFO(logger, "Reset the ATmega2560");
+    /**
+     * @todo PoC 때는 아래 코드를 넣었으나 현재는 필요 없을 수 있습니다. 검증 후 삭제해야 합니다.
+     * @code {.cpp}
+     * while (Serial2.available())
+     * {
+     *     Serial2.read();
+     * }
+     * @endcode
+     */   
+        LOG_INFO(logger, "Finished resetting the ATmega2560");
     }
 
-    /**
-     * @note CMD_SIGN_ON 명령의 타임아웃은 200ms입니다.
-     * @note 다음 명령의 타임아웃은 5,000ms입니다.
-     * @li CMD_READ_FLASH_ISP
-     * @li CMD_PROGRAM_FLASH_ISP
-     * @li CMD_PROGRAM_EEPROM_ISP
-     * @li CMD_READ_EEPROM_ISP
-     * @note 이외의 모든 명령의 타임아웃은 1,000ms입니다.
-     */
     Status MEGA2560::signOn()
     {
         LOG_INFO(logger, "Start signing on");
 
         msg_t command;
+        command.Size = MESSAGE_OVERHEAD + 1 + MESSAGE_CHECKSUM;
+        ASSERT((command.Size <= MAX_MESSAGE_SIZE), "COMMAND SIZE CANNOT EXCEED MAX MESSAGE SIZE");
         command.Header.Start        = MESSAGE_START;
         command.Header.SequnceID    = mSequenceID;
         command.Header.SizeHighByte = 0x00;
@@ -430,7 +433,7 @@ namespace muffin { namespace ota {
         sendCommand(command);
 
         msg_t response;
-        Status ret = receiveResponse(200, &response);
+        Status ret = receiveResponse(timeout_e::CMD_SIGN_ON, &response);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SIGN ON TO THE ISP");
@@ -486,6 +489,8 @@ namespace muffin { namespace ota {
         LOG_INFO(logger, "Entering programming mode ISP");
 
         msg_t command;
+        command.Size = MESSAGE_OVERHEAD + 8 + MESSAGE_CHECKSUM;
+        ASSERT((command.Size <= MAX_MESSAGE_SIZE), "COMMAND SIZE CANNOT EXCEED MAX MESSAGE SIZE");
         command.Header.Start           =   MESSAGE_START;
         command.Header.SequnceID       =   mSequenceID;
         command.Header.SizeHighByte    =   0x00;
@@ -507,13 +512,14 @@ namespace muffin { namespace ota {
         sendCommand(command);
 
         msg_t response;
-        Status ret = receiveResponse(1000, &response);
+        Status ret = receiveResponse(timeout_e::ALL_OTHER_COMMANDS, &response);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO ENTER PROGRAMMING MODE ISP");
             return ret;
         }
         
+        LOG_DEBUG(logger, "Target: %02X, Actual: %02X", command.Header.SequnceID, response.Header.SequnceID);
         if (command.Header.SequnceID != response.Header.SequnceID)
         {
             LOG_ERROR(logger, "SEQUENCE ID DOES NOT MATCH");
@@ -543,6 +549,7 @@ namespace muffin { namespace ota {
     void MEGA2560::calculateChecksum(msg_t* outputMessage)
     {
         ASSERT((outputMessage != nullptr), "OUTPUT PARAMETER \"MESSAGE\" CANNOT BE A NULL POINTER");
+        ASSERT((outputMessage->Size <= MAX_MESSAGE_SIZE), "COMMAND LENGTH CANNOT EXCEED THE MAXIMUM MESSAGE SIZE");
 
         const uint16_t sizeHigh = static_cast<uint16_t>(outputMessage->Header.SizeHighByte) << 8;
         const uint8_t  sizeLow  = outputMessage->Header.SizeLowByte;
@@ -565,10 +572,10 @@ namespace muffin { namespace ota {
 
     void MEGA2560::calculateChecksum(std::vector<uint8_t>& vector, uint8_t* outputChecksum)
     {
-        ASSERT((outputChecksum  != nullptr), "OUTPUT PARAMETER \"CHECKSUM\" CANNOT BE A NULL POINTER");
+        ASSERT((vector.size() > (MESSAGE_OVERHEAD + MESSAGE_CHECKSUM)), "INVALID LENGTH FOR A RESPONSE");
+        ASSERT((outputChecksum != nullptr), "OUTPUT PARAMETER \"CHECKSUM\" CANNOT BE A NULL POINTER");
         
         *outputChecksum = 0;
-
         for (uint16_t i = 0; i < (vector.size() - 1); ++i)
         {
             *outputChecksum ^= vector[i];
@@ -577,12 +584,14 @@ namespace muffin { namespace ota {
 
     int MEGA2560::sendCommand(const msg_t command)
     {
+        ASSERT((command.Size <= MAX_MESSAGE_SIZE), "COMMAND LENGTH CANNOT EXCEED THE MAXIMUM MESSAGE SIZE");
+
         const uint16_t bodySizeHigh = static_cast<uint16_t>(command.Header.SizeHighByte) << 8;
         const uint8_t  bodySizeLow  = command.Header.SizeLowByte;
         const uint16_t bodySize     = bodySizeHigh | bodySizeLow;
-        ASSERT((bodySize > 0), "MESSAGE BODY CANNOT BE EMPTY");
         const uint16_t size         = MESSAGE_OVERHEAD + bodySize + MESSAGE_CHECKSUM;
         LOG_DEBUG(logger, "Message size: %u", size);
+        ASSERT((bodySize > 0), "MESSAGE BODY CANNOT BE EMPTY");
 
         uint8_t message[size] = { 0 };
         message[0] = command.Header.Start;
@@ -596,16 +605,18 @@ namespace muffin { namespace ota {
         }
         message[(size - 1)] = command.Checksum;
 
+    #if defined(DEBUG)
         Serial.print("Command: ");
         for (size_t i = 0; i < size; ++i)
         {
             Serial.printf("0x%X ", message[i]);
         }
         Serial.println();
+    #endif
         return Serial2.write(message, size);
     }
 
-    Status MEGA2560::receiveResponse(const uint16_t timeout, msg_t* outputResponse)
+    Status MEGA2560::receiveResponse(const timeout_e timeout, msg_t* outputResponse)
     {
         ASSERT((outputResponse != nullptr), "OUTPUT PARAMETER \"RESPONSE\" CANNOT BE A NULL POINTER");
 
@@ -613,7 +624,7 @@ namespace muffin { namespace ota {
         std::vector<uint8_t> rxd;
         rxd.reserve(32);
 
-        while (uint32_t(millis() - startMillis) < timeout)
+        while (uint32_t(millis() - startMillis) < static_cast<uint16_t>(timeout))
         {
             while (Serial2.available())
             {
@@ -654,16 +665,24 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         
-        outputResponse->Header.Start          = rxd[0];
-        outputResponse->Header.SequnceID      = rxd[1];
-        outputResponse->Header.SizeHighByte   = rxd[2];
-        outputResponse->Header.SizeLowByte    = rxd[3];
-        outputResponse->Header.Token          = rxd[4];
-        for (uint16_t i = 5; i < (rxd.size() - 1); ++i)
+        uint16_t idx = 0;
+        outputResponse->Header.Start          = rxd[idx++];
+        outputResponse->Header.SequnceID      = rxd[idx++];
+        outputResponse->Header.SizeHighByte   = rxd[idx++];
+        outputResponse->Header.SizeLowByte    = rxd[idx++];
+        outputResponse->Header.Token          = rxd[idx++];
+        for (; idx < (rxd.size() - 1); ++idx)
         {
-            outputResponse->MessageBody[(i - 5)] = rxd[i];
+            outputResponse->MessageBody[(idx - 5)] = rxd[idx];
         }
         outputResponse->Checksum = rxd.back();
+        ++idx;
+        ASSERT((idx <= MAX_MESSAGE_SIZE), "RESPONSE LENGTH CANNOT EXCEED THE MAXIMUM MESSAGE SIZE");
+        outputResponse->Size = idx;
         return Status(Status::Code::GOOD);
     }
 }}
+
+
+
+#endif

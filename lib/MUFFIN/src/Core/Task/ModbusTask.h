@@ -16,8 +16,6 @@
 #pragma once
 
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
-#include "Protocol/Modbus/ModbusTCP.h"
-#include "Protocol/Modbus/ModbusRTU.h"
 
 
 namespace muffin {
@@ -27,10 +25,7 @@ namespace muffin {
     void StopModbusRtuTask();
     bool HasModbusRtuTask();
 
-    void StartModbusTcpTask();
+    void StartModbusTcpTask(modbus::modbusTcpServer_t serverInfo);
     void StopModbusTcpTask();
     bool HasModbusTcpTask();
-
-    extern std::vector<ModbusTCP> ModbusTcpVector;
-    extern std::vector<ModbusRTU> ModbusRtuVector;
 }
