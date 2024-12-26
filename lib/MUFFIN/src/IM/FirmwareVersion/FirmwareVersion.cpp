@@ -30,13 +30,11 @@ namespace muffin {
     {
         memset(mSemanticVersion, '\0', sizeof(mSemanticVersion));
         strncpy(mSemanticVersion, semver, sizeof(mSemanticVersion));
-        LOG_INFO(logger, "Semantic Version: %s", semver);
     }
 
     void FirmwareVersion::SetVersionCode(const uint32_t code)
     {
         mVersionCode = code;
-        LOG_INFO(logger, "Version Code: %u", code);
     }
 
     const char* FirmwareVersion::GetSemanticVersion() const

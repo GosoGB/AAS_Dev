@@ -60,31 +60,31 @@ namespace muffin {
     {
         if (mInstance == nullptr)
         {
-        logger.Init();
-        LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u",
-            FW_VERSION_ESP32.GetSemanticVersion(),
-            FW_VERSION_ESP32.GetVersionCode());
-    #if defined(MODLINK_T2)
-        if (spear.Init() != Status::Code::GOOD)
-        {
-           LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART ESP32.");
-           spear.Reset();
-           esp_restart();
-        }
+            logger.Init();
+            LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u",
+                FW_VERSION_ESP32.GetSemanticVersion(),
+                FW_VERSION_ESP32.GetVersionCode());
 
-        if (spear.VersionEnquiryService() != Status::Code::GOOD)
-        {
-           LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
-           spear.Reset();
-           esp_restart();
-        }
+        #if defined(MODLINK_T2)
+            if (spear.Init() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART ESP32.");
+                spear.Reset();
+                esp_restart();
+            }
 
-        LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
-            FW_VERSION_MEGA2560.GetSemanticVersion(),
-            FW_VERSION_MEGA2560.GetVersionCode());
-    #endif
-            
+            if (spear.VersionEnquiryService() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
+                spear.Reset();
+                esp_restart();
+            }
 
+            LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
+                FW_VERSION_MEGA2560.GetSemanticVersion(),
+                FW_VERSION_MEGA2560.GetVersionCode());
+        #endif
+        
             mInstance = new(std::nothrow) Core();
             if (mInstance == nullptr)
             {
@@ -111,8 +111,8 @@ namespace muffin {
          *          수 있습니다. 따라서 reset 사유를 확인하여 JARVIS 설정을 초기화 하는
          *          기능이 필요합니다. 단, 다른 부서와의 협의가 선행되어야 합니다.
          */
-        DeviceStatus& deviceStatus = DeviceStatus::GetInstance();
-        deviceStatus.SetResetReason(esp_reset_reason());
+        DeviceStatus* deviceStatus = DeviceStatus::CreateInstanceOrNULL();
+        deviceStatus->SetResetReason(esp_reset_reason());
 
         Initializer initializer;
         initializer.StartOrCrash();
