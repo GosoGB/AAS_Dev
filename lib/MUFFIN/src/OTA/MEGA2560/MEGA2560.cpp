@@ -355,6 +355,7 @@ namespace muffin { namespace ota {
 
     void MEGA2560::initUART()
     {
+        Serial2.end();
         /**
          * @todo ATmega2560 업데이트 전에 다른 태스크가 포트를 사용하지 않도록 확인해야 합니다.
          *       예: uxTaskGetNumberOfTasks() 함수로 현재 실행 중인 태스크 개수 확인

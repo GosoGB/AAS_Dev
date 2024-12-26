@@ -87,7 +87,7 @@ namespace muffin {
         static const uint8_t STX = 0x02;
         static const uint8_t ETX = 0x03;
         static const uint8_t HEAD_SIZE = 0x03;
-        static const uint8_t TAIL_SIZE   = 0x02;
+        static const uint8_t TAIL_SIZE = 0x02;
         static const uint8_t RESET_PIN = 13;
     private:
         // SemaphoreHandle_t xSemaphore;

@@ -34,8 +34,15 @@ namespace muffin {
     Status SPEAR::Reset()
     {
         pinMode(RESET_PIN, OUTPUT);
+        
         digitalWrite(RESET_PIN, HIGH);
-        return SignOnService();
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+
+        digitalWrite(RESET_PIN, LOW);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+
+        digitalWrite(RESET_PIN, HIGH);
+        return Status(Status::Code::GOOD);
     }
 
     Status SPEAR::Send(const char payload[])
@@ -108,7 +115,7 @@ namespace muffin {
             return Status(Status::Code::BAD_DATA_LOST);
         }
         
-        const uint8_t receivedChecksum   = payload[length - 2];
+        const uint8_t receivedChecksum = payload[length - 2];
         length = receivedLength;
         
         for (uint16_t i = 0; i < length; ++i)
@@ -122,6 +129,7 @@ namespace muffin {
         {
             return Status(Status::Code::BAD_DATA_LOST);
         }
+        LOG_DEBUG(logger, "buffer : %s", payload);
         return Status(Status::Code::GOOD);
     }
 
@@ -357,24 +365,27 @@ namespace muffin {
         
         writeJson(payload, "/spear/protocol/config.json");
         Send(payload);
+        delay(80);
         return validateSetService();
     }
 
     Status SPEAR::SetJarvisLinkConfig(jarvis::config::Base* cin, const jarvis::cfg_key_e type)
     {
+        Status ret = Status(Status::Code::UNCERTAIN);
+
         switch (type)
         {
         case jarvis::cfg_key_e::RS232:
-            // setJarvisRs232Config();
+            // ret = setJarvisRs232Config();
             break;
         case jarvis::cfg_key_e::RS485:
-            setJarvisRs485Config(cin);
+            ret = setJarvisRs485Config(cin);
             break;
         default:
             break;
         }
 
-        return Status(Status::Code::GOOD);
+        return ret;
     }
 
     Status SPEAR::setJarvisRs485Config(jarvis::config::Base* cin)
@@ -415,7 +426,9 @@ namespace muffin {
         std::string path = port == jarvis::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
         writeJson(payload, path);
 
+        LOG_INFO(logger,"payload : %s",payload);
         Send(payload);
+        delay(100);
         return validateSetService();
     }
 
@@ -527,6 +540,7 @@ namespace muffin {
         }
 
         Send(payload);
+        delay(80);
         return validateSetService();
     }
 
@@ -539,7 +553,8 @@ namespace muffin {
         Status ret = Receive(timeout, size, buffer);
         LOG_DEBUG(logger, "SPEAR RxD: %s", buffer);
         if (ret != Status::Code::GOOD)
-        {
+        {   
+            LOG_DEBUG(logger, "ret: %s", ret.c_str());
             return ret;
         }
 
@@ -602,8 +617,6 @@ namespace muffin {
         {
             return ret;
         }
-
-        LOG_INFO(logger,"Receive MSG : %s",buffer);
         
         JSON json;
         JsonDocument doc;

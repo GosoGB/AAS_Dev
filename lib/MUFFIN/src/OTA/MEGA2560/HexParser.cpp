@@ -101,10 +101,12 @@ namespace muffin { namespace ota {
                 break;
             }
 
+            LOG_DEBUG(logger, "HEX Record: %s", it->c_str());
             const uint8_t endIndex = it->length() - CHECKSUM_CHAR_LENGTH;
             const uint8_t length = endIndex - START_INDEX;
             std::string parsedData = it->substr(START_INDEX, length);
-            LOG_DEBUG(logger, "parsedData: %s", parsedData.c_str());
+            LOG_DEBUG(logger, "Parsed Data: %s", parsedData.c_str());
+
             for (uint16_t i = 0; i < length; i += 2)
             {
                 page.Data[page.Size++] = strtol(parsedData.substr(i, 2).c_str(), NULL, HEX);
@@ -113,6 +115,7 @@ namespace muffin { namespace ota {
                     mPages.emplace_back(page);
                     LOG_DEBUG(logger, "Emplaced a new page: %u pages", mPages.size());
                     LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
+                    LOG_DEBUG(logger, "remained: %u", ESP.getFreeHeap());
 
                     if (std::next(it) == mHexRecords.end())
                     {
@@ -126,6 +129,11 @@ namespace muffin { namespace ota {
                     LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
                     page.Size = 0;
                 }
+            }
+
+            if (mHexRecords.size() == 0)
+            {
+                return Status(Status::Code::GOOD_MORE_DATA);
             }
         }
         LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());

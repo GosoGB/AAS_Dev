@@ -598,7 +598,17 @@ namespace muffin {
         muffin::Core& core = muffin::Core::GetInstance();
         for (auto& Rs485CIN : vectorRS485CIN)
         {
-            spear.SetJarvisLinkConfig(Rs485CIN,jarvis::cfg_key_e::RS485);
+            size_t count = 0;
+            while (count < 5)
+            {
+                Status ret = spear.SetJarvisLinkConfig(Rs485CIN,jarvis::cfg_key_e::RS485);
+                if (ret == Status(Status::Code::GOOD))
+                {
+                    break;
+                }
+                count++;
+                delay(100);
+            }            
         }
 
     }
@@ -680,7 +690,19 @@ namespace muffin {
         }
 
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
-        spear.SetJarvisProtocolConfig(link);
+        
+        size_t count = 0;
+        while (count < 5)
+        {
+            Status ret = spear.SetJarvisProtocolConfig(link);
+            if (ret == Status(Status::Code::GOOD))
+            {
+                break;
+            }
+            count++;
+            delay(100);
+        }
+
         StartModbusRtuTask();
         StartTaskCyclicalsMSG(s_PublishInterval);
     #endif

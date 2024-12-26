@@ -57,9 +57,16 @@ namespace muffin {
     
     Core* Core::CreateInstance() noexcept
     {
+
         if (mInstance == nullptr)
         {
             logger.Init();
+            DeviceStatus* deviceStatus = DeviceStatus::CreateInstanceOrNULL();
+            deviceStatus->SetFirmwareVersion(
+                mcu_type_e::MCU_ESP32, 
+                FW_VERSION_ESP32.GetSemanticVersion(), 
+                FW_VERSION_ESP32.GetVersionCode()
+            );
             LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u",
                 FW_VERSION_ESP32.GetSemanticVersion(),
                 FW_VERSION_ESP32.GetVersionCode());
@@ -79,9 +86,16 @@ namespace muffin {
                 esp_restart();
             }
 
+            deviceStatus->SetFirmwareVersion(
+                mcu_type_e::MCU_ATmega2560, 
+                FW_VERSION_MEGA2560.GetSemanticVersion(), 
+                FW_VERSION_MEGA2560.GetVersionCode()
+            );
+
             LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
                 FW_VERSION_MEGA2560.GetSemanticVersion(),
                 FW_VERSION_MEGA2560.GetVersionCode());
+                
         #endif
         
             mInstance = new(std::nothrow) Core();
@@ -110,8 +124,8 @@ namespace muffin {
          *          수 있습니다. 따라서 reset 사유를 확인하여 JARVIS 설정을 초기화 하는
          *          기능이 필요합니다. 단, 다른 부서와의 협의가 선행되어야 합니다.
          */
-        DeviceStatus* deviceStatus = DeviceStatus::CreateInstanceOrNULL();
-        deviceStatus->SetResetReason(esp_reset_reason());
+        DeviceStatus& deviceStatus = DeviceStatus::GetInstance();
+        deviceStatus.SetResetReason(esp_reset_reason());
 
         Initializer initializer;
         initializer.StartOrCrash();

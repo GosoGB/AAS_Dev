@@ -143,6 +143,7 @@ namespace muffin {
         
         vTaskDelete(xTaskModbusRtuHandle);
         xTaskModbusRtuHandle = NULL;
+        LOG_INFO(logger, "STOPPED THE MODBUS RTU TASK");
     }
 
     bool HasModbusRtuTask()
@@ -258,12 +259,13 @@ namespace muffin {
     {
         if (xTaskModbusTcpHandle == NULL)
         {
-            LOG_WARNING(logger, "NO MODBUS RTU TASK TO STOP!");
+            LOG_WARNING(logger, "NO MODBUS TCP TASK TO STOP!");
             return;
         }
         
         vTaskDelete(xTaskModbusTcpHandle);
         xTaskModbusTcpHandle = NULL;
+        LOG_INFO(logger, "STOPPED THE MODBUS TCP TASK");
     }
 
     bool HasModbusTcpTask()

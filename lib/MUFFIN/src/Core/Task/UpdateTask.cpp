@@ -268,7 +268,7 @@ namespace muffin {
             if (version.Code < info.mcu2.VersionCode || isManual == true)
             {
                 outInfo->MCU_MEGA2560 = true;
-                LOG_INFO(logger, "New firmware for ATmega2560 with VC: %u", info.mcu1.VersionCode);
+                LOG_INFO(logger, "New firmware for ATmega2560 with VC: %u", info.mcu2.VersionCode);
 
                 info.mcu2.FileNumberVector.clear();
                 info.mcu2.FilePathVector.clear();
@@ -597,7 +597,7 @@ namespace muffin {
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
         http::RequestHeader header(
             rest_method_e::GET, 
-            http_scheme_e::HTTPS, 
+            ReleaseURL.Scheme, 
             ReleaseURL.Host, 
             ReleaseURL.Port, 
             "/firmware/file/version/release",

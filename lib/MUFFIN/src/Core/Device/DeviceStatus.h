@@ -88,6 +88,7 @@ namespace muffin {
 
    public:
       fw_vsn_t GetFirmwareVersion(const mcu_type_e type);
+      void SetFirmwareVersion(const mcu_type_e type, const char* semver, const uint32_t vc);
    public:
       void SetResetReason(const esp_reset_reason_t code);
       void SetStatusCode(const Status::Code statusCode);

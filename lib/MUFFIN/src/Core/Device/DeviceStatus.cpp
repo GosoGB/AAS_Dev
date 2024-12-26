@@ -96,6 +96,22 @@ namespace muffin {
     #endif
     }
 
+    void DeviceStatus::SetFirmwareVersion(const mcu_type_e type, const char* semver, const uint32_t vc)
+    {
+        if (type == mcu_type_e::MCU_ESP32)
+        {
+            mVersionESP32.Code = vc;
+            mVersionESP32.Semantic = semver;
+        }
+    #if defined(MODLINK_T2) | defined(MODLINK_B)
+        else
+        {
+            mVersionMEGA2560.Code = vc;
+            mVersionMEGA2560.Semantic = semver;
+        }
+    #endif
+    }
+
     void DeviceStatus::SetResetReason(const esp_reset_reason_t code)
     {
         mResetReason = code;
