@@ -189,7 +189,7 @@ namespace muffin {
     {
         muffin::Core& core = muffin::Core::GetInstance();
 
-        spear_daq_msg_t msg;
+        
         const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
@@ -200,9 +200,10 @@ namespace muffin {
                 const auto& addressSetToPoll = retrievedAddressInfo.second.RetrieveAddressRange(area);
                 for (const auto& addressRange : addressSetToPoll)
                 {
+                    spear_daq_msg_t msg;
                     const uint16_t startAddress = addressRange.GetStartAddress();
                     const uint16_t pollQuantity = addressRange.GetQuantity();
-                    
+                    msg.PolledValuesVector.reserve(pollQuantity);
                     msg.Link = mPort;
                     msg.SlaveID = slaveID;
                     msg.Area = area;
@@ -214,9 +215,9 @@ namespace muffin {
                     {
                         LOG_ERROR(logger, "FAILED TO UPDATE NODES: %s", ret.c_str());
                     }
-                   
                     for (auto& val : msg.PolledValuesVector)
                     {
+                        // LOG_INFO(logger, "msg.Address : %d, msg.Val : %d ",msg.Address,val);
                         switch (msg.Area)
                         {
                         case jarvis::mb_area_e::COILS:

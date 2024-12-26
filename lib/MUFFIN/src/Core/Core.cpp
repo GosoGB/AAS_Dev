@@ -619,6 +619,12 @@ namespace muffin {
                                     msg.Address = modbusAddress.Numeric;
                                     msg.Value = retConvertModbus.second;
                                     
+                                    if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
+                                        return;
+                                    }
+                                    
                                     Status result = spear.ExecuteService(msg);
                                     if (result == Status(Status::Code::GOOD))
                                     {

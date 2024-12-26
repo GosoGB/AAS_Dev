@@ -25,9 +25,19 @@
 
 namespace muffin {
 
+    SemaphoreHandle_t xSemaphoreSPEAR = NULL;
+
     Status SPEAR::Init()
     {
         Serial2.begin(115200);
+        
+        xSemaphoreSPEAR = xSemaphoreCreateMutex();
+        if (xSemaphoreSPEAR == NULL)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE SPEAR SEMAPHORE");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
         return SignOnService();
     }
 
@@ -84,7 +94,6 @@ namespace muffin {
                 {
                     continue;
                 }
-
                 payload[length++] = rxd;
                 if (payload[length - 1] == 0x03)
                 {
@@ -95,6 +104,7 @@ namespace muffin {
 
         if (length == 0)
         {
+            LOG_ERROR(logger,"TIMEOUT");
             return Status(Status::Code::BAD_TIMEOUT);
         }
         else
@@ -356,6 +366,12 @@ namespace muffin {
            configArray.add(value);
         }
 
+        if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
         const uint8_t size = measureJson(JarvisJson) + 1;
         char payload[size];
         memset(payload, 0, size);
@@ -418,6 +434,12 @@ namespace muffin {
             config["s"] = static_cast<uint8_t>(data->GetStopBit().second);  
         }
 
+        if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
         const uint8_t size = measureJson(JarvisJson) + 1;
         char payload[size];
         memset(payload, 0, size);
@@ -434,6 +456,12 @@ namespace muffin {
 
     Status SPEAR::receiveSignOn()
     {
+        if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
         const size_t timeout = 2000;
         const uint8_t size = 64;
         char buffer[size] = {'\0'};
@@ -441,6 +469,7 @@ namespace muffin {
         Status ret = Receive(timeout, size, buffer);
         if (ret != Status::Code::GOOD)
         {
+            xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
 
@@ -450,6 +479,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE MESSAGE");
+            xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
 
@@ -457,11 +487,13 @@ namespace muffin {
         {
             LOG_ERROR(logger, "INVALID CODE: 0x%02X != 0x%02X", 
                 doc["c"].as<uint8_t>(), static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST));
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
         
         Send("{\"c\":1,\"s\":0}");
         LOG_INFO(logger, "Initialized successfully");
+        xSemaphoreGive(xSemaphoreSPEAR);
         return Status(Status::Code::GOOD);
     }
 
@@ -555,6 +587,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {   
             LOG_DEBUG(logger, "ret: %s", ret.c_str());
+            xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
 
@@ -564,6 +597,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE MESSAGE");
+            xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
         
@@ -571,6 +605,7 @@ namespace muffin {
         {
             LOG_ERROR(logger, "INVALID CODE: 0x%02X != 0x%02X", 
                 doc["c"].as<uint8_t>(), static_cast<uint8_t>(spear_cmd_e::JARVIS_SETUP));
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
         
@@ -578,12 +613,14 @@ namespace muffin {
         if (doc["s"].as<uint32_t>() != static_cast<uint32_t>(Status::Code::GOOD))
         {
             LOG_ERROR(logger, "BAD STATUS CODE: 0x%02X", doc["s"].as<uint32_t>());
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
 
         const uint32_t statusCode = doc["r"].as<uint32_t>();
         const Status::Code response = static_cast<Status::Code>(statusCode);
         LOG_INFO(logger, "statusCode: %s", Status(response).c_str());
+        xSemaphoreGive(xSemaphoreSPEAR);
         return Status(response);
     }
 
@@ -599,6 +636,12 @@ namespace muffin {
         body["4"] = daq->Address;
         body["5"] = daq->Quantity;
 
+        if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
         const uint8_t payloadSize = measureJson(JarvisJson) + 1;
         char payload[payloadSize];
         memset(payload, 0, payloadSize);
@@ -608,13 +651,14 @@ namespace muffin {
 
         Send(payload);
 
-        const uint16_t timeout = 1000;
+        const uint16_t timeout = 2000;
         const uint16_t size = 1024;
         char buffer[size] = {'\0'};
 
         Status ret = Receive(timeout, size, buffer);
         if (ret != Status::Code::GOOD)
         {
+             xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
         
@@ -624,6 +668,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE MESSAGE");
+             xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
         
@@ -631,12 +676,14 @@ namespace muffin {
         {
             LOG_ERROR(logger, "INVALID CODE: 0x%02X != 0x%02X", 
                 doc["c"].as<uint8_t>(), static_cast<uint8_t>(spear_cmd_e::DAQ_POLL));
+             xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
 
         if (doc["s"].as<uint32_t>() != static_cast<uint32_t>(Status::Code::GOOD))
         {
             LOG_ERROR(logger, "BAD STATUS CODE: 0x%02X", doc["s"].as<uint32_t>());
+             xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
         JsonObject response = doc["r"].as<JsonObject>();
@@ -644,6 +691,7 @@ namespace muffin {
         if (modbusResult != static_cast<uint16_t>(mb_status_e::SUCCESS))
         {
             LOG_ERROR(logger, "BAD MODBUS STATUS CODE: 0x%02X", modbusResult);
+             xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
 
@@ -652,23 +700,29 @@ namespace muffin {
         {
             daq->PolledValuesVector.emplace_back(val.as<uint16_t>());
         }
+        xSemaphoreGive(xSemaphoreSPEAR);
         return Status(Status::Code::GOOD);
     }
 
     Status SPEAR::ExecuteService(spear_remote_control_msg_t msg)
     {
+
         char command[64] = {'\0'};
         sprintf(command, "{\"c\":49,\"b\":{\"1\":%u,\"2\":%u,\"3\":%u,\"4\":%u,\"5\":%u}}", 
             static_cast<uint8_t>(msg.Link), msg.SlaveID, static_cast<uint8_t>(msg.Area), msg.Address, msg.Value);
         Send(command);
+
+        LOG_INFO(logger,"REMOTE SEND MSG : %s",command);
         
-        const uint8_t timeout = 100;
+        const uint16_t timeout = 2000;
         const uint8_t size = 64;
         char buffer[size] = {'\0'};
 
         Status ret = Receive(timeout, size, buffer);
         if (ret != Status::Code::GOOD)
         {
+            LOG_WARNING(logger,"ERROR! , ret : %s",ret.c_str());
+            xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
         
@@ -678,6 +732,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE MESSAGE");
+            xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
         
@@ -685,12 +740,14 @@ namespace muffin {
         {
             LOG_ERROR(logger, "INVALID CODE: 0x%02X != 0x%02X", 
                 doc["c"].as<uint8_t>(), static_cast<uint8_t>(spear_cmd_e::REMOTE_CONTROL));
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
         
         if (doc["s"].as<uint32_t>() != static_cast<uint32_t>(Status::Code::GOOD))
         {
             LOG_ERROR(logger, "BAD STATUS CODE: 0x%02X", doc["s"].as<uint32_t>());
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
 
@@ -699,11 +756,13 @@ namespace muffin {
         if (response != mb_status_e::SUCCESS)
         {
             LOG_ERROR(logger, "RSC: %u", static_cast<uint32_t>(response));
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
         else
         {
             LOG_INFO(logger, "Modbus State: %u", modbusState);
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::GOOD);
         }
     }

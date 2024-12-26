@@ -28,6 +28,8 @@
 
 namespace muffin {
 
+    extern SemaphoreHandle_t xSemaphoreSPEAR;
+
     class SPEAR
     {
     public:
