@@ -968,11 +968,12 @@ namespace muffin {
         operationTime.StopTask();
         operationTime.Clear();
 
-        ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
-        modbusRTU->Clear();
-
         im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
         nodeStore->Clear();
+
+        ModbusRtuVector.clear();
+        ModbusTcpVector.clear();
+        
     }
 
     void StartUpdateTask()

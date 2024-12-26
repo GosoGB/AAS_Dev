@@ -203,6 +203,9 @@ namespace muffin {
 
         const char* semanticVersion = obj["1"].as<const char*>();
         const uint32_t versionCode = obj["2"].as<uint32_t>();
+        
+        LOG_INFO(logger, "Semantic Version: %s", semanticVersion);
+        LOG_INFO(logger, "vc: %U", versionCode);
 
         FW_VERSION_MEGA2560.SetSemanticVersion(semanticVersion);
         FW_VERSION_MEGA2560.SetVersionCode(versionCode);
@@ -600,6 +603,8 @@ namespace muffin {
             return ret;
         }
 
+        LOG_INFO(logger,"Receive MSG : %s",buffer);
+        
         JSON json;
         JsonDocument doc;
         ret = json.Deserialize(buffer, &doc);
@@ -621,12 +626,12 @@ namespace muffin {
             LOG_ERROR(logger, "BAD STATUS CODE: 0x%02X", doc["s"].as<uint32_t>());
             return Status(Status::Code::BAD);
         }
-
-        JsonObject response = doc["r"].to<JsonObject>();
+        JsonObject response = doc["r"].as<JsonObject>();
         uint16_t modbusResult = response["6"].as<uint16_t>();
         if (modbusResult != static_cast<uint16_t>(mb_status_e::SUCCESS))
         {
             LOG_ERROR(logger, "BAD MODBUS STATUS CODE: 0x%02X", modbusResult);
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
 
         JsonArray value = response["7"].as<JsonArray>();
