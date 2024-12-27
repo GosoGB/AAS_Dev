@@ -75,7 +75,7 @@ namespace muffin {
             #ifdef DEBUG
                 if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
                 {
-                    //LOG_DEBUG(logger, "[TASK: Modbus RTU] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                    LOG_DEBUG(logger, "[TASK: Modbus RTU] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                     checkRemainedStackMillis = millis();
                 }
             #endif
@@ -187,7 +187,7 @@ namespace muffin {
             #ifdef DEBUG
                 if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
                 {
-                    //LOG_DEBUG(logger, "[TASK: Modbus TCP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                    LOG_DEBUG(logger, "[TASK: Modbus TCP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                     checkRemainedStackMillis = millis();
                 }
             #endif

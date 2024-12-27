@@ -5,7 +5,7 @@
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-10-30
+ * @date 2024-12-27
  * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -156,10 +156,9 @@ namespace muffin {
             }
             vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
-    #if !defined(CATFS)
+
         StartTaskMQTT();
         StartUpdateTask();
-    #endif
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)

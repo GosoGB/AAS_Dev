@@ -57,11 +57,11 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             cyclicalsMSGTask,      // Function to be run inside of the task
             "cyclicalsMSGTask",    // The identifier of this task for men
-            10240,			   // Stack memory size to allocate
-            &pollingInterval,			   // Task parameters to be passed to the function
-            0,				   // Task Priority for scheduling
-            &xTaskMonitorHandle,  // The identifier of this task for machines
-            0				   // Index of MCU core where the function to run
+            4096,			       // Stack memory size to allocate
+            &pollingInterval,      // Task parameters to be passed to the function
+            0,				       // Task Priority for scheduling
+            &xTaskMonitorHandle,   // The identifier of this task for machines
+            0				       // Index of MCU core where the function to run
         );
 
         /**
@@ -135,7 +135,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                //DEBUG(logger, "[TASK: Modbus] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                LOG_DEBUG(logger, "[TASK: CyclicalMsg] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif

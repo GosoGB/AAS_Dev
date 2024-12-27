@@ -5,7 +5,7 @@
  * 
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
  * 
- * @date 2024-12-26
+ * @date 2024-12-27
  * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -588,7 +588,7 @@ namespace muffin {
             currentTimestamp = GetTimestamp();
             LOG_DEBUG(logger,"12시간 경과 %lu",currentTimestamp);
         #ifdef DEBUG
-            LOG_DEBUG(logger, "[TASK: Fota] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+            LOG_DEBUG(logger, "[TASK: OTA] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
         #endif
             implementUpdateTask();
         }
@@ -650,6 +650,8 @@ namespace muffin {
     Status DownloadFirmware(const mcu_type_e mcu)
     {
         CatM1& catM1 = CatM1::GetInstance();
+        catM1.KillUrcTask(true);
+        
         const auto mutexHandle = catM1.TakeMutex();
         if (mutexHandle.first.ToCode() != Status::Code::GOOD)
         {
@@ -701,26 +703,27 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO FETCH FOTA FROM SERVER: %s", ret.c_str());
-            catHttp.SetSinkToCatFS(false,"");
+            catHttp.SetSinkToCatFS(false, "");
             catM1.ReleaseMutex();
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
-        catHttp.SetSinkToCatFS(false,"");
-        catM1.ReleaseMutex();
+        catHttp.SetSinkToCatFS(false, "");
         
         
         CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
-        ret = catFS->Begin();
+        ret = catFS->BeginWithMutex(mutexHandle.second);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAIL TO BEGIN CATFS");
+            catM1.ReleaseMutex();
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
-        ret = catFS->Open(path, true);
+        ret = catFS->OpenWithMutex(mutexHandle.second, path, true);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAIL TO OPEN FILE FROM CATFS");
+            catM1.ReleaseMutex();
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
 
@@ -744,18 +747,22 @@ namespace muffin {
                 maxBufferSize :
                 bytesRemained;
             
+            LOG_DEBUG(logger, "File: %u, ByteRead: %u, BufferSize: %u", fileSize, bytesRead, bufferSize);
+            
             uint8_t buffer[bufferSize] = { 0 };
-            Status ret = catFS->Read(bufferSize, buffer);
+            Status ret = catFS->ReadWithMutex(mutexHandle.second, bufferSize, buffer);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
-                catFS->Close();
+                catFS->CloseWithMutex(mutexHandle.second);
+                catM1.ReleaseMutex();
                 return ret;
             }
             bytesRead += bufferSize;
             crc32.Calculate(bufferSize, buffer);
         }
-        catFS->Close();
+        catFS->CloseWithMutex(mutexHandle.second);
+        catM1.ReleaseMutex();
 
         crc32.Teardown();
         char bufferCRC32[9] = { '\0' };
@@ -989,7 +996,6 @@ namespace muffin {
 
         ModbusRtuVector.clear();
         ModbusTcpVector.clear();
-        
     }
 
     void StartUpdateTask()
@@ -1007,9 +1013,9 @@ namespace muffin {
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
          */
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            UpdateTask,      // Function to be run inside of the task
-            "UpdateTask",    // The identifier of this task for men
-            10240,			   // Stack memory size to allocate
+            UpdateTask,        // Function to be run inside of the task
+            "UpdateTask",      // The identifier of this task for men
+            8192,			   // Stack memory size to allocate
             NULL,			   // Task parameters to be passed to the function
             0,				   // Task Priority for scheduling
             &xTaskFotaHandle,  // The identifier of this task for machines

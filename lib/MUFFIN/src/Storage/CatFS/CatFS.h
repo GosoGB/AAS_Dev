@@ -42,6 +42,7 @@ namespace muffin {
         static CatFS* mInstance;
 
     public:
+        Status BeginWithMutex(size_t mutexHandle, const bool formatOnFail = false, const char* basePath = "/catfs", const uint8_t maxOpenFiles = 1, const char* partitionLabel = "catfs");
         virtual Status Begin(const bool formatOnFail = false, const char* basePath = "/catfs", const uint8_t maxOpenFiles = 1, const char* partitionLabel = "catfs") override;
         virtual Status Format() override;
         virtual size_t GetTotalBytes() const override;
@@ -62,8 +63,11 @@ namespace muffin {
         virtual Status RemoveDirectory(const std::string &path) override;
     public:
         Status Open(const std::string& path, bool temporary = true);
+        Status OpenWithMutex(size_t mutexHandle, const std::string& path, const bool temporary = true);
         Status Close();
+        Status CloseWithMutex(size_t mutexHandle);
         Status Read(const size_t length, uint8_t outputBuffer[]);
+        Status ReadWithMutex(size_t mutexHandle, const size_t length, uint8_t outputBuffer[]);
         Status Seek(const size_t offset);
         Status DownloadFile(const std::string& path, std::string* data);
     private:

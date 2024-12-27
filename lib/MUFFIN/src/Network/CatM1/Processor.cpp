@@ -322,7 +322,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                // LOG_DEBUG(logger, "Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                LOG_DEBUG(logger, "[TASK: CatM1::Processor] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif

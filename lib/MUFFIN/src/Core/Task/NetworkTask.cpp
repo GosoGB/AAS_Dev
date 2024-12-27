@@ -374,7 +374,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                // LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif
@@ -412,7 +412,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implCatM1Task,      // Function to be run inside of the task
             "CatM1Task",        // The identifier of this task for men
-            4096,			    // Stack memory size to allocate
+            3072,			    // Stack memory size to allocate
             NULL,			    // Task parameters to be passed to the function
             0,				    // Task Priority for scheduling
             &xTaskCatM1Handle,  // The identifier of this task for machines
