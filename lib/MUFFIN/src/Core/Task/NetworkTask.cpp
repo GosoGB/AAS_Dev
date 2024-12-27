@@ -329,7 +329,7 @@ namespace muffin {
         constexpr uint16_t SECOND_IN_MILLIS = 1000;
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 60 * 1000;
+        const uint16_t remainedStackCheckInterval = 6 * 1000;
     #endif
 
         CatM1& catM1 = CatM1::GetInstance();

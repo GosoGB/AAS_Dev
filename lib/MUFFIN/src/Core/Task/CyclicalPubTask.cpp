@@ -98,7 +98,7 @@ namespace muffin {
         time_t currentTimestamp = GetTimestamp();
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 60 * 1000;
+        const uint16_t remainedStackCheckInterval = 6 * 1000;
     #endif
 
         while (true)

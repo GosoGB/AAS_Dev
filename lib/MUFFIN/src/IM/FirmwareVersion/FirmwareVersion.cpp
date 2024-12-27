@@ -48,7 +48,7 @@ namespace muffin {
     }
 
 
-    FirmwareVersion FW_VERSION_ESP32("1.1.2", 3);
+    FirmwareVersion FW_VERSION_ESP32("1.1.3", 4);
 #if defined(MODLINK_T2)
     FirmwareVersion FW_VERSION_MEGA2560("0.0.1", 0);
 #endif

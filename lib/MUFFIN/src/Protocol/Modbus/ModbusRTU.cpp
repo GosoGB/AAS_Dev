@@ -188,7 +188,6 @@ namespace muffin {
     Status ModbusRTU::PollTemp()
     {
         muffin::Core& core = muffin::Core::GetInstance();
-
         
         const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
         for (const auto& slaveID : retrievedSlaveInfo.second)

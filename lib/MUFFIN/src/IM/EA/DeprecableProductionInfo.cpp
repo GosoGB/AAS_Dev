@@ -113,7 +113,7 @@ namespace muffin {
     {
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 60 * 1000;
+        const uint16_t remainedStackCheckInterval = 6 * 1000;
     #endif
 
         time_t LastTime;

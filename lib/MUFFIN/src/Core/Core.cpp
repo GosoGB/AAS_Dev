@@ -5,7 +5,7 @@
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-12-27
+ * @date 2024-12-28
  * @version 1.0.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
