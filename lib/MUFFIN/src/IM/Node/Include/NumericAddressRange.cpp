@@ -113,8 +113,6 @@ namespace muffin { namespace im {
         }
         else if (mStart == obj.mStart && lastAddressInRange != lastAddressInGivenRange)
         {
-            const uint16_t backupStart = mStart;
-
             mStart     = lastAddressInGivenRange + 1;
             mQuantity -= obj.mQuantity;
         }

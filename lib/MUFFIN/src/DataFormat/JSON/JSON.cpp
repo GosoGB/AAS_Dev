@@ -23,14 +23,6 @@
 
 namespace muffin {
 
-    JSON::JSON()
-    {
-    }
-    
-    JSON::~JSON()
-    {
-    }
-
     Status JSON::Deserialize(const std::string& payload, JsonDocument* json)
     {
         ASSERT((payload.length() > 0), "INPUT PARAMETER <const std::string& payload> CANNOT BE EMPTY");

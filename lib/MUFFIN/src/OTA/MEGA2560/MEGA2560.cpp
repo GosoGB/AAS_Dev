@@ -51,23 +51,23 @@ namespace muffin { namespace ota {
         }
     }
 
+    /**
+     * @todo 향후에 파라미터 설정 기능 구현해야 합니다.
+     * @todo 설정해야 하는 파라미터가 있을지 생각해봐야 합니다.
+     * 
+     * @code {.cpp}
+     * 
+     * ret = setParameters();
+     * if (ret != Status::Code::GOOD)
+     * {
+     *     LOG_ERROR(logger, "FAILED TO SET PROGRAMMING PARAMETERS");
+     *     return ret;
+     * }
+     * 
+     * @endcode
+     */
     Status MEGA2560::Init(const size_t totalSize)
     {
-/**
- * @todo 향후에 파라미터 설정 기능 구현해야 합니다.
- * @todo 설정해야 하는 파라미터가 있을지 생각해봐야 합니다.
- * 
- * @code {.cpp}
- * 
- * ret = setParameters();
- * if (ret != Status::Code::GOOD)
- * {
- *     LOG_ERROR(logger, "FAILED TO SET PROGRAMMING PARAMETERS");
- *     return ret;
- * }
- * 
- * @endcode
- */
         initUART();
         initGPIO();
         resetMEGA2560();
@@ -277,11 +277,13 @@ namespace muffin { namespace ota {
             LOG_ERROR(logger, "FAILED WITH STATUS CODE: 0x%X", response.MessageBody[1]);
             return Status(Status::Code::BAD);
         }
-    #if defined(DEBUG)
+
         const uint8_t ANSWER_FORMAT_LENGTH = 3;
-    #endif
-        ASSERT((response.Size == (ANSWER_FORMAT_LENGTH + readLength + MESSAGE_OVERHEAD + MESSAGE_CHECKSUM)), 
-            "THE LENGTH OF RESPONSE READ DOES NOT MATCH WHAT EXPECTED TO BE");
+        if (response.Size != (ANSWER_FORMAT_LENGTH + readLength + MESSAGE_OVERHEAD + MESSAGE_CHECKSUM))
+        {
+            LOG_ERROR(logger, "THE LENGTH OF BYTES READ: 0x%X != 0x%X", response.Size, (ANSWER_FORMAT_LENGTH + readLength + MESSAGE_OVERHEAD + MESSAGE_CHECKSUM));
+            return Status(Status::Code::BAD_DATA_LOST);
+        }
 
         outputPage->Size = 0;
         memset(outputPage->Data, 0, PAGE_SIZE);

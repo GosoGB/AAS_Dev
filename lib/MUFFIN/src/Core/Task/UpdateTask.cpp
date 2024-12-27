@@ -5,7 +5,7 @@
  * 
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
  * 
- * @date 2024-11-29
+ * @date 2024-12-26
  * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
@@ -430,8 +430,24 @@ namespace muffin {
             mega2560.ProgramFlashISP(page);
 
             ota::page_t pageReadBack;
-            mega2560.LoadAddress(currentAddress);
-            mega2560.ReadFlashISP(page.Size, &pageReadBack);
+            for (size_t i = 0; i < 5; i++)
+            {
+                Status ret = mega2560.LoadAddress(currentAddress);
+                if (ret != Status::Code::GOOD)
+                {
+                    continue;
+                }
+                
+                ret = mega2560.ReadFlashISP(page.Size, &pageReadBack);
+                if (ret == Status::Code::GOOD)
+                {
+                    break;
+                }
+                else
+                {
+                    continue;
+                }
+            }
             
             if (page.Size != pageReadBack.Size)
             {
@@ -681,7 +697,7 @@ namespace muffin {
          */
         std::string path =  mcu == mcu_type_e::MCU_ESP32 ? "esp32" : "mega2560";
         catHttp.SetSinkToCatFS(true, path);
-        Status ret = catHttp.GET(mutexHandle.second, header, parameters);
+        Status ret = catHttp.GET(mutexHandle.second, header, parameters, 300);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO FETCH FOTA FROM SERVER: %s", ret.c_str());

@@ -416,6 +416,7 @@ namespace muffin {
         }
         
         std::vector<uint8_t> vectorRxD = mRxBuffer.ReadBetweenPatterns(urcQMTRECV, "}\"\r\n");
+        LOG_DEBUG(logger, "vectorRxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
         std::vector<std::string> vectorToken;
         std::string currentToken;
         bool isFirstToken = true;

@@ -101,8 +101,8 @@ namespace muffin {
     class JSON
     {
     public:
-        JSON();
-        virtual ~JSON();
+        JSON() {}
+        virtual ~JSON() {}
     public:
         std::string Serialize(jarvis_struct_t& _struct);
         std::string Serialize(const remote_controll_struct_t& _struct);

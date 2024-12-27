@@ -28,8 +28,6 @@
 
 namespace muffin {
 
-    void printResetReason(const esp_reset_reason_t reason);
-    
     template <typename T>
     Status EmplaceBack(T&& value, std::vector<T>* vector)
     {
