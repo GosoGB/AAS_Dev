@@ -43,7 +43,7 @@
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "IM/EA/DeprecableProductionInfo.h"
-
+#include "Protocol/SPEAR/SPEAR.h"
 
 
 namespace muffin {
@@ -367,7 +367,13 @@ namespace muffin {
         {
             return false;
         }
-        
+
+        ret = catFS->Close();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAIL TO CLOSE FILE FROM CATFS");
+            return false;
+        }
         return true;
     }
 
@@ -477,6 +483,12 @@ namespace muffin {
         mega2560.LeaveProgrammingMode();
         mega2560.TearDown();
         LOG_INFO(logger, "ATmega2560 firmware has been updated");
+        ret = catFS->Close();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAIL TO CLOSE FILE FROM CATFS");
+            return false;
+        }
         return true;
     }
 
@@ -519,7 +531,6 @@ namespace muffin {
         {
             LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE FROM THE SERVER");
             PostDownloadResult(mcu_type_e::MCU_ESP32, "failure");
-            ESP.restart();
         }
         LOG_INFO(logger, "Succeded to download firmware from the server");
         PostDownloadResult(mcu_type_e::MCU_ESP32, "success");
@@ -528,13 +539,11 @@ namespace muffin {
         {
             LOG_INFO(logger, "Succeded to update ESP32 firmware");
             PostFinishResult(mcu_type_e::MCU_ESP32, "success");
-            ESP.restart();
         }
         else
         {
             LOG_ERROR(logger, "FAILED TO UPDATE ESP32 FIRMWARE");
             PostFinishResult(mcu_type_e::MCU_ESP32, "failure");
-            ESP.restart();
         }
     }
 
@@ -567,6 +576,9 @@ namespace muffin {
             LOG_WARNING(logger,"START ESP OTA");
             strategyESP32();
         }
+
+        spear.Reset();
+        ESP.restart();
         
     }
 
@@ -936,6 +948,11 @@ namespace muffin {
         {
             strategyESP32();
         }
+
+        LOG_INFO(logger, "Finish Firmware To Update Process, Reset!");
+        delay(3000);
+        spear.Reset();
+        ESP.restart();
     }
 
     void SendStatusMSG()
@@ -975,6 +992,12 @@ namespace muffin {
 
     void StopAllTask()
     {
+        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+        while (cdo.Count() > 0)
+        {
+            delay(100);
+        }
+    
         StopCyclicalsMSGTask();
         StopModbusTcpTask();
         StopModbusRtuTask();
