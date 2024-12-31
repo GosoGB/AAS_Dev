@@ -186,9 +186,7 @@ namespace muffin {
     }
     
     Status ModbusRTU::PollTemp()
-    {
-        muffin::Core& core = muffin::Core::GetInstance();
-        
+    {   
         const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
@@ -212,24 +210,24 @@ namespace muffin {
                     Status ret = spear.PollService(&msg);
                     if (ret != Status::Code::GOOD)
                     {
-                        LOG_ERROR(logger, "FAILED TO UPDATE NODES: %s", ret.c_str());
+                        return ret;
                     }
+
                     for (auto& val : msg.PolledValuesVector)
-                    {
-                        // LOG_INFO(logger, "msg.Address : %d, msg.Val : %d ",msg.Address,val);
+                    {       
                         switch (msg.Area)
                         {
                         case jarvis::mb_area_e::COILS:
-                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, val);
                             break;
                         case jarvis::mb_area_e::DISCRETE_INPUT:
-                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, val);
                             break;
                         case jarvis::mb_area_e::INPUT_REGISTER:
-                            mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address++, val);
                             break;
                         case jarvis::mb_area_e::HOLDING_REGISTER:
-                            mPolledDataTable.UpdateHoldingRegister(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateHoldingRegister(msg.SlaveID, msg.Address++, val);
                             break;
                         default:
                             break;
@@ -238,7 +236,7 @@ namespace muffin {
                 }
             }
         }
-        
+
         Status ret = updateVariableNodes();
         if (ret != Status::Code::GOOD)
         {

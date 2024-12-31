@@ -189,7 +189,7 @@ namespace muffin {
 
         Send("{\"c\":2}");
         
-        const uint16_t timeout = 1000;
+        const uint16_t timeout = 1500;
         const uint8_t size = 64;
         char buffer[size] = {'\0'};
 
@@ -787,7 +787,7 @@ namespace muffin {
 
         Send(payload);
 
-        const uint16_t timeout = 2000;
+        const uint16_t timeout = 3000;
         const uint16_t size = 1024;
         char buffer[size] = {'\0'};
 
@@ -842,10 +842,29 @@ namespace muffin {
         if (modbusResult != static_cast<uint16_t>(mb_status_e::SUCCESS))
         {
             LOG_ERROR(logger, "BAD MODBUS STATUS CODE: 0x%02X", modbusResult);
-             xSemaphoreGive(xSemaphoreSPEAR);
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
 
+        bool isValid = true;
+        isValid &= daq->Link == static_cast<jarvis::prt_e>(response["1"].as<uint8_t>());
+        isValid &= daq->SlaveID == response["2"].as<uint8_t>();
+        isValid &= daq->Area == static_cast<jarvis::mb_area_e>(response["3"].as<uint8_t>());
+        isValid &= daq->Address == response["4"].as<uint16_t>();
+        isValid &= daq->Quantity == response["5"].as<uint16_t>();
+
+        if (isValid == false)
+        {
+            while (Serial2.available())
+            {
+                Serial2.read();
+                delay(1);
+            }
+            LOG_ERROR(logger,"INVALID DATA");
+            xSemaphoreGive(xSemaphoreSPEAR);
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+        
         JsonArray value = response["7"].as<JsonArray>();
         for (auto val : value)
         {
