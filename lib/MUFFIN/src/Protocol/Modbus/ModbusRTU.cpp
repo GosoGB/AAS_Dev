@@ -218,16 +218,16 @@ namespace muffin {
                         switch (msg.Area)
                         {
                         case jarvis::mb_area_e::COILS:
-                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, val);
                             break;
                         case jarvis::mb_area_e::DISCRETE_INPUT:
-                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, val);
                             break;
                         case jarvis::mb_area_e::INPUT_REGISTER:
-                            mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address++, val);
                             break;
                         case jarvis::mb_area_e::HOLDING_REGISTER:
-                            mPolledDataTable.UpdateHoldingRegister(msg.SlaveID, msg.Address, val);
+                            mPolledDataTable.UpdateHoldingRegister(msg.SlaveID, msg.Address++, val);
                             break;
                         default:
                             break;
