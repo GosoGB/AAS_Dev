@@ -30,6 +30,7 @@
 #include "Jarvis/Jarvis.h"
 #include "Jarvis/Config/Operation/Operation.h"
 #include "JarvisTask.h"
+#include "Protocol/MQTT/CDO.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
@@ -71,8 +72,6 @@ namespace muffin {
         params = nullptr;
 
         jarvis::ValidationResult validationResult;
-
-
 #ifdef DEBUG
     //LOG_DEBUG(logger, "[TASK: JARVIS][PARAMS RECEIVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
@@ -88,126 +87,14 @@ namespace muffin {
             }
             ASSERT((s_IsJarvisTaskRunning == false), "JARVIS TASK CANNOT BE HANDLED AT THE SAME TIME");
         }
+
         s_IsJarvisTaskRunning = true;
 
 #ifdef DEBUG
     //LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
-
-        {/* JARVIS 설정 요청 메시지가 JSON 형식인 경우에만 태스크를 이어가도록 설계되어 있습니다. */
-            JSON json;
-            JsonDocument doc;
-            Status retJSON = json.Deserialize(payload, &doc);
-#ifdef DEBUG
-    //LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-            if (retJSON != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-
-                switch (retJSON.ToCode())
-                {
-                case Status::Code::BAD_END_OF_STREAM:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult.SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
-                    break;
-                case Status::Code::BAD_NO_DATA:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
-                    validationResult.SetDescription("PAYLOAD EMPTY");
-                    break;
-                case Status::Code::BAD_DATA_ENCODING_INVALID:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_ERROR);
-                    validationResult.SetDescription("PAYLOAD INVALID ENCODING");
-                    break;
-                case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
-                    validationResult.SetDescription("PAYLOAD OUT OF MEMORY");
-                    break;
-                case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
-                    validationResult.SetDescription("PAYLOAD EXCEEDED NESTING LIMIT");
-                    break;
-                case Status::Code::BAD_UNEXPECTED_ERROR:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                    validationResult.SetDescription("UNDEFINED CONDITION");
-                    break;
-                default:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                    validationResult.SetDescription("UNDEFINED CONDITION");
-                    break;
-                }
-                
-                callback(validationResult);
-                s_IsJarvisTaskRunning = false;
-                vTaskDelete(NULL);
-            }
-            ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
-            const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
-            if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
-            {
-                validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_VERSION);
-                validationResult.SetDescription("INVALID OR UNSUPPORTED PROTOCOL VERSION");
-                
-                callback(validationResult);
-                s_IsJarvisTaskRunning = false;
-                vTaskDelete(NULL);
-            }
-            ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
-            if (doc.containsKey("rqi") == true)
-            {
-                const char* rqi = doc["rqi"].as<const char*>();
-                if (rqi == nullptr || strlen(rqi) == 0)
-                {
-                    validationResult.SetRSC(jarvis::rsc_e::BAD);
-                    validationResult.SetDescription("INVALID REQUEST ID: CANNOT BE NULL OR EMPTY");
-                    
-                    callback(validationResult);
-                    s_IsJarvisTaskRunning = false;
-                    vTaskDelete(NULL);
-                }
-                ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
-            }
-        }
-        ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
-        
         CatM1& catM1 = CatM1::GetInstance();
         const auto mutexHandle = catM1.TakeMutex();
-        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
-        {
-            validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
-            validationResult.SetDescription("UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
-            s_IsJarvisTaskRunning = false;
-            callback(validationResult);
-            vTaskDelete(NULL);
-        }
-
-         /**
-         * @todo 모든 태스크를 종료해야 합니다.
-         */
-        {
-            StopCyclicalsMSGTask();
-            StopModbusRtuTask();
-            StopModbusTcpTask();
-
-            AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-            alarmMonitor.StopTask();
-            alarmMonitor.Clear();
-            
-            ProductionInfo& productionInfo = ProductionInfo::GetInstance();
-            productionInfo.StopTask();
-            productionInfo.Clear();
-            
-            OperationTime& operationTime = OperationTime::GetInstance();
-            operationTime.StopTask();
-            operationTime.Clear();
-
-            im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
-            nodeStore->Clear();
-
-            ModbusRtuVector.clear();
-            ModbusTcpVector.clear();
-
-        }
 
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             JSON json;
@@ -373,6 +260,9 @@ namespace muffin {
 
             validationResult = jarvis->Validate(jsonDocument);
             callback(validationResult);
+            jsonDocument.clear();
+            DynamicJsonDocument doc(0);
+            swap(jsonDocument, doc);
             s_IsJarvisTaskRunning = false;
             vTaskDelete(NULL);
         }
@@ -388,6 +278,7 @@ namespace muffin {
 
         *outputpayload = s_JarvisApiPayload;
         s_JarvisApiPayload.clear();
+        std::string().swap(s_JarvisApiPayload);
     }
 
 
@@ -397,6 +288,7 @@ namespace muffin {
     void ApplyJarvisTask()
     {
         Jarvis& jarvis = Jarvis::GetInstance();
+
         for (auto& pair : jarvis)
         {
             const jarvis::cfg_key_e key = pair.first;
@@ -406,6 +298,13 @@ namespace muffin {
                 break;
             }
         }
+
+        if (s_HasJarvisCommand == true)
+        {
+            LOG_DEBUG(logger, "JARVIS COMMAND EXIST!");
+            return;
+        }
+        
 
         for (auto& pair : jarvis)
         {

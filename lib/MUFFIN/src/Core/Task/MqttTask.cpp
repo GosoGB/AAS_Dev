@@ -158,6 +158,7 @@ namespace muffin {
             }
 
             const auto pubMessage = cdo.Peek();
+            LOG_DEBUG(logger,"pubMessage : %s",pubMessage.second.GetPayload());
             const Status status = pubMessage.first;
             if (status.ToCode() != Status::Code::GOOD)
             {

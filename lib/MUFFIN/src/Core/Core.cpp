@@ -15,6 +15,7 @@
 
 
 #include <esp_system.h>
+#include <Preferences.h>
 
 #include "Jarvis/Jarvis.h"
 #include "Common/Assert.h"
@@ -54,6 +55,7 @@ namespace muffin {
     std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
     std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
     muffin::jarvis::config::Ethernet mEthernet;
+    bool s_HasJarvisCommand = false;
     
     Core* Core::CreateInstance() noexcept
     {
@@ -117,6 +119,11 @@ namespace muffin {
 
     void Core::Init()
     {
+        Preferences nvs;
+        nvs.begin("jarvis");
+        s_HasJarvisCommand = nvs.getBool("jarvisFlag",false);
+        nvs.end();
+
         /**
          * @todo Reset 사유에 따라 자동으로 초기화 하는 기능의 개발이 필요합니다.
          * @details JARVIS 설정으로 인해 런타임에 크래시 같은 문제가 있을 수 있습니다.
@@ -174,7 +181,7 @@ namespace muffin {
          *       소실되게 됩니다. 따라서 요청이 사라지지 않게 보완하는 작업이 필요합니다.
          */
         case mqtt::topic_e::JARVIS_REQUEST:
-            startJarvisTask(payload);
+            SaveJarvisFlag(payload);
             return;
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
             startRemoteControll(payload);
@@ -190,7 +197,48 @@ namespace muffin {
         // mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
     }
 
-    void Core::startJarvisTask(const std::string& payload)
+    void Core::SaveJarvisFlag(const std::string& payload)
+    {
+        JSON json;
+        JsonDocument doc;
+        Status retJSON = json.Deserialize(payload, &doc);
+#ifdef DEBUG
+//LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+#endif
+        if (retJSON != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
+            return;
+        }
+        ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
+        const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
+        if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
+        {
+            LOG_ERROR(logger, "VERSION ERROR: %s , VERSION : %u", retVersion.first.c_str(),static_cast<uint8_t>(retVersion.second));
+            return;
+        }
+        ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
+        if (doc.containsKey("rqi") == true)
+        {
+            const char* rqi = doc["rqi"].as<const char*>();
+            if (rqi == nullptr || strlen(rqi) == 0)
+            {
+                
+            }
+            ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
+        }
+        
+        Preferences nvs;
+        nvs.begin("jarvis");
+        nvs.putBool("jarvisFlag",true);
+        nvs.end();
+
+        LOG_WARNING(logger,"ESP RESET!");
+        spear.Reset();
+        ESP.restart();
+    }
+
+    void Core::startJarvisTask()
     {
         jarvis_task_params* pvParameters = new(std::nothrow) jarvis_task_params();
         if (pvParameters == nullptr)
@@ -200,7 +248,6 @@ namespace muffin {
         }
         
         pvParameters->Callback = onJarvisValidationResult;
-        pvParameters->RequestPayload = payload;
 
         /**
          * @todo 스택 오버플로우를 방지하기 위해서 JARVIS 설정 정보 크기에 따라서 태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
@@ -750,9 +797,17 @@ ERROR_RESPONSE:
          */
         file.close();
 
+        Preferences nvs;
+        nvs.begin("jarvis");
+        nvs.putBool("jarvisFlag",false);
+        nvs.end();
+
+        ESP.restart();
+        
         /**
          * @todo 설정 정보가 올바르게 설정되었는지 확인하는 기능을 추가해야 합니다.
          */
+        s_HasJarvisCommand = false;
         ApplyJarvisTask();
     }
 

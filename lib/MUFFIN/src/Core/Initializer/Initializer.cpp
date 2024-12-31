@@ -18,6 +18,7 @@
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
 
+#include "Core/Core.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
 #include "Core/Task/JarvisTask.h"
@@ -99,6 +100,11 @@ namespace muffin {
 
     Status Initializer::Configure()
     {
+        if (s_HasJarvisCommand)
+        {
+            return configureWithoutJarvis();
+        }
+        
     #if !defined(CATFS)
         ESP32FS& esp32FS = ESP32FS::GetInstance();
         Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
@@ -144,6 +150,12 @@ namespace muffin {
     #endif
     
         StartCatM1Task();
+
+        if (s_HasJarvisCommand)
+        {
+            muffin::Core& core = muffin::Core::GetInstance();
+            core.startJarvisTask();
+        }
         return ret;
     }
 
@@ -194,6 +206,9 @@ namespace muffin {
         
         Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
         jarvis->Validate(doc);
+        doc.clear();
+        DynamicJsonDocument docTemp(0);
+        swap(doc, docTemp);
         ApplyJarvisTask();
 
         return Status(Status::Code::GOOD);
