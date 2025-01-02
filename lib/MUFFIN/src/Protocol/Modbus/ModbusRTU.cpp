@@ -184,7 +184,7 @@ namespace muffin {
     {
         return AddressRange(address, quantity);
     }
-    
+#if defined(MODLINK_T2) || defined(MODLINK_B)
     Status ModbusRTU::PollTemp()
     {   
         const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
@@ -207,21 +207,25 @@ namespace muffin {
                     msg.Address = startAddress;
                     msg.Quantity = pollQuantity;
 
+                    constexpr int8_t INVALID_VALUE = -1;
                     Status ret = spear.PollService(&msg);
-                    if (ret != Status::Code::GOOD)
+                    if (ret != Status(Status::Code::GOOD))
                     {
-                        return ret;
+                        for (size_t i = 0; i < pollQuantity; i++)
+                        {
+                            msg.PolledValuesVector.emplace_back(INVALID_VALUE);
+                        }
                     }
-
+                
                     for (auto& val : msg.PolledValuesVector)
-                    {       
+                    {
                         switch (msg.Area)
                         {
                         case jarvis::mb_area_e::COILS:
-                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, val);
+                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
                             break;
                         case jarvis::mb_area_e::DISCRETE_INPUT:
-                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, val);
+                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
                             break;
                         case jarvis::mb_area_e::INPUT_REGISTER:
                             mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address++, val);
@@ -245,6 +249,7 @@ namespace muffin {
 
         return ret;
     }
+#endif
 
     Status ModbusRTU::Poll()
     {
@@ -399,6 +404,7 @@ namespace muffin {
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveInputRegister(slaveID, address + i);
+         
                         polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
                         polledData.ValueType = jarvis::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;

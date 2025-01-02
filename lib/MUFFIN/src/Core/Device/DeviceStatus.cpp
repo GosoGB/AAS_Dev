@@ -55,9 +55,10 @@ namespace muffin {
     {
         mVersionESP32.Semantic = "1.2.0";
         mVersionESP32.Code = 2;
-        
+#if defined(MODLINK_T2) | defined(MODLINK_B)
         mVersionMEGA2560.Semantic = "0.0.0";
         mVersionMEGA2560.Code = 0;
+#endif
 
 #if !defined(V_OLA_T10) | !defined(V_OLA_H10)
     #if defined(MODLINK_T2) | defined(MODLINK_B)
@@ -94,6 +95,8 @@ namespace muffin {
             return mVersionMEGA2560;
         }
     #endif
+
+        return mVersionESP32;
     }
 
     void DeviceStatus::SetFirmwareVersion(const mcu_type_e type, const char* semver, const uint32_t vc)

@@ -73,7 +73,7 @@ namespace muffin {
                 FW_VERSION_ESP32.GetSemanticVersion(),
                 FW_VERSION_ESP32.GetVersionCode());
 
-        #if defined(MODLINK_T2)
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
             if (spear.Init() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART ESP32.");
@@ -234,7 +234,9 @@ namespace muffin {
         nvs.end();
 
         LOG_WARNING(logger,"ESP RESET!");
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         spear.Reset();
+    #endif
         ESP.restart();
     }
 
@@ -527,7 +529,7 @@ namespace muffin {
         else
         {
             uint8_t writeResult = 0;
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
             if (mVectorModbusTCP.size() != 0)
             {
                 for (auto& TCP : mVectorModbusTCP)
@@ -597,7 +599,7 @@ namespace muffin {
                     
                 }
             }
-        #endif
+    #endif
 
             if (mVectorModbusRTU.size() != 0)
             {
@@ -802,13 +804,21 @@ ERROR_RESPONSE:
         nvs.putBool("jarvisFlag",false);
         nvs.end();
 
+        // 혹시라도 MFM RESPONSE를 서버로 못보내고 리셋이 될 수도 있나?
+        while (cdo.Count() > 0)
+        {
+            delay(1);
+        }
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        spear.Reset();
+    #endif 
         ESP.restart();
         
         /**
          * @todo 설정 정보가 올바르게 설정되었는지 확인하는 기능을 추가해야 합니다.
-         */
-        s_HasJarvisCommand = false;
+         * 2025-01-02 설정값 저장 후 리셋하기 때문에 아래 코드는 실행되지않음, 우선 주석처리
         ApplyJarvisTask();
+         */
     }
 
     void Core::startOTA(const std::string& payload)

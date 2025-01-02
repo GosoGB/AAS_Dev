@@ -993,51 +993,51 @@ namespace muffin { namespace im {
         {
         case jarvis::dt_e::INT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::UINT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::INT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::UINT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::INT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::UINT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::FLOAT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) + mNumericOffset.second;
             break;
 
         case jarvis::dt_e::INT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) + mNumericOffset.second;
             break;
 
         case jarvis::dt_e::UINT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) + mNumericOffset.second;
             break;
             
         case jarvis::dt_e::FLOAT64:
-            variableData.Value.Float64 = variableData.Value.Float64 - mNumericOffset.second;
+            variableData.Value.Float64 = variableData.Value.Float64 + mNumericOffset.second;
             break;
 
         default:
@@ -1307,7 +1307,7 @@ namespace muffin { namespace im {
 
             if (mNumericOffset.first == true)
             {
-               floatTemp = Convert.ToFloat(data) - mNumericOffset.second;
+               floatTemp = Convert.ToFloat(data) + mNumericOffset.second;
                if (mNumericScale.first == false)
                {
                     //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
@@ -1443,6 +1443,10 @@ namespace muffin { namespace im {
         }
     
         var_data_t variableData = RetrieveData();
+        if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
+        {
+            return std::make_pair(false, daq);
+        }
         
         daq.Name = mDeprecableDisplayName;
         daq.SourceTimestamp = variableData.Timestamp;
@@ -1451,7 +1455,7 @@ namespace muffin { namespace im {
         daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
                     mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
                     mqtt::topic_e::DAQ_PARAM;
-
+    
         switch (variableData.DataType)
         {
         case jarvis::dt_e::BOOLEAN:
