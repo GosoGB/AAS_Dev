@@ -28,7 +28,7 @@ namespace muffin {
     typedef enum class McuTypeEnum
     {
         MCU_ESP32,
-    #if defined(MODLINK_T2) | defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         MCU_ATmega2560
     #endif
     } mcu_type_e;
@@ -39,7 +39,7 @@ namespace muffin {
 		std::string Semantic;
 	} fw_vsn_t;
 
-#if defined(MODLINK_B) | defined(V_OLA_T10) | defined(V_OLA_H10)
+#if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
 	typedef struct WiFiStatusReportType
 	{
       bool Enabled;
@@ -49,8 +49,8 @@ namespace muffin {
 	} wifi_report_t;
 #endif
 
-#if !defined(V_OLA_T10) | !defined(V_OLA_H10)
-   #if defined(MODLINK_T2) | defined(MODLINK_B)
+#if !defined(V_OLA_T10) || !defined(V_OLA_H10)
+   #if defined(MODLINK_T2) || defined(MODLINK_B)
       typedef struct EthernetStatusReportType
       {
          bool Enabled;
@@ -96,13 +96,13 @@ namespace muffin {
       void SetTask(const std::string name, size_t remainedStack);
       void SetRemainedHeap(const size_t memory);
       void SetRemainedFlash(const size_t memory);
-#if !defined(V_OLA_T10) | !defined(V_OLA_H10)
-   #if defined(MODLINK_T2) | defined(MODLINK_B)
+#if !defined(V_OLA_T10) || !defined(V_OLA_H10)
+   #if defined(MODLINK_T2) || defined(MODLINK_B)
       void SetReportEthernet(const eth_report_t report);
    #endif
       void SetReportCatM1(const catm1_report_t report);
 #endif
-   #if defined(MODLINK_B) | defined(V_OLA_T10) | defined(V_OLA_H10)
+   #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
       void SetReportWiFi(const wifi_report_t report);
    #endif
 
@@ -122,14 +122,14 @@ namespace muffin {
       size_t mRemainedHeapMemory = 0;
       size_t mRemainedFlashMemory = 0;
 
-#if !defined(V_OLA_T10) | !defined(V_OLA_H10)
-   #if defined(MODLINK_T2) | defined(MODLINK_B)
+#if !defined(V_OLA_T10) || !defined(V_OLA_H10)
+   #if defined(MODLINK_T2) || defined(MODLINK_B)
       eth_report_t mEthernetStatusReport;
    #endif
       catm1_report_t mCatM1StatusReport;
 #endif
 
-   #if defined(MODLINK_B) | defined(V_OLA_T10) | defined(V_OLA_H10)
+   #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
       wifi_report_t mWiFiStatusReport;
    #endif
 	};

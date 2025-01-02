@@ -184,9 +184,11 @@ namespace muffin {
     {
         return AddressRange(address, quantity);
     }
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+    
     Status ModbusRTU::PollTemp()
     {   
+        Status ret = Status(Status::Code::UNCERTAIN);
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
@@ -208,17 +210,17 @@ namespace muffin {
                     msg.Quantity = pollQuantity;
 
                     constexpr int8_t INVALID_VALUE = -1;
-                    Status ret = spear.PollService(&msg);
-                    if (ret != Status(Status::Code::GOOD))
+                    ret = spear.PollService(&msg);
+                    if (ret != Status::Code::GOOD)
                     {
                         for (size_t i = 0; i < pollQuantity; i++)
                         {
                             msg.PolledValuesVector.emplace_back(INVALID_VALUE);
                         }
                     }
-                
+
                     for (auto& val : msg.PolledValuesVector)
-                    {
+                    {       
                         switch (msg.Area)
                         {
                         case jarvis::mb_area_e::COILS:
@@ -241,15 +243,15 @@ namespace muffin {
             }
         }
 
-        Status ret = updateVariableNodes();
+        ret = updateVariableNodes();
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO UPDATE NODES: %s", ret.c_str());
         }
 
+    #endif
         return ret;
     }
-#endif
 
     Status ModbusRTU::Poll()
     {
@@ -404,7 +406,6 @@ namespace muffin {
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveInputRegister(slaveID, address + i);
-         
                         polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
                         polledData.ValueType = jarvis::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;

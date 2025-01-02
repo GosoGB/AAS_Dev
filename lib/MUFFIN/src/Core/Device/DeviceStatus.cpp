@@ -55,13 +55,13 @@ namespace muffin {
     {
         mVersionESP32.Semantic = "1.2.0";
         mVersionESP32.Code = 2;
-#if defined(MODLINK_T2) | defined(MODLINK_B)
+#if defined(MODLINK_T2) || defined(MODLINK_B)
         mVersionMEGA2560.Semantic = "0.0.0";
         mVersionMEGA2560.Code = 0;
 #endif
 
-#if !defined(V_OLA_T10) | !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) | defined(MODLINK_B)
+#if !defined(V_OLA_T10) || !defined(V_OLA_H10)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         mEthernetStatusReport.Enabled = false;
         mEthernetStatusReport.LocalIP = "0.0.0.0";
         mEthernetStatusReport.Status  = "UNKNOWN";
@@ -75,7 +75,7 @@ namespace muffin {
         mCatM1StatusReport.SINR      = INT16_MIN;
 #endif
 
-   #if defined(MODLINK_B) | defined(V_OLA_T10) | defined(V_OLA_H10)
+   #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
       mWiFiStatusReport.Enabled  = false;
       mWiFiStatusReport.LocalIP  = "0.0.0.0";
       mWiFiStatusReport.Status   = "UNKNOWN";
@@ -89,7 +89,7 @@ namespace muffin {
         {
             return mVersionESP32;
         }
-    #if defined(MODLINK_T2) | defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         else
         {
             return mVersionMEGA2560;
@@ -106,7 +106,7 @@ namespace muffin {
             mVersionESP32.Code = vc;
             mVersionESP32.Semantic = semver;
         }
-    #if defined(MODLINK_T2) | defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         else
         {
             mVersionMEGA2560.Code = vc;
@@ -185,8 +185,8 @@ namespace muffin {
         mRemainedFlashMemory = memory;
     }
 
-#if !defined(V_OLA_T10) | !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) | defined(MODLINK_B)
+#if !defined(V_OLA_T10) || !defined(V_OLA_H10)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
     void DeviceStatus::SetReportEthernet(const eth_report_t report)
     {
         mEthernetStatusReport = report;
@@ -199,7 +199,7 @@ namespace muffin {
     }
 #endif
 
-#if defined(MODLINK_B) | defined(V_OLA_T10) | defined(V_OLA_H10)
+#if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
     void DeviceStatus::SetReportWiFi(const wifi_report_t report)
     {
         mWiFiStatusReport = report;
@@ -241,8 +241,8 @@ namespace muffin {
 
         JsonObject network  = doc["network"].to<JsonObject>();
         {
-    #if !defined(V_OLA_T10) | !defined(V_OLA_H10)
-        #if defined(MODLINK_T2) | defined(MODLINK_B)
+    #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
             if (mEthernetStatusReport.Enabled == true)
             {
                 JsonObject ethernet = network["ethernet"].to<JsonObject>();
@@ -261,7 +261,7 @@ namespace muffin {
             }
     #endif
 
-        #if defined(MODLINK_B) | defined(V_OLA_T10) | defined(V_OLA_H10)
+        #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
             if (mWiFiStatusReport.Enabled == true)
             {
                 JsonObject wifi = network["wifi"].to<JsonObject>();
