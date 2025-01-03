@@ -4,8 +4,8 @@
  * 
  * @brief JARIVS 설정 정보를 토대로 Modbus 프로토콜로 데이터를 수집하는 태스크를 정의합니다.
  * 
- * @date 2024-10-21
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -40,7 +40,7 @@ namespace muffin {
     static uint32_t s_PollingIntervalInMillis = 1000;
 #ifdef DEBUG
     uint32_t checkRemainedStackMillis = millis();
-    const uint16_t remainedStackCheckInterval = 6 * 1000;
+    const uint16_t remainedStackCheckInterval = 5 * 1000;
 #endif
 
     void SetPollingInterval(const uint16_t pollingInterval)
@@ -98,7 +98,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implModbusRtuTask,      // Function to be run inside of the task
             "implModbusRtuTask",    // The identifier of this task for men
-            4608,       		    // Stack memory size to allocate
+            5 * KILLOBYTE,          // Stack memory size to allocate
             NULL,			        // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusRtuHandle,  // The identifier of this task for machines
@@ -219,7 +219,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implModbusTcpTask,      // Function to be run inside of the task
             "implModbusTcpTask",    // The identifier of this task for men
-            10 * KILLOBYTE,		    // Stack memory size to allocate
+            5 * KILLOBYTE,		    // Stack memory size to allocate
             NULL,			        // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusTcpHandle,       // The identifier of this task for machines

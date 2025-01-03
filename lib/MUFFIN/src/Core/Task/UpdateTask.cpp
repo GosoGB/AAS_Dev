@@ -190,7 +190,6 @@ namespace muffin {
         if (doc["mcu1"].isNull() == true)
         {
             LOG_INFO(logger, "No firmware available for ESP32");
-            outInfo->MCU_ESP32 = false;
         }
         else
         {
@@ -245,11 +244,10 @@ namespace muffin {
             }
         }
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+
         if (doc["mcu2"].isNull() == true)
         {
             LOG_INFO(logger, "No firmware available for ATmega2560");
-            outInfo->MCU_MEGA2560 = false;
         }
         else
         {
@@ -303,7 +301,7 @@ namespace muffin {
                 LOG_INFO(logger, "No update for ATmega2560");
             }
         }
-#endif
+
         return Status(Status::Code::GOOD);
     }
 
@@ -379,7 +377,6 @@ namespace muffin {
         return true;
     }
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
     bool updateATmega2560()
     {
         CatM1& catM1 = CatM1::GetInstance();
@@ -494,9 +491,7 @@ namespace muffin {
         }
         return true;
     }
-#endif
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
     Status strategyATmega2560()
     {
         /**
@@ -525,7 +520,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
     }
-#endif
+
     void strategyESP32()
     {
         /**
@@ -569,21 +564,20 @@ namespace muffin {
         }
         LOG_INFO(logger, "Has New Firmware To Update");
         StopAllTask();
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+
         if (fwInfo.MCU_MEGA2560 == true)
         {
             LOG_WARNING(logger,"START MEGA OTA");
             strategyATmega2560();
         }
-    #endif
+
         if (fwInfo.MCU_ESP32 == true)
         {
             LOG_WARNING(logger,"START ESP OTA");
             strategyESP32();
         }
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+
         spear.Reset();
-    #endif
         ESP.restart();
         
     }
@@ -635,7 +629,7 @@ namespace muffin {
             ReleaseURL.Host, 
             ReleaseURL.Port, 
             "/firmware/file/version/release",
-        #if defined(MODLINK_L)
+        #if defined(MODLINK_T)
             "MODLINK-L/" + version.Semantic
         #elif defined(MODLINK_T2)
             "MODLINK-T2/" + version.Semantic
@@ -687,7 +681,7 @@ namespace muffin {
             DownloadURL.Host,
             DownloadURL.Port,
             "/firmware/file/download", 
-        #if defined(MODLINK_L)
+        #if defined(MODLINK_T)
             "MODLINK-L/" + version.Semantic
         #elif defined(MODLINK_T2)
             "MODLINK-T2/" + version.Semantic
@@ -831,7 +825,7 @@ namespace muffin {
             DownloadURL.Host,
             DownloadURL.Port,
             "/firmware/file/download",
-        #if defined(MODLINK_L)
+        #if defined(MODLINK_T)
             "MODLINK-L/" + version.Semantic
         #elif defined(MODLINK_T2)
             "MODLINK-T2/" + version.Semantic
@@ -891,7 +885,7 @@ namespace muffin {
             DownloadURL.Host, 
             DownloadURL.Port, 
             "/firmware/file/download/finish", 
-        #if defined(MODLINK_L)
+        #if defined(MODLINK_T)
             "MODLINK-L/" + version.Semantic
         #elif defined(MODLINK_T2)
             "MODLINK-T2/" + version.Semantic
@@ -943,15 +937,13 @@ namespace muffin {
             return ;
         }
         LOG_INFO(logger, "Has New Firmware To Update");
-
         StopAllTask();
 
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
         if (fwInfo.MCU_MEGA2560 == true)
         {
             strategyATmega2560();
         }
-    #endif
+
         if (fwInfo.MCU_ESP32 == true)
         {
             strategyESP32();
@@ -959,9 +951,7 @@ namespace muffin {
 
         LOG_INFO(logger, "Finish Firmware To Update Process, Reset!");
         delay(3000);
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
         spear.Reset();
-    #endif
         ESP.restart();
     }
 
@@ -1003,7 +993,6 @@ namespace muffin {
     void StopAllTask()
     {
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        LOG_DEBUG(logger,"Waiting for COD");
         while (cdo.Count() > 0)
         {
             delay(100);

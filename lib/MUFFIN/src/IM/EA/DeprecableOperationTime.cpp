@@ -5,8 +5,8 @@
  * 
  * @brief 가동시간 정보를 집계하고 매분 서버로 전송하는 클래스를 정의합니다.
  * 
- * @date 2024-10-29
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -99,7 +99,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             wrapImplTask,    // Function to be run inside of the task
             "OpTimeTask",    // The identifier of this task for men
-            8 * 1024,	     // Stack memory size to allocate
+            4 * 1024,	     // Stack memory size to allocate
             this,	         // Task parameters to be passed to the function
             0,		         // Task Priority for scheduling
             &xHandle,        // The identifier of this task for machines
@@ -168,7 +168,7 @@ namespace muffin {
 
             for (auto& nodeReference : mVectorNodeReference)
             {
-                const size_t dataStoredCount = nodeReference.get().second.VariableNode.RetrieveCount();
+                const size_t dataStoredCount = nodeReference.get().second->VariableNode.RetrieveCount();
                 if (dataStoredCount == 0)
                 {
                     break;
@@ -176,7 +176,7 @@ namespace muffin {
                 ASSERT((dataStoredCount != 0), "THERE MUST BE DATA COLLECTED TO AGGREGATE PRODUCTION INFO");
 
                 auto& reference = nodeReference.get();
-                const im::var_data_t datum = reference.second.VariableNode.RetrieveData();
+                const im::var_data_t datum = reference.second->VariableNode.RetrieveData();
                 if (datum.StatusCode != Status::Code::GOOD)
                 {
                     break;
@@ -184,7 +184,7 @@ namespace muffin {
 
                 bool isStatusProcessing = false;
                 bool currentErrorStatus = alarmMonitor.HasError();
-                updateOperationTime(datum, reference.second, &isStatusProcessing);
+                updateOperationTime(datum, *reference.second, &isStatusProcessing);
                 
                 if (isStatusProcessing == true)
                 {

@@ -23,7 +23,6 @@
 #include "SPEAR.h"
 
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
 namespace muffin {
 
     SemaphoreHandle_t xSemaphoreSPEAR = NULL;
@@ -869,7 +868,7 @@ namespace muffin {
         JsonArray value = response["7"].as<JsonArray>();
         for (auto val : value)
         {
-            daq->PolledValuesVector.emplace_back(val.as<int32_t>());
+            daq->PolledValuesVector.emplace_back(val.as<uint16_t>());
         }
         xSemaphoreGive(xSemaphoreSPEAR);
         return Status(Status::Code::GOOD);
@@ -962,4 +961,3 @@ namespace muffin {
 
     SPEAR spear;
 }
-#endif

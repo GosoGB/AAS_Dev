@@ -34,10 +34,10 @@ namespace muffin { namespace im {
         static NodeStore* CreateInstanceOrNULL();
         static NodeStore& GetInstance();
     public:
-        std::map<std::string, Node>::iterator begin();
-        std::map<std::string, Node>::iterator end();
-        std::map<std::string, Node>::const_iterator begin() const;
-        std::map<std::string, Node>::const_iterator end() const;
+        std::map<std::string, Node*>::iterator begin();
+        std::map<std::string, Node*>::iterator end();
+        std::map<std::string, Node*>::const_iterator begin() const;
+        std::map<std::string, Node*>::const_iterator end() const;
 
     public:
         std::vector<Node*> GetCyclicalNode();
@@ -54,6 +54,6 @@ namespace muffin { namespace im {
         std::pair<Status, Node*> GetNodeReference(const std::string& nodeID);
         std::pair<Status, Node*> GetNodeReferenceUID(const std::string& UID);
     private:
-        std::map<std::string, Node> mMapNode;
+        std::map<std::string, Node*> mMapNode;
     };
 }}

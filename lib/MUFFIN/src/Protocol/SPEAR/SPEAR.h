@@ -25,7 +25,7 @@
 #include "Jarvis/Include/Base.h"
 #include "Protocol/Modbus/Include/AddressTable.h"
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+
 namespace muffin {
 
     extern SemaphoreHandle_t xSemaphoreSPEAR;
@@ -98,4 +98,3 @@ namespace muffin {
 
     extern SPEAR spear;
 }
-#endif
