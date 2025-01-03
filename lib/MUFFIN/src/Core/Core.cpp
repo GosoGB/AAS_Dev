@@ -56,6 +56,7 @@ namespace muffin {
     std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
     muffin::jarvis::config::Ethernet mEthernet;
     bool s_HasJarvisCommand = false;
+    bool s_HasFotaCommand = false;
     
     Core* Core::CreateInstance() noexcept
     {
@@ -74,18 +75,25 @@ namespace muffin {
                 FW_VERSION_ESP32.GetVersionCode());
 
         #if defined(MODLINK_T2) || defined(MODLINK_B)
-            if (spear.Init() != Status::Code::GOOD)
+            
+            const uint8_t MAX_TRIAL_COUNT = 3;
+            uint8_t trialCount = 0;
+    
+            while (spear.Init() != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART ESP32.");
+                LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART MEGA2560.");
                 spear.Reset();
-                esp_restart();
+                if (trialCount == MAX_TRIAL_COUNT)
+                {
+                    break;
+                }
+                trialCount++;
             }
-
+            
+            
             if (spear.VersionEnquiryService() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
-                spear.Reset();
-                esp_restart();
             }
 
             deviceStatus->SetFirmwareVersion(
@@ -97,7 +105,6 @@ namespace muffin {
             LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
                 FW_VERSION_MEGA2560.GetSemanticVersion(),
                 FW_VERSION_MEGA2560.GetVersionCode());
-                
         #endif
         
             mInstance = new(std::nothrow) Core();
@@ -122,6 +129,10 @@ namespace muffin {
         Preferences nvs;
         nvs.begin("jarvis");
         s_HasJarvisCommand = nvs.getBool("jarvisFlag",false);
+        nvs.end();
+
+        nvs.begin("fota");
+        s_HasFotaCommand = nvs.getBool("fotaFlag",false);
         nvs.end();
 
         /**
@@ -164,8 +175,12 @@ namespace muffin {
             vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
 
+        
+        
         StartTaskMQTT();
         StartUpdateTask();
+        
+
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)
@@ -181,13 +196,13 @@ namespace muffin {
          *       소실되게 됩니다. 따라서 요청이 사라지지 않게 보완하는 작업이 필요합니다.
          */
         case mqtt::topic_e::JARVIS_REQUEST:
-            SaveJarvisFlag(payload);
+            saveJarvisFlag(payload);
             return;
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
             startRemoteControll(payload);
             break;
         case mqtt::topic_e::FOTA_UPDATE:
-            startOTA(payload);
+            saveFotaFlag(payload);
             break;
         default:
             ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
@@ -197,7 +212,22 @@ namespace muffin {
         // mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
     }
 
-    void Core::SaveJarvisFlag(const std::string& payload)
+    void Core::saveFotaFlag(const std::string& payload)
+    {
+        Preferences nvs;
+        nvs.begin("fota");
+        nvs.putBool("fotaFlag",true);
+        nvs.putString("fotaPayload",payload.c_str());
+        nvs.end();
+
+        LOG_WARNING(logger,"ESP RESET!");
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        spear.Reset();
+    #endif
+        ESP.restart();
+    }
+
+    void Core::saveJarvisFlag(const std::string& payload)
     {
         JSON json;
         JsonDocument doc;

@@ -100,7 +100,7 @@ namespace muffin {
 
     Status Initializer::Configure()
     {
-        if (s_HasJarvisCommand)
+        if (s_HasJarvisCommand || s_HasFotaCommand)
         {
             return configureWithoutJarvis();
         }
@@ -156,6 +156,8 @@ namespace muffin {
             muffin::Core& core = muffin::Core::GetInstance();
             core.startJarvisTask();
         }
+
+        
         return ret;
     }
 

@@ -13,6 +13,7 @@
 
 
 
+#include <Preferences.h>
 #include <Update.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -536,6 +537,7 @@ namespace muffin {
         {
             LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE FROM THE SERVER");
             PostDownloadResult(mcu_type_e::MCU_ESP32, "failure");
+            return;
         }
         LOG_INFO(logger, "Succeded to download firmware from the server");
         PostDownloadResult(mcu_type_e::MCU_ESP32, "success");
@@ -567,8 +569,11 @@ namespace muffin {
             LOG_INFO(logger, "No Firmware To Update");
             return ;
         }
+
         LOG_INFO(logger, "Has New Firmware To Update");
+
         StopAllTask();
+
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         if (fwInfo.MCU_MEGA2560 == true)
         {
@@ -581,6 +586,7 @@ namespace muffin {
             LOG_WARNING(logger,"START ESP OTA");
             strategyESP32();
         }
+
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         spear.Reset();
     #endif
@@ -594,7 +600,24 @@ namespace muffin {
         const uint32_t sleep10Minutes = 60 * 10 * 1000;
         time_t currentTimestamp = GetTimestamp();
 
+        if (s_HasFotaCommand)
+        {
+            Preferences nvs;
+            nvs.begin("fota");
+            const std::string payload = nvs.getString("fotaPayload").c_str();
+            nvs.putBool("fotaFlag",false);
+            nvs.end();
+
+            LOG_WARNING(logger, "payload : %s",payload.c_str());
+            muffin::Core& core = muffin::Core::GetInstance();
+            core.startOTA(payload);
+
+            vTaskDelete(xTaskFotaHandle);
+            xTaskFotaHandle = NULL;
+        }
+
         implementUpdateTask();
+
 
         while (true)
         {
@@ -1049,7 +1072,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             UpdateTask,        // Function to be run inside of the task
             "UpdateTask",      // The identifier of this task for men
-            8192,			   // Stack memory size to allocate
+            1024*10,			   // Stack memory size to allocate
             NULL,			   // Task parameters to be passed to the function
             0,				   // Task Priority for scheduling
             &xTaskFotaHandle,  // The identifier of this task for machines
