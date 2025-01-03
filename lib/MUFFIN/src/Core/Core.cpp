@@ -285,7 +285,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             ProcessJarvisRequestTask,   // Function to be run inside of the task
             "ProcessJarvisRequestTask", // The identifier of this task for men
-            4 * KILLOBYTE,              // Stack memory size to allocate
+            8 * KILLOBYTE,              // Stack memory size to allocate
             pvParameters,	            // Task parameters to be passed to the function
             0,				            // Task Priority for scheduling
             NULL,                       // The identifier of this task for machines

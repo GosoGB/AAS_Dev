@@ -101,7 +101,6 @@ namespace muffin {
     {
         if (s_HasJarvisCommand || s_HasFotaCommand)
         {
-            LOG_WARNING(logger," 여기?");
             return configureWithoutJarvis();
         }
         
@@ -110,12 +109,10 @@ namespace muffin {
         Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
         if (ret == Status::Code::GOOD)
         {
-            LOG_WARNING(logger," 여기1");
             return configureWithJarvis();
         }
         else
         {
-            LOG_WARNING(logger," 여기2");
             return configureWithoutJarvis();
         }
     #else
