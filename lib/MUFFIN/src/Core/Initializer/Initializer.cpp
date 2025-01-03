@@ -101,6 +101,7 @@ namespace muffin {
     {
         if (s_HasJarvisCommand || s_HasFotaCommand)
         {
+            LOG_WARNING(logger," 여기?");
             return configureWithoutJarvis();
         }
         
@@ -109,10 +110,12 @@ namespace muffin {
         Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
         if (ret == Status::Code::GOOD)
         {
+            LOG_WARNING(logger," 여기1");
             return configureWithJarvis();
         }
         else
         {
+            LOG_WARNING(logger," 여기2");
             return configureWithoutJarvis();
         }
     #else
@@ -183,12 +186,8 @@ namespace muffin {
                 return ret;
             }
 
-            
-            LOG_DEBUG(logger, "s_JarvisApiPayload: %u Bytes", ESP.getFreeHeap());
             payload.clear();
             payload.shrink_to_fit();
-            LOG_DEBUG(logger, "s_JarvisApiPayload: %u Bytes", ESP.getFreeHeap());
-            delay(1000);
 
             /**
              * @todo DEMO용 디바이스들은 "fmt"로 저장되어있기 때문에 처리하기위해 임시로 구현하였음 1.2.0 버전 이후로 삭제 예정

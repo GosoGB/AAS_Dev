@@ -175,12 +175,8 @@ namespace muffin {
             vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
 
-        
-        
         StartTaskMQTT();
         StartUpdateTask();
-        
-
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)

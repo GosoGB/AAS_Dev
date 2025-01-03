@@ -95,121 +95,10 @@ namespace muffin {
     //LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
 
-        {/* JARVIS 설정 요청 메시지가 JSON 형식인 경우에만 태스크를 이어가도록 설계되어 있습니다. */
-            JSON json;
-            JsonDocument doc;
-            Status retJSON = json.Deserialize(payload, &doc);
-#ifdef DEBUG
-    //LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-            if (retJSON != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-
-                switch (retJSON.ToCode())
-                {
-                case Status::Code::BAD_END_OF_STREAM:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult.SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
-                    break;
-                case Status::Code::BAD_NO_DATA:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
-                    validationResult.SetDescription("PAYLOAD EMPTY");
-                    break;
-                case Status::Code::BAD_DATA_ENCODING_INVALID:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_ERROR);
-                    validationResult.SetDescription("PAYLOAD INVALID ENCODING");
-                    break;
-                case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
-                    validationResult.SetDescription("PAYLOAD OUT OF MEMORY");
-                    break;
-                case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
-                    validationResult.SetDescription("PAYLOAD EXCEEDED NESTING LIMIT");
-                    break;
-                case Status::Code::BAD_UNEXPECTED_ERROR:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                    validationResult.SetDescription("UNDEFINED CONDITION");
-                    break;
-                default:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                    validationResult.SetDescription("UNDEFINED CONDITION");
-                    break;
-                }
-                
-                callback(validationResult);
-                s_IsJarvisTaskRunning = false;
-                vTaskDelete(NULL);
-            }
-            ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
-            const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
-            if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
-            {
-                validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_VERSION);
-                validationResult.SetDescription("INVALID OR UNSUPPORTED PROTOCOL VERSION");
-                
-                callback(validationResult);
-                s_IsJarvisTaskRunning = false;
-                vTaskDelete(NULL);
-            }
-            ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
-            if (doc.containsKey("rqi") == true)
-            {
-                const char* rqi = doc["rqi"].as<const char*>();
-                if (rqi == nullptr || strlen(rqi) == 0)
-                {
-                    validationResult.SetRSC(jarvis::rsc_e::BAD);
-                    validationResult.SetDescription("INVALID REQUEST ID: CANNOT BE NULL OR EMPTY");
-                    
-                    callback(validationResult);
-                    s_IsJarvisTaskRunning = false;
-                    vTaskDelete(NULL);
-                }
-                ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
-            }
-        }
-        ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
-        
+       
         CatM1& catM1 = CatM1::GetInstance();
         const auto mutexHandle = catM1.TakeMutex();
-        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
-        {
-            validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
-            validationResult.SetDescription("UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
-            s_IsJarvisTaskRunning = false;
-            callback(validationResult);
-            vTaskDelete(NULL);
-        }
-
-         /**
-         * @todo 모든 태스크를 종료해야 합니다.
-         */
-        {
-            StopCyclicalsMSGTask();
-            StopModbusRtuTask();
-            StopModbusTcpTask();
-
-            AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-            alarmMonitor.StopTask();
-            alarmMonitor.Clear();
-            
-            ProductionInfo& productionInfo = ProductionInfo::GetInstance();
-            productionInfo.StopTask();
-            productionInfo.Clear();
-            
-            OperationTime& operationTime = OperationTime::GetInstance();
-            operationTime.StopTask();
-            operationTime.Clear();
-
-            im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
-            nodeStore->Clear();
-
-            ModbusRtuVector.clear();
-            ModbusTcpVector.clear();
-
-        }
-
+      
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             JSON json;
             JsonDocument doc;
@@ -388,11 +277,8 @@ namespace muffin {
         ASSERT((outputpayload != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
 
         *outputpayload = s_JarvisApiPayload;
-        LOG_DEBUG(logger, "s_JarvisApiPayload: %u Bytes", ESP.getFreeHeap());
         s_JarvisApiPayload.clear();
         s_JarvisApiPayload.shrink_to_fit();
-        LOG_DEBUG(logger, "s_JarvisApiPayload: %u Bytes", ESP.getFreeHeap());
-        delay(10000);
     }
 
 
@@ -408,13 +294,10 @@ namespace muffin {
             if (key == jarvis::cfg_key_e::LTE_CatM1)
             {
                 applyLteCatM1CIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             }
         }
@@ -427,13 +310,10 @@ namespace muffin {
                 applyNodeCIN(pair.second);
                 s_HasNode = true;
 
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             }
         }
@@ -444,13 +324,10 @@ namespace muffin {
             if (key == jarvis::cfg_key_e::OPERATION)
             {
                 applyOperationCIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             }
         }
@@ -461,13 +338,10 @@ namespace muffin {
             if (key == jarvis::cfg_key_e::ETHERNET)
             {
                 applyEthernetCIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             }
         }
@@ -480,43 +354,31 @@ namespace muffin {
             {
             case jarvis::cfg_key_e::ALARM:
                 applyAlarmCIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             case jarvis::cfg_key_e::OPERATION_TIME:
                 applyOperationTimeCIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             case jarvis::cfg_key_e::RS485:
                 applyRS485CIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             case jarvis::cfg_key_e::MODBUS_RTU:
                 {
@@ -526,13 +388,10 @@ namespace muffin {
                         {
                             jarvis::config::Rs485* rs485CIN = static_cast<jarvis::config::Rs485*>(cin.second[0]);
                             applyModbusRtuCIN(pair.second, rs485CIN);
-                            LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                             for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                             {
                                 delete *it;
                             }
-                            LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                            delay(1000);
                             break;
                         }
                     }
@@ -547,13 +406,10 @@ namespace muffin {
                 break;
             case jarvis::cfg_key_e::MODBUS_TCP:
                 applyModbusTcpCIN(pair.second);
-                LOG_DEBUG(logger, "Before: %u Bytes", ESP.getFreeHeap());
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
-                LOG_DEBUG(logger, "After: %u Bytes", ESP.getFreeHeap());
-                delay(1000);
                 break;
             default:
                 ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
@@ -577,8 +433,6 @@ namespace muffin {
             alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
         }
         const uint32_t curr = ESP.getFreeHeap();
-        LOG_DEBUG(logger, "Alarm: %u Bytes", prev - curr);
-        delay(100000);
         alarmMonitor.StartTask();
     }
     

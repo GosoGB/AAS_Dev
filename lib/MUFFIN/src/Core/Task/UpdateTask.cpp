@@ -191,6 +191,7 @@ namespace muffin {
         if (doc["mcu1"].isNull() == true)
         {
             LOG_INFO(logger, "No firmware available for ESP32");
+            outInfo->MCU_ESP32 = false;
         }
         else
         {
@@ -249,6 +250,7 @@ namespace muffin {
         if (doc["mcu2"].isNull() == true)
         {
             LOG_INFO(logger, "No firmware available for ATmega2560");
+            outInfo->MCU_MEGA2560 = false;
         }
         else
         {
