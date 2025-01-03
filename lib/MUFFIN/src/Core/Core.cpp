@@ -289,7 +289,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             ProcessJarvisRequestTask,   // Function to be run inside of the task
             "ProcessJarvisRequestTask", // The identifier of this task for men
-            10 * KILLOBYTE,             // Stack memory size to allocate
+            4 * KILLOBYTE,              // Stack memory size to allocate
             pvParameters,	            // Task parameters to be passed to the function
             0,				            // Task Priority for scheduling
             NULL,                       // The identifier of this task for machines
@@ -804,51 +804,51 @@ ERROR_RESPONSE:
             LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
         }
 
-
-        LOG_INFO(logger, "JARVIS configuration is valid. Proceed to save and apply");
-        std::string jarvisPayload;
-        RetrieveJarvisRequestPayload(&jarvisPayload);
-
-
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
-        /** 
-         * @todo string이 아니라 enum class와 ConvertClass를 사용하도록 코드를 수정해야 합니다.
-         */
-        File file = esp32FS.Open("/jarvis/config.json", "w", true);
-
-        /**
-         * @todo 성능 향상을 위해 속도가 더 빠른 buffered IO 방식으로 코드를 수정해야 합니다.
-         */
-        for (size_t i = 0; i < jarvisPayload.length(); ++i)
         {
-            file.write(jarvisPayload[i]);
+            LOG_INFO(logger, "JARVIS configuration is valid. Proceed to save and apply");
+            std::string jarvisPayload;
+            RetrieveJarvisRequestPayload(&jarvisPayload);
+
+            ESP32FS& esp32FS = ESP32FS::GetInstance();
+            /** 
+             * @todo string이 아니라 enum class와 ConvertClass를 사용하도록 코드를 수정해야 합니다.
+             */
+            File file = esp32FS.Open("/jarvis/config.json", "w", true);
+
+            /**
+             * @todo 성능 향상을 위해 속도가 더 빠른 buffered IO 방식으로 코드를 수정해야 합니다.
+             */
+            for (size_t i = 0; i < jarvisPayload.length(); ++i)
+            {
+                file.write(jarvisPayload[i]);
+            }
+
+            /**
+             * @todo 저장 성공 유무를 확인할 수 있는 기능을 추가해야 합니다.
+             */
+            file.close();
+
+            Preferences nvs;
+            nvs.begin("jarvis");
+            nvs.putBool("jarvisFlag",false);
+            nvs.end();
+
+            // 혹시라도 MFM RESPONSE를 서버로 못보내고 리셋이 될 수도 있나?
+            while (cdo.Count() > 0)
+            {
+                delay(1);
+            }
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            spear.Reset();
+        #endif 
+            ESP.restart();
         }
-
-        /**
-         * @todo 저장 성공 유무를 확인할 수 있는 기능을 추가해야 합니다.
-         */
-        file.close();
-
-        Preferences nvs;
-        nvs.begin("jarvis");
-        nvs.putBool("jarvisFlag",false);
-        nvs.end();
-
-        // 혹시라도 MFM RESPONSE를 서버로 못보내고 리셋이 될 수도 있나?
-        while (cdo.Count() > 0)
-        {
-            delay(1);
-        }
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-        spear.Reset();
-    #endif 
-        ESP.restart();
-        
         /**
          * @todo 설정 정보가 올바르게 설정되었는지 확인하는 기능을 추가해야 합니다.
          * 2025-01-02 설정값 저장 후 리셋하기 때문에 아래 코드는 실행되지않음, 우선 주석처리
         ApplyJarvisTask();
          */
+        // ApplyJarvisTask();
     }
 
     void Core::startOTA(const std::string& payload)

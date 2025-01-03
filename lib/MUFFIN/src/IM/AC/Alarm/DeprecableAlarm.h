@@ -5,8 +5,8 @@
  * @brief 알람 정보 모니터링 및 생성에 사용되는 클래스를 선언합니다.
  * @note MUFFIN Ver.0.0.1 개발 이후 또는 정보 모델 구현이 완료되면 재설계 할 예정입니다.
  * 
- * @date 2024-10-28
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -75,7 +75,7 @@ namespace muffin {
         void updateFlashUclValue(std::string nodeid, float ucl);
         void updateFlashLclValue(std::string nodeid, float lcl);
     private:
-        using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node>>;
+        using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node*>>;
         std::vector<jarvis::config::Alarm> mVectorConfig;
         std::vector<node_reference> mVectorNodeReference;
         std::vector<alarm_struct_t> mVectorAlarmInfo;

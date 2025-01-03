@@ -56,7 +56,7 @@ namespace muffin {
 
         int16_t Peek()
         {
-            if (mBuffer.empty() == true)
+            if (IsEmpty() == true)
             {
                 LOG_WARNING(logger, "BUFFER IS EMPTY. RETURNING -1");
                 return -1;
@@ -68,7 +68,7 @@ namespace muffin {
 
         int16_t Read()
         {
-            if (mBuffer.empty() == true)
+            if (IsEmpty() == true)
             {
                 LOG_WARNING(logger, "BUFFER IS EMPTY. RETURNING -1");
                 return -1;
@@ -101,6 +101,11 @@ namespace muffin {
 
         bool HasPattern(const std::string& pattern2Find)
         {
+            if (IsEmpty() == true)
+            {
+                return false;
+            }
+            
             const std::deque<uint8_t> pattern(pattern2Find.begin(), pattern2Find.end());
             auto it = std::search(mBuffer.begin(), mBuffer.end(), pattern.begin(), pattern.end());
             return it != mBuffer.end();
@@ -108,6 +113,11 @@ namespace muffin {
 
         size_t RemovePattern(const std::string& pattern2Remove)
         {
+            if (IsEmpty() == true)
+            {
+                return false;
+            }
+            
             const std::deque<uint8_t> pattern(pattern2Remove.begin(), pattern2Remove.end());
             auto it = std::search(mBuffer.begin(), mBuffer.end(), pattern.begin(), pattern.end());
             const size_t originalSize = mBuffer.size();
@@ -125,6 +135,11 @@ namespace muffin {
 
         std::vector<uint8_t> ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd)
         {
+            if (IsEmpty() == true)
+            {
+                return std::vector<uint8_t>();
+            }
+            
             const std::deque<uint8_t> firstPattern(patternBegin.begin(), patternBegin.end());
             const std::deque<uint8_t> lastPattern(patternEnd.begin(), patternEnd.end());
 

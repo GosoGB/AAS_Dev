@@ -5,8 +5,8 @@
  * @brief 알람 정보 모니터링 및 생성에 사용되는 클래스를 정의합니다.
  * @note MUFFIN Ver.0.0.1 개발 이후 또는 정보 모델 구현이 완료되면 재설계 할 예정입니다.
  * 
- * @date 2024-10-28
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -100,7 +100,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             wrapImplTask,  // Function to be run inside of the task
             "implTask",    // The identifier of this task for men
-            8 * 1024,	   // Stack memory size to allocate
+            4 * 1024,	   // Stack memory size to allocate
             this,	       // Task parameters to be passed to the function
             0,		       // Task Priority for scheduling
             &xHandle,      // The identifier of this task for machines
@@ -173,12 +173,12 @@ namespace muffin {
                         continue;
                     }
 
-                    if (reference.second.VariableNode.RetrieveCount() == 0)
+                    if (reference.second->VariableNode.RetrieveCount() == 0)
                     {
                         continue;
                     }
                     
-                    im::var_data_t datum = reference.second.VariableNode.RetrieveData();
+                    im::var_data_t datum = reference.second->VariableNode.RetrieveData();
                     if (datum.StatusCode != Status::Code::GOOD)
                     {
                         break;
@@ -187,20 +187,20 @@ namespace muffin {
                     switch (cin.GetType().second)
                     {
                     case jarvis::alarm_type_e::ONLY_LCL:
-                        pubLclToScautr(cin, reference.second.VariableNode);
-                        strategyLCL(cin, datum, reference.second.VariableNode);
+                        pubLclToScautr(cin, reference.second->VariableNode);
+                        strategyLCL(cin, datum, reference.second->VariableNode);
                         break;
                     case jarvis::alarm_type_e::ONLY_UCL:
-                        pubUclToScautr(cin, reference.second.VariableNode);
-                        strategyUCL(cin, datum, reference.second.VariableNode);
+                        pubUclToScautr(cin, reference.second->VariableNode);
+                        strategyUCL(cin, datum, reference.second->VariableNode);
                         break;
                     case jarvis::alarm_type_e::LCL_AND_UCL:
-                        pubLclToScautr(cin, reference.second.VariableNode);
-                        pubUclToScautr(cin, reference.second.VariableNode);
-                        strategyLclAndUcl(cin, datum, reference.second.VariableNode);
+                        pubLclToScautr(cin, reference.second->VariableNode);
+                        pubUclToScautr(cin, reference.second->VariableNode);
+                        strategyLclAndUcl(cin, datum, reference.second->VariableNode);
                         break;
                     case jarvis::alarm_type_e::CONDITION:
-                        strategyCondition(cin, datum, reference.second.VariableNode);
+                        strategyCondition(cin, datum, reference.second->VariableNode);
                         break;
                     default:
                         break;
@@ -393,7 +393,7 @@ namespace muffin {
         {
             if (cin.GetNodeID().second == node.first)
             {
-                alarmUID = node.second.GetUID();
+                alarmUID = node.second->GetUID();
                 break;
             }
         }
@@ -587,7 +587,7 @@ namespace muffin {
                 {
                     if (cin.GetNodeID().second == nodeRef.first)
                     {
-                        alarm.Uid = nodeRef.second.GetUID();
+                        alarm.Uid = nodeRef.second->GetUID();
                         alarm.Name = std::string(node.RetrieveData().Value.String.Data);
                         push.Name = std::string(node.RetrieveData().Value.String.Data);
                         break;
@@ -636,7 +636,7 @@ namespace muffin {
                 {
                     if (cin.GetNodeID().second == node.first)
                     {
-                        uid = node.second.GetUID();
+                        uid = node.second->GetUID();
                         break;
                     }
                 }

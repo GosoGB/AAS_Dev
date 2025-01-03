@@ -4,8 +4,8 @@
  * 
  * @brief 네트워크 인터페이스 사용과 관련된 태스크를 정의합니다.
  * 
- * @date 2024-10-30
- * @version 0.0.1
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -329,7 +329,7 @@ namespace muffin {
         constexpr uint16_t SECOND_IN_MILLIS = 1000;
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 6 * 1000;
+        const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
 
         CatM1& catM1 = CatM1::GetInstance();
@@ -412,7 +412,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implCatM1Task,      // Function to be run inside of the task
             "CatM1Task",        // The identifier of this task for men
-            3072,			    // Stack memory size to allocate
+            4 * 1024,			// Stack memory size to allocate
             NULL,			    // Task parameters to be passed to the function
             0,				    // Task Priority for scheduling
             &xTaskCatM1Handle,  // The identifier of this task for machines

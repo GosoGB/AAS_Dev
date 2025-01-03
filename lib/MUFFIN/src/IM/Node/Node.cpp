@@ -27,7 +27,6 @@ namespace muffin { namespace im {
         , VariableNode(mNodeID, mDeprecableUID)
     {
         VariableNode.Init(cin);
-        
     }
 
     Node::~Node()

@@ -139,7 +139,7 @@ namespace muffin {
         jarvis::mb_area_e Area;
         uint16_t Address;
         uint16_t Quantity;
-        std::vector<int32_t> PolledValuesVector;
+        std::vector<uint16_t> PolledValuesVector;
     } spear_daq_msg_t;
 
     typedef struct SpearRemoteControlMessageType

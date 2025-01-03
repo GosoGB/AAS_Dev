@@ -5,8 +5,8 @@
  * 
  * @brief 가동시간 정보를 집계하고 매분 서버로 전송하는 클래스를 선언합니다.
  * 
- * @date 2024-10-29
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -70,7 +70,7 @@ namespace muffin {
         bool strategyLessThan(const im::var_data_t& datum, im::Node& node);
         void publishInfo(const time_t processingTime);
     private:
-        using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node>>;
+        using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node*>>;
         std::vector<node_reference> mVectorNodeReference;
     private:
         TaskHandle_t xHandle;

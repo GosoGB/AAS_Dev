@@ -15,6 +15,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Core/MemoryPool/MemoryPool.h"
 #include "NodeStore.h"
 
 
@@ -42,22 +43,22 @@ namespace muffin { namespace im {
         return *mInstance;
     }
 
-    std::map<std::string, Node>::iterator NodeStore::begin()
+    std::map<std::string, Node*>::iterator NodeStore::begin()
     {
         return mMapNode.begin();
     }
 
-    std::map<std::string, Node>::iterator NodeStore::end()
+    std::map<std::string, Node*>::iterator NodeStore::end()
     {
         return mMapNode.end();
     }
 
-    std::map<std::string, Node>::const_iterator NodeStore::begin() const
+    std::map<std::string, Node*>::const_iterator NodeStore::begin() const
     {
         return mMapNode.cbegin();
     }
 
-    std::map<std::string, Node>::const_iterator NodeStore::end() const
+    std::map<std::string, Node*>::const_iterator NodeStore::end() const
     {
         return mMapNode.cend();
     }
@@ -74,8 +75,14 @@ namespace muffin { namespace im {
     {
         try
         {
-            Node node(cin);
-            mMapNode.emplace(node.GetNodeID(), node);
+            uint32_t prev = ESP.getFreeHeap();
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
+            
+            void* block = memoryPool.Allocate(799);
+            Node* node = new(block) Node(cin);
+            mMapNode.emplace(node->GetNodeID(), node);
+
+            LOG_DEBUG(logger, "Node Memory: %u Bytes", prev - ESP.getFreeHeap());
             return Status(Status::Code::GOOD);
         }
         catch(const std::bad_alloc& e)
@@ -111,7 +118,7 @@ namespace muffin { namespace im {
         }
         else
         {
-            return std::make_pair(Status(Status::Code::GOOD), &(it->second));
+            return std::make_pair(Status(Status::Code::GOOD), it->second);
         }
     }
 
@@ -119,10 +126,10 @@ namespace muffin { namespace im {
     {
         for (auto& node : mMapNode)
         {
-            const std::string& mUID = node.second.GetUID();
+            const std::string& mUID = node.second->GetUID();
             if (mUID == UID)
             {
-                return std::make_pair(Status(Status::Code::GOOD), &node.second);
+                return std::make_pair(Status(Status::Code::GOOD), node.second);
             }
         }
         return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), nullptr);
@@ -134,9 +141,9 @@ namespace muffin { namespace im {
 
         for (auto& node : mMapNode)
         {
-            if(node.second.VariableNode.GetHasAttributeEvent() == false)
+            if(node.second->VariableNode.GetHasAttributeEvent() == false)
             {
-                cyclicalNodeVector.emplace_back(&node.second);
+                cyclicalNodeVector.emplace_back(node.second);
             }
         }
         

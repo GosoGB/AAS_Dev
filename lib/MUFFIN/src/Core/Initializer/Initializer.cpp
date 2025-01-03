@@ -17,7 +17,6 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
-
 #include "Core/Core.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
@@ -163,6 +162,8 @@ namespace muffin {
 
     Status Initializer::configureWithJarvis()
     {
+        LOG_WARNING(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
+
         ESP32FS& esp32FS = ESP32FS::GetInstance();
         fs::File file = esp32FS.Open(JARVIS_FILE_PATH);
         std::string payload;
@@ -173,45 +174,52 @@ namespace muffin {
         }
 
         file.close();
-
-        JSON json;
-        JsonDocument doc;
-        Status ret = json.Deserialize(payload, &doc);
-        if (ret != Status::Code::GOOD)
         {
-            return ret;
-        }
-
-        /**
-         * @todo DEMO용 디바이스들은 "fmt"로 저장되어있기 때문에 처리하기위해 임시로 구현하였음 1.2.0 버전 이후로 삭제 예정
-         * 
-         */
-        JsonArray operation = doc["cnt"]["op"];
-        for(JsonObject op : operation)
-        {
-            if(op.containsKey("fmt"))
+            JSON json;
+            JsonDocument doc;
+            Status ret = json.Deserialize(payload, &doc);
+            if (ret != Status::Code::GOOD)
             {
-                const bool value = op["fmt"].as<bool>();
-                op["rst"] = value;
-                op.remove("fmt");
-
-                std::string Updatepayload;
-                serializeJson(doc, Updatepayload);
-                file = esp32FS.Open(JARVIS_FILE_PATH, "w", true);
-                for (size_t i = 0; i < Updatepayload.length(); ++i)
-                {
-                    file.write(Updatepayload[i]);
-                }
-                file.close();
+                return ret;
             }
+
+            
+            LOG_DEBUG(logger, "s_JarvisApiPayload: %u Bytes", ESP.getFreeHeap());
+            payload.clear();
+            payload.shrink_to_fit();
+            LOG_DEBUG(logger, "s_JarvisApiPayload: %u Bytes", ESP.getFreeHeap());
+            delay(1000);
+
+            /**
+             * @todo DEMO용 디바이스들은 "fmt"로 저장되어있기 때문에 처리하기위해 임시로 구현하였음 1.2.0 버전 이후로 삭제 예정
+             * 
+             */
+            JsonArray operation = doc["cnt"]["op"];
+            for(JsonObject op : operation)
+            {
+                if(op.containsKey("fmt"))
+                {
+                    const bool value = op["fmt"].as<bool>();
+                    op["rst"] = value;
+                    op.remove("fmt");
+
+                    std::string Updatepayload;
+                    serializeJson(doc, Updatepayload);
+                    file = esp32FS.Open(JARVIS_FILE_PATH, "w", true);
+                    for (size_t i = 0; i < Updatepayload.length(); ++i)
+                    {
+                        file.write(Updatepayload[i]);
+                    }
+                    file.close();
+                }
+            }
+            
+            Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
+            jarvis->Validate(doc);
         }
-        
-        Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
-        jarvis->Validate(doc);
-        doc.clear();
-        DynamicJsonDocument docTemp(0);
-        swap(doc, docTemp);
         ApplyJarvisTask();
+
+        LOG_WARNING(logger, "Config Finished: %u Bytes", ESP.getFreeHeap());
 
         return Status(Status::Code::GOOD);
     }
