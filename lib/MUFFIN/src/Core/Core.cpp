@@ -225,6 +225,8 @@ namespace muffin {
 
     void Core::saveJarvisFlag(const std::string& payload)
     {
+        bool isError = false;
+        jarvis_struct_t messageConfig;
         JSON json;
         JsonDocument doc;
         Status retJSON = json.Deserialize(payload, &doc);
@@ -234,14 +236,54 @@ namespace muffin {
         if (retJSON != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-            return;
+            switch (retJSON.ToCode())
+            {
+            case Status::Code::BAD_END_OF_STREAM:
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_COMMUNICATION);
+                messageConfig.Description   = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
+                isError = true;
+                break;
+            case Status::Code::BAD_NO_DATA:
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
+                messageConfig.Description   = "PAYLOAD EMPTY";
+                isError = true;
+                break;
+            case Status::Code::BAD_DATA_ENCODING_INVALID:
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_DECODING_ERROR);
+                messageConfig.Description   = "PAYLOAD INVALID ENCODING";
+                isError = true;
+                break;
+            case Status::Code::BAD_OUT_OF_MEMORY:
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
+                messageConfig.Description   = "PAYLOAD OUT OF MEMORY";
+                isError = true;
+                break;
+            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
+                messageConfig.Description   = "PAYLOAD EXCEEDED NESTING LIMIT";
+                isError = true;
+                break;
+            case Status::Code::BAD_UNEXPECTED_ERROR:
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
+                messageConfig.Description   = "UNDEFINED CONDITION";
+                isError = true;
+                break;
+            default:
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
+                messageConfig.Description   = "UNDEFINED CONDITION";
+                isError = true;
+                break;
+            }
         }
+
         ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
         const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
         if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
         {
             LOG_ERROR(logger, "VERSION ERROR: %s , VERSION : %u", retVersion.first.c_str(),static_cast<uint8_t>(retVersion.second));
-            return;
+            messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_INVALID_VERSION);
+            messageConfig.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
+            isError = true;
         }
         ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
         if (doc.containsKey("rqi") == true)
@@ -249,10 +291,33 @@ namespace muffin {
             const char* rqi = doc["rqi"].as<const char*>();
             if (rqi == nullptr || strlen(rqi) == 0)
             {
-                
+                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD);
+                messageConfig.Description   = "INVALID REQUEST ID: CANNOT BE NULL OR EMPTY";
+                isError = true;
             }
             ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
         }
+
+        if (isError)
+        {
+            messageConfig.SourceTimestamp  = GetTimestampInMillis();
+            JSON json;
+            std::string payload = json.Serialize(messageConfig);
+
+            mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
+            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
+
+            Status ret = cdo.Store(message);
+            if (ret != Status::Code::GOOD)
+            {
+                /**
+                 * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
+                 */
+                LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
+            }
+            return;
+        }
+        
         
         Preferences nvs;
         nvs.begin("jarvis");
