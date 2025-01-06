@@ -278,14 +278,14 @@ namespace muffin {
 
         ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
         const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
-        if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
+        if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_2))
         {
             LOG_ERROR(logger, "VERSION ERROR: %s , VERSION : %u", retVersion.first.c_str(),static_cast<uint8_t>(retVersion.second));
             messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_INVALID_VERSION);
             messageConfig.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
             isError = true;
         }
-        ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
+        ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_2), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
         if (doc.containsKey("rqi") == true)
         {
             const char* rqi = doc["rqi"].as<const char*>();
@@ -651,9 +651,9 @@ namespace muffin {
                                     if (retBit.first == true)
                                     {
                                         modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_INFO(logger, "RAW DATA : %u ", registerData.Value);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
                                         retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                        LOG_INFO(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
                                     }
                                     
                                     writeResult = 0;
@@ -665,7 +665,7 @@ namespace muffin {
                                     modbusTCPClient.end();
 
                                     modbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort());
-                                    LOG_WARNING(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
+                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
                                     switch (modbusArea)
                                     {
                                     case jarvis::mb_area_e::COILS:
@@ -723,9 +723,9 @@ namespace muffin {
                                     if (retBit.first == true)
                                     {
                                         modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_INFO(logger, "RAW DATA : %u ", registerData.Value);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
                                         retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                        LOG_INFO(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
                                     }
                                     
                                     writeResult = 0;
@@ -749,6 +749,7 @@ namespace muffin {
                                         break;
                                     }
 
+                                    LOG_INFO(logger,"제어 결과 : %s",writeResult == 1 ? "성공" : "실패");
                                     xSemaphoreGive(xSemaphoreModbusRTU);
                                 #else
                                     spear_remote_control_msg_t msg;

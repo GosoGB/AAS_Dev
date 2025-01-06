@@ -173,7 +173,7 @@ namespace muffin {
                     } 
                     else
                     {
-                        LOG_INFO(logger,"Modbus TCP Client connected");
+                        LOG_DEBUG(logger,"Modbus TCP Client connected");
                     }
 
                 }

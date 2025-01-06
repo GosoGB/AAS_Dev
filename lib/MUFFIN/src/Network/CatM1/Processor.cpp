@@ -98,7 +98,7 @@ namespace muffin {
      */
     Processor::Processor()
         : mSerial(HardwareSerial(1))
-        , mRxBufferSize(4096)
+        , mRxBufferSize(1042*8)
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)
         , mBaudRate(baudrate_e::BDR_115200)

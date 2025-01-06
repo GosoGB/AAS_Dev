@@ -810,12 +810,12 @@ namespace muffin {
         char bufferCRC32[9] = { '\0' };
         sprintf(bufferCRC32, "%08x", crc32.RetrieveTotalChecksum());
         const std::string calculatedCRC32(bufferCRC32);
-        LOG_DEBUG(logger, "Calculated CRC32: %s", calculatedCRC32.c_str());
+        LOG_WARNING(logger, "Calculated CRC32: %s", calculatedCRC32.c_str());
 
         const std::string receivedCRC32 = mcu == mcu_type_e::MCU_ESP32 ? 
             info.mcu1.FileTotalChecksum :
             info.mcu2.FileTotalChecksum;
-        LOG_DEBUG(logger, "Received CRC32: %s", receivedCRC32.c_str());
+        LOG_WARNING(logger, "Received CRC32: %s", receivedCRC32.c_str());
 
         if (bytesRead != fileSize)
         {

@@ -783,7 +783,7 @@ namespace muffin {
         memset(payload, 0, payloadSize);
 
         serializeJson(JarvisJson, payload, payloadSize);
-        LOG_INFO(logger,"SEND MSG : %s",payload);
+        LOG_DEBUG(logger,"SEND MSG : %s",payload);
 
         Send(payload);
 

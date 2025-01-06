@@ -14,6 +14,7 @@
 
 
 
+#include "Preferences.h"
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Time/TimeUtils.h"
@@ -162,6 +163,12 @@ namespace muffin {
             s_JarvisApiPayload.clear();
             ret = catFS->DownloadFile("http_response_file", &s_JarvisApiPayload);
             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
+
+            Preferences nvs;
+            nvs.begin("jarvis");
+            s_HasJarvisCommand = nvs.getBool("jarvisFlag",false);
+            nvs.end();
+            
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
@@ -368,10 +375,14 @@ namespace muffin {
                 break;
             case jarvis::cfg_key_e::RS485:
                 applyRS485CIN(pair.second);
-                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                {
-                    delete *it;
-                }
+                /**
+                 * @todo 현재 MODLINK-L에서 해당 설정값을 제거하면 RTU 설정시 문제가 발생해서 주석처리 해주었음
+                 * 
+                 */
+                // for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                // {
+                //     delete *it;
+                // }
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);
@@ -524,8 +535,8 @@ namespace muffin {
                 if (ret == Status(Status::Code::GOOD))
                 {
                     break;
-                }
                 count++;
+                }
                 delay(100);
             }            
         }
@@ -561,7 +572,6 @@ namespace muffin {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
         }
-        
 
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ModbusRtuVector.clear();
@@ -572,6 +582,7 @@ namespace muffin {
             ModbusRTU* modbusRTU = new ModbusRTU();
             modbusRTU->SetPort(rs485CIN);
             jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
+            modbusRTU->mPort = cin->GetPort().second;
             Status ret = modbusRTU->Config(cin);
             if (ret != Status::Code::GOOD)
             {

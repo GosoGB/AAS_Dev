@@ -57,7 +57,7 @@ namespace muffin {
         mVersionESP32.Code = 2;
 #if defined(MODLINK_T2) || defined(MODLINK_B)
         mVersionMEGA2560.Semantic = "0.0.0";
-        mVersionMEGA2560.Code = 0;
+        mVersionMEGA2560.Code = 999;
 #endif
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
