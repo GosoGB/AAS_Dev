@@ -22,7 +22,7 @@
 #include "Jarvis/Config/Interfaces/Rs485.h"
 #include "SPEAR.h"
 
-
+#if defined(MODLINK_T2) || defined(MODLINK_B)
 namespace muffin {
 
     SemaphoreHandle_t xSemaphoreSPEAR = NULL;
@@ -961,3 +961,5 @@ namespace muffin {
 
     SPEAR spear;
 }
+
+#endif

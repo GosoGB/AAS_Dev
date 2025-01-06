@@ -184,9 +184,11 @@ namespace muffin {
     {
         return AddressRange(address, quantity);
     }
-    
-    Status ModbusRTU::PollTemp()
+
+Status ModbusRTU::PollTemp()
     {   
+        Status ret = Status(Status::Code::UNCERTAIN);
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
@@ -207,10 +209,14 @@ namespace muffin {
                     msg.Address = startAddress;
                     msg.Quantity = pollQuantity;
 
-                    Status ret = spear.PollService(&msg);
+                    constexpr int8_t INVALID_VALUE = -1;
+                    ret = spear.PollService(&msg);
                     if (ret != Status::Code::GOOD)
                     {
-                        return ret;
+                        for (size_t i = 0; i < pollQuantity; i++)
+                        {
+                            msg.PolledValuesVector.emplace_back(INVALID_VALUE);
+                        }
                     }
 
                     for (auto& val : msg.PolledValuesVector)
@@ -218,10 +224,10 @@ namespace muffin {
                         switch (msg.Area)
                         {
                         case jarvis::mb_area_e::COILS:
-                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, val);
+                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
                             break;
                         case jarvis::mb_area_e::DISCRETE_INPUT:
-                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, val);
+                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
                             break;
                         case jarvis::mb_area_e::INPUT_REGISTER:
                             mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address++, val);
@@ -237,12 +243,13 @@ namespace muffin {
             }
         }
 
-        Status ret = updateVariableNodes();
+        ret = updateVariableNodes();
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO UPDATE NODES: %s", ret.c_str());
         }
 
+    #endif
         return ret;
     }
 

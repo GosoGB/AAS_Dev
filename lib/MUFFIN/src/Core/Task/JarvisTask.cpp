@@ -513,7 +513,8 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
         }
-    #endif
+
+    #elif defined(MODLINK_T2) || defined(MODLINK_B)
         for (auto& Rs485CIN : vectorRS485CIN)
         {
             size_t count = 0;
@@ -529,6 +530,7 @@ namespace muffin {
             }            
         }
 
+    #endif
     }
     
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
@@ -586,7 +588,6 @@ namespace muffin {
         StartModbusRtuTask();
         StartTaskCyclicalsMSG(s_PublishInterval);
     #else
-
         ModbusRtuVector.clear();
         mVectorModbusRTU.clear();
         muffin::Core& core = muffin::Core::GetInstance();
