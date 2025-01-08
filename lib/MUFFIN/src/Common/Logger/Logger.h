@@ -4,7 +4,7 @@
  * 
  * @brief 로그 메시지를 생성하고 관리하는 클래스를 선언합니다.
  * 
- * @date 2024-08-31
+ * @date 2024-12-24
  * @version 1.0.0
  * 
  * @todo 시리얼 모니터 외의 sink로 전송하는 기능 구현
@@ -28,65 +28,50 @@
 
 
 
-#define LOG_ERROR(_logger, fmt, ...)                \
-    if (_logger != nullptr)                         \
-    {                                               \
-        (_logger)->Log(                             \
-            muffin::log_level_e::LOG_LEVEL_ERROR,   \
-            __COUNTER__,                            \
-            __FILE__,                               \
-            __FUNCTION__,                           \
-            __LINE__, fmt,                          \
-            ##__VA_ARGS__);                         \
-    }
+#define LOG_ERROR(_logger, fmt, ...)            \
+    _logger.Log(                                \
+        muffin::log_level_e::LOG_LEVEL_ERROR,   \
+        __COUNTER__,                            \
+        __FILE__,                               \
+        __FUNCTION__,                           \
+        __LINE__, fmt,                          \
+        ##__VA_ARGS__);
 
-#define LOG_WARNING(_logger, fmt, ...)              \
-    if (_logger != nullptr)                         \
-    {                                               \
-        (_logger)->Log(                             \
-            muffin::log_level_e::LOG_LEVEL_WARNING, \
-            __COUNTER__,                            \
-            __FILE__,                               \
-            __FUNCTION__,                           \
-            __LINE__, fmt,                          \
-            ##__VA_ARGS__);                         \
-    }
+#define LOG_WARNING(_logger, fmt, ...)          \
+    _logger.Log(                                \
+        muffin::log_level_e::LOG_LEVEL_WARNING, \
+        __COUNTER__,                            \
+        __FILE__,                               \
+        __FUNCTION__,                           \
+        __LINE__, fmt,                          \
+        ##__VA_ARGS__);
 
-#define LOG_INFO(_logger, fmt, ...)                 \
-    if (_logger != nullptr)                         \
-    {                                               \
-        (_logger)->Log(                             \
-            muffin::log_level_e::LOG_LEVEL_INFO,    \
-            __COUNTER__,                            \
-            __FILE__,                               \
-            __FUNCTION__,                           \
-            __LINE__, fmt,                          \
-            ##__VA_ARGS__);                         \
-    }
+#define LOG_INFO(_logger, fmt, ...)             \
+    _logger.Log(                                \
+        muffin::log_level_e::LOG_LEVEL_INFO,    \
+        __COUNTER__,                            \
+        __FILE__,                               \
+        __FUNCTION__,                           \
+        __LINE__, fmt,                          \
+        ##__VA_ARGS__);
 
-#define LOG_DEBUG(_logger, fmt, ...)                \
-    if (_logger != nullptr)                         \
-    {                                               \
-        (_logger)->Log(                             \
-            muffin::log_level_e::LOG_LEVEL_DEBUG,   \
-            __COUNTER__,                            \
-            __FILE__,                               \
-            __FUNCTION__,                           \
-            __LINE__, fmt,                          \
-            ##__VA_ARGS__);                         \
-    }
+#define LOG_DEBUG(_logger, fmt, ...)            \
+    _logger.Log(                                \
+        muffin::log_level_e::LOG_LEVEL_DEBUG,   \
+        __COUNTER__,                            \
+        __FILE__,                               \
+        __FUNCTION__,                           \
+        __LINE__, fmt,                          \
+        ##__VA_ARGS__);
 
-#define LOG_VERBOSE(_logger, fmt, ...)              \
-    if (_logger != nullptr)                         \
-    {                                               \
-        (_logger)->Log(                             \
-            muffin::log_level_e::LOG_LEVEL_VERBOSE, \
-            __COUNTER__,                            \
-            __FILE__,                               \
-            __FUNCTION__,                           \
-            __LINE__, fmt,                          \
-            ##__VA_ARGS__);                         \
-    }
+#define LOG_VERBOSE(_logger, fmt, ...)          \
+    _logger.Log(                                \
+        muffin::log_level_e::LOG_LEVEL_VERBOSE, \
+        __COUNTER__,                            \
+        __FILE__,                               \
+        __FUNCTION__,                           \
+        __LINE__, fmt,                          \
+        ##__VA_ARGS__);
 
 
 
@@ -120,9 +105,10 @@ namespace muffin {
     class Logger
     {
     public:
-        Logger();
-        explicit Logger(const log_level_e level);
-        virtual ~Logger();
+        Logger() : xSemaphore(NULL) {}
+        virtual ~Logger() {}
+    public:
+        void Init();
     public:
         bool GetFilePathVerbosity() const;
         void SetFilePathVerbosity(const bool isFilePathVerbose);
@@ -174,5 +160,5 @@ namespace muffin {
     };
 
 
-    extern Logger* logger;
+    extern Logger logger;
 }

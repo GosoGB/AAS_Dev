@@ -5,8 +5,8 @@
  * 
  * @brief 생산실적 정보를 집계하고 매분 서버로 전송하는 클래스를 정의합니다.
  * 
- * @date 2024-10-29
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -64,7 +64,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             wrapImplTask,      // Function to be run inside of the task
             "ProdInfoTask",    // The identifier of this task for men
-            8 * 1024,	       // Stack memory size to allocate
+            4 * 1024,	       // Stack memory size to allocate
             this,	           // Task parameters to be passed to the function
             0,		           // Task Priority for scheduling
             &xHandle,          // The identifier of this task for machines
@@ -113,7 +113,7 @@ namespace muffin {
     {
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 60 * 1000;
+        const uint16_t remainedStackCheckInterval = 6 * 1000;
     #endif
 
         time_t LastTime;
@@ -131,7 +131,7 @@ namespace muffin {
 
             for (auto& nodeReference : mVectorNodeReference)
             {
-                const size_t dataStoredCount = nodeReference.get().second.VariableNode.RetrieveCount();
+                const size_t dataStoredCount = nodeReference.get().second->VariableNode.RetrieveCount();
                 if (dataStoredCount == 0)
                 {
                     break;
@@ -143,7 +143,7 @@ namespace muffin {
  * @note mDataBuffer가 비어있지 않을 때만 들어오도록 수정하였음. 크래시 없을 시 위의 todo는 제거할 에정임
  */
                 auto& reference = nodeReference.get();
-                const im::var_data_t datum = reference.second.VariableNode.RetrieveData();
+                const im::var_data_t datum = reference.second->VariableNode.RetrieveData();
                 if (datum.StatusCode != Status::Code::GOOD)
                 {
                     break;

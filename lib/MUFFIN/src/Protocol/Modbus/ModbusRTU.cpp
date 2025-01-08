@@ -20,41 +20,28 @@
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
+#include "Core/Core.h"
 #include "IM/Node/NodeStore.h"
 #include "Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "ModbusRTU.h"
 #include "ModbusMutex.h"
+#include "Protocol/SPEAR/SPEAR.h"
 
 
 namespace muffin {
 
-    ModbusRTU* ModbusRTU::CreateInstanceOrNULL()
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) ModbusRTU();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MODBUS RTU");
-                return mInstance;
-            }
-        }
-
-        return mInstance;
-    }
-
-    ModbusRTU& ModbusRTU::GetInstance()
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"CreateInstanceOrNULL\" INSTEAD");
-        return *mInstance;
-    }
-
     ModbusRTU::ModbusRTU()
     {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Constructed at address: %p", this);
+    #endif
     }
     
     ModbusRTU::~ModbusRTU()
-    {   
+    {
+    #if defined(DEBUG)
+        LOG_VERBOSE(logger, "Destroyed at address: %p", this);
+    #endif
     }
 
     Status ModbusRTU::SetPort(jarvis::config::Rs485* portConfig)
@@ -198,6 +185,74 @@ namespace muffin {
         return AddressRange(address, quantity);
     }
 
+Status ModbusRTU::PollTemp()
+    {   
+        Status ret = Status(Status::Code::UNCERTAIN);
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
+        for (const auto& slaveID : retrievedSlaveInfo.second)
+        {
+            const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
+            const auto retrievedAreaInfo = retrievedAddressInfo.second.RetrieveArea();
+            for (const auto& area : retrievedAreaInfo.second)
+            {
+                const auto& addressSetToPoll = retrievedAddressInfo.second.RetrieveAddressRange(area);
+                for (const auto& addressRange : addressSetToPoll)
+                {
+                    spear_daq_msg_t msg;
+                    const uint16_t startAddress = addressRange.GetStartAddress();
+                    const uint16_t pollQuantity = addressRange.GetQuantity();
+                    msg.PolledValuesVector.reserve(pollQuantity);
+                    msg.Link = mPort;
+                    msg.SlaveID = slaveID;
+                    msg.Area = area;
+                    msg.Address = startAddress;
+                    msg.Quantity = pollQuantity;
+
+                    constexpr int8_t INVALID_VALUE = -1;
+                    ret = spear.PollService(&msg);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        for (size_t i = 0; i < pollQuantity; i++)
+                        {
+                            msg.PolledValuesVector.emplace_back(INVALID_VALUE);
+                        }
+                    }
+
+                    for (auto& val : msg.PolledValuesVector)
+                    {       
+                        switch (msg.Area)
+                        {
+                        case jarvis::mb_area_e::COILS:
+                            mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
+                            break;
+                        case jarvis::mb_area_e::DISCRETE_INPUT:
+                            mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
+                            break;
+                        case jarvis::mb_area_e::INPUT_REGISTER:
+                            mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address++, val);
+                            break;
+                        case jarvis::mb_area_e::HOLDING_REGISTER:
+                            mPolledDataTable.UpdateHoldingRegister(msg.SlaveID, msg.Address++, val);
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        ret = updateVariableNodes();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE NODES: %s", ret.c_str());
+        }
+
+    #endif
+        return ret;
+    }
+
     Status ModbusRTU::Poll()
     {
         Status ret = implementPolling();
@@ -226,6 +281,12 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
+        if (xSemaphoreTake(xSemaphoreModbusRTU, 2000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
             const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
@@ -242,16 +303,9 @@ namespace muffin {
                 return Status(Status::Code::BAD);
             }
 
-            if (xSemaphoreTake(xSemaphoreModbusRTU, 2000)  != pdTRUE)
-            {
-                LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
-                return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-            }
-
             for (const auto& area : retrievedAreaInfo.second)
             {
                 const auto& addressSetToPoll = retrievedAddressInfo.second.RetrieveAddressRange(area);
-                
 
                 switch (area)
                 {
@@ -602,6 +656,4 @@ namespace muffin {
         return data;
     }
 
-
-    ModbusRTU* ModbusRTU::mInstance = nullptr;
 }

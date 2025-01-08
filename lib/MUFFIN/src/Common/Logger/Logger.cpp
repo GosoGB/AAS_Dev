@@ -4,7 +4,7 @@
  * 
  * @brief 로그 메시지를 생성하고 관리하는 클래스를 정의합니다.
  * 
- * @date 2024-08-31
+ * @date 2024-12-24
  * @version 1.0.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2023-2024
@@ -24,8 +24,7 @@
 
 namespace muffin {
 
-	Logger::Logger()
-		: xSemaphore(NULL)
+	void Logger::Init()
 	{
 		if (Serial == false)
 		{
@@ -39,28 +38,6 @@ namespace muffin {
 				xSemaphore = xSemaphoreCreateMutex();
 			}
 		}
-	}
-
-	Logger::Logger(const log_level_e level)
-		: xSemaphore(NULL)
-		, mLevel(level)
-	{
-		if (Serial == false)
-		{
-			Serial.begin(mBaudRate);
-			vTaskDelay(10 / portTICK_PERIOD_MS);
-			Serial.println("\033[0m");
-			Serial.println(F(welcomAsciiArt));
-
-			if (xSemaphore == NULL)
-			{
-				xSemaphore = xSemaphoreCreateMutex();
-			}
-		}
-	}
-
-	Logger::~Logger()
-	{
 	}
 
 	bool Logger::GetFilePathVerbosity() const
@@ -159,5 +136,5 @@ namespace muffin {
 		xSemaphoreGive(xSemaphore);
 	}
 
-	Logger* logger = nullptr;
+	Logger logger;
 }

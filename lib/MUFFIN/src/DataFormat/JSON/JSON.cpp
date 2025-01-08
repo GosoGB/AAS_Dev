@@ -23,14 +23,6 @@
 
 namespace muffin {
 
-    JSON::JSON()
-    {
-    }
-    
-    JSON::~JSON()
-    {
-    }
-
     Status JSON::Deserialize(const std::string& payload, JsonDocument* json)
     {
         ASSERT((payload.length() > 0), "INPUT PARAMETER <const std::string& payload> CANNOT BE EMPTY");
@@ -43,7 +35,7 @@ namespace muffin {
         switch (error.code())
         {
         case DeserializationError::Code::Ok:
-            LOG_INFO(logger, "Deserialized the payload");
+            LOG_DEBUG(logger, "Deserialized the payload");
             return Status(Status::Code::GOOD);
 
         case DeserializationError::Code::EmptyInput:
@@ -188,23 +180,102 @@ namespace muffin {
     {
         JsonDocument doc;
         std::string payload;
+    
+    #if defined(MODLINK_L)
+        doc["deviceType"] = "MODLINK-L";
+    #elif defined(MODLINK_ML10)
+        doc["deviceType"] = "MODLINK-ML10";
+    #elif defined(MODLINK_T2)
+        doc["deviceType"] = "MODLINK-T2";
+    #endif
 
         doc["mac"]  =  MacAddress::GetEthernet();
-        JsonObject mcu1 = doc.createNestedObject("mcu1");
+        JsonObject mcu1 = doc["mcu1"].to<JsonObject>();
         mcu1["vc"] = _struct.VersionCodeMcu1;  
-        mcu1["version"] = _struct.VersionMcu1; 
-
-
-        #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        doc["deviceType"] = "MODLINK-L";
-        #else
-        doc["deviceType"] = "MODLINK-T2";
-        JsonObject mcu2 = doc.createNestedObject("mcu2");
+        mcu1["version"] = _struct.VersionMcu1;
+    #if defined(MODLINK_T2)
+        JsonObject mcu2 = doc["mcu2"].to<JsonObject>();
         mcu2["vc"] = _struct.VersionCodeMcu2;  
         mcu2["version"] = _struct.VersionMcu2; 
-        #endif
+    #endif
     
-        serializeJson(doc,payload);
+        serializeJson(doc, payload);
         return payload;
+    }
+    
+    void JSON::Serialize(const req_head_t& msg, const uint8_t size, char output[])
+    {
+        JsonDocument doc;
+
+        doc["c"]  = msg.Code;
+        
+        serializeJson(doc, output, size);
+    }
+
+    void JSON::Serialize(const resp_head_t& msg, const uint8_t size, char output[])
+    {
+        JsonDocument doc;
+
+        doc["c"]  = msg.Code;
+        doc["s"] = msg.Status;
+        
+        serializeJson(doc, output, size);
+    }
+
+    void JSON::Serialize(const resp_vsn_t& msg, const uint8_t size, char output[])
+    {
+        JsonDocument doc;
+
+        doc["c"]   = msg.Head.Code;
+        doc["s"] = msg.Head.Status;
+        
+        JsonObject response          = doc["r"].to<JsonObject>();
+        response["1"]  = msg.SemanticVersion;
+        response["2"]      = msg.VersionCode;
+
+        serializeJson(doc, output, size);
+    }
+
+    void JSON::Serialize(const resp_mem_t& msg, const uint16_t size, char output[])
+    {
+        JsonDocument doc;
+
+        doc["c"]   = msg.Head.Code;
+        doc["s"] = msg.Head.Status;
+        
+        JsonObject response     = doc["r"].to<JsonObject>();
+        response["1"]    = msg.Remained;
+        response["2"]    = msg.UsedHeap;
+        response["3"]    = msg.UsedStack;
+
+        serializeJson(doc, output, size);
+    }
+
+    void JSON::Serialize(const resp_status_t& msg, const uint8_t size, char output[])
+    {
+        JsonDocument doc;
+
+        doc["c"]   = msg.Head.Code;
+        doc["s"]   = msg.Head.Status;
+        doc["r"]   = msg.StatusCode;
+
+        serializeJson(doc, output, size);
+    }
+
+
+    void JSON::Serialize(const spear_remote_control_msg_t& msg, const uint8_t size, char output[])
+    {
+        JsonDocument doc;
+
+        doc["c"]  = msg.Head.Code;
+        
+        JsonObject body = doc["b"].to<JsonObject>();
+        body["1"]   = static_cast<uint8_t>(msg.Link);
+        body["2"]   = static_cast<uint8_t>(msg.SlaveID);
+        body["3"]   = static_cast<uint8_t>(msg.Area);
+        body["4"]   = static_cast<uint16_t>(msg.Address);
+        body["5"]   = static_cast<uint16_t>(msg.Value);
+        
+        serializeJson(doc, output, size);
     }
 }

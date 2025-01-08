@@ -4,8 +4,8 @@
  * 
  * @brief LTE Cat.M1 모듈과의 모든 통신을 처리하는 클래스를 선언합니다.
  * 
- * @date 2024-09-08
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -98,7 +98,7 @@ namespace muffin {
      */
     Processor::Processor()
         : mSerial(HardwareSerial(1))
-        , mRxBufferSize(10240)
+        , mRxBufferSize(1042*8)
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)
         , mBaudRate(baudrate_e::BDR_115200)
@@ -151,7 +151,7 @@ namespace muffin {
             BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
                 wrapUrcHandleTask, 
                 "UrcHandleTask", 
-                6144, 
+                3 * 1024, 
                 this, 
                 0, 
                 &xHandle, 
@@ -281,7 +281,7 @@ namespace muffin {
     {
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 60 * 1000;
+        const uint16_t remainedStackCheckInterval = 6 * 1000;
     #endif
 
         while (true)
@@ -322,7 +322,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                // LOG_DEBUG(logger, "Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                LOG_DEBUG(logger, "[TASK: CatM1::Processor] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif
@@ -416,6 +416,7 @@ namespace muffin {
         }
         
         std::vector<uint8_t> vectorRxD = mRxBuffer.ReadBetweenPatterns(urcQMTRECV, "}\"\r\n");
+        LOG_DEBUG(logger, "vectorRxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
         std::vector<std::string> vectorToken;
         std::string currentToken;
         bool isFirstToken = true;

@@ -276,6 +276,70 @@ namespace muffin {
         return ret;
     }
 
+    Status CatFS::OpenWithMutex(size_t mutexHandle, const std::string& path, const bool temporary)
+    {
+        ASSERT((path.length() < 81), "PATH MUST BE LESS THAN OR EQUAL TO 80 CHARACTERS");
+        /**
+         * @todo 복수의 파일을 동시에 열 수 있게 코드를 수정해야 합니다.
+         */
+        ASSERT((mFileHandle == -1), "ALLOWED TO OPEN ONLY ONE FILE AT A TIME");
+        if (temporary)
+        {
+            LOG_WARNING(logger, "THIS FUNCTION WILL BE DEPRECATED");
+        }
+        
+        /**
+         * @todo 파일 모드에 따라 파일을 열 수 있게 코드를 수정해야 합니다.
+         *       현재는 read-only로만 열 수 있습니다.
+         */
+        constexpr uint8_t BUFFER_SIZE = 128;
+        char command[BUFFER_SIZE] = { 0 };
+        sprintf(command, "AT+QFOPEN=\"%s\",2", path.c_str());
+        ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
+        
+        const uint32_t timeoutMillis = 300;
+        std::string rxd;
+
+        Status ret = mCatM1.Execute(command, mutexHandle);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO OPEN: %s", ret.c_str());
+            return ret;
+        }
+        
+        ret = readUntilOKorERROR(timeoutMillis, &rxd);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO OPEN: %s", ret.c_str());
+            return ret;
+        }
+
+        
+        const std::string prefix = "+QFOPEN: ";
+        const std::string postfix = "\r\n";
+
+        size_t start = rxd.find(prefix);
+        size_t end   = rxd.find(postfix, (start + 1));
+        if (start == std::string::npos || end == std::string::npos)
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+        start += prefix.length();
+
+        const std::string strFileHandle = rxd.substr(start, (end - start));
+        //LOG_DEBUG(logger, "strFileHandle: %s", strFileHandle.c_str());
+        mFileHandle = Convert.ToInt32(strFileHandle);
+        if (mFileHandle < 0 || mFileHandle == SIZE_MAX)
+        {
+            LOG_ERROR(logger, "INVALID FILE HANDLE: %u", mFileHandle);
+            mFileHandle = -1;
+            return Status(Status::Code::BAD);
+        }
+        
+        return ret;
+    }
+
     Status CatFS::Close()
     {
         ASSERT((mFileHandle != -1), "INVALID FILE HANDLE: %d", mFileHandle);
@@ -304,6 +368,35 @@ namespace muffin {
         
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         mCatM1.ReleaseMutex();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CLOSE: %s", ret.c_str());
+        }
+        
+        mFileHandle = -1;
+        return ret;
+    }
+
+    Status CatFS::CloseWithMutex(size_t mutexHandle)
+    {
+        ASSERT((mFileHandle != -1), "INVALID FILE HANDLE: %d", mFileHandle);
+        
+        constexpr uint8_t BUFFER_SIZE = 32;
+        char command[BUFFER_SIZE] = { 0 };
+        sprintf(command, "AT+QFCLOSE=%u", mFileHandle);
+        ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
+
+        const uint32_t timeoutMillis = 300;
+        std::string rxd;
+
+        Status ret = mCatM1.Execute(command, mutexHandle);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CLOSE: %s", ret.c_str());
+            return ret;
+        }
+        
+        ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CLOSE: %s", ret.c_str());
@@ -366,14 +459,53 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO READ DATA: %s", ret.c_str());
             return ret;
         }
-    #ifdef DEBUG
-        for (size_t i = 0; i < length; ++i)
+        
+        return ret;
+    }
+
+    Status CatFS::ReadWithMutex(size_t mutexHandle, const size_t length, uint8_t outputBuffer[])
+    {
+        ASSERT((mFileHandle != -1), "INVALID FILE HANDLE: %d", mFileHandle);
+        
+        constexpr uint8_t BUFFER_SIZE = 32;
+        char command[BUFFER_SIZE] = { 0 };
+        sprintf(command, "AT+QFREAD=%u,%u", mFileHandle, length);
+        ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
+        
+        Status ret = mCatM1.Execute(command, mutexHandle);
+        if (ret != Status::Code::GOOD)
         {
-            Serial.print(outputBuffer[i]);
-            Serial.print(" ");
+            LOG_ERROR(logger, "FAILED TO READ: %s", ret.c_str());
+
+            return ret;
         }
-        Serial.println();
-    #endif
+        
+        const uint32_t timeoutMillis = 1000;
+        const auto retMetadata = processMetadataForQFREAD(timeoutMillis);
+        if (retMetadata.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO READ: %s", retMetadata.first.c_str());
+            return retMetadata.first;
+        }
+        else if (retMetadata.second != length)
+        {
+            LOG_ERROR(logger, "BYTES READ DOES NOT MATCH: Actual: %u, Command: %u", retMetadata.second, length);
+            if (retMetadata.second < length)
+            {
+                return Status(Status::Code::BAD_DATA_LOST);
+            }
+            else
+            {
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+        }
+
+        ret = readBytes(timeoutMillis, retMetadata.second, outputBuffer);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO READ DATA: %s", ret.c_str());
+            return ret;
+        }
         
         return ret;
     }
@@ -534,6 +666,52 @@ namespace muffin {
         return Status(Status::Code::BAD_TIMEOUT);
     }
 
+    Status CatFS::BeginWithMutex(size_t mutexHandle, const bool formatOnFail, const char* basePath, const uint8_t maxOpenFiles, const char* partitionLabel)
+    {
+        const std::string command = "AT+QFLDS=\"UFS\"";
+        const uint32_t timeoutMillis = 500;
+        std::string rxd;
+
+        Status ret = mCatM1.Execute(command, mutexHandle);
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+
+        ret = readUntilOKorERROR(timeoutMillis, &rxd);
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        
+        const std::string prefix = "+QFLDS: ";
+        const std::string postfix = "\r\n";
+
+        size_t start = rxd.find(prefix);
+        size_t end   = rxd.find(postfix, (start + 1));
+        if (start == std::string::npos || end == std::string::npos)
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+        start += prefix.length();
+
+        const std::string response = rxd.substr(start, (end - start));
+        std::istringstream iss(response);
+        std::string strFreeBytes;
+        std::string strTotalBytes;
+        if (!std::getline(iss, strFreeBytes, ',') || !std::getline(iss, strTotalBytes))
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+        const size_t freeBytes  = Convert.ToUInt32(strFreeBytes);
+        const size_t totalBytes = Convert.ToUInt32(strTotalBytes);
+        LOG_INFO(logger, "Free Space: %u, Total Space: %u", freeBytes, totalBytes);
+        return ret;
+    }
+
     std::pair<Status, size_t> CatFS::processMetadataForQFREAD(const uint32_t timeoutMillis)
     {
         std::string rxd;
@@ -613,25 +791,25 @@ namespace muffin {
 
                 if (byteCount == length)
                 {
-                    //LOG_DEBUG(logger, "Byte Count: %u", byteCount);
+                    LOG_DEBUG(logger, "Byte Count: %u", byteCount);
                     goto READ_FINISHED;
                 }
             }
             continue;
         }
         
-        if (rxd.substr(rxd.length() - 18).find("\r\n+CME ERROR: ") != std::string::npos)
-        {
-            return processCmeErrorCode(rxd);
-        }
-        else if (rxd.find("\r\nERROR\r\n") != std::string::npos)
-        {
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-        else
-        {
+        // if (rxd.substr(rxd.length() - 18).find("\r\n+CME ERROR: ") != std::string::npos)
+        // {
+        //     return processCmeErrorCode(rxd);
+        // }
+        // else if (rxd.find("\r\nERROR\r\n") != std::string::npos)
+        // {
+        //     return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        // }
+        // else
+        // {
             return Status(Status::Code::BAD_TIMEOUT);
-        }
+        // }
         
     
     READ_FINISHED:

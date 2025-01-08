@@ -274,10 +274,6 @@ namespace muffin { namespace modbus {
             else if (remainedAddress != 0 && remainedQuantity != 0)
             {
                 AddressRange remainedRange(remainedAddress, remainedQuantity);
-                for (const auto& e : addressRangeSet)
-                {
-                    //LOG_DEBUG(logger, "%u", e.GetStartAddress());
-                }
 
                 Status ret = emplaceAddressRange(area, retrieved, &addressRangeSet);
                 if (ret != Status::Code::GOOD)

@@ -4,8 +4,8 @@
  * 
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
  * 
- * @date 2024-10-29
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -57,11 +57,11 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             cyclicalsMSGTask,      // Function to be run inside of the task
             "cyclicalsMSGTask",    // The identifier of this task for men
-            10240,			   // Stack memory size to allocate
-            &pollingInterval,			   // Task parameters to be passed to the function
-            0,				   // Task Priority for scheduling
-            &xTaskMonitorHandle,  // The identifier of this task for machines
-            0				   // Index of MCU core where the function to run
+            4096,			       // Stack memory size to allocate
+            &pollingInterval,      // Task parameters to be passed to the function
+            0,				       // Task Priority for scheduling
+            &xTaskMonitorHandle,   // The identifier of this task for machines
+            0				       // Index of MCU core where the function to run
         );
 
         /**
@@ -98,7 +98,7 @@ namespace muffin {
         time_t currentTimestamp = GetTimestamp();
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 60 * 1000;
+        const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
 
         while (true)
@@ -135,7 +135,7 @@ namespace muffin {
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
             {
-                //DEBUG(logger, "[TASK: Modbus] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                LOG_DEBUG(logger, "[TASK: CyclicalMsg] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
                 checkRemainedStackMillis = millis();
             }
         #endif

@@ -43,12 +43,6 @@ namespace muffin {
 
 	Status SetSystemTime(const time_t& ts)
 	{
-		ASSERT(
-			(
-				(ts >= BUILD_TIME) || ((ts + 9 * 3600) >= BUILD_TIME)
-			), "TIMESTAMP SMALLER THAN BUILD TIME: %u > %u", Convert.ToUInt32(ts), BUILD_TIME
-		);
-		
 		struct timeval now = {
             .tv_sec = ts, 
             .tv_usec = 0
@@ -183,19 +177,21 @@ namespace muffin {
 				CatM1& catM1 = CatM1::GetInstance();
 				return catM1.SyncWithNTP();
 			}
-	// #if defined(MODLINK_T2) || defined(MODLINK_B)
-	// 	case jarvis::snic_e::Ethernet,:
-	// 		{
-	// 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-	// 		}
-    // #elif defined(MODLINK_B)
-	// 	case jarvis::snic_e::Ethernet,:
-	// 		{
-	// 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-	// 		}
-    //     case jarvis::snic_e::WiFi4,:
-	// 		return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
-	// #endif
+/* MFM Ver.1.2.0 이후에 구현해야 합니다.
+	#if defined(MODLINK_T2) || defined(MODLINK_B)
+		case jarvis::snic_e::Ethernet,:
+			{
+				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+			}
+    #elif defined(MODLINK_B)
+		case jarvis::snic_e::Ethernet,:
+			{
+				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+			}
+        case jarvis::snic_e::WiFi4,:
+			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
+	#endif
+*/
 		default:
 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 		}

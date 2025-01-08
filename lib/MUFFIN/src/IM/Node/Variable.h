@@ -110,7 +110,7 @@ namespace muffin { namespace im {
         jarvis::dt_e mDataType;
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;
-        uint8_t mMaxHistorySize = 5;
+        uint8_t mMaxHistorySize = 2;
     
     };
 }}

@@ -4,8 +4,8 @@
  * 
  * @brief 상태 모니터링 및 관리와 수신한 메시지를 처리하는 태스크를 정의합니다.
  * 
- * @date 2024-10-18
- * @version 1.0.0
+ * @date 2024-12-31
+ * @version 1.2.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */
@@ -45,7 +45,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implMqttTask,      // Function to be run inside of the task
             "implMqttTask",    // The identifier of this task for men
-            10240,			   // Stack memory size to allocate
+            5 * 1024,	       // Stack memory size to allocate
             NULL,			   // Task parameters to be passed to the function
             0,				   // Task Priority for scheduling
             &xTaskMqttHandle,  // The identifier of this task for machines
@@ -82,11 +82,11 @@ namespace muffin {
         taskCreationResult = xTaskCreatePinnedToCore(
             publishMqttTask,      // Function to be run inside of the task
             "publishMqttTask",    // The identifier of this task for men
-            10240,			   // Stack memory size to allocate
-            NULL,			   // Task parameters to be passed to the function
-            0,				   // Task Priority for scheduling
-            &xTaskMqttHandle,  // The identifier of this task for machines
-            0				   // Index of MCU core where the function to run
+            5 * 1024,			      // Stack memory size to allocate
+            NULL,			      // Task parameters to be passed to the function
+            0,				      // Task Priority for scheduling
+            &xTaskMqttHandle,     // The identifier of this task for machines
+            0				      // Index of MCU core where the function to run
         );
 
         /**
@@ -119,6 +119,12 @@ namespace muffin {
 
     void implMqttTask(void* pvParameter)
     {
+        constexpr uint16_t SECOND_IN_MILLIS = 1000;
+    #ifdef DEBUG
+        uint32_t checkRemainedStackMillis = millis();
+        const uint16_t remainedStackCheckInterval = 5 * 1000;
+    #endif
+    
         mqtt::CIA& cia = mqtt::CIA::GetInstance();
 
         while (true)
@@ -139,11 +145,25 @@ namespace muffin {
 
             Core& core = Core::GetInstance();
             core.RouteMqttMessage(receivedMessage.second);
+
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+            {
+                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
         }
     }
 
     void publishMqttTask(void* pvParameter)
     {
+        constexpr uint16_t SECOND_IN_MILLIS = 1000;
+    #ifdef DEBUG
+        uint32_t checkRemainedStackMillis = millis();
+        const uint16_t remainedStackCheckInterval = 5 * 1000;
+    #endif
+
         CatM1& catM1 = CatM1::GetInstance();
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
@@ -200,6 +220,14 @@ namespace muffin {
                 }
             }
             catM1.ReleaseMutex();
+
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+            {
+                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
         }
     }
 }

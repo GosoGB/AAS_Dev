@@ -125,7 +125,7 @@ namespace muffin { namespace jarvis {
             mContainerLength = 12;
             goto DEFINED_VERSION_FOUND;
         case static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_2):
-            mContainerLength = UINT8_MAX;
+            mContainerLength = 12;
             goto DEFINED_VERSION_FOUND;
         case static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_3):
             mContainerLength = UINT8_MAX;
@@ -319,6 +319,7 @@ namespace muffin { namespace jarvis {
 
     prtcl_ver_e MetaDataValidator::SUPPORTED_VERSION[SUPPORTED_VERSION_LENGTH] =
     {
-        prtcl_ver_e::VERSEOIN_1
+        prtcl_ver_e::VERSEOIN_1,
+        prtcl_ver_e::VERSEOIN_2
     };
 }}

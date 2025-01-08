@@ -993,51 +993,51 @@ namespace muffin { namespace im {
         {
         case jarvis::dt_e::INT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::UINT8:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::INT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::UINT16:
             variableData.DataType = jarvis::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) - mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::INT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::UINT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) + mNumericOffset.second;
             break;
         
         case jarvis::dt_e::FLOAT32:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) + mNumericOffset.second;
             break;
 
         case jarvis::dt_e::INT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) + mNumericOffset.second;
             break;
 
         case jarvis::dt_e::UINT64:
             variableData.DataType = jarvis::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) - mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) + mNumericOffset.second;
             break;
             
         case jarvis::dt_e::FLOAT64:
-            variableData.Value.Float64 = variableData.Value.Float64 - mNumericOffset.second;
+            variableData.Value.Float64 = variableData.Value.Float64 + mNumericOffset.second;
             break;
 
         default:
@@ -1317,17 +1317,21 @@ namespace muffin { namespace im {
 
             if (mNumericScale.first == true)
             {
+                const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+                const double denominator = pow(10, exponent);
+                
                 if (mNumericOffset.first == true)
                 {
-                    const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-                    const double denominator = pow(10, exponent);
-                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp/ denominator));
+                    floatTemp = (floatTemp / denominator);
+                    uint16_t result = static_cast<uint16_t>(std::ceil(floatTemp));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
                 }
                 else
                 {
-                    const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-                    const double denominator = pow(10, exponent);
-                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(Convert.ToFloat(data)/ denominator));
+                    float value = Convert.ToFloat(data) / denominator;
+
+                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
                 }
             }
 
@@ -1440,6 +1444,11 @@ namespace muffin { namespace im {
     
         var_data_t variableData = RetrieveData();
         
+        if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
+        {
+            return std::make_pair(false, daq);
+        }
+
         daq.Name = mDeprecableDisplayName;
         daq.SourceTimestamp = variableData.Timestamp;
         daq.Uid = mDeprecableUID;

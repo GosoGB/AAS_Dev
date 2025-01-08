@@ -14,6 +14,7 @@
 
 
 
+#include "Preferences.h"
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Time/TimeUtils.h"
@@ -30,6 +31,7 @@
 #include "Jarvis/Jarvis.h"
 #include "Jarvis/Config/Operation/Operation.h"
 #include "JarvisTask.h"
+#include "Protocol/MQTT/CDO.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
@@ -38,6 +40,7 @@
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
+#include "Protocol/SPEAR/SPEAR.h"
 #include "IM/MacAddress/MacAddress.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Network/Ethernet/Ethernet.h"
@@ -93,93 +96,10 @@ namespace muffin {
     //LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
 
-        {/* JARVIS 설정 요청 메시지가 JSON 형식인 경우에만 태스크를 이어가도록 설계되어 있습니다. */
-            JSON json;
-            JsonDocument doc;
-            Status retJSON = json.Deserialize(payload, &doc);
-#ifdef DEBUG
-    //LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-            if (retJSON != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-
-                switch (retJSON.ToCode())
-                {
-                case Status::Code::BAD_END_OF_STREAM:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-                    validationResult.SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
-                    break;
-                case Status::Code::BAD_NO_DATA:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
-                    validationResult.SetDescription("PAYLOAD EMPTY");
-                    break;
-                case Status::Code::BAD_DATA_ENCODING_INVALID:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_ERROR);
-                    validationResult.SetDescription("PAYLOAD INVALID ENCODING");
-                    break;
-                case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
-                    validationResult.SetDescription("PAYLOAD OUT OF MEMORY");
-                    break;
-                case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
-                    validationResult.SetDescription("PAYLOAD EXCEEDED NESTING LIMIT");
-                    break;
-                case Status::Code::BAD_UNEXPECTED_ERROR:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                    validationResult.SetDescription("UNDEFINED CONDITION");
-                    break;
-                default:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                    validationResult.SetDescription("UNDEFINED CONDITION");
-                    break;
-                }
-                
-                callback(validationResult);
-                s_IsJarvisTaskRunning = false;
-                vTaskDelete(NULL);
-            }
-            ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
-            const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
-            if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_1))
-            {
-                validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_VERSION);
-                validationResult.SetDescription("INVALID OR UNSUPPORTED PROTOCOL VERSION");
-                
-                callback(validationResult);
-                s_IsJarvisTaskRunning = false;
-                vTaskDelete(NULL);
-            }
-            ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_1), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
-            if (doc.containsKey("rqi") == true)
-            {
-                const char* rqi = doc["rqi"].as<const char*>();
-                if (rqi == nullptr || strlen(rqi) == 0)
-                {
-                    validationResult.SetRSC(jarvis::rsc_e::BAD);
-                    validationResult.SetDescription("INVALID REQUEST ID: CANNOT BE NULL OR EMPTY");
-                    
-                    callback(validationResult);
-                    s_IsJarvisTaskRunning = false;
-                    vTaskDelete(NULL);
-                }
-                ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
-            }
-        }
-        ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
-        
+       
         CatM1& catM1 = CatM1::GetInstance();
         const auto mutexHandle = catM1.TakeMutex();
-        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
-        {
-            validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
-            validationResult.SetDescription("UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
-            s_IsJarvisTaskRunning = false;
-            callback(validationResult);
-            vTaskDelete(NULL);
-        }
-
+      
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             JSON json;
             JsonDocument doc;
@@ -196,9 +116,9 @@ namespace muffin {
         #ifdef DEBUG
             //LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
         #endif
-            catHttp.SetSinkToCatFS(true);
+            catHttp.SetSinkToCatFS(true, "http_response_file");
             Status ret = catHttp.GET(mutexHandle.second, header, parameters);
-            catHttp.SetSinkToCatFS(false);
+            catHttp.SetSinkToCatFS(false, "");
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
@@ -243,6 +163,12 @@ namespace muffin {
             s_JarvisApiPayload.clear();
             ret = catFS->DownloadFile("http_response_file", &s_JarvisApiPayload);
             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
+
+            Preferences nvs;
+            nvs.begin("jarvis");
+            s_HasJarvisCommand = nvs.getBool("jarvisFlag",false);
+            nvs.end();
+            
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
@@ -359,6 +285,7 @@ namespace muffin {
 
         *outputpayload = s_JarvisApiPayload;
         s_JarvisApiPayload.clear();
+        s_JarvisApiPayload.shrink_to_fit();
     }
 
 
@@ -374,6 +301,10 @@ namespace muffin {
             if (key == jarvis::cfg_key_e::LTE_CatM1)
             {
                 applyLteCatM1CIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             }
         }
@@ -385,9 +316,13 @@ namespace muffin {
             {
                 applyNodeCIN(pair.second);
                 s_HasNode = true;
+
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             }
-            s_HasNode = false;
         }
 
         for (auto& pair : jarvis)
@@ -396,6 +331,10 @@ namespace muffin {
             if (key == jarvis::cfg_key_e::OPERATION)
             {
                 applyOperationCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             }
         }
@@ -406,6 +345,10 @@ namespace muffin {
             if (key == jarvis::cfg_key_e::ETHERNET)
             {
                 applyEthernetCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             }
         }
@@ -418,28 +361,48 @@ namespace muffin {
             {
             case jarvis::cfg_key_e::ALARM:
                 applyAlarmCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             case jarvis::cfg_key_e::OPERATION_TIME:
                 applyOperationTimeCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             case jarvis::cfg_key_e::RS485:
                 applyRS485CIN(pair.second);
+                /**
+                 * @todo 현재 MODLINK-L에서 해당 설정값을 제거하면 RTU 설정시 문제가 발생해서 주석처리 해주었음
+                 * 
+                 */
+                // for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                // {
+                //     delete *it;
+                // }
                 break;
             case jarvis::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             case jarvis::cfg_key_e::MODBUS_RTU:
                 {
-    
                     for (auto cin : jarvis)
                     {
                         if (cin.first == jarvis::cfg_key_e::RS485)
-                        {   
-                       
+                        {
                             jarvis::config::Rs485* rs485CIN = static_cast<jarvis::config::Rs485*>(cin.second[0]);
-                  
                             applyModbusRtuCIN(pair.second, rs485CIN);
-                  
+                            for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                            {
+                                delete *it;
+                            }
                             break;
                         }
                     }
@@ -454,6 +417,10 @@ namespace muffin {
                 break;
             case jarvis::cfg_key_e::MODBUS_TCP:
                 applyModbusTcpCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
                 break;
             default:
                 ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
@@ -463,34 +430,26 @@ namespace muffin {
 
         for (auto& pair : jarvis)
         {
-            for (auto& element : pair.second)
-            {
-                delete element;
-            }
             pair.second.clear();
         }
     }
 
     void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
     {
-        //LOG_DEBUG(logger, "Start applying Alarm CIN");
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+        
+        const uint32_t prev = ESP.getFreeHeap();
         for (auto cin : vectorAlarmCIN)
         {
             alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
         }
+        const uint32_t curr = ESP.getFreeHeap();
         alarmMonitor.StartTask();
     }
     
     void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN)
     {
         im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
-        if (nodeStore == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CRAETE NODE STORE");
-            return;
-        }        
-
         for (auto& baseCIN : vectorNodeCIN)
         {
             jarvis::config::Node* nodeCIN = static_cast<jarvis::config::Node*>(baseCIN);
@@ -556,8 +515,6 @@ namespace muffin {
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND MODLINK-ML10");
-    #endif
-
         jarvis::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
         if (cin->GetPortIndex().second == jarvis::prt_e::PORT_2)
         {
@@ -567,6 +524,24 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
         }
+
+    #elif defined(MODLINK_T2) || defined(MODLINK_B)
+        for (auto& Rs485CIN : vectorRS485CIN)
+        {
+            size_t count = 0;
+            while (count < 5)
+            {
+                Status ret = spear.SetJarvisLinkConfig(Rs485CIN, jarvis::cfg_key_e::RS485);
+                if (ret == Status(Status::Code::GOOD))
+                {
+                    break;
+                count++;
+                }
+                delay(100);
+            }            
+        }
+
+    #endif
     }
     
     void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
@@ -597,34 +572,70 @@ namespace muffin {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
         }
-        
-        ModbusRTU* modbusRTU = ModbusRTU::CreateInstanceOrNULL();
-        if (modbusRTU == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
-            return;
-        }
-        modbusRTU->SetPort(rs485CIN);
-        mVectorModbusRTU.clear();
 
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        ModbusRtuVector.clear();
+        mVectorModbusRTU.clear();
+        
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
-        
+            ModbusRTU* modbusRTU = new ModbusRTU();
+            modbusRTU->SetPort(rs485CIN);
             jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
+            modbusRTU->mPort = cin->GetPort().second;
             Status ret = modbusRTU->Config(cin);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
-
             mVectorModbusRTU.emplace_back(*cin);
+            ModbusRtuVector.emplace_back(*modbusRTU);
         }
+
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
-        
+
         SetPollingInterval(s_PollingInterval);
         StartModbusRtuTask();
         StartTaskCyclicalsMSG(s_PublishInterval);
+    #else
+        ModbusRtuVector.clear();
+        mVectorModbusRTU.clear();
+        muffin::Core& core = muffin::Core::GetInstance();
+        std::set<jarvis::prt_e> link;
+        for (auto& modbusRTUCIN : vectorModbusRTUCIN)
+        {
+            ModbusRTU* modbusRTU = new ModbusRTU();
+            jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
+            modbusRTU->mPort = cin->GetPort().second;
+            link.insert(modbusRTU->mPort);
+            Status ret = modbusRTU->Config(cin);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
+                return;
+            }
+            mVectorModbusRTU.emplace_back(*cin);
+            ModbusRtuVector.emplace_back(*modbusRTU);
+        }
+
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
+        
+        size_t count = 0;
+        while (count < 5)
+        {
+            Status ret = spear.SetJarvisProtocolConfig(link);
+            if (ret == Status(Status::Code::GOOD))
+            {
+                break;
+            }
+            count++;
+            delay(100);
+        }
+
+        StartModbusRtuTask();
+        StartTaskCyclicalsMSG(s_PublishInterval);
+    #endif
         
     }
 
@@ -680,43 +691,26 @@ namespace muffin {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
         }
-        
-        ModbusTCP* modbusTCP = ModbusTCP::CreateInstanceOrNULL();
-        if (modbusTCP == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CRAETE MODBUS RTU PROTOCOL");
-            return;
-        }
+        ModbusTcpVector.clear();
         mVectorModbusTCP.clear();
-
-        jarvis::config::ModbusTCP* cin = static_cast<jarvis::config::ModbusTCP*>(vectorModbusTCPCIN[0]);
         
-        mVectorModbusTCP.emplace_back(*cin);
-        
-        jarvis::config::ModbusTCP retrievedConfig;
-        Status retRetrieve = modbusTCP->RetrieveConfig(&retrievedConfig);
-        if (retRetrieve == Status::Code::BAD_NOT_FOUND)
+        for (auto& modbusTCPCIN : vectorModbusTCPCIN)
         {
+            ModbusTCP* modbusTCP = new ModbusTCP();
+            jarvis::config::ModbusTCP* cin = static_cast<jarvis::config::ModbusTCP*>(modbusTCPCIN);
             Status ret = modbusTCP->Config(cin);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
                 return;
             }
-
-            modbus::modbusTcpServer_t serverInfo;
-            serverInfo.serverIP   = cin->GetIPv4().second;
-            serverInfo.serverPort = cin->GetPort().second;
-
-            SetPollingInterval(s_PollingInterval);
-            StartModbusTcpTask(serverInfo);
-            StartTaskCyclicalsMSG(s_PublishInterval);
+            mVectorModbusTCP.emplace_back(*cin);
+            ModbusTcpVector.emplace_back(*modbusTCP);
         }
-        else
-        {
-            LOG_INFO(logger,"Modbus TCP settings have been changed. Device Reset!");
-            delay(3000);
-            ESP.restart();
-        }
+
+        SetPollingInterval(s_PollingInterval);
+        StartModbusTcpTask();
+        StartTaskCyclicalsMSG(s_PublishInterval);
+        
     }
 }

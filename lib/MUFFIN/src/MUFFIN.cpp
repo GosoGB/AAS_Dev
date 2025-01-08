@@ -15,7 +15,7 @@
 
 #include "Core/Core.h"
 #include "MUFFIN.h"
-
+#include "Protocol/SPEAR/SPEAR.h"
 
 
 void MUFFIN::Start()

@@ -31,28 +31,6 @@ namespace muffin {
     WiFiClient wifiClient;
     ModbusTCPClient modbusTCPClient(wifiClient);
 
-
-    ModbusTCP* ModbusTCP::CreateInstanceOrNULL()
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) ModbusTCP();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MODBUS RTU");
-                return mInstance;
-            }
-        }
-
-        return mInstance;
-    }
-
-    ModbusTCP& ModbusTCP::GetInstance()
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE EXISTS: CALL FUNCTION \"CreateInstanceOrNULL\" INSTEAD");
-        return *mInstance;
-    }
-
     ModbusTCP::ModbusTCP()
     {
     #if defined(DEBUG)
@@ -69,28 +47,9 @@ namespace muffin {
 
     Status ModbusTCP::Config(jarvis::config::ModbusTCP* config)
     {
-        mConfig = new jarvis::config::ModbusTCP();
-        *mConfig = *config;
-
-        const uint8_t slaveID = config->GetSlaveID().second;
-        addNodeReferences(slaveID, config->GetNodes().second);
-        xSemaphoreModbusTCP = xSemaphoreCreateMutex();
-        if (xSemaphoreModbusTCP == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MODBUS TCP SEMAPHORE");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-        return Status(Status::Code::GOOD);
-    }
-
-    Status ModbusTCP::RetrieveConfig(jarvis::config::ModbusTCP* config)
-    {
-        if (mConfig == nullptr)
-        {
-            return Status(Status::Code::BAD_NOT_FOUND);
-        }
-        
-        *config = *mConfig;
+        addNodeReferences(config->GetSlaveID().second, config->GetNodes().second);
+        mServerIP = config->GetIPv4().second;
+        mServerPort = config->GetPort().second;
         return Status(Status::Code::GOOD);
     }
 
@@ -100,19 +59,6 @@ namespace muffin {
         mAddressTable.Clear();
         mPolledDataTable.Clear();
     }
-
-    SerialConfig ModbusTCP::convert2SerialConfig(const jarvis::dbit_e dbit, const jarvis::sbit_e sbit, const jarvis::pbit_e pbit)
-    {
-        const uint8_t dataBits    = (static_cast<uint8_t>(dbit) - 0x05) << 0x2;
-        const uint8_t stopBits    = (sbit == jarvis::sbit_e::SBIT_1 ? 0x01 : 0x03) << 0x4;        
-        const uint8_t parityBits  = pbit == jarvis::pbit_e::NONE ? 0x00 : 
-                                    pbit == jarvis::pbit_e::EVEN ? 0x02 :
-                                    0x03;
-
-        const uint32_t config = 0x8000000 | dataBits | stopBits | parityBits;
-        return static_cast<SerialConfig>(config);
-    }
-
 
     Status ModbusTCP::addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID)
     {
@@ -208,6 +154,12 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
+        if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
             const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
@@ -224,17 +176,10 @@ namespace muffin {
                 return Status(Status::Code::BAD);
             }
 
-            if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
-            {
-                LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
-                return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-            }
-
             for (const auto& area : retrievedAreaInfo.second)
             {
                 const auto& addressSetToPoll = retrievedAddressInfo.second.RetrieveAddressRange(area);
                 
-
                 switch (area)
                 {
                 case jarvis::mb_area_e::COILS:
@@ -490,7 +435,6 @@ namespace muffin {
                 const uint16_t address = startAddress + i;
                 const int32_t value = modbusTCPClient.read();
                 
-                LOG_WARNING(logger, "[INPUT REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
@@ -584,6 +528,13 @@ namespace muffin {
         return data;
     }
 
+    IPAddress ModbusTCP::GetServerIP()
+    {
+        return mServerIP;
+    }
 
-    ModbusTCP* ModbusTCP::mInstance = nullptr;
+    uint16_t ModbusTCP::GetServerPort()
+    {
+        return mServerPort;
+    }
 }

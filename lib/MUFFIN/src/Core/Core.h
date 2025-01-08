@@ -5,7 +5,7 @@
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-30
+ * @date 2024-12-28
  * @version 1.0.0
  * 
  * @todo 사용자로부터 네트워크 설정 정보를 받는 기능을 구현해야 합니다.
@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -38,6 +37,8 @@ namespace muffin {
     extern std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
     extern std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
     extern muffin::jarvis::config::Ethernet mEthernet;
+    extern bool s_HasJarvisCommand;
+    extern bool s_HasFotaCommand;
     
     class Core
     {
@@ -54,23 +55,19 @@ namespace muffin {
 
     public:
         void Init();
-        void RouteMqttMessage(const mqtt::Message& message);
-    public:
-        esp_reset_reason_t RetrieveResetReason() const;
-    
-    private:
-        void startJarvisTask(const std::string& payload);
-        void startRemoteControll(const std::string& payload);
-        void setFotaURL(const std::string& payload);
+        void RouteMqttMessage(const mqtt::Message& message);    
+        void startJarvisTask();
         void startOTA(const std::string& payload);
+    private:
+        void saveJarvisFlag(const std::string& payload);
+        void saveFotaFlag(const std::string& payload);
+        void startRemoteControll(const std::string& payload);
         static void onJarvisValidationResult(jarvis::ValidationResult result);
     private:
         static jarvis::ValidationResult mJarvisValidationResult;
     private:
-        esp_reset_reason_t mResetReason;
         static constexpr uint8_t MAX_RETRY_COUNT = 5;
         static constexpr uint16_t SECOND_IN_MILLIS = 1000;
         static constexpr uint16_t KILLOBYTE = 1024;
-        
     };
 }
