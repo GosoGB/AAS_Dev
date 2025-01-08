@@ -166,13 +166,12 @@ namespace muffin {
 
             Preferences nvs;
             nvs.begin("jarvis");
-            s_HasJarvisCommand = nvs.getBool("jarvisFlag",false);
+            nvs.putBool("jarvisFlag",false);
             nvs.end();
             
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
-                catM1.ReleaseMutex();
                 
                 switch (ret.ToCode())
                 {
@@ -199,7 +198,6 @@ namespace muffin {
                 vTaskDelete(NULL);
             }
         }
-        catM1.ReleaseMutex();
         ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
 
 

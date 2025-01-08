@@ -176,7 +176,11 @@ namespace muffin {
         }
 
         StartTaskMQTT();
-        StartUpdateTask();
+        if (s_HasJarvisCommand == false)
+        {
+            StartUpdateTask();
+        }
+        
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)
@@ -889,11 +893,6 @@ ERROR_RESPONSE:
              * @todo 저장 성공 유무를 확인할 수 있는 기능을 추가해야 합니다.
              */
             file.close();
-
-            Preferences nvs;
-            nvs.begin("jarvis");
-            nvs.putBool("jarvisFlag",false);
-            nvs.end();
 
             // 혹시라도 MFM RESPONSE를 서버로 못보내고 리셋이 될 수도 있나?
             while (cdo.Count() > 0)
