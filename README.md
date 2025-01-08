@@ -2,6 +2,7 @@
 ## MUFFIN 프레임워크 Ver.1.2.1 개발 완료
 ### 버그 수정
   - MFM과 FOTA https 요청을 동시에 처리하는 로직을 수정함
+# <br><br><br>
 # 릴리즈 노트 Jan 6, 2025
 ## MUFFIN 프레임워크 Ver.1.2.0 개발 완료
 ### 신규 기능
@@ -18,6 +19,7 @@
   - Ver.1.2.0에서는 MFM 설정 값을 수신할 경우에는 디바이스를 리셋합니다.
   - [MODLINK-L] : 최대 설정 노드를 50개로 제안합니다. 
   - [MODLINK-T2] : 최대 노드를 35개로 제안합니다.
+# <br><br><br>
 # 릴리즈 노트 Nov 26, 2024
 ## MUFFIN 프레임워크 Ver.1.1.0 개발 완료
 ### 신규 기능
@@ -35,6 +37,7 @@
 ### 알려진 버그
   - MFM 설정이 끝났음에도 불구하고 "unavailable due to jarvis task being already running or blocked" 코드가 출력되는 버그가 보고됨
   - 설정값 초기화(factory reset) 명령 실행 이후에 디바이스 동작 속도가 눈의 띄게 느려지는 버그가 보고됨
+# <br><br><br>
 # 릴리즈 노트 Nov 20, 2024
 ## MUFFIN 프레임워크 Ver.1.0.0 개발 완료
 ### 신규 기능
@@ -57,7 +60,6 @@
        - 이벤트 트리거링
     - Built-in Data Types
   - OTA
-
 ### 기능 제약
   - Ver.1.0.0에서는 설정 가능한 Node의 개수가 50개로 제한됨
     - 추후 버전에서 설정 가능 개수를 늘릴 예정임
