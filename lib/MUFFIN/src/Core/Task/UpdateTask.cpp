@@ -28,7 +28,7 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Common/CRC32/CRC32.h"
 #include "Core/Core.h"
-#include "Core/Device/DeviceStatus.h"
+#include "IM/Custom/Device/DeviceStatus.h"
 #include "CyclicalPubTask.h"
 #include "UpdateTask.h"
 #include "ModbusTask.h"
@@ -39,12 +39,13 @@
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
-#include "IM/MacAddress/MacAddress.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "Storage/CatFS/CatFS.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "Protocol/SPEAR/SPEAR.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 
 
 namespace muffin {
@@ -122,7 +123,7 @@ namespace muffin {
             LOG_ERROR(logger, "MAC ADDRESS CANNOT BE NULL OR EMPTY");
             return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
         }
-        else if (strcmp(doc["mac"].as<const char*>(), MacAddress::GetEthernet()) != 0)
+        else if (strcmp(doc["mac"].as<const char*>(), macAddress.GetEthernet()) != 0)
         {
             LOG_ERROR(logger, "THE MAC ADDRESS DOES NOT MATCH THAT OF THE DEVICE");
             return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
@@ -595,47 +596,6 @@ namespace muffin {
         ESP.restart();
     }
 
-    void UpdateTask(void* pvParameter)
-    {
-        const uint16_t fwCheckInterval = 3600 * 12;
-        const uint32_t sleep10Minutes = 60 * 10 * 1000;
-        time_t currentTimestamp = GetTimestamp();
-
-        if (s_HasFotaCommand)
-        {
-            Preferences nvs;
-            nvs.begin("fota");
-            const std::string payload = nvs.getString("fotaPayload").c_str();
-            nvs.putBool("fotaFlag",false);
-            nvs.end();
-
-            LOG_WARNING(logger, "payload : %s",payload.c_str());
-            muffin::Core& core = muffin::Core::GetInstance();
-            core.startOTA(payload);
-
-            vTaskDelete(xTaskFotaHandle);
-            xTaskFotaHandle = NULL;
-        }
-
-        implementUpdateTask();
-
-
-        while (true)
-        {
-            if (GetTimestamp() - currentTimestamp < fwCheckInterval)
-            {
-                vTaskDelay(sleep10Minutes / portTICK_PERIOD_MS); 
-                continue;
-            }
-            currentTimestamp = GetTimestamp();
-            LOG_DEBUG(logger,"12시간 경과 %lu",currentTimestamp);
-        #ifdef DEBUG
-            LOG_DEBUG(logger, "[TASK: OTA] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-        #endif
-            implementUpdateTask();
-        }
-    }
-
     Status HasNewFirmware(new_fw_t* outInfo)
     {
         ASSERT((outInfo != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
@@ -666,7 +626,7 @@ namespace muffin {
         #endif
         );
         http::RequestParameter parameters;
-        parameters.Add("mac", MacAddress::GetEthernet());
+        parameters.Add("mac", macAddress.GetEthernet());
         
         Status ret = catHttp.GET(mutexHandle.second, header, parameters);
         if (ret != Status::Code::GOOD)
@@ -719,7 +679,7 @@ namespace muffin {
         );
         
         http::RequestParameter parameters;
-        parameters.Add("mac", MacAddress::GetEthernet());
+        parameters.Add("mac", macAddress.GetEthernet());
         parameters.Add("otaId", std::to_string(info.OtaID));
         if (mcu == mcu_type_e::MCU_ESP32)
         {
@@ -863,7 +823,7 @@ namespace muffin {
         );
     
         http::RequestBody body("application/x-www-form-urlencoded");
-        body.AddProperty("mac", MacAddress::GetEthernet());
+        body.AddProperty("mac", macAddress.GetEthernet());
         body.AddProperty("otaId", std::to_string(info.OtaID));
         if (mcu == mcu_type_e::MCU_ESP32)
         {
@@ -924,7 +884,7 @@ namespace muffin {
     
 
         http::RequestParameter parameters;
-        parameters.Add("mac", MacAddress::GetEthernet());
+        parameters.Add("mac", macAddress.GetEthernet());
         parameters.Add("otaId", std::to_string(info.OtaID));
         if (mcu == mcu_type_e::MCU_ESP32)
         {
@@ -969,12 +929,12 @@ namespace muffin {
         LOG_INFO(logger, "Has New Firmware To Update");
         StopAllTask();
         
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         if (fwInfo.MCU_MEGA2560 == true)
         {
             strategyATmega2560();
         }
-#endif
+    #endif
         if (fwInfo.MCU_ESP32 == true)
         {
             strategyESP32();
@@ -990,27 +950,26 @@ namespace muffin {
 
     void SendStatusMSG()
     {
-        DeviceStatus& deviceStatus = DeviceStatus::GetInstance();
-        fw_vsn_t version = deviceStatus.GetFirmwareVersion(mcu_type_e::MCU_ESP32);
-
         fota_status_t status;
-        status.VersionCodeMcu1  = version.Code;
-        status.VersionMcu1      = version.Semantic;
+        status.VersionCodeMcu1  = FW_VERSION_ESP32.GetVersionCode();
+        status.VersionMcu1      = FW_VERSION_ESP32.GetSemanticVersion();
     #if defined(MODLINK_T2)
-        fw_vsn_t versionATmega2560 = deviceStatus.GetFirmwareVersion(mcu_type_e::MCU_ATmega2560);
-        status.VersionCodeMcu2  = versionATmega2560.Code;
-        status.VersionMcu2      = versionATmega2560.Semantic;
+        status.VersionCodeMcu2  = FW_VERSION_MEGA2560.GetVersionCode();
+        status.VersionMcu2      = FW_VERSION_MEGA2560.GetSemanticVersion();
     #endif
 
         /**
          * @todo ATmega2560에 대한 정보도 전송할 수 있도록 코드 수정이 필요합니다.
          */
+        constexpr size_t size = 256;
+        char buffer[size] = {'\0'};
 
         JSON json;
-        std::string payload = json.Serialize(status);
-        mqtt::Message message(mqtt::topic_e::FOTA_STATUS, payload);
+        json.Serialize(status, size, buffer);
+        LOG_INFO(logger, "[Topic] fota/status: %s", buffer);
+
+        mqtt::Message message(mqtt::topic_e::FOTA_STATUS, buffer);
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        LOG_INFO(logger, "FOTA/STAUTS PAYLOAD : %s",payload.c_str());
         Status ret = cdo.Store(message);
         if (ret != Status::Code::GOOD)
         {
@@ -1020,7 +979,6 @@ namespace muffin {
             LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
             return;
         }
-
     }
 
     void StopAllTask()
@@ -1052,56 +1010,5 @@ namespace muffin {
 
         ModbusRtuVector.clear();
         ModbusTcpVector.clear();
-    }
-
-    void StartUpdateTask()
-    {
-        if (xTaskFotaHandle != NULL)
-        {
-            LOG_WARNING(logger, "THE OTA TASK HAS ALREADY STARTED");
-            return;
-        }
-        SendStatusMSG();
-        delay(1000);
-
-        /**
-         * @todo 스택 오버플로우를 방지하기 위해서 MQTT 메시지 크기에 따라서
-         *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
-         */
-        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            UpdateTask,        // Function to be run inside of the task
-            "UpdateTask",      // The identifier of this task for men
-            1024*10,			   // Stack memory size to allocate
-            NULL,			   // Task parameters to be passed to the function
-            0,				   // Task Priority for scheduling
-            &xTaskFotaHandle,  // The identifier of this task for machines
-            0				   // Index of MCU core where the function to run
-        );
-        /**
-         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
-         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
-         */
-        switch (taskCreationResult)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "The FOTA task has been started");
-            // return Status(Status::Code::GOOD);
-            return;
-
-        case pdFAIL:
-            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            return;
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            return;
-
-        default:
-            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            return;
-        }
     }
 }

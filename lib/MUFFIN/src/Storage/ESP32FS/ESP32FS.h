@@ -4,13 +4,13 @@
  * 
  * @brief ESP32 LittleFS 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-14
+ * @version 1.2.2
  * 
  * @note Arduino 프레임워크의 제약으로 인해 End() 실행 결과를 확인할 수 있는 방법이 없음
  * @todo ESP-IDF 프레임워크로 이전 시 파티션 unregister, unmount 결과 값에 따라 실행 결과를 리턴하게 수정해야 함
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -27,16 +27,8 @@ namespace muffin {
     class ESP32FS : public IStorage
     {
     public:
-        ESP32FS(ESP32FS const&) = delete;
-        void operator=(ESP32FS const&) = delete;
-        static ESP32FS* CreateInstanceOrNULL();
-        static ESP32FS& GetInstance();
-    private:
         ESP32FS();
-        virtual ~ESP32FS() override;
-    private:
-        static ESP32FS* mInstance;
-    
+        virtual ~ESP32FS() override {}
     public:
         virtual Status Begin(const bool formatOnFail = false, const char* basePath = "/littlefs", const uint8_t maxOpenFiles = 10, const char* partitionLabel = "spiffs") override;
         virtual Status Format() override;
@@ -57,4 +49,7 @@ namespace muffin {
         virtual Status RemoveDirectory(const char* path) override;
         virtual Status RemoveDirectory(const std::string &path) override;
     };
+
+
+    extern ESP32FS esp32FS;
 }

@@ -4,13 +4,13 @@
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-13
+ * @version 1.2.2
  * 
  * @todo Option #1: MODLINK 모델 별로 기본 설정이 달라지는 부분을 고려해야 합니다.
  * @todo Option #2: 블루투스를 이용해서 사용자가 설정할 수 있게 만들어야 합니다.
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -31,9 +31,9 @@ namespace muffin {
         virtual ~Initializer();
     public:
         void StartOrCrash();
-        Status Configure();
+        Status Configure(const bool hasJARVIS, const bool hasOTA);
     private:
-        Status configureWithoutJarvis();
+        Status configureWithoutJarvis(const bool hasJARVIS);
         Status configureWithJarvis();
     private:
         static constexpr const char* JARVIS_FILE_PATH = "/jarvis/config.json";

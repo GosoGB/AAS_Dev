@@ -18,7 +18,7 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "DataFormat/JSON/JSON.h"
-#include "IM/FirmwareVersion/FirmwareVersion.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "Jarvis/Config/Interfaces/Rs485.h"
 #include "SPEAR.h"
 
@@ -579,9 +579,7 @@ namespace muffin {
 
     void SPEAR::writeJson(const char payload[], const std::string& path)
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         File file = esp32FS.Open(path, "w", true);
-
         for (size_t i = 0; i < strlen(payload); ++i)
         {
             file.write(payload[i]);
@@ -591,7 +589,6 @@ namespace muffin {
 
     Status SPEAR::readJson(const std::string& path, const uint8_t size, char payload[])
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         File file = esp32FS.Open(path);
 
         if (!file)

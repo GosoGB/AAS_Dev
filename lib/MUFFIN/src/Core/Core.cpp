@@ -5,10 +5,10 @@
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-12-28
- * @version 1.0.0
+ * @date 2025-01-14
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -17,19 +17,22 @@
 #include <esp_system.h>
 #include <Preferences.h>
 
-#include "Jarvis/Jarvis.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Core.h"
 #include "Core/Task/ModbusTask.h"
-#include "Device/DeviceStatus.h"
 #include "DataFormat/JSON/JSON.h"
+
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "Jarvis/Jarvis.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
+#include "IM/Custom/Constants.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "IM/EA/DeprecableProductionInfo.h"
-#include "IM/FirmwareVersion/FirmwareVersion.h"
 #include "IM/Node/NodeStore.h"
 #include "Initializer/Initializer.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
@@ -50,89 +53,63 @@
 
 
 
+
 namespace muffin {
 
     std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
     std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
     muffin::jarvis::config::Ethernet mEthernet;
-    bool s_HasJarvisCommand = false;
-    bool s_HasFotaCommand = false;
-    
-    Core* Core::CreateInstance() noexcept
-    {
 
-        if (mInstance == nullptr)
-        {
-            logger.Init();
-            DeviceStatus* deviceStatus = DeviceStatus::CreateInstanceOrNULL();
-            deviceStatus->SetFirmwareVersion(
-                mcu_type_e::MCU_ESP32, 
-                FW_VERSION_ESP32.GetSemanticVersion(), 
-                FW_VERSION_ESP32.GetVersionCode()
-            );
-            LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u",
-                FW_VERSION_ESP32.GetSemanticVersion(),
-                FW_VERSION_ESP32.GetVersionCode());
+    jarvis::ValidationResult Core::mJarvisValidationResult;
+    bool Core::mHasJarvisCommand = false;
+    bool Core::mHasFotaCommand = false;
 
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
-            
-            const uint8_t MAX_TRIAL_COUNT = 3;
-            uint8_t trialCount = 0;
-    
-            while (spear.Init() != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART MEGA2560.");
-                spear.Reset();
-                if (trialCount == MAX_TRIAL_COUNT)
-                {
-                    break;
-                }
-                trialCount++;
-            }
-            
-            
-            if (spear.VersionEnquiryService() != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
-            }
-
-            deviceStatus->SetFirmwareVersion(
-                mcu_type_e::MCU_ATmega2560, 
-                FW_VERSION_MEGA2560.GetSemanticVersion(), 
-                FW_VERSION_MEGA2560.GetVersionCode()
-            );
-
-            LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
-                FW_VERSION_MEGA2560.GetSemanticVersion(),
-                FW_VERSION_MEGA2560.GetVersionCode());
-        #endif
-        
-            mInstance = new(std::nothrow) Core();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR MUFFIN CORE");
-                esp_restart();
-            }
-        }
-
-        return mInstance;
-    }
-
-    Core& Core::GetInstance() noexcept
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstance\" IN ADVANCE");
-        return *mInstance;
-    }
 
     void Core::Init()
     {
+        logger.Init();
+        
+        LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
+        LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u", 
+            FW_VERSION_ESP32.GetSemanticVersion(), 
+            FW_VERSION_ESP32.GetVersionCode());
+    #if defined(MODLINK_T2)
+    {
+        uint8_t trialCount = 0;    
+        while (spear.Init() != Status::Code::GOOD)
+        {
+            if (trialCount == MAX_RETRY_COUNT)
+            {
+                LOG_ERROR(logger, "FAILED TO GET SIGN-ON REQUEST FROM ATmega2560");
+                goto SPEAR_FAILED;
+            }
+            spear.Reset();
+            ++trialCount;
+        }
+        
+        if (spear.VersionEnquiryService() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO QUERY VERSION OF THE ATmega2560");
+            goto SPEAR_FAILED;
+        }
+        goto SPEAR_SUCCEDED;
+        
+    SPEAR_FAILED:
+        LOG_ERROR(logger, "FAILED TO INITIALIZE SPEAR");
+    SPEAR_SUCCEDED:
+        LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
+            FW_VERSION_MEGA2560.GetSemanticVersion(),
+            FW_VERSION_MEGA2560.GetVersionCode());
+    }
+    #endif
+
         Preferences nvs;
         nvs.begin("jarvis");
-        s_HasJarvisCommand = nvs.getBool("jarvisFlag",false);
+        mHasJarvisCommand = nvs.getBool("jarvisFlag",false);
         nvs.end();
 
         nvs.begin("fota");
-        s_HasFotaCommand = nvs.getBool("fotaFlag",false);
+        mHasFotaCommand = nvs.getBool("fotaFlag",false);
         nvs.end();
 
         /**
@@ -156,7 +133,7 @@ namespace muffin {
          */
         for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
         {
-            Status ret = initializer.Configure();
+            Status ret = initializer.Configure(mHasJarvisCommand, mHasFotaCommand);
             if (ret == Status::Code::GOOD)
             {
                 LOG_INFO(logger, "MUFFIN is configured and ready to go!");
@@ -176,11 +153,18 @@ namespace muffin {
         }
 
         StartTaskMQTT();
-        if (s_HasJarvisCommand == false)
+        SendStatusMSG();
+        if (mHasJarvisCommand == false && mHasFotaCommand == true)
         {
-            StartUpdateTask();
+            Preferences nvs;
+            nvs.begin("fota");
+            const std::string payload = nvs.getString("fotaPayload").c_str();
+            LOG_WARNING(logger, "payload : %s",payload.c_str());
+            nvs.putBool("fotaFlag",false);
+            nvs.end();
+
+            StartOTA(payload);
         }
-        
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)
@@ -205,11 +189,9 @@ namespace muffin {
             saveFotaFlag(payload);
             break;
         default:
-            ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
+            ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(topic));
             break;
         }
-        
-        // mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
     }
 
     void Core::saveFotaFlag(const std::string& payload)
@@ -231,12 +213,11 @@ namespace muffin {
     {
         bool isError = false;
         jarvis_struct_t messageConfig;
+
         JSON json;
         JsonDocument doc;
+
         Status retJSON = json.Deserialize(payload, &doc);
-#ifdef DEBUG
-//LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
         if (retJSON != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
@@ -280,7 +261,6 @@ namespace muffin {
             }
         }
 
-        ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
         const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
         if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_2))
         {
@@ -335,7 +315,7 @@ namespace muffin {
         ESP.restart();
     }
 
-    void Core::startJarvisTask()
+    void Core::StartJarvisTask()
     {
         jarvis_task_params* pvParameters = new(std::nothrow) jarvis_task_params();
         if (pvParameters == nullptr)
@@ -529,11 +509,8 @@ namespace muffin {
                         LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
                     }
                     return ;
-                   
                 }
-                
             }
-            
         }
         
         if (retLCL.first == true)
@@ -805,7 +782,7 @@ ERROR_RESPONSE:
         }
     }
 
-    void Core::onJarvisValidationResult(jarvis::ValidationResult result)
+    void Core::onJarvisValidationResult(jarvis::ValidationResult& result)
     {
         if (result.GetRSC() >= jarvis::rsc_e::BAD)
         {
@@ -875,7 +852,6 @@ ERROR_RESPONSE:
             std::string jarvisPayload;
             RetrieveJarvisRequestPayload(&jarvisPayload);
 
-            ESP32FS& esp32FS = ESP32FS::GetInstance();
             /** 
              * @todo string이 아니라 enum class와 ConvertClass를 사용하도록 코드를 수정해야 합니다.
              */
@@ -904,19 +880,13 @@ ERROR_RESPONSE:
         #endif 
             ESP.restart();
         }
-        /**
-         * @todo 설정 정보가 올바르게 설정되었는지 확인하는 기능을 추가해야 합니다.
-         * 2025-01-02 설정값 저장 후 리셋하기 때문에 아래 코드는 실행되지않음, 우선 주석처리
-        ApplyJarvisTask();
-         */
-        // ApplyJarvisTask();
     }
 
-    void Core::startOTA(const std::string& payload)
+    void Core::StartOTA(const std::string& payload)
     {
         StartManualFirmwareUpdate(payload);
     }
 
-    Core* Core::mInstance = nullptr;
-    jarvis::ValidationResult Core::mJarvisValidationResult;
+
+    Core core;
 }

@@ -17,7 +17,7 @@
 #include "Common/Logger/Logger.h"
 #include "JSON.h"
 #include "Protocol/MQTT/CDO.h"
-#include "IM/MacAddress/MacAddress.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 
 
 
@@ -104,7 +104,7 @@ namespace muffin {
         JsonDocument doc;
         std::string payload;
 
-        doc["mac"]   =  MacAddress::GetEthernet();
+        doc["mac"]   =  macAddress.GetEthernet();
         doc["ts"]    =  _struct.SourceTimestamp;
         doc["name"]  =  _struct.Name;
         doc["uid"]   =  _struct.Uid;
@@ -121,7 +121,7 @@ namespace muffin {
         JsonDocument doc;
         std::string payload;
 
-        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["mac"]  =  macAddress.GetEthernet();
         doc["tp"]   =  _struct.AlarmType;
         doc["ts"]   =  _struct.AlarmStartTime;
         doc["tf"]   =  _struct.AlarmFinishTime;
@@ -139,7 +139,7 @@ namespace muffin {
         JsonDocument doc;
         std::string payload;
 
-        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["mac"]  =  macAddress.GetEthernet();
         doc["ts"]   =  _struct.SourceTimestamp;
         doc["stauts"]   =  _struct.Status;
 
@@ -153,7 +153,7 @@ namespace muffin {
         JsonDocument doc;
         std::string payload;
 
-        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["mac"]  =  macAddress.GetEthernet();
         doc["ts"]   =  _struct.SourceTimestamp;
         doc["value"]   =  _struct.Value;
 
@@ -167,7 +167,7 @@ namespace muffin {
         JsonDocument doc;
         std::string payload;
 
-        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["mac"]  =  macAddress.GetEthernet();
         doc["name"]   =  _struct.Name;
         doc["ts"]   =  _struct.SourceTimestamp;
 
@@ -176,11 +176,11 @@ namespace muffin {
         return payload;
     }
 
-    std::string JSON::Serialize(const fota_status_t& _struct)
+    size_t JSON::Serialize(const fota_status_t& _struct, const size_t size, char output[])
     {
+        ASSERT((strlen(output) == 0), "OUTPUT BUFFER MUST BE EMPTY");
+
         JsonDocument doc;
-        std::string payload;
-    
     #if defined(MODLINK_L)
         doc["deviceType"] = "MODLINK-L";
     #elif defined(MODLINK_ML10)
@@ -188,8 +188,7 @@ namespace muffin {
     #elif defined(MODLINK_T2)
         doc["deviceType"] = "MODLINK-T2";
     #endif
-
-        doc["mac"]  =  MacAddress::GetEthernet();
+        doc["mac"]  =  macAddress.GetEthernet();
         JsonObject mcu1 = doc["mcu1"].to<JsonObject>();
         mcu1["vc"] = _struct.VersionCodeMcu1;  
         mcu1["version"] = _struct.VersionMcu1;
@@ -199,8 +198,7 @@ namespace muffin {
         mcu2["version"] = _struct.VersionMcu2; 
     #endif
     
-        serializeJson(doc, payload);
-        return payload;
+        return serializeJson(doc, output, size);
     }
     
     void JSON::Serialize(const req_head_t& msg, const uint8_t size, char output[])

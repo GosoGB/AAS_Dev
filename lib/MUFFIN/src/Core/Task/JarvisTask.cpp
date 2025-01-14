@@ -41,7 +41,7 @@
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/SPEAR/SPEAR.h"
-#include "IM/MacAddress/MacAddress.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Network/Ethernet/Ethernet.h"
 #include "Storage/CatFS/CatFS.h"
@@ -65,9 +65,8 @@ namespace muffin {
     void ProcessJarvisRequestTask(void* pvParameters)
     {
         jarvis_task_params* params = (jarvis_task_params*)pvParameters;
-        void (*callback)(jarvis::ValidationResult) = params->Callback;
-        ASSERT((callback != nullptr), "INVALID CALLBACK: FUNCTION POINTER CANNOT BE A NULL POINTER");
-        std::string payload = params->RequestPayload;
+        void (*callback)(jarvis::ValidationResult&) = params->Callback;
+        ASSERT((callback != nullptr), "CALLBACK FUNCTION CANNOT BE NULL");
         
         delete params;
         params = nullptr;
@@ -111,7 +110,7 @@ namespace muffin {
             http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
         #endif
             http::RequestParameter parameters;
-            parameters.Add("mac", MacAddress::GetEthernet());
+            parameters.Add("mac", macAddress.GetEthernet());
 
         #ifdef DEBUG
             //LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
@@ -435,13 +434,10 @@ namespace muffin {
     void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
     {
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-        
-        const uint32_t prev = ESP.getFreeHeap();
         for (auto cin : vectorAlarmCIN)
         {
             alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
         }
-        const uint32_t curr = ESP.getFreeHeap();
         alarmMonitor.StartTask();
     }
     
@@ -493,7 +489,6 @@ namespace muffin {
 
         if (s_HasFactoryResetCommand == true)
         {
-            ESP32FS& esp32FS = ESP32FS::GetInstance();
             esp32FS.Format();
             esp_restart();
         }
@@ -599,7 +594,7 @@ namespace muffin {
     #else
         ModbusRtuVector.clear();
         mVectorModbusRTU.clear();
-        muffin::Core& core = muffin::Core::GetInstance();
+        
         std::set<jarvis::prt_e> link;
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {

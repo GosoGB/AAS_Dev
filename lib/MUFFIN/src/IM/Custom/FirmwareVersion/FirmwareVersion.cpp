@@ -1,17 +1,19 @@
 /**
  * @file FirmwareVersion.cpp
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-12-25
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @copyright Copyright (c) 2024
+ * @brief 펌웨어 버전 정보를 표현하는 클래스를 정의합니다.
  * 
+ * @date 2025-01-14
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
  */
 
 
 
 
+#include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "FirmwareVersion.h"
 
@@ -28,6 +30,8 @@ namespace muffin {
 
     void FirmwareVersion::SetSemanticVersion(const char* semver)
     {
+        ASSERT((strlen(semver) < sizeof(mSemanticVersion)), "BUFFER OVERFLOW: SEMANTIC VERSION");
+        
         memset(mSemanticVersion, '\0', sizeof(mSemanticVersion));
         strncpy(mSemanticVersion, semver, sizeof(mSemanticVersion));
     }
@@ -48,8 +52,8 @@ namespace muffin {
     }
 
 
-    FirmwareVersion FW_VERSION_ESP32("1.2.1", 121);
+	FirmwareVersion FW_VERSION_ESP32(ESP32_FW_VERSION, ESP32_FW_VERSION_CODE);
 #if defined(MODLINK_T2)
-    FirmwareVersion FW_VERSION_MEGA2560("0.0.0", 0);
+	FirmwareVersion FW_VERSION_MEGA2560(MEGA_FW_VERSION, MEGA_FW_VERSION_CODE);
 #endif
 }

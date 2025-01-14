@@ -19,7 +19,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "IM/MacAddress/MacAddress.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "Message.h"
 #include "Topic.h"
 

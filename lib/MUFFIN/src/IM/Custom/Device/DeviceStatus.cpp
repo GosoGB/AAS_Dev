@@ -20,7 +20,7 @@
 #include "Common/Time/TimeUtils.h"
 #include "Core/Include/Helper.h"
 #include "DeviceStatus.h"
-#include "IM/MacAddress/MacAddress.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 
 
 
@@ -209,7 +209,7 @@ namespace muffin {
     std::string DeviceStatus::ToString()
     {
         JsonDocument doc;
-        doc["mac"] = MacAddress::GetEthernet();
+        doc["mac"] = macAddress.GetEthernet();
         doc["ts"]  = GetTimestampInMillis();
 
         JsonObject firmware               = doc["firmware"].to<JsonObject>();

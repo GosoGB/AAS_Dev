@@ -4,10 +4,10 @@
  * 
  * @brief Ethernet 인터페이스 설정 정보를 관리하는 클래스를 선언합니다.
  * 
- * @date 2024-10-07
- * @version 1.0.0
+ * @date 2025-01-14
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -18,8 +18,9 @@
 #include <IPAddress.h>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "Common/DataStructure/bitset.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
@@ -29,7 +30,7 @@ namespace muffin { namespace jarvis { namespace config {
     {
     public:
         Ethernet();
-        virtual ~Ethernet() override;
+        virtual ~Ethernet() override {}
     public:
         Ethernet& operator=(const Ethernet& obj);
         bool operator==(const Ethernet& obj) const;
@@ -49,12 +50,18 @@ namespace muffin { namespace jarvis { namespace config {
         std::pair<Status, IPAddress> GetDNS1() const;
         std::pair<Status, IPAddress> GetDNS2() const;
     private:
-        bool mIsEnableDhcpSet = false;
-        bool mIsStaticIPv4Set = false;
-        bool mIsSubnetmaskSet = false;
-        bool mIsGatewaySet    = false;
-        bool mIsDNS1Set       = false;
-        bool mIsDNS2Set       = false;
+        typedef enum class SetFlagEnum
+            : uint8_t
+        {
+            DHCP     = 0,
+            IPv4     = 1,
+            SUBNET   = 2,
+            GATEWAY  = 3,
+            DNS_1    = 4,
+            DNS_2    = 5,
+            TOP      = 6
+        } set_flag_e;
+        bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
         bool mEnableDHCP;
         IPAddress mStaticIPv4;

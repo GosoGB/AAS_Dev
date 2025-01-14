@@ -5,10 +5,10 @@
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 정의합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-13
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -24,7 +24,7 @@
 #include "Core/Task/NetworkTask.h"
 #include "DataFormat/JSON/JSON.h"
 
-#include "IM/MacAddress/MacAddress.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 
 #include "Jarvis/Config/Network/CatM1.h"
 #if defined(MODLINK_T2) || defined(MODLINK_B)
@@ -66,28 +66,12 @@ namespace muffin {
     
     void Initializer::StartOrCrash()
     {
-        MacAddress* mac = MacAddress::CreateInstanceOrNULL();
-        if (mac == nullptr)
-        {
-            LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO READ MAC ADDRESS DUE TO DEVICE FAILURE OR OUT OF MEMORY");
-            esp_restart();
-        }
-        ASSERT((mac != nullptr), "MAC ADDRESS REQUIRED AS AN IDENTIFIER FOR MODLINK MUST BE INSTANTIATED");
-
-        ESP32FS* esp32FS = ESP32FS::CreateInstanceOrNULL();
-        if (esp32FS == nullptr)
-        {
-            LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
-            esp_restart();
-        }
-        ASSERT((esp32FS != nullptr), "ESP32FS REQUIRED AS A BASE FILE SYSTEM FOR MODLINK MUST BE INSTANTIATED");
-        
         /**
          * @todo LittleFS 파티션의 포맷 여부를 로우 레벨 API로 확인해야 합니다.
          * @details 현재는 파티션 마운트에 실패할 경우 파티션을 자동으로 포맷하도록 개발하였습니다.
          *          다만, 일시적인 하드웨어 실패가 발생한 경우에도 파티션이 포맷되는 문제가 있습니다.
          */
-        Status ret = esp32FS->Begin(true);
+        Status ret = esp32FS.Begin(true);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO MOUNT ESP32 FILE SYSTEM TO OPERATING SYSTEM");
@@ -97,15 +81,13 @@ namespace muffin {
         /*MUFFIN 프레임워크가 동작하기 위한 최소한의 조건이 만족되었습니다.*/
     }
 
-    Status Initializer::Configure()
+    Status Initializer::Configure(const bool hasJARVIS, const bool hasOTA)
     {
-        if (s_HasJarvisCommand || s_HasFotaCommand)
+        if (hasJARVIS || hasOTA)
         {
-            return configureWithoutJarvis();
+            return configureWithoutJarvis(hasJARVIS);
         }
         
-    #if !defined(CATFS)
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
         if (ret == Status::Code::GOOD)
         {
@@ -113,14 +95,11 @@ namespace muffin {
         }
         else
         {
-            return configureWithoutJarvis();
+            return configureWithoutJarvis(hasJARVIS);
         }
-    #else
-        return configureWithoutJarvis();
-    #endif
     }
 
-    Status Initializer::configureWithoutJarvis()
+    Status Initializer::configureWithoutJarvis(const bool hasJARVIS)
     {
         jarvis::config::CatM1 config;
         config.SetModel(jarvis::md_e::LM5);
@@ -150,12 +129,10 @@ namespace muffin {
     
         StartCatM1Task();
 
-        if (s_HasJarvisCommand)
+        if (hasJARVIS)
         {
-            muffin::Core& core = muffin::Core::GetInstance();
-            core.startJarvisTask();
+            core.StartJarvisTask();
         }
-
         
         return ret;
     }
@@ -164,7 +141,6 @@ namespace muffin {
     {
         LOG_WARNING(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
 
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         fs::File file = esp32FS.Open(JARVIS_FILE_PATH);
         std::string payload;
 

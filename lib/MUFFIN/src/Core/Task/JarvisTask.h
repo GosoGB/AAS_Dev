@@ -28,8 +28,7 @@ namespace muffin {
 
     typedef struct JarvisTaskParameters
     {
-        void (*Callback)(muffin::jarvis::ValidationResult);
-        std::string RequestPayload;
+        void (*Callback)(muffin::jarvis::ValidationResult&);
     } jarvis_task_params;
 
 

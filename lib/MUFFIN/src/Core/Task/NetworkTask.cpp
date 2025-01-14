@@ -22,7 +22,7 @@
 #include "Common/Time/TimeUtils.h"
 #include "Core/Include/Helper.h"
 #include "Core/Task/NetworkTask.h"
-#include "IM/MacAddress/MacAddress.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "Jarvis/Include/Base.h"
 #include "NetworkTask.h"
 #include "Protocol/MQTT/CIA.h"
@@ -200,7 +200,7 @@ namespace muffin {
 
         if (s_IsMqttTopicCreated == false)
         {
-            if (mqtt::Topic::CreateTopic(MacAddress::GetEthernet()) == false)
+            if (mqtt::Topic::CreateTopic(macAddress.GetEthernet()) == false)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT TOPIC");
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
@@ -220,7 +220,7 @@ namespace muffin {
 
     #if defined(DEBUG)
         mqtt::BrokerInfo info(
-            MacAddress::GetEthernet(),
+            macAddress.GetEthernet(),
             "mqtt.vitcon.iotops.opsnow.com",
             8883,
             40,
@@ -229,9 +229,9 @@ namespace muffin {
             "tkfkdgo5!@#$"
         );
     #else
-        // mqtt::BrokerInfo info(MacAddress::GetEthernet());
+        // mqtt::BrokerInfo info(macAddress.GetEthernet());
         mqtt::BrokerInfo info(
-            MacAddress::GetEthernet(),
+            macAddress.GetEthernet(),
             "mqtt.vitcon.iotops.opsnow.com",
             8883,
             40,
@@ -242,7 +242,7 @@ namespace muffin {
     #endif
         
         char buffer[32] = { '\0' };
-        sprintf(buffer, "%s,disconnected", MacAddress::GetEthernet());
+        sprintf(buffer, "%s,disconnected", macAddress.GetEthernet());
         mqtt::Message lwt(mqtt::topic_e::LAST_WILL, buffer);
         
         CatM1& catM1 = CatM1::GetInstance();

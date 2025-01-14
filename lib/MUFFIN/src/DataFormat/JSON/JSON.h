@@ -111,7 +111,7 @@ namespace muffin {
         std::string Serialize(const operation_struct_t& _struct);
         std::string Serialize(const push_struct_t& _struct);
         std::string Serialize(const progix_struct_t& _struct);
-        std::string Serialize(const fota_status_t& _struct);
+        size_t Serialize(const fota_status_t& _struct, const size_t size, char output[]);
 
     public:
         void Serialize(const req_head_t& msg, const uint8_t size, char output[]);

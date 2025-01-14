@@ -119,7 +119,6 @@ namespace muffin {
 
     void implMqttTask(void* pvParameter)
     {
-        constexpr uint16_t SECOND_IN_MILLIS = 1000;
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
         const uint16_t remainedStackCheckInterval = 5 * 1000;
@@ -143,7 +142,6 @@ namespace muffin {
                 continue;
             }
 
-            Core& core = Core::GetInstance();
             core.RouteMqttMessage(receivedMessage.second);
 
         #ifdef DEBUG
@@ -158,7 +156,6 @@ namespace muffin {
 
     void publishMqttTask(void* pvParameter)
     {
-        constexpr uint16_t SECOND_IN_MILLIS = 1000;
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
         const uint16_t remainedStackCheckInterval = 5 * 1000;

@@ -1,12 +1,13 @@
 /**
  * @file FirmwareVersion.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-12-25
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @copyright Copyright (c) 2024
+ * @brief 펌웨어 버전 정보를 표현하는 클래스를 선언합니다.
  * 
+ * @date 2025-01-14
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
  */
 
 
@@ -38,8 +39,8 @@ namespace muffin {
     };
 
 
-    extern FirmwareVersion FW_VERSION_ESP32;
+	extern FirmwareVersion FW_VERSION_ESP32;
 #if defined(MODLINK_T2)
-    extern FirmwareVersion FW_VERSION_MEGA2560;
+	extern FirmwareVersion FW_VERSION_MEGA2560;
 #endif
 }

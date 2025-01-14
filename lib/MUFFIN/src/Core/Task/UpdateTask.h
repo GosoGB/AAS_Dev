@@ -60,9 +60,9 @@ namespace muffin {
         mcu_t mcu2;
     } fota_Info_t;
 
-    void StartUpdateTask();
+
+    void SendStatusMSG();
     void StartManualFirmwareUpdate(const std::string& payload);
-    void UpdateTask(void* pvParameter);
     Status HasNewFirmware(new_fw_t* outInfo);
     Status DownloadFirmware(const mcu_type_e mcu);
     bool PostDownloadResult(const mcu_type_e mcu, const std::string result);

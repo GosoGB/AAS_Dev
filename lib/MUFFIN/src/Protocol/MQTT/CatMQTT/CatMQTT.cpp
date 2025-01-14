@@ -1302,7 +1302,7 @@ PATTERN_FOUND:
         
         const std::string command = "AT+QMTDISC=" + std::to_string(brokerSocketID);
         const uint32_t timeoutMillis = 500;
-        const uint32_t startedMillis = millis();
+        // const uint32_t startedMillis = millis();
         std::string rxd;
 
         Status ret = mCatM1.Execute(command, mutexHandle);
@@ -1369,7 +1369,7 @@ PATTERN_FOUND:
         
         const std::string command = "AT+QMTCLOSE=" + std::to_string(brokerSocketID);
         const uint32_t timeoutMillis = 300;
-        const uint32_t startedMillis = millis();
+        // const uint32_t startedMillis = millis();
         std::string rxd;
 
         Status ret = mCatM1.Execute(command, mutexHandle);

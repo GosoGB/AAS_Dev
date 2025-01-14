@@ -795,7 +795,6 @@ namespace muffin {
 
     void AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         fs::File file = esp32FS.Open("/jarvis/config.json");
         std::string payload;
         std::string resultPayload;
@@ -828,7 +827,6 @@ namespace muffin {
 
     void AlarmMonitor::updateFlashLclValue(std::string nodeid, float lcl)
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         fs::File file = esp32FS.Open("/jarvis/config.json");
         std::string payload;
         std::string resultPayload;

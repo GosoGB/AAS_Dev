@@ -4,16 +4,19 @@
  * 
  * @brief ESP32 LittleFS 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-14
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
 
 
+#include <esp_littlefs.h>
 #include <LittleFS.h>
+#include <Preferences.h>
+#include <nvs_flash.h>
 
 #include "ESP32FS.h"
 #include "Common/Assert.h"
@@ -23,33 +26,46 @@
 
 namespace muffin {
 
-    ESP32FS* ESP32FS::CreateInstanceOrNULL()
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) ESP32FS();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FATAL ERROR: FAILED TO ALLOCATE MEMORY FOR ESP32 FILE SYSTEM");
-                return mInstance;
-            }
-        }
-        
-        return mInstance;
-    }
-
-    ESP32FS& ESP32FS::GetInstance()
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-        return *mInstance;
-    }
-
     ESP32FS::ESP32FS()
     {
-    }
+        esp_err_t ret = nvs_flash_init();
+        if (ret != ESP_OK)
+        {
+            std::cerr << "\n\n\033[31mFAILED TO INITIALIZE NVS PARTITION: " << ret << std::endl;
+            std::abort();
+        }
+        
+        Preferences pf;
+        const char* key = "firstBoot";
 
-    ESP32FS::~ESP32FS()
-    {
+        if (pf.begin("ESP32FS", false) == false)
+        {
+            std::cerr << "\n\n\033[31mFAILED TO BEGIN NVS PARTITION" << std::endl;
+            std::abort();
+        }
+
+        if (pf.isKey(key) == false)
+        {
+            std::cout << "\033[34mFirst System Boot Detected. Formatting flash memory" << std::endl;
+
+            const char* partitionLabel = "spiffs";
+            ret = esp_littlefs_format(partitionLabel);
+            if (ret != ESP_OK)
+            {
+                std::cerr << "\n\n\033[31mFAILED TO FORMAT THE ESP32 FS" << std::endl;
+                std::abort();
+            }
+
+            pf.putBool(key, false);
+            if (pf.getBool(key, true) == true)
+            {
+                std::cerr << "\n\n\033[31mFAILED TO UPDATE FIRST SYSTEM BOOT INFO" << std::endl;
+                pf.clear();
+                std::abort();
+            }
+            std::cout << "\033[34mESP32 FS has been formatted \n\n \033[0m" << std::endl;
+            vTaskDelay(100);
+        }
     }
 
     Status ESP32FS::Begin(const bool formatOnFail, const char* basePath, const uint8_t maxOpenFiles, const char* partitionLabel)
@@ -100,7 +116,7 @@ namespace muffin {
 
     File ESP32FS::Open(const char* path, const char* mode, const bool create)
     {
-        //LOG_DEBUG(logger, "Path: %s, Mode: %s, Create: %s", path, mode, create ? "true" : "false");
+        LOG_DEBUG(logger, "Path: %s, Mode: %s, Create: %s", path, mode, create ? "true" : "false");
         return LittleFS.open(path, mode, create);
     }
 
@@ -113,12 +129,12 @@ namespace muffin {
     {
         if (LittleFS.exists(path) == true)
         {
-            //LOG_DEBUG(logger, "Found: %s", path);
+            LOG_DEBUG(logger, "Found: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
         {
-            //LOG_DEBUG(logger, "Not found: %s", path);
+            LOG_DEBUG(logger, "Not found: %s", path);
             return Status(Status::Code::BAD_NOT_FOUND);
         }
     }
@@ -132,7 +148,7 @@ namespace muffin {
     {
         if (LittleFS.remove(path) == true)
         {
-            //LOG_DEBUG(logger, "Removed: %s", path);
+            LOG_DEBUG(logger, "Removed: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -151,7 +167,7 @@ namespace muffin {
     {
         if (LittleFS.rename(pathFrom, pathTo) == true)
         {
-            //LOG_DEBUG(logger, "Renamed: %s to %s", pathFrom, pathTo);
+            LOG_DEBUG(logger, "Renamed: %s to %s", pathFrom, pathTo);
             return Status(Status::Code::GOOD);
         }
         else
@@ -170,7 +186,7 @@ namespace muffin {
     {
         if (LittleFS.mkdir(path) == true)
         {
-            //LOG_DEBUG(logger, "Directory created: %s", path);
+            LOG_DEBUG(logger, "Directory created: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -189,7 +205,7 @@ namespace muffin {
     {
         if (LittleFS.rmdir(path) == true)
         {
-            //LOG_DEBUG(logger, "Directory removed: %s", path);
+            LOG_DEBUG(logger, "Directory removed: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -205,5 +221,5 @@ namespace muffin {
     }
 
 
-    ESP32FS* ESP32FS::mInstance = nullptr;
+    ESP32FS esp32FS;
 }
