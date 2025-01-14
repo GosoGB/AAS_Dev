@@ -23,12 +23,13 @@
 #include "Protocol/HTTP/Include/RequestBody.h"
 #include "Protocol/HTTP/Include/RequestHeader.h"
 #include "Protocol/HTTP/Include/RequestParameter.h"
+#include "Protocol/HTTP/IHTTP.h"
 
 
 
 namespace muffin { namespace http {
 
-    class CatHTTP
+    class CatHTTP : public IHTTP
     {
     public:
         CatHTTP(CatHTTP const&) = delete;
@@ -43,10 +44,10 @@ namespace muffin { namespace http {
 
     public:
         Status Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl, const bool customRequestHeader = true, const bool outputResponse = false);
-        Status GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        Status POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
-        Status POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        Status Retrieve(const size_t mutexHandle, std::string* response);
+        virtual Status GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60) override;
+        virtual Status POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60) override;
+        virtual Status POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60) override;
+        virtual Status Retrieve(const size_t mutexHandle, std::string* response) override;
         void SetSinkToCatFS(const bool save2CatFS, const std::string catFsPath);
         Status IsInitialized() const;
     public:

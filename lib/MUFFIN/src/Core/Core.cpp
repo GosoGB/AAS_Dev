@@ -50,7 +50,10 @@
 #include "Jarvis/Config/Protocol/ModbusRTU.h"
 #include "IM/Node/Include/TypeDefinitions.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
-
+#include "Protocol/HTTP/CatHTTP/CatHTTP.h"
+#include "Protocol/HTTP/Include/TypeDefinitions.h"
+#include "Protocol/HTTP/IHTTP.h"
+#include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 
 
 
@@ -119,9 +122,9 @@ namespace muffin {
          *          수 있습니다. 따라서 reset 사유를 확인하여 JARVIS 설정을 초기화 하는
          *          기능이 필요합니다. 단, 다른 부서와의 협의가 선행되어야 합니다.
          */
-        DeviceStatus& deviceStatus = DeviceStatus::GetInstance();
-        deviceStatus.SetResetReason(esp_reset_reason());
-
+        DeviceStatus* deviceStatus = DeviceStatus::CreateInstanceOrNULL();
+        deviceStatus->SetResetReason(esp_reset_reason());
+    
         Initializer initializer;
         initializer.StartOrCrash();
 
@@ -154,6 +157,7 @@ namespace muffin {
 
         StartTaskMQTT();
         SendStatusMSG();
+        
         if (mHasJarvisCommand == false && mHasFotaCommand == true)
         {
             Preferences nvs;
@@ -165,6 +169,7 @@ namespace muffin {
 
             StartOTA(payload);
         }
+    
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)
@@ -301,8 +306,7 @@ namespace muffin {
             }
             return;
         }
-        
-        
+    
         Preferences nvs;
         nvs.begin("jarvis");
         nvs.putBool("jarvisFlag",true);

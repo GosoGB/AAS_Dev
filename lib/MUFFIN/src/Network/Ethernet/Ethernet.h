@@ -75,6 +75,7 @@ namespace muffin {
         virtual IPAddress GetIPv4() const override;
         const char* GetMacAddress() const;
         state_e GetState() const;
+        Status SyncWithNTP();
     private:
         static void getArduinoEthernetEvent(arduino_event_id_t event);
     private:

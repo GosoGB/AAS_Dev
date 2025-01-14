@@ -12,9 +12,9 @@
 
 
 
-
+#include "Protocol/SPEAR/SPEAR.h"
 #include "Ethernet.h"
-
+#include "Common/Time/TimeUtils.h"
 
 
 namespace muffin {
@@ -203,6 +203,33 @@ namespace muffin {
         }
     }
 
+    Status Ethernet::SyncWithNTP()
+    {
+        const char* ntpServer = "time.windows.com";
+        const char* ntpServer2 = "time.windows.com";
+        const long  gmtOffset_sec = 32400;
+        const int daylightOffset_sec = 0;
+
+        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, ntpServer2);
+
+        uint16_t count =0;
+        while ( std::to_string(GetTimestamp()).length() != 10 )
+        {	
+            /* wait for ntp synchronization */
+            LOG_WARNING(logger,"Not Synced with NTP Server!!! Current Timestamp : %u",GetTimestamp());
+            count++;
+            LOG_WARNING(logger,"count : %d",count);
+            if(count>15)
+            {
+                spear.Reset();   
+                ESP.restart();
+            }
+            delay(1000);
+        }
+        LOG_INFO(logger, "Synced with NTP Server!!! Current Timestamp : %u",GetTimestamp());
+
+        return Status(Status::Code::GOOD);
+    }
 
     Ethernet* ethernet = nullptr;
 }

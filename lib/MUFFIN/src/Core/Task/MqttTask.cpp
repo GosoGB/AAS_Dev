@@ -23,8 +23,9 @@
 #include "MqttTask.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CDO.h"
+#include "Protocol/MQTT/IMQTT.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
-
+#include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 
 namespace muffin {
 
@@ -154,6 +155,7 @@ namespace muffin {
         }
     }
 
+    mqtt::IMQTT* interface;
     void publishMqttTask(void* pvParameter)
     {
     #ifdef DEBUG
@@ -161,11 +163,16 @@ namespace muffin {
         const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
 
-        CatM1& catM1 = CatM1::GetInstance();
+        // CatM1& catM1 = CatM1::GetInstance();
+        // mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
+
+        
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+
         const uint8_t MAX_RETRY_COUNT = 5;
 
+        mqtt::IMQTT& serviceNetwork = static_cast<mqtt::IMQTT&>(lwipMqtt);
         while (true)
         {
             if (cdo.Count() == 0)
@@ -183,7 +190,7 @@ namespace muffin {
                 continue;
             }
 
-            const auto mutexHandle = catM1.TakeMutex();
+            const auto mutexHandle = lwipMqtt.TakeMutex();
             if (mutexHandle.first.ToCode() != Status::Code::GOOD)
             {
                 vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -192,7 +199,7 @@ namespace muffin {
             
             for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
             {
-                Status ret = catMqtt.Publish(mutexHandle.second, pubMessage.second);
+                Status ret = serviceNetwork.Publish(mutexHandle.second, pubMessage.second);
                 if (ret == Status::Code::GOOD)
                 {
                     cdo.Retrieve();
@@ -216,7 +223,7 @@ namespace muffin {
                     LOG_WARNING(logger, "[TRIAL: #%u] PUBLISH WAS UNSUCCESSFUL: %s", i, ret.c_str());
                 }
             }
-            catM1.ReleaseMutex();
+            lwipMqtt.ReleaseMutex();
 
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)

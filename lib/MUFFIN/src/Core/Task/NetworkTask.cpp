@@ -32,12 +32,14 @@
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/RequestHeader.h"
+#include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 
 
 
 namespace muffin {
 
     TaskHandle_t xTaskCatM1Handle;
+    TaskHandle_t xTaskEthernetHandle;
 
     static bool s_IsMqttTopicCreated      = false;
     static bool s_IsCatM1Connected        = false;
@@ -127,7 +129,6 @@ namespace muffin {
         return ret;
     }
 
-    
     Status InitCatHTTP()
     {
         if (s_IsCatM1Connected == false)
@@ -174,7 +175,6 @@ namespace muffin {
         catM1.ReleaseMutex();
         return Status(Status::Code::GOOD);
     }
-
 
     Status ConnectToBroker()
     {
@@ -244,7 +244,7 @@ namespace muffin {
         char buffer[32] = { '\0' };
         sprintf(buffer, "%s,disconnected", macAddress.GetEthernet());
         mqtt::Message lwt(mqtt::topic_e::LAST_WILL, buffer);
-        
+
         CatM1& catM1 = CatM1::GetInstance();
         mqtt::CatMQTT* catMqtt = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, info, lwt);
         if (catMqtt == nullptr)
@@ -277,6 +277,7 @@ namespace muffin {
             s_IsCatMqttInitialized = true;
         }
 
+
         Status ret = catMqtt->Connect(mutexHandle.second);
         if (ret != Status::Code::GOOD)
         {
@@ -285,7 +286,7 @@ namespace muffin {
             return ret;
         }
 
-        if (s_IsCatMqttTopicSubscribed == false)
+        if (s_IsCatMqttTopicSubscribed == false) 
         {
             mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
             mqtt::Message topicRemoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
@@ -312,10 +313,8 @@ namespace muffin {
                 s_IsCatMqttTopicSubscribed = false;
                 return ret;
             }
-
             s_IsCatMqttTopicSubscribed = true;
         }
-        
 
 
         s_IsCatMQTTConnected = true;
@@ -323,6 +322,119 @@ namespace muffin {
         return ret;
     }
 
+    Status ConnectToBrokerEthernet()
+    {
+        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
+        if (cia == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
+            esp_restart();
+        }
+
+        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
+        if (cdo == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
+            esp_restart();
+        }
+
+        if (s_IsMqttTopicCreated == false)
+        {
+            if (mqtt::Topic::CreateTopic(macAddress.GetEthernet()) == false)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT TOPIC");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+
+            s_IsMqttTopicCreated = true;
+        }
+
+    #if defined(DEBUG)
+        mqtt::BrokerInfo info(
+            macAddress.GetEthernet(),
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
+            40,
+            mqtt::socket_e::SOCKET_0,
+            "vitcon",
+            "tkfkdgo5!@#$"
+        );
+    #else
+        mqtt::BrokerInfo info(
+            macAddress.GetEthernet(),
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
+            40,
+            mqtt::socket_e::SOCKET_0,
+            "vitcon",
+            "tkfkdgo5!@#$"
+        );
+    #endif
+        
+        char buffer[32] = { '\0' };
+        sprintf(buffer, "%s,disconnected", macAddress.GetEthernet());
+        mqtt::Message lwt(mqtt::topic_e::LAST_WILL, buffer);
+
+        if (s_IsCatMqttInitialized == false)
+        {
+            mqtt::LwipMQTT* lwipMqtt = mqtt::LwipMQTT::CreateInstanceOrNULL(info,lwt);
+            lwipMqtt->Init();
+            s_IsCatMqttInitialized = true;
+        }
+        
+        
+        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
+        
+
+        const auto mutexHandle = lwipMqtt.TakeMutex();
+        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+        {
+            return mutexHandle.first;
+        }
+
+        mqtt::IMQTT& serviceNetwork = static_cast<mqtt::IMQTT&>(lwipMqtt);
+        Status ret = serviceNetwork.Connect(mutexHandle.second);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
+            lwipMqtt.ReleaseMutex();
+            return ret;
+        }
+
+        if (s_IsCatMqttTopicSubscribed == false) 
+        {
+            mqtt::Message topicJARVIS(mqtt::topic_e::JARVIS_REQUEST, "");
+            mqtt::Message topicRemoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
+            mqtt::Message topicFotaUpdate(mqtt::topic_e::FOTA_UPDATE, "");
+            std::vector<mqtt::Message> vectorTopicsToSubscribe;
+            Status retTopic01 = EmplaceBack(std::move(topicJARVIS), &vectorTopicsToSubscribe);
+            Status retTopic02 = EmplaceBack(std::move(topicRemoteControl), &vectorTopicsToSubscribe);
+            Status retTopic03 = EmplaceBack(std::move(topicFotaUpdate), &vectorTopicsToSubscribe);
+            if ((retTopic01 != Status::Code::GOOD) || (retTopic02 != Status::Code::GOOD) 
+            || (retTopic03 != Status::Code::GOOD))
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
+                    retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());
+                lwipMqtt.ReleaseMutex();
+                s_IsCatMqttTopicSubscribed = false;
+                return ret;
+            }
+
+            ret = serviceNetwork.Subscribe(mutexHandle.second, vectorTopicsToSubscribe);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
+                lwipMqtt.ReleaseMutex();
+                s_IsCatMqttTopicSubscribed = false;
+                return ret;
+            }
+            s_IsCatMqttTopicSubscribed = true;
+        }
+
+        s_IsCatMQTTConnected = true;
+        lwipMqtt.ReleaseMutex();
+        return ret;
+    }
 
     void implCatM1Task(void* pvParameters)
     {
@@ -427,6 +539,109 @@ namespace muffin {
         {
         case pdPASS:
             LOG_INFO(logger, "The CatM1 task has been started");
+            // return Status(Status::Code::GOOD);
+            break;
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
+            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            break;
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
+            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            break;
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
+            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            break;
+        }
+    }
+
+    void implEthernetTask(void* pvParameters)
+    {
+        constexpr uint16_t SECOND_IN_MILLIS = 1000;
+    #ifdef DEBUG
+        uint32_t checkRemainedStackMillis = millis();
+        const uint16_t remainedStackCheckInterval = 5 * 1000;
+    #endif
+
+        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
+        
+        while (true)
+        {
+            LOG_INFO(logger, "[TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+            LOG_INFO(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
+            if (lwipMqtt.IsConnected() != Status::Code::GOOD)
+            {
+                const auto mutexHandle = lwipMqtt.TakeMutex();
+                if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+                {
+                    continue;
+                }
+
+                lwipMqtt.Disconnect(mutexHandle.second);
+                s_IsCatMqttTopicSubscribed = false;
+                lwipMqtt.ReleaseMutex();
+                LOG_WARNING(logger, "LWIP MQTT LOST CONNECTION");
+                ConnectToBrokerEthernet();
+            }
+
+            vTaskDelay(1* SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+        #ifdef DEBUG
+            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
+            {
+                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+                checkRemainedStackMillis = millis();
+            }
+        #endif
+        }
+    }
+
+    void StartEthernetTask()
+    {
+        if (xTaskEthernetHandle != NULL)
+        {
+            LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
+            return;
+        }
+        
+        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
+        if (cia == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
+            esp_restart();
+        }
+
+        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
+        if (cdo == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
+            esp_restart();
+        }
+        
+        /**
+         * @todo 향후 태스크의 메모리 사용량을 보고 스택 메모리 크기를 조정해야 합니다.
+         */
+        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
+            implEthernetTask,      // Function to be run inside of the task
+            "EthernetTask",        // The identifier of this task for men
+            6500,			// Stack memory size to allocate
+            NULL,			    // Task parameters to be passed to the function
+            0,				    // Task Priority for scheduling
+            &xTaskCatM1Handle,  // The identifier of this task for machines
+            0				    // Index of MCU core where the function to run
+        );
+
+        /**
+         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
+         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
+         */
+        switch (taskCreationResult)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "The Ethernet task has been started");
             // return Status(Status::Code::GOOD);
             break;
 

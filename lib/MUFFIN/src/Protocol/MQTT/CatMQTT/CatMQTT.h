@@ -41,12 +41,13 @@
 #include "Network/TypeDefinitions.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Message.h"
+#include "Protocol/MQTT/IMQTT.h"
 
 
 
 namespace muffin { namespace mqtt {
 
-    class CatMQTT
+    class CatMQTT : public IMQTT
     {
     public:
         CatMQTT(CatMQTT const&) = delete;
@@ -57,18 +58,18 @@ namespace muffin { namespace mqtt {
     private:
         CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt);
         CatMQTT(CatM1& catM1, BrokerInfo& broker);
-        virtual ~CatMQTT();
+        virtual ~CatMQTT() override;
     private:
         static CatMQTT* mInstance;
 
     public:
         Status Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl);
-        Status Connect(const size_t mutexHandle);
-        Status Disconnect(const size_t mutexHandle);
-        Status IsConnected();
-        Status Subscribe(const size_t mutexHandle, const std::vector<Message>& messages);
-        Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages);
-        Status Publish(const size_t mutexHandle, const Message& message);
+        virtual Status Connect(const size_t mutexHandle) override;
+        virtual Status Disconnect(const size_t mutexHandle) override;
+        virtual Status IsConnected() override;
+        virtual Status Subscribe(const size_t mutexHandle, const std::vector<Message>& messages) override;
+        virtual Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages) override;
+        virtual Status Publish(const size_t mutexHandle, const Message& message) override;
     public:
         void OnEventReset();
     private:

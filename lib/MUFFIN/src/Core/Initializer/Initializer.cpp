@@ -48,6 +48,7 @@
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/HTTP/Include/RequestHeader.h"
+#include "Protocol/SPEAR/SPEAR.h"
 
 #include "Storage/ESP32FS/ESP32FS.h"
 
@@ -101,33 +102,47 @@ namespace muffin {
 
     Status Initializer::configureWithoutJarvis(const bool hasJARVIS)
     {
-        jarvis::config::CatM1 config;
-        config.SetModel(jarvis::md_e::LM5);
-        config.SetCounty(jarvis::ctry_e::KOREA);
+    //     jarvis::config::CatM1 config;
+    //     config.SetModel(jarvis::md_e::LM5);
+    //     config.SetCounty(jarvis::ctry_e::KOREA);
 
-        Status ret = InitCatM1(&config);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1");
-            return ret;
-        }
-    #if !defined(CATFS)
-        ret = InitCatHTTP();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO INITIALIZE CatHTTP");
-            return ret;
-        }
+    //     Status ret = InitCatM1(&config);
+    //     if (ret != Status::Code::GOOD)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1");
+    //         return ret;
+    //     }
+    // #if !defined(CATFS)
+    //     ret = InitCatHTTP();
+    //     if (ret != Status::Code::GOOD)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO INITIALIZE CatHTTP");
+    //         return ret;
+    //     }
         
-        ret = ConnectToBroker();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO CONNECT TO THE BROKER");
-            return ret;
-        }
-    #endif
+        // ret = ConnectToBroker();
+    //     if (ret != Status::Code::GOOD)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO CONNECT TO THE BROKER");
+    //         return ret;
+    //     }
+    // #endif
     
-        StartCatM1Task();
+    //     StartCatM1Task();
+
+        
+
+        jarvis::config::Ethernet config;
+        config.SetDHCP(true);
+
+        ethernet = new Ethernet();
+        ethernet->Init();
+        ethernet->Config(&config);
+        ethernet->Connect();
+        ethernet->SyncWithNTP();
+
+        Status ret = ConnectToBrokerEthernet(); 
+        StartEthernetTask();
 
         if (hasJARVIS)
         {
