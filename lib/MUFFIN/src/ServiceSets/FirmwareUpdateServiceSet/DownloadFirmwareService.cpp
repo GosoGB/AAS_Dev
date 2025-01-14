@@ -31,7 +31,7 @@ namespace muffin {
     typedef struct DownloadTaskParameterType
     {
         ota::fw_info_t* Info;
-        CRC32* CRC32;
+        CRC32* Crc32;
         QueueHandle_t Queue;
         void (*Callback)(Status status);
     } download_task_params;
@@ -109,7 +109,7 @@ namespace muffin {
             }
             nic->ReleaseMutex();
 
-            const uint32_t integerCRC32 = params->CRC32->Calculate(*output);
+            const uint32_t integerCRC32 = params->Crc32->Calculate(*output);
             char calculatedCRC32[sizeof(ota::fw_cks_t::Array[0])] = {'\0'};
             snprintf(calculatedCRC32, sizeof(ota::fw_cks_t::Array[0]), "%08x", integerCRC32);
             if (strcmp(calculatedCRC32, params->Info->Checksum.Array[params->Info->Chunk.DownloadIDX]) != 0)
@@ -144,7 +144,7 @@ namespace muffin {
         }
 
         pvParameters->Info       = &info;
-        pvParameters->CRC32      = &crc32;
+        pvParameters->Crc32      = &crc32;
         pvParameters->Queue      = queue;
         pvParameters->Callback   = callback;
 

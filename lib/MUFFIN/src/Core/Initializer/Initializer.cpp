@@ -130,7 +130,10 @@ namespace muffin {
     
     //     StartCatM1Task();
 
-        
+        // if (hasJARVIS)
+        // {
+        //     core.StartJarvisTask();
+        // }
 
         jarvis::config::Ethernet config;
         config.SetDHCP(true);
@@ -139,16 +142,32 @@ namespace muffin {
         ethernet->Init();
         ethernet->Config(&config);
         ethernet->Connect();
-        ethernet->SyncWithNTP();
-
-        Status ret = ConnectToBrokerEthernet(); 
-        StartEthernetTask();
-
-        if (hasJARVIS)
-        {
-            core.StartJarvisTask();
-        }
         
+        const char* ntpServer = "time.windows.com";
+        const char* ntpServer2 = "time.windows.com";
+        const long  gmtOffset_sec = 32400;
+        const int daylightOffset_sec = 0;
+
+        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, ntpServer2);
+
+        uint16_t count =0;
+        while ( std::to_string(GetTimestamp()).length() != 10 )
+        {	
+            /* wait for ntp synchronization */
+            LOG_WARNING(logger,"Not Synced with NTP Server!!! Current Timestamp : %u",GetTimestamp());
+            count++;
+            LOG_WARNING(logger,"count : %d",count);
+            if(count>10)
+            {
+                ESP.restart();
+            }
+            delay(1000);
+        }
+        LOG_INFO(logger, "Synced with NTP Server!!! Current Timestamp : %u",GetTimestamp());
+
+        Status ret = Status(Status::Code::UNCERTAIN);
+        ret = ConnectToBroker();
+
         return ret;
     }
 

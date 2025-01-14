@@ -888,7 +888,7 @@ ERROR_RESPONSE:
 
     void Core::StartOTA(const std::string& payload)
     {
-        StartManualFirmwareUpdate(payload);
+        // StartManualFirmwareUpdate(payload);
     }
 
 
