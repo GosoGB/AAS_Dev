@@ -20,46 +20,11 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "Protocol/HTTP/Include/TypeDefinitions.h"
+
 
 
 
 namespace muffin {
-
-    typedef enum McuTypeEnum mcu_type_e;
-
-    typedef struct NewFirmwareInfoType
-    {
-        bool MCU_ESP32;
-        bool MCU_MEGA2560;
-    } new_fw_t;
-
-    typedef struct UrlInfoType
-    {
-        http_scheme_e Scheme;
-        std::string Host;
-        uint16_t Port;
-    } url_t;
- 
-    typedef struct McuInfo
-    {
-        uint32_t VersionCode;
-        std::string FirmwareVersion;
-        std::vector<uint8_t> FileNumberVector;
-        std::vector<std::string> FilePathVector;
-        std::vector<uint32_t> FileSizeVector;
-        uint64_t FileTotalSize;
-        std::vector<std::string> FileChecksumVector;
-        std::string FileTotalChecksum;
-    } mcu_t;
-    
-    typedef struct FotaInfo
-    {
-        uint8_t OtaID;
-        mcu_t mcu1;
-        mcu_t mcu2;
-    } fota_Info_t;
-
 
     void SendStatusMSG();
     void StartManualFirmwareUpdate(const std::string& payload);

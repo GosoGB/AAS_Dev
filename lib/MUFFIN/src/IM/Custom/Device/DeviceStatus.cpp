@@ -4,10 +4,10 @@
  * 
  * @brief MODLINK 디바이스의 상태 정보를 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-11-30
- * @version 1.2.0
+ * @date 2025-01-15
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -25,30 +25,6 @@
 
 
 namespace muffin {
-
-	DeviceStatus* DeviceStatus::mInstance = nullptr;
-    
-
-    DeviceStatus* DeviceStatus::CreateInstanceOrNULL()
-	{
-		if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) DeviceStatus();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FATAL ERROR: FAILED TO ALLOCATE MEMORY FOR DEVICE STATUS");
-                return mInstance;
-            }
-        }
-        
-        return mInstance;
-	}
-	
-    DeviceStatus& DeviceStatus::GetInstance()
-	{
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-		return *mInstance;
-	}
 
     DeviceStatus::DeviceStatus()
         : mStatus(Status::Code::UNCERTAIN)
@@ -81,38 +57,6 @@ namespace muffin {
       mWiFiStatusReport.Status   = "UNKNOWN";
       mWiFiStatusReport.RSSI     = INT16_MIN;
    #endif
-    }
-
-    fw_vsn_t DeviceStatus::GetFirmwareVersion(const mcu_type_e type)
-    {
-        if (type == mcu_type_e::MCU_ESP32)
-        {
-            return mVersionESP32;
-        }
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-        else
-        {
-            return mVersionMEGA2560;
-        }
-    #endif
-
-        return mVersionESP32;
-    }
-
-    void DeviceStatus::SetFirmwareVersion(const mcu_type_e type, const char* semver, const uint32_t vc)
-    {
-        if (type == mcu_type_e::MCU_ESP32)
-        {
-            mVersionESP32.Code = vc;
-            mVersionESP32.Semantic = semver;
-        }
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-        else
-        {
-            mVersionMEGA2560.Code = vc;
-            mVersionMEGA2560.Semantic = semver;
-        }
-    #endif
     }
 
     void DeviceStatus::SetResetReason(const esp_reset_reason_t code)
@@ -276,4 +220,7 @@ namespace muffin {
         serializeJson(doc, payload);
         return payload;
     }
+
+
+    DeviceStatus deviceStatus;
 }

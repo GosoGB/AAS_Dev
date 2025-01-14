@@ -122,9 +122,8 @@ namespace muffin {
          *          수 있습니다. 따라서 reset 사유를 확인하여 JARVIS 설정을 초기화 하는
          *          기능이 필요합니다. 단, 다른 부서와의 협의가 선행되어야 합니다.
          */
-        DeviceStatus* deviceStatus = DeviceStatus::CreateInstanceOrNULL();
-        deviceStatus->SetResetReason(esp_reset_reason());
-    
+        deviceStatus.SetResetReason(esp_reset_reason());
+
         Initializer initializer;
         initializer.StartOrCrash();
 
