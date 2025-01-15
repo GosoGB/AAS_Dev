@@ -123,8 +123,9 @@ namespace muffin {
         void Serialize(const spear_remote_control_msg_t& msg, const uint8_t size, char output[]);
 
     public:
+        Status Deserialize(const char* payload, JsonDocument* json);
         Status Deserialize(const std::string& payload, JsonDocument* json);
-        Status Deserialize(const spear_msg_t& message, JsonDocument* json);
+        // Status Deserialize(const spear_msg_t& message, JsonDocument* json);
     
     // private:
     //     std::string serializeJarvisResponse(const jarvis_struct_t& _struct);

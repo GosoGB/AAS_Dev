@@ -23,9 +23,9 @@
 
 namespace muffin {
 
-    Status JSON::Deserialize(const std::string& payload, JsonDocument* json)
+    Status JSON::Deserialize(const char* payload, JsonDocument* json)
     {
-        ASSERT((payload.length() > 0), "INPUT PARAMETER <const std::string& payload> CANNOT BE EMPTY");
+        ASSERT((strlen(payload) > 0), "INPUT PARAMETER <const char* payload> CANNOT BE EMPTY");
         ASSERT((json != nullptr), "OUTPUT PARAMETER <JsonDocument* json> CANNOT BE A NULL POINTER");
         ASSERT((json->isNull() == true), "OUTPUT PARAMETER <JsonDocument* json> MUST BE EMPTY");
 
@@ -43,25 +43,34 @@ namespace muffin {
             return Status(Status::Code::BAD_NO_DATA);
             
         case DeserializationError::Code::IncompleteInput:
-            LOG_ERROR(logger, "ERROR: INSUFFICIENT PAYLOAD: %s", payload.c_str());
+            LOG_ERROR(logger, "ERROR: INSUFFICIENT PAYLOAD: %s", payload);
             return Status(Status::Code::BAD_END_OF_STREAM);
         
         case DeserializationError::Code::InvalidInput:
-            LOG_ERROR(logger, "ERROR: INVALID ENCODING: %s", payload.c_str());
+            LOG_ERROR(logger, "ERROR: INVALID ENCODING: %s", payload);
             return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
         
         case DeserializationError::Code::NoMemory:
-            LOG_ERROR(logger, "ERROR: OUT OF MEMORY: %u", payload.size());
+            LOG_ERROR(logger, "ERROR: OUT OF MEMORY: %u", strlen(payload));
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         
         case DeserializationError::Code::TooDeep:
-            LOG_ERROR(logger, "ERROR: EXCEEDED NESTING LIMIT: %s", payload.c_str());
+            LOG_ERROR(logger, "ERROR: EXCEEDED NESTING LIMIT: %s", payload);
             return Status(Status::Code::BAD_ENCODING_LIMITS_EXCEEDED);
 
         default:
             ASSERT(false, "UNDEFINED CONDITION: %s", error.c_str());
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
+    }
+
+    Status JSON::Deserialize(const std::string& payload, JsonDocument* json)
+    {
+        ASSERT((payload.length() > 0), "INPUT PARAMETER <const std::string& payload> CANNOT BE EMPTY");
+        ASSERT((json != nullptr), "OUTPUT PARAMETER <JsonDocument* json> CANNOT BE A NULL POINTER");
+        ASSERT((json->isNull() == true), "OUTPUT PARAMETER <JsonDocument* json> MUST BE EMPTY");
+
+        return Deserialize(payload.c_str(), json);
     }
 
 

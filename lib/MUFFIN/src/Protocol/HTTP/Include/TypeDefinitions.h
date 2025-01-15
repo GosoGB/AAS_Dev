@@ -100,7 +100,8 @@ namespace muffin {
     typedef enum class HttpProtocolSchemeEnum
         : uint8_t
     {
-        HTTP  = 0,
-        HTTPS = 1
+        INVALID  = 0,
+        HTTP     = 1,
+        HTTPS    = 2
     } http_scheme_e;
 }

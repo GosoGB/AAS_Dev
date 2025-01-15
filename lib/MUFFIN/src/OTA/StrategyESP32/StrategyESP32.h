@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include <Update.h>
+#include "Common/Status.h"
+#include "OTA/Include/TypeDefinitions.h"
 
 
 
@@ -28,8 +29,12 @@ namespace muffin { namespace ota {
         StrategyESP32() {}
         virtual ~StrategyESP32() {}
     public:
-        void Init();
+        Status Init(const fw_info_t& info);
+        Status Write(const size_t size, uint8_t byteArray[]);
+        Status TearDown();
     private:
-        /* data */
+        Status processErrorCode(const uint8_t errorCode) const;
+    private:
+        float mFileSize = 0;
     };
 }}

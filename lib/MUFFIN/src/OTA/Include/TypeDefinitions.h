@@ -25,12 +25,6 @@
 
 namespace muffin { namespace ota {
 
-    typedef struct NewFirmwareInfoType
-    {
-        bool MCU_ESP32;
-        bool MCU_MEGA2560;
-    } new_fw_t;
-
     typedef struct UrlInfoType
     {
         char Host[64];
@@ -38,16 +32,43 @@ namespace muffin { namespace ota {
         http_scheme_e Scheme;
     } url_t;
 
-    typedef struct FirmwareOtaInfoType
+    typedef struct FirmwareInfoHeadType
     {
-        static size_t OtaID;
+        static uint32_t ID;
+        static url_t DownloadURL;
+        char SemanticVersion[16];
         uint32_t VersionCode;
-        uint64_t FileTotalSize;
-        char TotalChecksum[9];
-        char SemanticVersion[16];  // 기존 "FirmwareVersion"
-        uint8_t FileNumberArray[192];
-        size_t FileSizeArray[192];
-        char FilePathArray[192][64];
-        char FileChecksumArray[192][9];
-    } ota_info_t;
+        bool HasNewFirmware;
+    } fw_head_t;
+
+    typedef struct FirmwareChunkInfoHeadType
+    {
+        uint8_t Count;
+        uint8_t IndexArray[192];
+        char PathArray[192][64];
+    } chk_head_t;
+    
+    typedef struct FirmwareChecksumInfoType
+    {
+        char Total[9];
+        char ChunkArray[192][9];
+    } fw_cks_t;
+
+    typedef struct FirmwareSizeInfoType
+    {
+        size_t Total;
+        size_t ChunkArray[192];
+    } fw_size_t;
+
+    typedef struct FirmwareInfoType
+    {
+        fw_head_t Head;
+        chk_head_t Chunk;
+        fw_cks_t Checksum;
+        fw_size_t Size;
+    } fw_info_t;
+
+    
+    size_t fw_head_t::ID;
+    url_t fw_head_t::DownloadURL;
 }}
