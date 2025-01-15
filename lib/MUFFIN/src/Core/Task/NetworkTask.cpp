@@ -192,11 +192,11 @@ namespace muffin {
             esp_restart();
         }
         
-        // if (s_IsCatM1Connected == false)
-        // {
-        //     LOG_ERROR(logger, "FAILED TO CONNECT TO BROKER: LTE MODEM IS NOT CONNECTED");
-        //     return Status(Status::Code::BAD_NO_CONTINUATION_POINTS);
-        // }
+        if (s_IsCatM1Connected == false)
+        {
+            LOG_ERROR(logger, "FAILED TO CONNECT TO BROKER: LTE MODEM IS NOT CONNECTED");
+            return Status(Status::Code::BAD_NO_CONTINUATION_POINTS);
+        }
 
         if (s_IsMqttTopicCreated == false)
         {
@@ -253,24 +253,36 @@ namespace muffin {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
-        PubSubClient client;
-        mqtt::LwipMQTT* lwipMqtt = mqtt::LwipMQTT::CreateInstanceOrNULL(info,lwt);
-        lwipMqtt->Init();
-
-        const auto mutexHandle = lwipMqtt->TakeMutex();
+        const auto mutexHandle = catM1.TakeMutex();
         if (mutexHandle.first.ToCode() != Status::Code::GOOD)
         {
             return mutexHandle.first;
         }
 
-        mqtt::IMQTT* serviceNetwork = static_cast<mqtt::IMQTT*>(lwipMqtt);
+        if (s_IsCatMqttInitialized == false)
+        {
+            /**
+             * @todo onEventReset 코드로 인해 LWT 설정이 지워지는 문제로 인해 
+             *       setLastWill 함수 내부에 임시로 코드를 변경하는 해킹을 넣었습니다.
+             *       향후에는 전반적인 로직을 수정해야 합니다.
+             */
+            catMqtt->OnEventReset();
+            Status ret = catMqtt->Init(mutexHandle.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO INIT CatMQTT: %s", ret.c_str());
+                catM1.ReleaseMutex();
+                return ret;
+            }
+            s_IsCatMqttInitialized = true;
+        }
 
 
         Status ret = catMqtt->Connect(mutexHandle.second);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
-            lwipMqtt->ReleaseMutex();
+            catM1.ReleaseMutex();
             return ret;
         }
 
@@ -288,16 +300,16 @@ namespace muffin {
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
                     retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());
-                lwipMqtt->ReleaseMutex();
+                catM1.ReleaseMutex();
                 s_IsCatMqttTopicSubscribed = false;
                 return ret;
             }
 
-            ret = serviceNetwork->Subscribe(mutexHandle.second, vectorTopicsToSubscribe);
+            ret = catMqtt->Subscribe(mutexHandle.second, vectorTopicsToSubscribe);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
-                lwipMqtt->ReleaseMutex();
+                catM1.ReleaseMutex();
                 s_IsCatMqttTopicSubscribed = false;
                 return ret;
             }
@@ -306,9 +318,8 @@ namespace muffin {
 
 
         s_IsCatMQTTConnected = true;
-        lwipMqtt->ReleaseMutex();
+        catM1.ReleaseMutex();
         return ret;
-        // return  Status(Status::Code::GOOD);
     }
 
     Status ConnectToBrokerEthernet()

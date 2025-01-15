@@ -163,8 +163,7 @@ namespace muffin {
         const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
 
-        CatM1& catM1 = CatM1::GetInstance();
-        mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
+
         mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
 
         
