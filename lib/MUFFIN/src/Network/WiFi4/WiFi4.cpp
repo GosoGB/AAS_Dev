@@ -207,6 +207,16 @@ namespace muffin {
         return WiFi.localIP();
     }
 
+    std::pair<Status, size_t> WiFi4::TakeMutex()
+    {
+        return std::make_pair(Status(Status::Code::GOOD), 1);
+    }
+
+    Status WiFi4::ReleaseMutex()
+    {
+        return Status(Status::Code::GOOD);
+    }
+
     const char* WiFi4::GetMacAddress() const
     {
         return mMacAddress;

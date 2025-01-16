@@ -19,7 +19,7 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "Network/CatM1/CatM1.h"
 #include "TimeUtils.h"
 

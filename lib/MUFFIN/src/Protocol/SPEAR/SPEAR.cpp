@@ -19,7 +19,7 @@
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
+#include "JARVIS/Config/Interfaces/Rs485.h"
 #include "SPEAR.h"
 
 #if defined(MODLINK_T2) || defined(MODLINK_B)

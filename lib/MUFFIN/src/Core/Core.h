@@ -25,10 +25,10 @@
 
 #include "Common/Status.h"
 #include "Protocol/MQTT/Include/Message.h"
-#include "Jarvis/Config/Protocol/ModbusRTU.h"
-#include "Jarvis/Config/Protocol/ModbusTCP.h"
-#include "Jarvis/Config/Network/Ethernet.h"
-#include "Jarvis/Validators/ValidationResult.h"
+#include "JARVIS/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Config/Protocol/ModbusTCP.h"
+#include "JARVIS/Config/Network/Ethernet.h"
+#include "JARVIS/Validators/ValidationResult.h"
 
 
 

@@ -51,21 +51,7 @@
 namespace muffin {
 
     fota_Info_t info;
-#if defined(DEBUG)
-    url_t ReleaseURL =
-    {
-        .Scheme = http_scheme_e::HTTP,
-        .Host = "112.171.127.186",
-        .Port = 8123
-    };
-#else
-    url_t ReleaseURL =
-    {
-        .Scheme = http_scheme_e::HTTPS,
-        .Host = "api.fota.edgecross.ai",
-        .Port = 443
-    };
-#endif
+
     TaskHandle_t xTaskFotaHandle = NULL;
 
     bool updateESP32()
@@ -307,11 +293,9 @@ namespace muffin {
         ESP.restart();
     }
 
-    Status HasNewFirmware(new_fw_t* outInfo)
+    Status HasNewFirmware()
     {
-        ASSERT((outInfo != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
-
-
+    /*
         CatM1& catM1 = CatM1::GetInstance();
         const auto mutexHandle = catM1.TakeMutex();
         if (mutexHandle.first.ToCode() != Status::Code::GOOD)
@@ -319,9 +303,6 @@ namespace muffin {
             LOG_ERROR(logger, "UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
             return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
         }
-
-        DeviceStatus& deviceStatus = DeviceStatus::GetInstance();
-        fw_vsn_t version = deviceStatus.GetFirmwareVersion(mcu_type_e::MCU_ESP32);
         
         http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
         http::RequestHeader header(
@@ -336,9 +317,10 @@ namespace muffin {
             "MODLINK-T2/" + version.Semantic
         #endif
         );
+        
         http::RequestParameter parameters;
         parameters.Add("mac", macAddress.GetEthernet());
-        
+
         Status ret = catHttp.GET(mutexHandle.second, header, parameters);
         if (ret != Status::Code::GOOD)
         {
@@ -358,6 +340,7 @@ namespace muffin {
         catM1.ReleaseMutex();
         LOG_INFO(logger, "Firmware Version Info\n%s", payload.c_str());
         return validateFirmwareInfo(payload, outInfo, false);
+    */
     }
 
     Status DownloadFirmware(const mcu_type_e mcu)

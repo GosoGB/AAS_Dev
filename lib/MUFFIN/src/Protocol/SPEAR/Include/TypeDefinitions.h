@@ -17,7 +17,7 @@
 
 #include <vector>
 #include <stdint-gcc.h>
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 namespace muffin {

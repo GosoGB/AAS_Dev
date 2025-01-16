@@ -630,6 +630,11 @@ namespace muffin { namespace http {
         return cmeErrorCode;
     }
 
+    INetwork* CatHTTP::RetrieveNIC()
+    {
+        return static_cast<INetwork*>(&mCatM1);
+    }
+
     void CatHTTP::SetSinkToCatFS(const bool save2CatFS, const std::string catFsPath)
     {
         mSetSinkToCatFS = save2CatFS;

@@ -24,7 +24,7 @@
 
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Node/NodeStore.h"
-#include "Jarvis/Config/Information/Alarm.h"
+#include "JARVIS/Config/Information/Alarm.h"
 
 
 

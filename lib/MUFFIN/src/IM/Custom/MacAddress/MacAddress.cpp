@@ -32,8 +32,7 @@ namespace muffin {
 
     const char* MacAddress::GetEthernet()
     {
-        // return mEthernet;
-        return "E05A1B532BCF";
+        return mEthernet;
     }
 
     const char* MacAddress::GetWiFiClient()

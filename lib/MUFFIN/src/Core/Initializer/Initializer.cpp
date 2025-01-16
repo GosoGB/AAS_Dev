@@ -26,13 +26,13 @@
 
 #include "IM/Custom/MacAddress/MacAddress.h"
 
-#include "Jarvis/Config/Network/CatM1.h"
+#include "JARVIS/Config/Network/CatM1.h"
 #if defined(MODLINK_T2) || defined(MODLINK_B)
-    #include "Jarvis/Config/Network/Ethernet.h"
+    #include "JARVIS/Config/Network/Ethernet.h"
 #elif defined(MODLINK_B)
-    #include "Jarvis/Config/Network/WiFi4.h"
+    #include "JARVIS/Config/Network/WiFi4.h"
 #endif
-#include "Jarvis/Jarvis.h"
+#include "JARVIS/Jarvis.h"
 
 #include "Network/CatM1/CatM1.h"
 #if defined(MODLINK_T2) || defined(MODLINK_B)

@@ -153,6 +153,16 @@ namespace muffin {
         }
     }
 
+    std::pair<Status, size_t> Ethernet::TakeMutex()
+    {
+        return std::make_pair(Status(Status::Code::GOOD), 1);
+    }
+
+    Status Ethernet::ReleaseMutex()
+    {
+        return Status(Status::Code::GOOD);
+    }
+
     IPAddress Ethernet::GetIPv4() const
     {
         return ETH.localIP();

@@ -25,7 +25,7 @@
 
 #include <bitset>
 
-#include "Jarvis/Config/Network/CatM1.h"
+#include "JARVIS/Config/Network/CatM1.h"
 #include "Network/CatM1/Processor.h"
 #include "Network/INetwork.h"
 
@@ -100,8 +100,8 @@ namespace muffin {
         Status SyncWithNTP();
         void KillUrcTask(bool forOTA);
     public:
-        std::pair<Status, size_t> TakeMutex();
-        Status ReleaseMutex();
+        virtual std::pair<Status, size_t> TakeMutex() override;
+        virtual Status ReleaseMutex() override;
         Status Execute(const std::string& command, const size_t mutexHandle);
         size_t GetAvailableBytes();
         int16_t Read();

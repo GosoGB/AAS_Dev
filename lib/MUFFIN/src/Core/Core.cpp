@@ -26,7 +26,7 @@
 #include "DataFormat/JSON/JSON.h"
 
 #include "IM/Custom/Device/DeviceStatus.h"
-#include "Jarvis/Jarvis.h"
+#include "JARVIS/Jarvis.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
@@ -47,7 +47,7 @@
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
-#include "Jarvis/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "IM/Node/Include/TypeDefinitions.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"

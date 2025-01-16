@@ -26,7 +26,7 @@
 
 #include "Common/Status.h"
 #include "Include/TypeDefinitions.h"
-#include "Jarvis/Config/Information/Node.h"
+#include "JARVIS/Config/Information/Node.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
 #include "DataFormat/JSON/JSON.h"
 

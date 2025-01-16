@@ -18,7 +18,7 @@
 #include <IPAddress.h>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
+#include "JARVIS/Include/Base.h"
 
 
 
@@ -37,5 +37,7 @@ namespace muffin {
         virtual Status Reconnect() = 0;
         virtual bool IsConnected() const = 0;
         virtual IPAddress GetIPv4() const = 0;
+        virtual std::pair<Status, size_t> TakeMutex() = 0;
+        virtual Status ReleaseMutex() = 0;
     };
 }

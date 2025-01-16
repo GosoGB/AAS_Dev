@@ -23,7 +23,7 @@
 #include <set>
 
 #include "IM/Node/Include/NumericAddressRange.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "TypeDefinitions.h"
 
 

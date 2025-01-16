@@ -25,9 +25,9 @@
 #include "Include/NodeTable.h"
 #include "Include/PolledDataTable.h"
 #include "Include/TypeDefinitions.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
-#include "Jarvis/Config/Protocol/ModbusRTU.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Config/Interfaces/Rs485.h"
+#include "JARVIS/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/SPEAR/Include/TypeDefinitions.h"
 

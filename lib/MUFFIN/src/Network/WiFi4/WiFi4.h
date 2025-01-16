@@ -30,7 +30,7 @@
 
 #include <WiFiGeneric.h>
 
-#include "Jarvis/Config/Network/WiFi4.h"
+#include "JARVIS/Config/Network/WiFi4.h"
 #include "Network/INetwork.h"
 
 
@@ -82,6 +82,8 @@ namespace muffin {
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
+        virtual std::pair<Status, size_t> TakeMutex() override;
+        virtual Status ReleaseMutex() override;
         const char* GetMacAddress() const;
         state_e GetState() const;
     private:

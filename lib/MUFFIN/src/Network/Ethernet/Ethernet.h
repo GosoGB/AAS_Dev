@@ -27,7 +27,7 @@
 #include <ETH.h>
 
 #include "Network/INetwork.h"
-#include "Jarvis/Config/Network/Ethernet.h"
+#include "JARVIS/Config/Network/Ethernet.h"
 #include "Common/Logger/Logger.h"
 
 
@@ -73,6 +73,8 @@ namespace muffin {
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
+        virtual std::pair<Status, size_t> TakeMutex() override;
+        virtual Status ReleaseMutex() override;
         const char* GetMacAddress() const;
         state_e GetState() const;
         Status SyncWithNTP();

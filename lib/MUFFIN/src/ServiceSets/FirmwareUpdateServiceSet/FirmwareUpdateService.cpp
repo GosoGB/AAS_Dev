@@ -26,25 +26,14 @@ namespace muffin {
     Status FirmwareUpdateService(const char* payload)
     {
         ota::fw_info_t* esp32 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
-    #if defined(MODLINK_T2)
         ota::fw_info_t* mega2560 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
-    #endif
-
-    #if defined(MODLINK_L)
-        if (esp32 == nullptr)
-    #elif defined(MODLINK_T2)
         if (esp32 == nullptr || mega2560 == nullptr)
-    #endif
         {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR FW INFO");
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
     
-    #if defined(MODLINK_L)
-        Status ret = ParseFirmwareUpdateInfoService(payload, esp32);
-    #elif defined(MODLINK_T2)
         Status ret = ParseFirmwareUpdateInfoService(payload, esp32, mega2560);
-    #endif
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PARSE FIRMWARE UPDATE INFO");

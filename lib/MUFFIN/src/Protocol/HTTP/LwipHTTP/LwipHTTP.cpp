@@ -13,10 +13,11 @@
 
 
 
-#include "LwipHTTP.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
+#include "LwipHTTP.h"
+#include "Network/Ethernet/Ethernet.h"
 #include "Protocol/HTTP/Include/Helper.h"
 #include "Protocol/Certs.h"
 
@@ -133,6 +134,11 @@ namespace muffin { namespace http {
         Status ret = Status(Status::Code::GOOD);
         *response = mResponseData;
         return ret;
+    }
+
+    INetwork* LwipHTTP::RetrieveNIC()
+    {
+        return static_cast<INetwork*>(ethernet);
     }
 
     Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)

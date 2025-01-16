@@ -20,6 +20,7 @@
 #include "Common/Time/TimeUtils.h"
 #include "Core/Include/Helper.h"
 #include "DeviceStatus.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
 
 
@@ -29,13 +30,6 @@ namespace muffin {
     DeviceStatus::DeviceStatus()
         : mStatus(Status::Code::UNCERTAIN)
     {
-        mVersionESP32.Semantic = "1.2.1";
-        mVersionESP32.Code = 121;
-#if defined(MODLINK_T2) || defined(MODLINK_B)
-        mVersionMEGA2560.Semantic = "0.0.0";
-        mVersionMEGA2560.Code = 999;
-#endif
-
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         mEthernetStatusReport.Enabled = false;
@@ -158,12 +152,12 @@ namespace muffin {
 
         JsonObject firmware               = doc["firmware"].to<JsonObject>();
         JsonObject firmwareESP32          = firmware["esp32"].to<JsonObject>();
-        firmwareESP32["semanticVersion"]  = mVersionESP32.Semantic;
-        firmwareESP32["versionCode"]      = mVersionESP32.Code;
+        firmwareESP32["semanticVersion"]  = FW_VERSION_ESP32.GetSemanticVersion();
+        firmwareESP32["versionCode"]      = FW_VERSION_ESP32.GetVersionCode();
 	#if defined(MODLINK_T2)
         JsonObject firmwareATmega2560          = firmware["atmega2560"].to<JsonObject>();
-        firmwareATmega2560["semanticVersion"]  = mVersionMEGA2560.Semantic;
-        firmwareATmega2560["versionCode"]      = mVersionMEGA2560.Code;
+        firmwareATmega2560["semanticVersion"]  = FW_VERSION_MEGA2560.GetSemanticVersion();
+        firmwareATmega2560["versionCode"]      = FW_VERSION_MEGA2560.GetVersionCode();
 	#endif
 
         JsonObject event = doc["event"].to<JsonObject>();
