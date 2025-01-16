@@ -293,56 +293,6 @@ namespace muffin {
         ESP.restart();
     }
 
-    Status HasNewFirmware()
-    {
-    /*
-        CatM1& catM1 = CatM1::GetInstance();
-        const auto mutexHandle = catM1.TakeMutex();
-        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "UNAVAILABLE DUE TO TOO MANY OPERATIONS. TRY AGAIN LATER");
-            return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
-        }
-        
-        http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        http::RequestHeader header(
-            rest_method_e::GET, 
-            ReleaseURL.Scheme, 
-            ReleaseURL.Host, 
-            ReleaseURL.Port, 
-            "/firmware/file/version/release",
-        #if defined(MODLINK_L)
-            "MODLINK-L/" + version.Semantic
-        #elif defined(MODLINK_T2)
-            "MODLINK-T2/" + version.Semantic
-        #endif
-        );
-        
-        http::RequestParameter parameters;
-        parameters.Add("mac", macAddress.GetEthernet());
-
-        Status ret = catHttp.GET(mutexHandle.second, header, parameters);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO FETCH FOTA FROM SERVER: %s", ret.c_str());
-            catM1.ReleaseMutex();
-            return ret;
-        }
-
-        std::string payload;
-        ret = catHttp.Retrieve(mutexHandle.second, &payload);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
-            catM1.ReleaseMutex();
-            return ret;
-        }
-        catM1.ReleaseMutex();
-        LOG_INFO(logger, "Firmware Version Info\n%s", payload.c_str());
-        return validateFirmwareInfo(payload, outInfo, false);
-    */
-    }
-
     Status DownloadFirmware(const mcu_type_e mcu)
     {
         CatM1& catM1 = CatM1::GetInstance();
