@@ -184,6 +184,9 @@ namespace muffin {
             LOG_INFO(logger, "AFTER [TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
             LOG_INFO(logger, "AFTER Config Start: %u Bytes", ESP.getFreeHeap());
 
+
+            ESP.restart();
+
             Preferences nvs;
             nvs.begin("jarvis");
             nvs.putBool("jarvisFlag",false);

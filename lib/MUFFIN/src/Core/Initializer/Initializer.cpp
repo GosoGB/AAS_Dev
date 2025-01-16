@@ -84,20 +84,21 @@ namespace muffin {
 
     Status Initializer::Configure(const bool hasJARVIS, const bool hasOTA)
     {
-        if (hasJARVIS || hasOTA)
-        {
-            return configureWithoutJarvis(hasJARVIS);
-        }
+        // if (hasJARVIS || hasOTA)
+        // {
+        //     return configureWithoutJarvis(hasJARVIS);
+        // }
         
-        Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
-        if (ret == Status::Code::GOOD)
-        {
-            return configureWithJarvis();
-        }
-        else
-        {
-            return configureWithoutJarvis(hasJARVIS);
-        }
+        // Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
+        // if (ret == Status::Code::GOOD)
+        // {
+        //     return configureWithJarvis();
+        // }
+        // else
+        // {
+        //     return configureWithoutJarvis(hasJARVIS);
+        // }
+        return configureWithoutJarvis(hasJARVIS);
     }
 
     Status Initializer::configureWithoutJarvis(const bool hasJARVIS)

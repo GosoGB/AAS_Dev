@@ -151,7 +151,6 @@ namespace muffin { namespace http {
     Status RequestHeader::UpdateParamter(const std::string& parameter)
     {
         mPath += parameter;
-        LOG_INFO(logger,"mPath : %s",mPath.c_str());
         return Status(Status::Code::GOOD);
     }
 

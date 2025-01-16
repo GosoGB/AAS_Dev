@@ -64,8 +64,10 @@ namespace muffin { namespace http {
         Status postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
         Status postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
         Status postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        std::string getHttpBody(const std::string& payload);
     private:
-        Status convertErrorCode(const uint16_t errorCode);
+        std::string getStatusCode(const std::string& response);
+        std::string getHttpBody(const std::string& payload);
+        bool skipHeaders(WiFiClientSecure& client, unsigned long timeout);
+        bool skipHeaders(WiFiClient& client, unsigned long timeout);
     };
 }}

@@ -76,7 +76,8 @@ namespace muffin {
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(), 
-            FW_VERSION_ESP32.GetVersionCode());
+            FW_VERSION_ESP32.GetVersionCode());       
+
     #if defined(MODLINK_T2)
     {
         uint8_t trialCount = 0;    
@@ -169,7 +170,7 @@ namespace muffin {
 
             StartOTA(payload);
         }
-    
+
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)
@@ -338,7 +339,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             ProcessJarvisRequestTask,   // Function to be run inside of the task
             "ProcessJarvisRequestTask", // The identifier of this task for men
-            8 * KILLOBYTE,              // Stack memory size to allocate
+            10 * KILLOBYTE,              // Stack memory size to allocate
             pvParameters,	            // Task parameters to be passed to the function
             0,				            // Task Priority for scheduling
             NULL,                       // The identifier of this task for machines

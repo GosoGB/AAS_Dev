@@ -12,7 +12,7 @@
 
 
 
-
+#include "LwipHTTP.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
@@ -74,9 +74,8 @@ namespace muffin { namespace http {
     
     Status LwipHTTP::GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        const http_scheme_e schme = header.GetSchem();
         Status ret = Status(Status::Code::UNCERTAIN);
-        switch (schme)
+        switch (header.GetSchem())
         {
         case http_scheme_e::HTTP:
             ret = getHTTP(header, parameter, timeout);
@@ -94,18 +93,17 @@ namespace muffin { namespace http {
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::UNCERTAIN);
-        const http_scheme_e schme = header.GetSchem();
-        // switch (schme)
-        // {
-        // case http_scheme_e::HTTP:
-        //     ret = postHTTP(header, body, timeout);
-        //     break;
-        // case http_scheme_e::HTTPS:
-        //     ret = postHTTPS(header, body, timeout);
-        //     break;
-        // default:
-        //     break;
-        // }
+        switch (header.GetSchem())
+        {
+        case http_scheme_e::HTTP:
+            ret = postHTTP(header, body, timeout);
+            break;
+        case http_scheme_e::HTTPS:
+            ret = postHTTPS(header, body, timeout);
+            break;
+        default:
+            break;
+        }
 
         return ret;
     }
@@ -113,18 +111,17 @@ namespace muffin { namespace http {
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::UNCERTAIN);
-        // const http_scheme_e schme = header.GetSchem();
-        // switch (schme)
-        // {
-        // case http_scheme_e::HTTP:
-        //     ret = postHTTP(header, parameter, timeout);
-        //     break;
-        // case http_scheme_e::HTTPS:
-        //     ret = postHTTPS(header, parameter, timeout);
-        //     break;
-        // default:
-        //     break;
-        // }
+        switch (header.GetSchem())
+        {
+        case http_scheme_e::HTTP:
+            ret = postHTTP(header, parameter, timeout);
+            break;
+        case http_scheme_e::HTTPS:
+            ret = postHTTPS(header, parameter, timeout);
+            break;
+        default:
+            break;
+        }
 
         return ret;
     }
@@ -133,6 +130,10 @@ namespace muffin { namespace http {
     {
         Status ret = Status(Status::Code::GOOD);
         *response = mResponseData;
+
+        mResponseData.clear();
+        mResponseData.shrink_to_fit();
+        
         return ret;
     }
 
@@ -144,14 +145,12 @@ namespace muffin { namespace http {
     Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::UNCERTAIN);
-        header.UpdateParamter(parameter.ToString().c_str());
         
         if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
         {
             LOG_INFO(logger,"CONNECT!");
-            
-            std::string str = header.ToString();
-            mClientSecure.print(str.c_str());
+            header.UpdateParamter(parameter.ToString().c_str());
+            mClientSecure.print(header.ToString().c_str());
 
             unsigned long timeout = millis();
         
@@ -180,14 +179,60 @@ namespace muffin { namespace http {
     Status LwipHTTP::getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::GOOD);
-        header.UpdateParamter(parameter.ToString().c_str());
+        mClientSecure.setCACert(certificates);
         
         if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
         {
             LOG_INFO(logger,"CONNECT!");
-            
-            std::string str = header.ToString();
-            mClientSecure.print(str.c_str());
+            header.UpdateParamter(parameter.ToString().c_str());
+
+            LOG_INFO(logger,"header : %s",header.ToString().c_str());
+            mClientSecure.print(header.ToString().c_str());
+
+            unsigned long timeout = millis();
+        
+            while (mClientSecure.available() == 0) 
+            {
+                if (millis() - timeout > 5000) 
+                {
+                    LOG_ERROR(logger,"Client Timeout !");
+                    return Status(Status::Code::BAD_TIMEOUT);
+                }
+            }
+
+            std::string result;
+            LOG_WARNING(logger,"mClientSecure.available() : %u",mClientSecure.available());
+            while (mClientSecure.available())
+            {
+                result += mClientSecure.read(); 
+            }
+            LOG_WARNING(logger,"[AFTER] mClientSecure.available() : %u",mClientSecure.available());
+            LOG_WARNING(logger,"[body] : %s",result.c_str());
+            // Status::Code::GOOD_MORE_DATA; -> 반환시 나머지 호출해서 합치는
+
+            mResponseData.clear();
+            mResponseData.shrink_to_fit();
+
+            mResponseData = getHttpBody((result.c_str()));
+            mClientSecure.stop();
+        }
+        else
+        {
+            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            return Status(Status::Code::BAD);
+        }
+
+        return ret; 
+    }
+
+    Status LwipHTTP::postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
+    {
+        Status ret = Status(Status::Code::GOOD);
+        if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
+        {
+            header.UpdateParamter(parameter.ToString().c_str());
+            LOG_INFO(logger, "Request msg : %s", header.ToString().c_str());
+            mClient.print(header.ToString().c_str());
 
             unsigned long timeout = millis();
         
@@ -213,7 +258,119 @@ namespace muffin { namespace http {
             LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
         }
 
-        return ret; 
+        return ret;
+    }
+
+    Status LwipHTTP::postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
+    {
+        Status ret = Status(Status::Code::GOOD);
+        if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
+        {
+            header.SetContentLength(strlen(body.ToString().c_str()));
+            header.SetContentType(body.GetContentType());
+            std::string headerStr = header.ToString();
+            std::string bodyStr = body.ToString();
+            LOG_INFO(logger, "Request msg : %s", (headerStr + bodyStr).c_str());
+            mClient.print((headerStr + bodyStr).c_str());
+            unsigned long timeout = millis();
+        
+            while (mClientSecure.available() == 0) 
+            {
+                if (millis() - timeout > 5000) 
+                {
+                    LOG_ERROR(logger,"Client Timeout !");
+                    return Status(Status::Code::BAD_TIMEOUT);
+                }
+            }
+
+            std::string result;
+            while (mClientSecure.available())
+            {
+                result += mClientSecure.read();
+            }
+
+            mResponseData.clear();
+            mResponseData.shrink_to_fit();
+
+            mResponseData = getHttpBody((result.c_str()));
+            LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
+        }   
+
+        return ret;
+    }
+
+    Status LwipHTTP::postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
+    {
+        Status ret = Status(Status::Code::GOOD);
+        if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
+        {
+            header.UpdateParamter(parameter.ToString().c_str());
+            LOG_INFO(logger, "Request msg : %s", header.ToString().c_str());
+            mClientSecure.print(header.ToString().c_str());
+
+            unsigned long timeout = millis();
+        
+            while (mClientSecure.available() == 0) 
+            {
+                if (millis() - timeout > 5000) 
+                {
+                    LOG_ERROR(logger,"Client Timeout !");
+                    return Status(Status::Code::BAD_TIMEOUT);
+                }
+            }
+
+            std::string result;
+            while (mClientSecure.available())
+            {
+                result += mClientSecure.read();
+            }
+
+            mResponseData.clear();
+            mResponseData.shrink_to_fit();
+
+            mResponseData = getHttpBody((result.c_str()));
+            LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
+        }
+
+        return ret;
+    }
+
+    Status LwipHTTP::postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
+    {
+        Status ret = Status(Status::Code::GOOD);
+        if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
+        {
+            header.SetContentLength(strlen(body.ToString().c_str()));
+            header.SetContentType(body.GetContentType());
+            std::string headerStr = header.ToString();
+            std::string bodyStr = body.ToString();
+            LOG_INFO(logger, "Request msg : %s", (headerStr + bodyStr).c_str());
+            mClientSecure.print((headerStr + bodyStr).c_str());
+            unsigned long timeout = millis();
+        
+            while (mClientSecure.available() == 0) 
+            {
+                if (millis() - timeout > 5000) 
+                {
+                    LOG_ERROR(logger,"Client Timeout !");
+                    return Status(Status::Code::BAD_TIMEOUT);
+                }
+            }
+
+            std::string result;
+            while (mClientSecure.available())
+            {
+                result += mClientSecure.read();
+            }
+
+            mResponseData.clear();
+            mResponseData.shrink_to_fit();
+
+            mResponseData = getHttpBody((result.c_str()));
+            LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
+        }
+        
+        return ret;
     }
 
     std::string LwipHTTP::getHttpBody(const std::string& payload) 
@@ -290,9 +447,9 @@ namespace muffin { namespace http {
             }
 
             body = decodedBody; // 디코딩된 바디로 대체
+        }
+        return body;
     }
-    return body;
-}
 
 
 
@@ -315,110 +472,6 @@ namespace muffin { namespace http {
     {
         xSemaphoreGive(xSemaphore);
         return Status(Status::Code::GOOD);
-    }
-
-    Status LwipHTTP::convertErrorCode(const uint16_t errorCode)
-    {
-        switch (errorCode)
-        {
-        case 0:
-            LOG_INFO(logger, "NO ERROR");
-            return Status(Status::Code::GOOD);
-        case 701:
-            LOG_ERROR(logger, "UNKNOWN ERROR");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        case 702:
-            LOG_ERROR(logger, "TIMEOUT");
-            return Status(Status::Code::BAD_TIMEOUT);
-        case 703:
-            LOG_ERROR(logger, "BUSY");
-            return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
-        case 704:
-            LOG_ERROR(logger, "UART BUSY");
-            return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
-        case 705:
-            LOG_ERROR(logger, "NO GET/POST REQUESTS");
-            return Status(Status::Code::BAD_REQUEST_NOT_COMPLETE);
-        case 706:
-            LOG_ERROR(logger, "NETWORK BUSY");
-            return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
-        case 707:
-            LOG_ERROR(logger, "NETWORK OPEN FAILED");
-            return Status(Status::Code::BAD_NO_COMMUNICATION);
-        case 708:
-            LOG_ERROR(logger, "NO NETWORK CONFIGURATION");
-            return Status(Status::Code::BAD_CONFIGURATION_ERROR);
-        case 709:
-            LOG_ERROR(logger, "NETWORK DEACTIVATED");
-            return Status(Status::Code::BAD_NO_COMMUNICATION);
-        case 710:
-            LOG_ERROR(logger, "NETWORK ERROR");
-            return Status(Status::Code::BAD_NO_COMMUNICATION);
-        case 711:
-            LOG_ERROR(logger, "URL ERROR");
-            return Status(Status::Code::BAD_TCP_ENDPOINT_URL_INVALID);
-        case 712:
-            LOG_ERROR(logger, "EMPTY URL");
-            return Status(Status::Code::BAD_TCP_ENDPOINT_URL_INVALID);
-        case 713:
-            LOG_ERROR(logger, "IP ADDRESS ERROR");
-            return Status(Status::Code::BAD_TCP_ENDPOINT_URL_INVALID);
-        case 714:
-            LOG_ERROR(logger, "DNS ERROR");
-            return Status(Status::Code::BAD_TCP_ENDPOINT_URL_INVALID);
-        case 715:
-            LOG_ERROR(logger, "SOCKET CREATE ERROR");
-            return Status(Status::Code::BAD_TCP_INTERNAL_ERROR);
-        case 716:
-            LOG_ERROR(logger, "SOCKET CONNECT ERROR");
-            return Status(Status::Code::BAD_NOT_CONNECTED);
-        case 717:
-            LOG_ERROR(logger, "SOCKET READ ERROR");
-            return Status(Status::Code::BAD_TCP_INTERNAL_ERROR);
-        case 718:
-            LOG_ERROR(logger, "SOCKET WRITE ERROR");
-            return Status(Status::Code::BAD_TCP_INTERNAL_ERROR);
-        case 719:
-            LOG_ERROR(logger, "SOCKET CLOSED");
-            return Status(Status::Code::BAD_CONNECTION_CLOSED);
-        case 720:
-            LOG_ERROR(logger, "DATA ENCODE ERROR");
-            return Status(Status::Code::BAD_ENCODING_ERROR);
-        case 721:
-            LOG_ERROR(logger, "DATA DECODE ERROR");
-            return Status(Status::Code::BAD_DECODING_ERROR);
-        case 722:
-            LOG_ERROR(logger, "READ TIMEOUT");
-            return Status(Status::Code::BAD_TIMEOUT);
-        case 723:
-            LOG_ERROR(logger, "RESPONSE FAILED");
-            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
-        case 724:
-            LOG_ERROR(logger, "INCOMING CALL BUSY");
-            return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
-        case 725:
-            LOG_ERROR(logger, "VOID CALL BUSY");
-            return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
-        case 726:
-            LOG_ERROR(logger, "INPUT TIMEOUT");
-            return Status(Status::Code::BAD_TIMEOUT);
-        case 727:
-            LOG_ERROR(logger, "WAIT DATA TIMEOUT");
-            return Status(Status::Code::BAD_TIMEOUT);
-        case 728:
-            LOG_ERROR(logger, "WAIT RESPONSE TIMEOUT");
-            return Status(Status::Code::BAD_TIMEOUT);
-        case 729:
-            LOG_ERROR(logger, "MEMORY ALLOCATION FAILED");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        case 730:
-            LOG_ERROR(logger, "INVALID PARAMETER");
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        default:
-            // LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
-            // return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
-            assert(false);
-        }
     }
 
 
