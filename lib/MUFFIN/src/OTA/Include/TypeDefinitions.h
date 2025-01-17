@@ -25,6 +25,12 @@
 
 namespace muffin { namespace ota {
 
+    typedef enum class McuTypeEnum : uint8_t
+    {
+        MCU1  = 1,
+        MCU2  = 2
+    } mcu_e;
+
     typedef struct UrlInfoType
     {
         char Host[64];
@@ -39,11 +45,13 @@ namespace muffin { namespace ota {
         char SemanticVersion[16];
         uint32_t VersionCode;
         bool HasNewFirmware;
+        mcu_e MCU;
     } fw_head_t;
 
     typedef struct FirmwareChunkInfoHeadType
     {
         uint8_t Count;
+        uint8_t Index;
         uint8_t IndexArray[192];
         char PathArray[192][64];
     } chk_head_t;

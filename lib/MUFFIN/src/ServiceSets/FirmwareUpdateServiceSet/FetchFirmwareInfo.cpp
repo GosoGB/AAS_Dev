@@ -5,7 +5,7 @@
  * 
  * @brief API 서버로부터 펌웨어 정보를 가져오는 서비스를 정의합니다.
  * 
- * @date 2025-01-16
+ * @date 2025-01-17
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -42,25 +42,29 @@ namespace muffin {
     #endif
     };
 
-    Status FetchFirmwareInfo(http::IHTTP* interface, std::string* output)
+    Status FetchFirmwareInfo(std::string* output)
     {
+        ASSERT((http::client != nullptr), "HTTP CLIENT CANNOT BE NULL");
+        
+        #if defined(MODLINK_L)
+            char userAgent[32] = "MODLINK-L/";
+        #elif defined(MODLINK_T2)
+            char userAgent[32] = "MODLINK-T2/";
+        #endif
+
         http::RequestHeader header(
             rest_method_e::GET,
             ApiURL.Scheme,
             ApiURL.Host,
             ApiURL.Port,
             "/firmware/file/version/release",
-        #if defined(MODLINK_L)
-            strcpy("MODLINK-L/", FW_VERSION_ESP32.GetSemanticVersion())
-        #elif defined(MODLINK_T2)
-            strcpy("MODLINK-T2/", FW_VERSION_ESP32.GetSemanticVersion())
-        #endif
+            strcat(userAgent, FW_VERSION_ESP32.GetSemanticVersion())
         );
 
         http::RequestParameter parameters;
         parameters.Add("mac", macAddress.GetEthernet());
         
-        INetwork* nic = interface->RetrieveNIC();
+        INetwork* nic = http::client->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
@@ -68,7 +72,7 @@ namespace muffin {
             return mutex.first;
         }
         
-        Status ret = interface->GET(mutex.second, header, parameters);
+        Status ret = http::client->GET(mutex.second, header, parameters);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO FETCH: %s", ret.c_str());
@@ -76,7 +80,7 @@ namespace muffin {
             return ret;
         }
 
-        ret = interface->Retrieve(mutex.second, output);
+        ret = http::client->Retrieve(mutex.second, output);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());

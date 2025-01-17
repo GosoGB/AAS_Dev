@@ -295,6 +295,7 @@ namespace muffin {
 
     Status DownloadFirmware(const mcu_type_e mcu)
     {
+    /*
         CatM1& catM1 = CatM1::GetInstance();
         catM1.KillUrcTask(true);
         
@@ -340,9 +341,7 @@ namespace muffin {
             parameters.Add("mcu2.filepath", info.mcu2.FilePathVector.at(0));
         }
         
-        /**
-         * @todo Chunk 방식이 정착되면 UART로 직접 받도록 수정이 필요함
-         */
+        // @todo Chunk 방식이 정착되면 UART로 직접 받도록 수정이 필요함
         std::string path =  mcu == mcu_type_e::MCU_ESP32 ? "esp32" : "mega2560";
         catHttp.SetSinkToCatFS(true, path);
         Status ret = catHttp.GET(mutexHandle.second, header, parameters, 300);
@@ -354,8 +353,9 @@ namespace muffin {
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         catHttp.SetSinkToCatFS(false, "");
+    */
         
-        
+    /*
         CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
         ret = catFS->BeginWithMutex(mutexHandle.second);
         if (ret != Status::Code::GOOD)
@@ -372,14 +372,13 @@ namespace muffin {
             catM1.ReleaseMutex();
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
+    */
 
-/**
- * @todo 청크 방식으로 변경 시 객체를 호출자 내부로 옮겨야 합니다.
- *       그래야 누적된 CRC32 값을 구하여 검증에 사용할 수 있습니다.
- */
+    /*
         CRC32 crc32;
         crc32.Init();
         
+    */
         size_t bytesRead = 0;
         size_t fileSize = mcu == mcu_type_e::MCU_ESP32 ? 
             info.mcu1.FileSizeVector.at(0) :
@@ -411,8 +410,10 @@ namespace muffin {
         catM1.ReleaseMutex();
 
         crc32.Teardown();
+    /*
         char bufferCRC32[9] = { '\0' };
         sprintf(bufferCRC32, "%08x", crc32.RetrieveTotalChecksum());
+    */
         const std::string calculatedCRC32(bufferCRC32);
         LOG_WARNING(logger, "Calculated CRC32: %s", calculatedCRC32.c_str());
 

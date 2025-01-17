@@ -23,5 +23,5 @@
 
 namespace muffin {
 
-    Status FetchFirmwareInfo(http::IHTTP* interface, std::string* output);
+    Status FetchFirmwareInfo(std::string* output);
 }

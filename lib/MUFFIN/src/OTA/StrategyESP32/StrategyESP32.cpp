@@ -5,7 +5,7 @@
  * 
  * @brief ESP32 전용 펌웨어 업데이트 클래스를 정의합니다.
  * 
- * @date 2025-01-15
+ * @date 2025-01-17
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -34,8 +34,6 @@ namespace muffin { namespace ota {
             LOG_ERROR(logger, "OUT OF MEMORY: TOO LARGE FOR THE APP PARTITION");
             return Status(Status::Code::BAD_INITIAL_VALUE_OUT_OF_RANGE);
         }
-
-        mFileSize = static_cast<float>(info.Size.Total);
         return Status(Status::Code::GOOD);
     }
 
@@ -49,7 +47,7 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
 
-        const float progress = static_cast<float>(Update.progress()) / mFileSize;
+        const float progress = static_cast<float>(Update.progress()) / static_cast<float>(Update.progress());
         LOG_INFO(logger, "Progress: %.2f%", progress);
 
         const uint8_t errorCode = Update.getError();

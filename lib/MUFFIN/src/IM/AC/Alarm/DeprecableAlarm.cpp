@@ -385,7 +385,6 @@ namespace muffin {
             LOG_ERROR(logger, "NO VALUE AVAILABLE FOR CONDITION TYPE ALARM");
             return;
         }
-        
 
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::string alarmUID;
@@ -427,7 +426,24 @@ namespace muffin {
         {
             if (isCondition == true)
             {
-                return;
+                if (node.RetrieveCount() > 1)
+                {
+                    im::var_data_t history = node.RetrieveHistory(2).back();
+                    const std::string currentValue   = std::string(datum.Value.String.Data);
+                    const std::string previousValue  = std::string(history.Value.String.Data);
+                    
+                    if (previousValue != currentValue)
+                    {
+                        for (auto& condition : vectorCondition)
+                        {
+                            if ((static_cast<int16_t>(history.Value.UInt16) == condition) &&
+                                (static_cast<int16_t>(datum.Value.UInt16)   != condition))
+                            {
+                                deactivateAlarm(jarvis::alarm_type_e::CONDITION, cin);
+                            }
+                        }
+                    }
+                }
             }
             else
             {
@@ -435,7 +451,7 @@ namespace muffin {
             }
         }
     }
-
+    
     bool AlarmMonitor::isActiveAlarm(const std::string& uid)
     {
         for (auto& alarmInfo : mVectorAlarmInfo)

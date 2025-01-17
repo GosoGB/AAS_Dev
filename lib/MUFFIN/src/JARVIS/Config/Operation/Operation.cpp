@@ -4,7 +4,7 @@
  * 
  * @brief Operation 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2025-01-15
+ * @date 2025-01-17
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -143,4 +143,7 @@ namespace muffin { namespace jarvis { namespace config {
             return std::make_pair(Status(Status::Code::BAD), mIntervalPolling);
         }
     }
+
+
+    Operation opeartion;
 }}}

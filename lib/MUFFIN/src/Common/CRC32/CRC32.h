@@ -59,7 +59,7 @@ namespace muffin {
         uint32_t RetrieveTotalChecksum() const;
     private:
         uint32_t mCRC32Table[256];
-        uint32_t mTotalChecksum   = 0xFFFFFFFF;
+        uint32_t mTotalChecksum = 0xFFFFFFFF;
         uint32_t mChunkChecksum = 0xFFFFFFFF;
     };
 }

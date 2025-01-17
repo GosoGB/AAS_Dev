@@ -28,7 +28,7 @@ namespace muffin {
 
     void SendStatusMSG();
     void StartManualFirmwareUpdate(const std::string& payload);
-    Status HasNewFirmware(new_fw_t* outInfo);
+    
     Status DownloadFirmware(const mcu_type_e mcu);
     bool PostDownloadResult(const mcu_type_e mcu, const std::string result);
     bool PostFinishResult(const mcu_type_e mcu, const std::string result);

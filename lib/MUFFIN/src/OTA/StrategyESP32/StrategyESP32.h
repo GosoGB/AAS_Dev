@@ -34,7 +34,5 @@ namespace muffin { namespace ota {
         Status TearDown();
     private:
         Status processErrorCode(const uint8_t errorCode) const;
-    private:
-        float mFileSize = 0;
     };
 }}

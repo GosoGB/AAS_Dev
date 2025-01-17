@@ -1,12 +1,14 @@
 /**
  * @file IHTTP.h
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
- * @brief 
+ * 
+ * @brief HTTP 프로토콜에 대한 인터페이스를 선언합니다.
+ * 
+ * @date 2025-01-17
  * @version 1.2.2
- * @date 2025-01-13
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
- * 
  */
 
 
@@ -37,4 +39,7 @@ namespace muffin { namespace http {
         virtual Status Retrieve(const size_t mutexHandle, std::string* response) = 0;
         virtual INetwork* RetrieveNIC() = 0;
     };
+
+
+    extern IHTTP* client = nullptr;
 }}

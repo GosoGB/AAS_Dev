@@ -1,5 +1,5 @@
 /**
- * @file DownloadFirmware.h
+ * @file DownloadFirmwareService.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
@@ -16,11 +16,15 @@
 
 #pragma once
 
+#include <freertos/queue.h>
+
 #include "Common/Status.h"
+#include "Common/CRC32/CRC32.h"
+#include "OTA/Include/TypeDefinitions.h"
 
 
 
 namespace muffin {
 
-    Status DownloadFirmware();
+    Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue);
 }
