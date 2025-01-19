@@ -28,7 +28,6 @@
 
 namespace muffin {
 
-    
     typedef struct FotaStatusStruct
     {
         mqtt::topic_e Topic;

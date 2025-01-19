@@ -5,7 +5,7 @@
  * 
  * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2025-01-14
+ * @date 2025-01-20
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -41,7 +41,6 @@
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Task/MqttTask.h"
 #include "Task/JarvisTask.h"
-#include "Task/UpdateTask.h"
 #include "Task/CyclicalPubTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
@@ -54,6 +53,8 @@
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
+
+#include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
 
 
 
@@ -155,7 +156,7 @@ namespace muffin {
         }
 
         StartTaskMQTT();
-        SendStatusMSG();
+        PublishFirmwareStatusMessageService();
         
         if (mHasJarvisCommand == false && mHasFotaCommand == true)
         {

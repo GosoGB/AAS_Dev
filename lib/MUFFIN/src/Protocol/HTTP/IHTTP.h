@@ -41,5 +41,5 @@ namespace muffin { namespace http {
     };
 
 
-    extern IHTTP* client = nullptr;
+    extern IHTTP* client;
 }}

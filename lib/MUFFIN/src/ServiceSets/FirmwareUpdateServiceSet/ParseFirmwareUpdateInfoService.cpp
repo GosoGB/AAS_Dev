@@ -5,7 +5,7 @@
  * 
  * @brief 펌웨어 업데이트 정보를 파싱하는 서비스를 정의합니다.
  * 
- * @date 2025-01-16
+ * @date 2025-01-20
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -207,15 +207,15 @@ namespace muffin {
         
         for (uint8_t idx = 0; idx < output->Chunk.Count; ++idx)
         {
-            output->Size.ChunkArray[idx] = arrayFileSize[idx].as<uint32_t>();
+            output->Size.Array[idx] = arrayFileSize[idx].as<uint32_t>();
         }
 
         for (uint8_t idx = 0; idx < output->Chunk.Count; ++idx)
         {
             strncpy(
-                output->Checksum.ChunkArray[idx],
+                output->Checksum.Array[idx],
                 arrayFileChecksum[idx].as<const char*>(),
-                sizeof(ota::fw_cks_t::ChunkArray[0])
+                sizeof(ota::fw_cks_t::Array[0])
             );
         }
 

@@ -51,7 +51,8 @@ namespace muffin { namespace ota {
     typedef struct FirmwareChunkInfoHeadType
     {
         uint8_t Count;
-        uint8_t Index;
+        uint8_t FlashingIDX;
+        uint8_t DownloadIDX;
         uint8_t IndexArray[192];
         char PathArray[192][64];
     } chk_head_t;
@@ -59,13 +60,13 @@ namespace muffin { namespace ota {
     typedef struct FirmwareChecksumInfoType
     {
         char Total[9];
-        char ChunkArray[192][9];
+        char Array[192][9];
     } fw_cks_t;
 
     typedef struct FirmwareSizeInfoType
     {
         size_t Total;
-        size_t ChunkArray[192];
+        size_t Array[192];
     } fw_size_t;
 
     typedef struct FirmwareInfoType

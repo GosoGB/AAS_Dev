@@ -1,11 +1,11 @@
 /**
- * @file FirmwareUpdateService.h
+ * @file SendMessageService.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
- * @brief 펌웨어를 업데이트하는 서비스를 선언합니다.
+ * @brief 펌웨어 상태를 발행하는 서비스를 선언합니다.
  * 
- * @date 2025-01-17
+ * @date 2025-01-20
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -22,5 +22,7 @@
 
 namespace muffin {
 
-    Status FirmwareUpdateService(const char* payload);
+    Status PublishFirmwareStatusMessageService();
+    Status PostDownloadResult();
+    Status PostUpdateResult();
 }

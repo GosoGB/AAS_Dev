@@ -5,7 +5,7 @@
  * 
  * @brief API 서버로부터 펌웨어를 다운로드 하는 서비스를 정의합니다.
  * 
- * @date 2025-01-17
+ * @date 2025-01-20
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -28,8 +28,18 @@
 
 namespace muffin {
 
-    Status implementService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue)
+    typedef struct DownloadTaskParameterType
     {
+        ota::fw_info_t* Info;
+        CRC32* CRC32;
+        QueueHandle_t Queue;
+        void (*Callback)(Status status);
+    } download_task_params;
+
+   void implementService(void* pvParameters)
+    {
+        ASSERT((pvParameters != nullptr), "INPUT PARAMETERS CANNOT BE NULL");
+        download_task_params* params = static_cast<download_task_params*>(pvParameters);
 
         #if defined(MODLINK_L)
             char userAgent[32] = "MODLINK-L/";
@@ -39,75 +49,132 @@ namespace muffin {
 
         http::RequestHeader header(
             rest_method_e::GET,
-            info.Head.DownloadURL.Scheme,
-            info.Head.DownloadURL.Host,
-            info.Head.DownloadURL.Port,
+            params->Info->Head.DownloadURL.Scheme,
+            params->Info->Head.DownloadURL.Host,
+            params->Info->Head.DownloadURL.Port,
             "/firmware/file/download",
             strcat(userAgent, FW_VERSION_ESP32.GetSemanticVersion())
         );
 
+        ASSERT((params->Info->Head.MCU == ota::mcu_e::MCU1 || params->Info->Head.MCU == ota::mcu_e::MCU2), "INVALID MCU TYPE");
+        const char* attributeVersionCode      = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.vc"        : "mcu2.vc";
+        const char* attributeSemanticVersion  = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.version"   : "mcu2.version";
+        const char* attributeFileNumber       = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.fileNo"    : "mcu2.fileNo";
+        const char* attributeFilePath         = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.filepath"  : "mcu2.filepath";
+
         http::RequestParameter parameters;
         parameters.Add("mac", macAddress.GetEthernet());
-        parameters.Add("otaId", std::to_string(info.Head.ID));
-        ASSERT((info.Head.MCU == ota::mcu_e::MCU1 || info.Head.MCU == ota::mcu_e::MCU2), "INVALID MCU TYPE");
-        const char* attributeVersionCode      = info.Head.MCU == ota::mcu_e::MCU1 ? "mcu1.vc"        : "mcu2.vc";
-        const char* attributeSemanticVersion  = info.Head.MCU == ota::mcu_e::MCU1 ? "mcu1.version"   : "mcu2.version";
-        const char* attributeFileNumber       = info.Head.MCU == ota::mcu_e::MCU1 ? "mcu1.fileNo"    : "mcu2.fileNo";
-        const char* attributeFilePath         = info.Head.MCU == ota::mcu_e::MCU1 ? "mcu1.filepath"  : "mcu2.filepath";
-        
-        while (info.Chunk.Index < info.Chunk.Count)
+        parameters.Add("otaId", std::to_string(params->Info->Head.ID));
+        parameters.Add(attributeVersionCode, std::to_string(params->Info->Head.VersionCode));
+        parameters.Add(attributeSemanticVersion, params->Info->Head.SemanticVersion);
+
+        INetwork* nic = http::client->RetrieveNIC();
+        Status ret(Status::Code::UNCERTAIN);
+
+        while (params->Info->Chunk.DownloadIDX < params->Info->Chunk.Count)
         {
-            parameters.Add(attributeVersionCode,       std::to_string(info.Head.VersionCode));
-            parameters.Add(attributeSemanticVersion,   info.Head.SemanticVersion);
-            parameters.Add(attributeFileNumber,        std::to_string(info.Chunk.IndexArray[info.Chunk.Index]));
-            parameters.Add(attributeFilePath,          info.Chunk.PathArray[info.Chunk.Index]);
+            parameters.Add(attributeFileNumber, std::to_string(params->Info->Chunk.IndexArray[params->Info->Chunk.DownloadIDX]));
+            parameters.Add(attributeFilePath, params->Info->Chunk.PathArray[params->Info->Chunk.DownloadIDX]);
+
+            const std::pair<Status, size_t> mutex = nic->TakeMutex();
+            if (mutex.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
+                ret = mutex.first;
+                goto TEARDOWN;
+            }
+            
+            ret = http::client->GET(mutex.second, header, parameters, 300);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO DOWNLOAD: %s", ret.c_str());
+                nic->ReleaseMutex();
+                goto TEARDOWN;
+            }
+
+            std::string* output = new std::string();
+            ret = http::client->Retrieve(mutex.second, output);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
+                nic->ReleaseMutex();
+                goto TEARDOWN;
+            }
+            else if (output->length() != params->Info->Size.Array[params->Info->Chunk.DownloadIDX])
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
+                ret = Status::Code::BAD_DATA_LOST;
+                nic->ReleaseMutex();
+                goto TEARDOWN;
+            }
+            nic->ReleaseMutex();
+
+            const uint32_t integerCRC32 = params->CRC32->Calculate(*output);
+            char calculatedCRC32[sizeof(ota::fw_cks_t::Array[0])] = {'\0'};
+            snprintf(calculatedCRC32, sizeof(ota::fw_cks_t::Array[0]), "%08x", integerCRC32);
+            if (strcmp(calculatedCRC32, params->Info->Checksum.Array[params->Info->Chunk.DownloadIDX]) != 0)
+            {
+                LOG_ERROR(logger, "INVALID CRC32: %s != %s", calculatedCRC32, params->Info->Checksum.Array[params->Info->Chunk.DownloadIDX]);
+                ret = Status::Code::BAD_DATA_LOST;
+                goto TEARDOWN;
+            }
+            LOG_DEBUG(logger, "Downloaded: %s", calculatedCRC32);
+            ASSERT((params->Queue != NULL), "INPUT PARAMETERS CANNOT BE NULL");
+            xQueueSend(params->Queue, output, UINT32_MAX);
+            ++params->Info->Chunk.DownloadIDX;
         }
+        LOG_INFO(logger, "Download finished");
+        ret = Status::Code::GOOD;
+    
+    TEARDOWN:
+        params->Callback(ret);
         vTaskDelete(NULL);
-
-        
-
     }
 
-    Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue)
+    Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue, void (*callback)(Status status))
     {
         ASSERT((http::client != nullptr), "HTTP CLIENT CANNOT BE NULL");
         ASSERT((uxQueueMessagesWaiting(queue) == 0), "QUEUE MUST BE EMPTY");
 
-        INetwork* nic = http::client->RetrieveNIC();
-        const std::pair<Status, size_t> mutex = nic->TakeMutex();
-        if (mutex.first.ToCode() != Status::Code::GOOD)
+        download_task_params* pvParameters = (download_task_params*)malloc(sizeof(download_task_params));
+        if (pvParameters == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
-            return mutex.first;
-        }
-        
-        Status ret = http::client->GET(mutex.second, header, parameters, 300);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO DOWNLOAD: %s", ret.c_str());
-            nic->ReleaseMutex();
-            return ret;
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR TASK PARAMETERS");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
-        ret = http::client->Retrieve(mutex.second, output);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
-            nic->ReleaseMutex();
-            return ret;
-        }
-        nic->ReleaseMutex();
+        pvParameters->Info       = &info;
+        pvParameters->CRC32      = &crc32;
+        pvParameters->Queue      = queue;
+        pvParameters->Callback   = callback;
 
-        const uint32_t integerCRC32 = crc32.Calculate(*output);
-        char stringCRC32[sizeof(ota::fw_cks_t::ChunkArray[0])] = {'\0'};
-        snprintf(stringCRC32, sizeof(ota::fw_cks_t::ChunkArray[0]), "%08x", integerCRC32);
-        if (strcmp(stringCRC32, info.Checksum.ChunkArray[info.Chunk.Index]) != 0)
+        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
+            implementService,     // Function to be run inside of the task
+            "DownloadFirmware",   // The identifier of this task for men
+            4 * KILLOBYTE,        // Stack memory size to allocate
+            pvParameters,	      // Task parameters to be passed to the function
+            0,				      // Task Priority for scheduling
+            NULL,                 // The identifier of this task for machines
+            0				      // Index of MCU core where the function to run
+        );
+
+        switch (taskCreationResult)
         {
-            LOG_ERROR(logger, "INVALID CRC32: %s != %s", stringCRC32, info.Checksum.ChunkArray[info.Chunk.Index]);
-            ret = Status::Code::BAD_DATA_LOST;
-            return ret;
+        case pdPASS:
+            LOG_INFO(logger, "Download task has been started");
+            return Status(Status::Code::GOOD);
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED WITHOUT SPECIFIC REASON");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %u", taskCreationResult);
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
-        LOG_DEBUG(logger, "Downloaded: %s", stringCRC32);
-        return ret;
     }
 }
