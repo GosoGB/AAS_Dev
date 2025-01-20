@@ -4,10 +4,10 @@
  * 
  * @brief LTE Cat.M1 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -256,6 +256,11 @@ namespace muffin {
     IPAddress CatM1::GetIPv4() const
     {
         return IPAddress(0,0,0,0);
+    }
+
+    jarvis::config::Base* CatM1::GetConfig()
+    {
+        return static_cast<jarvis::config::Base*>(&(mConfig.second));
     }
 
     std::pair<bool, jarvis::config::CatM1> CatM1::RetrieveConfig() const

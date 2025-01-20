@@ -23,6 +23,7 @@
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "Protocol/HTTP/IHTTP.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
 
 
 
@@ -49,9 +50,9 @@ namespace muffin {
 
         http::RequestHeader header(
             rest_method_e::GET,
-            params->Info->Head.DownloadURL.Scheme,
-            params->Info->Head.DownloadURL.Host,
-            params->Info->Head.DownloadURL.Port,
+            params->Info->Head.API.Scheme,
+            params->Info->Head.API.Host,
+            params->Info->Head.API.Port,
             "/firmware/file/download",
             strcat(userAgent, FW_VERSION_ESP32.GetSemanticVersion())
         );
@@ -119,6 +120,14 @@ namespace muffin {
                 goto TEARDOWN;
             }
             LOG_DEBUG(logger, "Downloaded: %s", calculatedCRC32);
+            {
+                Status postResult = PostDownloadResult(*params->Info, "success");
+                if (postResult == Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO POST DOWNLOAD RESULT: %s", postResult.c_str());
+                }
+            }
+
             ASSERT((params->Queue != NULL), "INPUT PARAMETERS CANNOT BE NULL");
             xQueueSend(params->Queue, output, UINT32_MAX);
             ++params->Info->Chunk.DownloadIDX;

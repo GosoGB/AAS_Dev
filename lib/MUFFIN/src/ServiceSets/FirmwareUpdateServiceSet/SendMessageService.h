@@ -17,12 +17,13 @@
 #pragma once
 
 #include "Common/Status.h"
+#include "OTA/Include/TypeDefinitions.h"
 
 
 
 namespace muffin {
 
     Status PublishFirmwareStatusMessageService();
-    Status PostDownloadResult();
-    Status PostUpdateResult();
+    Status PostDownloadResult(const ota::fw_info_t& info, const char* result);
+    Status PostUpdateResult(const ota::fw_info_t& info, const char* result);
 }

@@ -4,8 +4,8 @@
  * 
  * @brief Ethernet 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-09-04
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
  * @todo Network 모듈 단에서 Ethernet 인터페이스의 MAC 주소를 어떻게 읽어가는
  * 것이 좋을지 결정하지 못하였습니다. 현재는 다음의 두 개의 방안을 고민 중입니다.
@@ -16,7 +16,7 @@
  * 개발하지 않기로 결정하였습니다. 향후에 ESP-IDF 프레임워크로 이전하게 된다면
  * Disconnect(), Reconnect() 함수를 개발해야 합니다.
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -73,6 +73,7 @@ namespace muffin {
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
+        virtual jarvis::config::Base* GetConfig() override;
         virtual std::pair<Status, size_t> TakeMutex() override;
         virtual Status ReleaseMutex() override;
         const char* GetMacAddress() const;

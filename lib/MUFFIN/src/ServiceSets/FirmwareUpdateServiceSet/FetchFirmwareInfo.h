@@ -17,11 +17,13 @@
 #pragma once
 
 #include <string>
+
 #include "Common/Status.h"
+#include "OTA/Include/TypeDefinitions.h"
 
 
 
 namespace muffin {
 
-    Status FetchFirmwareInfo(std::string* output);
+    Status FetchFirmwareInfo(const ota::fw_info_t& info, std::string* output);
 }

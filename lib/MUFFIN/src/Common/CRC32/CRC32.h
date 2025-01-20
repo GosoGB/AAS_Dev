@@ -4,10 +4,10 @@
  * 
  * @brief CRC32 체크섬을 계산하는 클래스를 선언합니다.
  * 
- * @date 2024-11-28
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -57,6 +57,8 @@ namespace muffin {
          * @brief Total CRC32 값을 반환합니다.
          */
         uint32_t RetrieveTotalChecksum() const;
+
+        void Reset();
     private:
         uint32_t mCRC32Table[256];
         uint32_t mTotalChecksum = 0xFFFFFFFF;

@@ -186,17 +186,6 @@ namespace muffin {
     
     //     StartCatM1Task();
 
-        
-
-        jarvis::config::Ethernet config;
-        config.SetDHCP(true);
-
-        ethernet = new Ethernet();
-        ethernet->Init();
-        ethernet->Config(&config);
-        ethernet->Connect();
-        ethernet->SyncWithNTP();
-
         Status ret = ConnectToBrokerEthernet(); 
         StartEthernetTask();
 

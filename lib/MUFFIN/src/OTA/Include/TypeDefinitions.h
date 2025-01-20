@@ -41,7 +41,7 @@ namespace muffin { namespace ota {
     typedef struct FirmwareInfoHeadType
     {
         static uint32_t ID;
-        static url_t DownloadURL;
+        static url_t API;
         char SemanticVersion[16];
         uint32_t VersionCode;
         bool HasNewFirmware;
@@ -79,5 +79,5 @@ namespace muffin { namespace ota {
 
     
     size_t fw_head_t::ID;
-    url_t fw_head_t::DownloadURL;
+    url_t fw_head_t::API;
 }}

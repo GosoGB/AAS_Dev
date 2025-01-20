@@ -4,10 +4,10 @@
  * 
  * @brief Wi-Fi 통신을 사용하는데 필요한 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-09-03
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -215,6 +215,11 @@ namespace muffin {
     Status WiFi4::ReleaseMutex()
     {
         return Status(Status::Code::GOOD);
+    }
+
+    jarvis::config::Base* WiFi4::GetConfig()
+    {
+        return static_cast<jarvis::config::Base*>(&mConfig);
     }
 
     const char* WiFi4::GetMacAddress() const

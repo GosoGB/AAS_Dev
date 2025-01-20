@@ -4,10 +4,10 @@
  * 
  * @brief 네트워크 모듈이 공통으로 따르는 소프트웨어 인터페이스를 선언합니다.
  * 
- * @date 2024-09-04
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -39,5 +39,6 @@ namespace muffin {
         virtual IPAddress GetIPv4() const = 0;
         virtual std::pair<Status, size_t> TakeMutex() = 0;
         virtual Status ReleaseMutex() = 0;
+        virtual jarvis::config::Base* GetConfig() = 0;
     };
 }

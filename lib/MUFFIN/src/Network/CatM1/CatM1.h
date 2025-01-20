@@ -6,8 +6,8 @@
  * @details 현재는 Quectel 사의 BG96 칩셋을 사용한 LTE Cat.M1 모듈만을 대상으로 
  * 개발했습니다. 향후 향지에 따라서 별도의 칩셋을 사용한다면 추가 개발이 필요합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
  * @todo 추후 버전 개발 시 FSM 수정 및 재적용이 필요함
  * @todo IPv6만 할당되고 있기 떄문에 인터페이스 수정이 필요함
@@ -15,7 +15,7 @@
  *       아마 버리는 게 합리적일 것 같은데 언제, 얼마나 timeout 이후에 들어올지 알 수 없기
  *       때문에 실제 처리는 조금 어렵지 않을까 생각합니다.
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -95,6 +95,7 @@ namespace muffin {
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
+        virtual jarvis::config::Base* GetConfig() override;
         std::pair<bool, jarvis::config::CatM1> RetrieveConfig() const;
         state_e GetState() const;
         Status SyncWithNTP();
