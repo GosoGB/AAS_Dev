@@ -53,4 +53,7 @@ namespace muffin {
 
     void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN);
     void applyModbusTcpCIN(std::vector<jarvis::config::Base*>& vectorModbusTCPCIN);
+    
+    Status strategyCatHttp();
+    Status strategyLwipHttp();
 }

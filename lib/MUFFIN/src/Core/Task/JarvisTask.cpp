@@ -97,122 +97,43 @@ namespace muffin {
     //LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
 #endif
 
-       
-//         CatM1& catM1 = CatM1::GetInstance();
-//         const auto mutexHandle = catM1.TakeMutex();
       
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
-//             JSON json;
-//             JsonDocument doc;
 
-//             http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-//         #if defined(DEBUG)
-//             http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-//         #else
-//             http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-//         #endif
-//             http::RequestParameter parameters;
-//             parameters.Add("mac", macAddress.GetEthernet());
-
-//         #ifdef DEBUG
-//             //LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-//         #endif
-//             catHttp.SetSinkToCatFS(true, "http_response_file");
-//             Status ret = catHttp.GET(mutexHandle.second, header, parameters);
-//             catHttp.SetSinkToCatFS(false, "");
-//             if (ret != Status::Code::GOOD)
-//             {
-//                 LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
-//                 catM1.ReleaseMutex();
-                
-//                 switch (ret.ToCode())
-//                 {
-//                 case Status::Code::BAD_TIMEOUT:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
-//                     break;
-//                 case Status::Code::BAD_NO_COMMUNICATION:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
-//                     break;
-//                 case Status::Code::BAD_OUT_OF_MEMORY:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
-//                     break;
-//                 default:
-//                     validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
-//                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
-//                     break;
-//                 }
-                
-//                 callback(validationResult);
-//                 s_IsJarvisTaskRunning = false;
-//                 vTaskDelete(NULL);
-//             }
-// #ifdef DEBUG
-//     //LOG_DEBUG(logger, "[TASK: JARVIS][HTTP REQUESTED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-// #endif
-
-//             catM1.ReleaseMutex();
-//             CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
-//             ret = catFS->Begin();
-//             if (ret != Status::Code::GOOD)
-//             {
-//                 LOG_ERROR(logger," FAIL TO BEGIN CATFS");
-//                 return;
-//             }
-//             s_JarvisApiPayload.clear();
-//             ret = catFS->DownloadFile("http_response_file", &s_JarvisApiPayload);
-//             LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
-
-            LOG_INFO(logger, "[TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-            LOG_INFO(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
-
-            http::LwipHTTP* lwipHttp = http::LwipHTTP::CreateInstanceOrNULL();
-
-            lwipHttp->Init();
-            const auto mutexHandle = lwipHttp->TakeMutex();
-
-            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-
-            http::RequestParameter parameters;
-            parameters.Add("mac", macAddress.GetEthernet());
-            lwipHttp->GET(mutexHandle.second, header, parameters);
-            s_JarvisApiPayload.clear();
-            Status ret = lwipHttp->Retrieve(mutexHandle.second, &s_JarvisApiPayload);
-            LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
-            LOG_INFO(logger, "AFTER [TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-            LOG_INFO(logger, "AFTER Config Start: %u Bytes", ESP.getFreeHeap());
-
-
-            ESP.restart();
-
-            Preferences nvs;
-            nvs.begin("jarvis");
-            nvs.putBool("jarvisFlag",false);
-            nvs.end();
+            Status ret = Status(Status::Code::UNCERTAIN);
+            switch (s_ServerNIC)
+            {
+            case jarvis::snic_e::LTE_CatM1:
+                ret = strategyCatHttp();
+                break;
+            case jarvis::snic_e::Ethernet:
+                ret = strategyLwipHttp();
+                break;
+            default:
+                break;
+            }
             
             if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
+                LOG_ERROR(logger, "FAILED TO FETCH JARVIS FROM SERVER: %s", ret.c_str());
                 
                 switch (ret.ToCode())
                 {
                 case Status::Code::BAD_TIMEOUT:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_INTERNAL_ERROR);
-                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM: TIMEOUT");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
                     break;
                 case Status::Code::BAD_NO_COMMUNICATION:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
-                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM: NO COMMUNICATION");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
                     break;
                 case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
-                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM: OUT OF MEMORY");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
                     break;
                 default:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_INTERNAL_ERROR);
-                    validationResult.SetDescription("FAILED TO READ FROM LTE MODEM");
+                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
                     break;
                 }
                 
@@ -220,7 +141,17 @@ namespace muffin {
                 s_IsJarvisTaskRunning = false;
                 vTaskDelete(NULL);
             }
+
+            LOG_INFO(logger, "[TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+            LOG_INFO(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
+            
+            Preferences nvs;
+            nvs.begin("jarvis");
+            nvs.putBool("jarvisFlag",false);
+            nvs.end();
+
         }
+
         ASSERT((s_IsJarvisTaskRunning == true), "JARVIS TASK RUNNING FLAG MUST BE SET TO TRUE");
 
 
@@ -682,8 +613,14 @@ namespace muffin {
          * 
          */
             // ethernet->SyncWithNTP();
-            // Status ret = Status(Status::Code::UNCERTAIN);
-            // ret = ConnectToBrokerEthernet();
+            // http::LwipHTTP* lwipHttp = http::LwipHTTP::CreateInstanceOrNULL();
+            // if (lwipHttp == nullptr)
+            // {
+            //     LOG_ERROR(logger, "FAILED TO INITIALIZE LWIP HTTP");
+            //     esp_restart();
+            // }
+            // lwipHttp->Init();
+            // ConnectToBrokerEthernet();
             // StartEthernetTask();
         }
         else
@@ -740,6 +677,83 @@ namespace muffin {
         SetPollingInterval(s_PollingInterval);
         StartModbusTcpTask();
         StartTaskCyclicalsMSG(s_PublishInterval);
-        
     }
+
+    Status strategyCatHttp()
+    {
+        CatM1& catM1 = CatM1::GetInstance();
+        const auto mutexHandle = catM1.TakeMutex();
+      
+        /* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
+            JSON json;
+            JsonDocument doc;
+
+            http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
+        #if defined(DEBUG)
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+        #else
+            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+        #endif
+            http::RequestParameter parameters;
+            parameters.Add("mac", macAddress.GetEthernet());
+
+        #ifdef DEBUG
+            //LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+        #endif
+            catHttp.SetSinkToCatFS(true, "http_response_file");
+            Status ret = catHttp.GET(mutexHandle.second, header, parameters);
+            catHttp.SetSinkToCatFS(false, "");
+            if (ret != Status::Code::GOOD)
+            {
+                return ret;
+            }
+ 
+            catM1.ReleaseMutex();
+            CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
+            ret = catFS->Begin();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger," FAIL TO BEGIN CATFS");
+                return ret;
+            }
+            s_JarvisApiPayload.clear();
+            ret = catFS->DownloadFile("http_response_file", &s_JarvisApiPayload);
+            LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
+
+            return ret;
+    }
+
+    Status strategyLwipHttp()
+    {
+        http::LwipHTTP& lwipHttp = http::LwipHTTP::GetInstance();
+        INetwork* nic = lwipHttp.RetrieveNIC();
+
+        std::pair<Status, size_t> mutex = nic->TakeMutex();
+        if (mutex.first != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
+            return Status(Status::Code::BAD_TIMEOUT);
+        }
+    
+    #if defined(DEBUG)
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+    #else
+        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+    #endif
+        http::RequestParameter parameters;
+        parameters.Add("mac", macAddress.GetEthernet());
+
+        lwipHttp.GET(mutex.second, header, parameters);
+        s_JarvisApiPayload.clear();
+        Status ret = lwipHttp.Retrieve(mutex.second, &s_JarvisApiPayload);
+        
+        LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
+        LOG_INFO(logger, "AFTER [TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
+        LOG_INFO(logger, "AFTER Config Start: %u Bytes", ESP.getFreeHeap());
+
+        nic->ReleaseMutex();
+
+        return Status(Status::Code::GOOD);
+    }
+
 }

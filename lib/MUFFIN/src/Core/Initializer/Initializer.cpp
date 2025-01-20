@@ -84,25 +84,80 @@ namespace muffin {
 
     Status Initializer::Configure(const bool hasJARVIS, const bool hasOTA)
     {
-        // if (hasJARVIS || hasOTA)
-        // {
-        //     return configureWithoutJarvis(hasJARVIS);
-        // }
+        if (hasJARVIS || hasOTA)
+        {
+            return configureWithoutJarvis(hasJARVIS);
+        }
         
-        // Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
-        // if (ret == Status::Code::GOOD)
-        // {
-        //     return configureWithJarvis();
-        // }
-        // else
-        // {
-        //     return configureWithoutJarvis(hasJARVIS);
-        // }
+        Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
+        if (ret == Status::Code::GOOD)
+        {
+            return configureWithJarvis();
+        }
+        else
+        {
+            return configureWithoutJarvis(hasJARVIS);
+        }
         return configureWithoutJarvis(hasJARVIS);
     }
 
     Status Initializer::configureWithoutJarvis(const bool hasJARVIS)
     {
+        fs::File file = esp32FS.Open(JARVIS_FILE_PATH);
+        std::string payload;
+
+        while (file.available() > 0)
+        {
+            payload += file.read();
+        }
+
+        file.close();
+        {
+            JSON json;
+            JsonDocument doc;
+            Status ret = json.Deserialize(payload, &doc);
+            if (ret != Status::Code::GOOD)
+            {
+                return ret;
+            }
+
+            payload.clear();
+            payload.shrink_to_fit();
+
+            /**
+             * @todo DEMO용 디바이스들은 "fmt"로 저장되어있기 때문에 처리하기위해 임시로 구현하였음 1.2.0 버전 이후로 삭제 예정
+             * 
+             */
+            JsonArray operation = doc["cnt"]["op"];
+            for(JsonObject op : operation)
+            {
+                if(op.containsKey("snic"))
+                {
+                    const std::string value = op["snic"].as<std::string>();
+                    
+                }
+            }
+            
+            Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
+            jarvis->Validate(doc);
+
+            for (auto& pair : *jarvis)
+            {
+                const jarvis::cfg_key_e key = pair.first;
+                if (key == jarvis::cfg_key_e::OPERATION)
+                {
+                    applyOperationCIN(pair.second);
+                    for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                    {
+                        delete *it;
+                    }
+                    break;
+                }
+            }
+
+
+        }
+
     //     jarvis::config::CatM1 config;
     //     config.SetModel(jarvis::md_e::LM5);
     //     config.SetCounty(jarvis::ctry_e::KOREA);

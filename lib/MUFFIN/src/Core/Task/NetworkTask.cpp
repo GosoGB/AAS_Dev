@@ -31,8 +31,8 @@
 #include "Protocol/MQTT/Include/Topic.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
-#include "Protocol/HTTP/Include/RequestHeader.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
+
 
 
 
@@ -378,26 +378,32 @@ namespace muffin {
         if (s_IsCatMqttInitialized == false)
         {
             mqtt::LwipMQTT* lwipMqtt = mqtt::LwipMQTT::CreateInstanceOrNULL(info,lwt);
+            if (lwipMqtt == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO CREATE LWIP MQTT DUE TO OUT OF MEMORY");
+                esp_restart();
+            }
+
             lwipMqtt->Init();
             s_IsCatMqttInitialized = true;
         }
         
         
         mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
-        
-
-        const auto mutexHandle = lwipMqtt.TakeMutex();
-        if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+        INetwork* nic = lwipMqtt.RetrieveNIC();
+        std::pair<Status, size_t> mutex = nic->TakeMutex();
+        if (mutex.first != Status::Code::GOOD)
         {
-            return mutexHandle.first;
+            LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
+            return mutex.first;
         }
 
         mqtt::IMQTT& serviceNetwork = static_cast<mqtt::IMQTT&>(lwipMqtt);
-        Status ret = serviceNetwork.Connect(mutexHandle.second);
+        Status ret = serviceNetwork.Connect(mutex.second);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
-            lwipMqtt.ReleaseMutex();
+            nic->ReleaseMutex();
             return ret;
         }
 
@@ -415,16 +421,16 @@ namespace muffin {
             {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE TOPICS TO SUBSCRIBE: %s, %s, %s", 
                     retTopic01.c_str(), retTopic02.c_str(), retTopic03.c_str());
-                lwipMqtt.ReleaseMutex();
+                nic->ReleaseMutex();
                 s_IsCatMqttTopicSubscribed = false;
                 return ret;
             }
 
-            ret = serviceNetwork.Subscribe(mutexHandle.second, vectorTopicsToSubscribe);
+            ret = serviceNetwork.Subscribe(mutex.second, vectorTopicsToSubscribe);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
-                lwipMqtt.ReleaseMutex();
+                nic->ReleaseMutex();
                 s_IsCatMqttTopicSubscribed = false;
                 return ret;
             }
@@ -432,7 +438,7 @@ namespace muffin {
         }
 
         s_IsCatMQTTConnected = true;
-        lwipMqtt.ReleaseMutex();
+        nic->ReleaseMutex();
         return ret;
     }
 
@@ -575,15 +581,18 @@ namespace muffin {
             LOG_INFO(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
             if (lwipMqtt.IsConnected() != Status::Code::GOOD)
             {
-                const auto mutexHandle = lwipMqtt.TakeMutex();
-                if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+                INetwork* nic = lwipMqtt.RetrieveNIC();
+
+                std::pair<Status, size_t> mutex = nic->TakeMutex();
+                if (mutex.first != Status::Code::GOOD)
                 {
-                    continue;
+                    LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
+                    continue; ;
                 }
 
-                lwipMqtt.Disconnect(mutexHandle.second);
+                lwipMqtt.Disconnect(mutex.second);
                 s_IsCatMqttTopicSubscribed = false;
-                lwipMqtt.ReleaseMutex();
+                nic->ReleaseMutex();
                 LOG_WARNING(logger, "LWIP MQTT LOST CONNECTION");
                 ConnectToBrokerEthernet();
             }

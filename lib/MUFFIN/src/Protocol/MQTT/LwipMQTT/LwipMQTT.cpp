@@ -10,11 +10,11 @@
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Network/Helper.h"
+#include "Network/Ethernet/Ethernet.h"
 #include "Protocol/MQTT/Include/Helper.h"
-#include "Protocol/Certs.h"
 #include "Protocol/MQTT/Include/Topic.h"
 #include "Protocol/MQTT/CIA.h"
-
+#include "Protocol/Certs.h"
 
 
 
@@ -59,7 +59,6 @@ namespace muffin { namespace mqtt {
     LwipMQTT::LwipMQTT(BrokerInfo& broker, Message& lwt)
         : mBrokerInfo(std::move(broker))
         , mMessageLWT(std::move(lwt))
-        , xSemaphore(NULL)
     {
         mInitFlags.reset();
         mInitFlags.set(init_flag_e::ENABLE_LWT_MSG);
@@ -69,7 +68,6 @@ namespace muffin { namespace mqtt {
     LwipMQTT::LwipMQTT( BrokerInfo& broker)
         : mBrokerInfo(std::move(broker))
         , mMessageLWT(Message(topic_e::LAST_WILL, std::string()))
-        , xSemaphore(NULL)
     {
         mInitFlags.reset();
         mInitFlags.reset(init_flag_e::ENABLE_LWT_MSG);
@@ -84,6 +82,11 @@ namespace muffin { namespace mqtt {
     void LwipMQTT::OnEventReset()
     {
         this->mInitFlags.reset();
+    }
+
+    INetwork* LwipMQTT::RetrieveNIC()
+    {
+        return static_cast<INetwork*>(ethernet);
     }
 
     void LwipMQTT::callback(char* topic, byte * payload, unsigned int length)
@@ -111,13 +114,6 @@ namespace muffin { namespace mqtt {
 
     Status LwipMQTT::Init()
     {
-        xSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphore == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE SEMAPHORE");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-
         mLwipSecureClient.setCACert(certificates);
         mPubSubClient.setClient(mLwipSecureClient);
         mPubSubClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
@@ -129,7 +125,6 @@ namespace muffin { namespace mqtt {
 
     Status LwipMQTT::Connect(const size_t mutexHandle)
     {
-       
         /**
          * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
          */
@@ -267,25 +262,6 @@ namespace muffin { namespace mqtt {
         return Status(Status::Code::GOOD);
     }
 
-    std::pair<Status, size_t> LwipMQTT::TakeMutex()
-    {
-        if (xSemaphoreTake(xSemaphore, 5000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "FAILED TO TAKE MUTEX FOR LWIP TRY LATER.");
-            return std::make_pair(Status(Status::Code::BAD_TOO_MANY_OPERATIONS), mMutexHandle);
-        }
-
-        ++mMutexHandle;
-        return std::make_pair(Status(Status::Code::GOOD), mMutexHandle);
-    }
-
-    Status LwipMQTT::ReleaseMutex()
-    {
-        xSemaphoreGive(xSemaphore);
-        return Status(Status::Code::GOOD);
-    }
-    
-    
 
     LwipMQTT* LwipMQTT::mInstance = nullptr;
 }}

@@ -30,7 +30,7 @@
 // #include "Core/Core.h"
 // #include "IM/Custom/Device/DeviceStatus.h"
 // #include "CyclicalPubTask.h"
-
+// #include "UpdateTask.h"
 // #include "ModbusTask.h"
 // #include "OTA/MEGA2560/HexParser.h"
 // #include "OTA/MEGA2560/MEGA2560.h"

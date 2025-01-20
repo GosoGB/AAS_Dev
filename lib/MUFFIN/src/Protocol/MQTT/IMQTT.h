@@ -20,6 +20,7 @@
 #include <vector>
 #include "Common/Status.h"
 #include "Include/Message.h"
+#include "Network/INetwork.h"
 
 
 
@@ -37,5 +38,6 @@ namespace muffin { namespace mqtt {
         virtual Status Subscribe(const size_t mutexHandle, const std::vector<Message>& messages) = 0;
         virtual Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages) = 0;
         virtual Status Publish(const size_t mutexHandle, const Message& message) = 0;
+        virtual INetwork* RetrieveNIC() = 0;
     };
 }}

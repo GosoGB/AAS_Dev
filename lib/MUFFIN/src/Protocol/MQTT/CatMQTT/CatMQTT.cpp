@@ -89,6 +89,11 @@ namespace muffin { namespace mqtt {
     {
         this->mInitFlags.reset();
     }
+    
+    INetwork* CatMQTT::RetrieveNIC()
+    {
+        return static_cast<INetwork*>(&mCatM1);
+    }
 
     Status CatMQTT::Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
     {

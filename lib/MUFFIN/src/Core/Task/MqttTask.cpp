@@ -80,6 +80,7 @@ namespace muffin {
             break;
         }
 
+        // mqtt::IMQTT* serviceNetwork; 인자로 추가
         taskCreationResult = xTaskCreatePinnedToCore(
             publishMqttTask,      // Function to be run inside of the task
             "publishMqttTask",    // The identifier of this task for men
@@ -155,23 +156,34 @@ namespace muffin {
         }
     }
 
-    mqtt::IMQTT* interface;
     void publishMqttTask(void* pvParameter)
     {
     #ifdef DEBUG
         uint32_t checkRemainedStackMillis = millis();
         const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
+    
+        /**
+         * @todo 이렇게 바꿀거임
+         * 
+         */
+        // mqtt::IMQTT* serviceNetwork;
+        // INetwork* nic = serviceNetwork->RetrieveNIC();
+        
+
+        INetwork* nic;
+        mqtt::IMQTT* serviceNetwork;
+        
+        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
+        nic = lwipMqtt.RetrieveNIC();
+        serviceNetwork = static_cast<mqtt::IMQTT*>(&lwipMqtt);
+
 
 
         mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
 
-        
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
         const uint8_t MAX_RETRY_COUNT = 5;
-
-        mqtt::IMQTT& serviceNetwork = static_cast<mqtt::IMQTT&>(lwipMqtt);
         while (true)
         {
             if (cdo.Count() == 0)
@@ -182,6 +194,7 @@ namespace muffin {
 
             const auto pubMessage = cdo.Peek();
             const Status status = pubMessage.first;
+
             if (status.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO PEEK MESSAGE FROM CDO: %s ", status.c_str());
@@ -189,8 +202,8 @@ namespace muffin {
                 continue;
             }
 
-            const auto mutexHandle = lwipMqtt.TakeMutex();
-            if (mutexHandle.first.ToCode() != Status::Code::GOOD)
+            std::pair<Status, size_t> mutex = nic->TakeMutex();
+            if (mutex.first != Status::Code::GOOD)
             {
                 vTaskDelay(500 / portTICK_PERIOD_MS);
                 continue;
@@ -198,7 +211,7 @@ namespace muffin {
             
             for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
             {
-                Status ret = serviceNetwork.Publish(mutexHandle.second, pubMessage.second);
+                Status ret = serviceNetwork->Publish(mutex.second, pubMessage.second);
                 if (ret == Status::Code::GOOD)
                 {
                     cdo.Retrieve();
@@ -222,7 +235,7 @@ namespace muffin {
                     LOG_WARNING(logger, "[TRIAL: #%u] PUBLISH WAS UNSUCCESSFUL: %s", i, ret.c_str());
                 }
             }
-            lwipMqtt.ReleaseMutex();
+            nic->ReleaseMutex();
 
         #ifdef DEBUG
             if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)

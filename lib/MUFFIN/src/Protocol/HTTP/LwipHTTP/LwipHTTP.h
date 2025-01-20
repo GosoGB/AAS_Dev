@@ -43,9 +43,6 @@ namespace muffin { namespace http {
         static LwipHTTP* mInstance;
         WiFiClient mClient;
         WiFiClientSecure mClientSecure;
-    public:
-        std::pair<Status, size_t> TakeMutex();
-        Status ReleaseMutex();
     private:
         SemaphoreHandle_t xSemaphore;
         size_t mMutexHandle = 0;
@@ -65,9 +62,6 @@ namespace muffin { namespace http {
         Status postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
         Status postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
     private:
-        std::string getStatusCode(const std::string& response);
         std::string getHttpBody(const std::string& payload);
-        bool skipHeaders(WiFiClientSecure& client, unsigned long timeout);
-        bool skipHeaders(WiFiClient& client, unsigned long timeout);
     };
 }}

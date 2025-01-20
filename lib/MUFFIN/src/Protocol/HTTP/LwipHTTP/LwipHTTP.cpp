@@ -93,6 +93,7 @@ namespace muffin { namespace http {
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::UNCERTAIN);
+        
         switch (header.GetSchem())
         {
         case http_scheme_e::HTTP:
@@ -111,6 +112,7 @@ namespace muffin { namespace http {
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::UNCERTAIN);
+
         switch (header.GetSchem())
         {
         case http_scheme_e::HTTP:
@@ -144,17 +146,16 @@ namespace muffin { namespace http {
 
     Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::UNCERTAIN);
+        Status ret = Status(Status::Code::GOOD);
         
         if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
         {
-            LOG_INFO(logger,"CONNECT!");
             header.UpdateParamter(parameter.ToString().c_str());
-            mClientSecure.print(header.ToString().c_str());
+            mClient.print(header.ToString().c_str());
 
             unsigned long timeout = millis();
         
-            while (mClientSecure.available() == 0) 
+            while (mClient.available() == 0) 
             {
                 if (millis() - timeout > 5000) 
                 {
@@ -164,29 +165,31 @@ namespace muffin { namespace http {
             }
 
             std::string result;
-            while (mClientSecure.available())
+            while (mClient.available())
             {
-                result += mClientSecure.read();
+                result += mClient.read();
             }
 
             std::string body = getHttpBody((result.c_str()));
             LOG_WARNING(logger,"[body] : %s",body.c_str());
-        }
 
+            mClient.stop();
+        }
+        else
+        {
+            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
+        }
         return ret; 
     }
 
     Status LwipHTTP::getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::GOOD);
-        mClientSecure.setCACert(certificates);
         
         if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
         {
-            LOG_INFO(logger,"CONNECT!");
             header.UpdateParamter(parameter.ToString().c_str());
-
-            LOG_INFO(logger,"header : %s",header.ToString().c_str());
             mClientSecure.print(header.ToString().c_str());
 
             unsigned long timeout = millis();
@@ -219,7 +222,7 @@ namespace muffin { namespace http {
         else
         {
             LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
-            return Status(Status::Code::BAD);
+            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
 
         return ret; 
@@ -231,12 +234,11 @@ namespace muffin { namespace http {
         if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
         {
             header.UpdateParamter(parameter.ToString().c_str());
-            LOG_INFO(logger, "Request msg : %s", header.ToString().c_str());
             mClient.print(header.ToString().c_str());
 
             unsigned long timeout = millis();
         
-            while (mClientSecure.available() == 0) 
+            while (mClient.available() == 0) 
             {
                 if (millis() - timeout > 5000) 
                 {
@@ -246,9 +248,9 @@ namespace muffin { namespace http {
             }
 
             std::string result;
-            while (mClientSecure.available())
+            while (mClient.available())
             {
-                result += mClientSecure.read();
+                result += mClient.read();
             }
 
             mResponseData.clear();
@@ -256,9 +258,15 @@ namespace muffin { namespace http {
 
             mResponseData = getHttpBody((result.c_str()));
             LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
+            mClient.stop();
+        }
+        else
+        {
+            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
 
-        return ret;
+        return ret; 
     }
 
     Status LwipHTTP::postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
@@ -270,11 +278,10 @@ namespace muffin { namespace http {
             header.SetContentType(body.GetContentType());
             std::string headerStr = header.ToString();
             std::string bodyStr = body.ToString();
-            LOG_INFO(logger, "Request msg : %s", (headerStr + bodyStr).c_str());
             mClient.print((headerStr + bodyStr).c_str());
             unsigned long timeout = millis();
         
-            while (mClientSecure.available() == 0) 
+            while (mClient.available() == 0) 
             {
                 if (millis() - timeout > 5000) 
                 {
@@ -284,9 +291,9 @@ namespace muffin { namespace http {
             }
 
             std::string result;
-            while (mClientSecure.available())
+            while (mClient.available())
             {
-                result += mClientSecure.read();
+                result += mClient.read();
             }
 
             mResponseData.clear();
@@ -294,7 +301,13 @@ namespace muffin { namespace http {
 
             mResponseData = getHttpBody((result.c_str()));
             LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
-        }   
+            mClient.stop();
+        } 
+        else
+        {
+            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
+        }
 
         return ret;
     }
@@ -305,7 +318,6 @@ namespace muffin { namespace http {
         if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
         {
             header.UpdateParamter(parameter.ToString().c_str());
-            LOG_INFO(logger, "Request msg : %s", header.ToString().c_str());
             mClientSecure.print(header.ToString().c_str());
 
             unsigned long timeout = millis();
@@ -330,6 +342,12 @@ namespace muffin { namespace http {
 
             mResponseData = getHttpBody((result.c_str()));
             LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
+            mClientSecure.stop();
+        }
+        else
+        {
+            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
 
         return ret;
@@ -344,7 +362,6 @@ namespace muffin { namespace http {
             header.SetContentType(body.GetContentType());
             std::string headerStr = header.ToString();
             std::string bodyStr = body.ToString();
-            LOG_INFO(logger, "Request msg : %s", (headerStr + bodyStr).c_str());
             mClientSecure.print((headerStr + bodyStr).c_str());
             unsigned long timeout = millis();
         
@@ -368,6 +385,12 @@ namespace muffin { namespace http {
 
             mResponseData = getHttpBody((result.c_str()));
             LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
+            mClientSecure.stop();
+        }
+        else
+        {
+            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
         
         return ret;
@@ -450,30 +473,6 @@ namespace muffin { namespace http {
         }
         return body;
     }
-
-
-
-
-
-
-    std::pair<Status, size_t> LwipHTTP::TakeMutex()
-    {
-        if (xSemaphoreTake(xSemaphore, 5000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "FAILED TO TAKE MUTEX FOR LWIP TRY LATER.");
-            return std::make_pair(Status(Status::Code::BAD_TOO_MANY_OPERATIONS), mMutexHandle);
-        }
-
-        ++mMutexHandle;
-        return std::make_pair(Status(Status::Code::GOOD), mMutexHandle);
-    }
-
-    Status LwipHTTP::ReleaseMutex()
-    {
-        xSemaphoreGive(xSemaphore);
-        return Status(Status::Code::GOOD);
-    }
-
 
     LwipHTTP* LwipHTTP::mInstance = nullptr;
 }}
