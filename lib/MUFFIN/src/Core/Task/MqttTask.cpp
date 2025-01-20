@@ -178,10 +178,6 @@ namespace muffin {
         nic = lwipMqtt.RetrieveNIC();
         serviceNetwork = static_cast<mqtt::IMQTT*>(&lwipMqtt);
 
-
-
-        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
-
         mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         const uint8_t MAX_RETRY_COUNT = 5;
         while (true)

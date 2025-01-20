@@ -157,20 +157,19 @@ namespace muffin {
         }
 
         StartTaskMQTT();
-        PublishFirmwareStatusMessageService();
+        // PublishFirmwareStatusMessageService();
         
-        // if (mHasJarvisCommand == false && mHasFotaCommand == true)
-        // {
-        //     Preferences nvs;
-        //     nvs.begin("fota");
-        //     const std::string payload = nvs.getString("fotaPayload").c_str();
-        //     LOG_WARNING(logger, "payload : %s",payload.c_str());
-        //     nvs.putBool("fotaFlag",false);
-        //     nvs.end();
+        if (mHasJarvisCommand == false && mHasFotaCommand == true)
+        {
+            Preferences nvs;
+            nvs.begin("fota");
+            const std::string payload = nvs.getString("fotaPayload").c_str();
+            LOG_WARNING(logger, "payload : %s",payload.c_str());
+            nvs.putBool("fotaFlag",false);
+            nvs.end();
 
             StartOTA(payload);
         }
-
     }
 
     void Core::RouteMqttMessage(const mqtt::Message& message)
