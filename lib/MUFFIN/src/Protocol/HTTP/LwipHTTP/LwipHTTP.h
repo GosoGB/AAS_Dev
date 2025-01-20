@@ -2,12 +2,12 @@
  * @file LwipHTTP.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief LTE Cat.M1 모듈의 HTTP 프로토콜 클래스를 선언합니다.
+ * @brief LWIP TCP/IP stack 기반의 HTTP 클라이언트 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -32,20 +32,12 @@ namespace muffin { namespace http {
     class LwipHTTP : public IHTTP
     {
     public:
-        LwipHTTP(LwipHTTP const&) = delete;
-        void operator=(LwipHTTP const&) = delete;
-        static LwipHTTP* CreateInstanceOrNULL();
-        static LwipHTTP& GetInstance();
+        LwipHTTP() {}
+        virtual ~LwipHTTP() {}
     private:
-        LwipHTTP();
-        virtual ~LwipHTTP();
-    private:
-        static LwipHTTP* mInstance;
         WiFiClient mClient;
         WiFiClientSecure mClientSecure;
     private:
-        SemaphoreHandle_t xSemaphore;
-        size_t mMutexHandle = 0;
         std::string mResponseData;
     public:
         Status Init();
@@ -62,6 +54,7 @@ namespace muffin { namespace http {
         Status postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
         Status postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
     private:
+        Status processResponseHeader(const uint16_t timeout = 60);
         std::string getHttpBody(const std::string& payload);
     };
 }}

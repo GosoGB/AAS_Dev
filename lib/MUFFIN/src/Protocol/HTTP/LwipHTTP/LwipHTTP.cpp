@@ -2,130 +2,82 @@
  * @file LwipHTTP.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief LTE Cat.M1 모듈의 HTTP 프로토콜 클래스를 선언합니다.
+ * @brief LWIP TCP/IP stack 기반의 HTTP 클라이언트 클래스를 정의합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * 
+ * @todo Information Model에 MODLINK 모델 및 펌웨어 버전과 같은 정보를 Node 
+ *       형태로 표현한 다음 이를 토대로 user agengt 정보를 생성해야 합니다.
  */
 
 
 
-#include "LwipHTTP.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
 #include "LwipHTTP.h"
+#include "IM/Custom/Constants.h"
 #include "Network/Ethernet/Ethernet.h"
+#include "Storage/ESP32FS/ESP32FS.h"
 #include "Protocol/HTTP/Include/Helper.h"
 #include "Protocol/Certs.h"
 
 
 
 namespace muffin { namespace http {
-
-
-    LwipHTTP* LwipHTTP::CreateInstanceOrNULL()
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) LwipHTTP();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR LwipHTTP");
-                return nullptr;
-            }
-        }
-        
-        return mInstance;
-    }
-
-    LwipHTTP& LwipHTTP::GetInstance()
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-        return *mInstance;
-    }
-
     
-    /**
-     * @todo Information Model에 MODLINK 모델 및 펌웨어 버전과 같은 정보를 Node
-     *       형태로 표현한 다음 이를 토대로 user agengt 정보를 생성해야 합니다.
-     */
-    LwipHTTP::LwipHTTP()
-    {
-    }
-
-    LwipHTTP::~LwipHTTP()
-    {
-    }
-
     Status LwipHTTP::Init()
     {
-        xSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphore == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE SEMAPHORE");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-        mClientSecure.setCACert(certificates);
+        mClientSecure.setCACert(ROOT_CA_CRT);
         return Status(Status::Code::GOOD);
     }
     
     Status LwipHTTP::GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::UNCERTAIN);
-        switch (header.GetSchem())
+        switch (header.GetScheme())
         {
         case http_scheme_e::HTTP:
-            ret = getHTTP(header, parameter, timeout);
-            break;
-        case http_scheme_e::HTTPS:
-            ret = getHTTPS(header, parameter, timeout);
-            break;
-        default:
-            break;
-        }
+            return getHTTP(header, parameter, timeout);
 
-        return ret;
+        case http_scheme_e::HTTPS:
+            return getHTTPS(header, parameter, timeout);
+
+        default:
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
     }
 
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::UNCERTAIN);
-        
-        switch (header.GetSchem())
+        switch (header.GetScheme())
         {
         case http_scheme_e::HTTP:
-            ret = postHTTP(header, body, timeout);
-            break;
-        case http_scheme_e::HTTPS:
-            ret = postHTTPS(header, body, timeout);
-            break;
-        default:
-            break;
-        }
+            return postHTTP(header, body, timeout);
 
-        return ret;
+        case http_scheme_e::HTTPS:
+            return postHTTPS(header, body, timeout);
+
+        default:
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
     }
 
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::UNCERTAIN);
-
-        switch (header.GetSchem())
+        switch (header.GetScheme())
         {
         case http_scheme_e::HTTP:
-            ret = postHTTP(header, parameter, timeout);
-            break;
+            return postHTTP(header, parameter, timeout);
+            
         case http_scheme_e::HTTPS:
-            ret = postHTTPS(header, parameter, timeout);
-            break;
+            return postHTTPS(header, parameter, timeout);
+            
         default:
-            break;
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
-
-        return ret;
     }
 
     Status LwipHTTP::Retrieve(const size_t mutexHandle, std::string* response)
@@ -146,40 +98,33 @@ namespace muffin { namespace http {
 
     Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::GOOD);
-        
-        if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
+        if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
-            header.UpdateParamter(parameter.ToString().c_str());
-            mClient.print(header.ToString().c_str());
-
-            unsigned long timeout = millis();
-        
-            while (mClient.available() == 0) 
-            {
-                if (millis() - timeout > 5000) 
-                {
-                    LOG_ERROR(logger,"Client Timeout !");
-                    return Status(Status::Code::BAD_TIMEOUT);
-                }
-            }
-
-            std::string result;
-            while (mClient.available())
-            {
-                result += mClient.read();
-            }
-
-            std::string body = getHttpBody((result.c_str()));
-            LOG_WARNING(logger,"[body] : %s",body.c_str());
-
-            mClient.stop();
-        }
-        else
-        {
-            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
+
+        Status ret = header.UpdateParamter(parameter.ToString().c_str());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE PARAMETER: %s", parameter.ToString().c_str());
+            return ret;
+        }
+        
+        mClient.print(header.ToString().c_str());
+        ret = processResponseHeader(timeout);
+        
+
+        if (millis() - startedMillis > timeout) 
+        {
+            LOG_ERROR(logger,"Client Timeout !");
+            return Status(Status::Code::BAD_TIMEOUT);
+        }
+
+        std::string body = getHttpBody((result.c_str()));
+        LOG_WARNING(logger,"[body] : %s",body.c_str());
+
+        mClient.stop();
         return ret; 
     }
 
@@ -396,6 +341,41 @@ namespace muffin { namespace http {
         return ret;
     }
 
+    Status LwipHTTP::processResponseHeader(const uint16_t timeout)
+    {
+        const uint32_t startedMillis = millis();
+        const uint8_t size = 128;
+        uint8_t buffer[size] = {0};
+        uint8_t idx = 0;
+        bool isEnded = false;
+
+        while ((millis() - startedMillis) < (timeout * SECOND_IN_MILLIS))
+        {
+            while (mClient.available() > 0)
+            {
+                const int value = mClient.read();
+                if (value < 0)
+                {
+                    continue;
+                }
+                
+                if (value == '\n')
+                {
+                    buffer[idx] = '\0';
+                    break;
+                }
+                else if (value != '\r')
+                {
+                    buffer[idx++] = value;
+                }
+            }
+
+            idx = 0;
+        }
+    
+
+    }
+
     std::string LwipHTTP::getHttpBody(const std::string& payload) 
     {
         bool HeaderExist = false;
@@ -473,6 +453,4 @@ namespace muffin { namespace http {
         }
         return body;
     }
-
-    LwipHTTP* LwipHTTP::mInstance = nullptr;
 }}

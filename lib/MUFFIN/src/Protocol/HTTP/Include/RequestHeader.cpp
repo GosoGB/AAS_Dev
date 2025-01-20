@@ -204,9 +204,8 @@ namespace muffin { namespace http {
         return mVersion;
     }
 
-    const http_scheme_e& RequestHeader::GetSchem() const
+    const http_scheme_e& RequestHeader::GetScheme() const
     {
         return mScheme;
     }
-
 }}
