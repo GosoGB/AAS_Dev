@@ -11,6 +11,8 @@
  * 
  * @todo Information Model에 MODLINK 모델 및 펌웨어 버전과 같은 정보를 Node 
  *       형태로 표현한 다음 이를 토대로 user agengt 정보를 생성해야 합니다.
+ * 
+ * @todo ESP32FS 초기화 부분에서 mResponsePath에 있는 파일을 모두 삭제하게 만들어야 합니다.
  */
 
 
@@ -82,13 +84,44 @@ namespace muffin { namespace http {
 
     Status LwipHTTP::Retrieve(const size_t mutexHandle, std::string* response)
     {
-        Status ret = Status(Status::Code::GOOD);
+        if (esp32FS.DoesExist(mResponsePath) == Status::Code::GOOD)
+        {
+            File file = esp32FS.Open(mResponsePath);
+            try
+            {
+                response->reserve(file.size());
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE");
+                return 
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE");
+                return 
+            }
+            
+            
+        }
+        
         *response = mResponseData;
-
+        if (*response == mResponseData)
+        {
+            /* code */
+        }
+        
         mResponseData.clear();
         mResponseData.shrink_to_fit();
         
-        return ret;
+        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+        {
+            if (esp32FS.Remove(mResponsePath) == Status::Code::GOOD)
+            {
+                break;
+            }
+        }
+        return Status(Status::Code::GOOD);
     }
 
     INetwork* LwipHTTP::RetrieveNIC()
@@ -96,7 +129,7 @@ namespace muffin { namespace http {
         return static_cast<INetwork*>(ethernet);
     }
 
-    Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
+    Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout, uint16_t* rsc, int32_t* contentLength)
     {
         if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
@@ -112,20 +145,91 @@ namespace muffin { namespace http {
         }
         
         mClient.print(header.ToString().c_str());
-        ret = processResponseHeader(timeout);
-        
 
-        if (millis() - startedMillis > timeout) 
+        ASSERT((rsc != nullptr), "INPUT PARAMETER <uint16_t* rsc> CANNOT BE NULL");
+        ASSERT((contentLength != nullptr), "INPUT PARAMETER <int32_t* contentLength> CANNOT BE NULL");
+
+        *rsc = 0;
+        *contentLength = 0;
+
+        ret = processResponseHeader(timeout, rsc, contentLength);
+        if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger,"Client Timeout !");
-            return Status(Status::Code::BAD_TIMEOUT);
+            LOG_ERROR(logger, "INVALID RESPONSE HEADER: %s", ret.c_str());
+            return ret;
+        }
+        
+        
+        // std::string body = getHttpBody((result.c_str()));
+
+
+        if ((*rsc % 200) < 100)
+        {
+            LOG_INFO(logger, "[GET] rsc: %u, length: %d", *rsc, *contentLength);
+
+            if (*contentLength == -1)
+            {
+                File file = esp32FS.Open(mResponsePath, "w");
+                if (file == false)
+                {
+                    LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                    ret = Status::Code::BAD_DEVICE_FAILURE;
+                    goto TEARDOWN;
+                }
+
+                while (mClient.available() > 0)
+                {
+                    file.write(mClient.read());
+                }
+                file.flush();
+                file.close();
+                file = esp32FS.Open(mResponsePath, "r");
+                if (file == false)
+                {
+                    LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                    ret = Status::Code::BAD_DEVICE_FAILURE;
+                    esp32FS.Remove(mResponsePath);
+                    goto TEARDOWN;
+                }
+
+                *contentLength = file.size();
+                file.close();
+            }
+            
+            ret = Status::Code::GOOD;
+            goto TEARDOWN;
+        }
+        else
+        {
+            if ((*rsc % 100) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", *rsc);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((*rsc % 300) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", *rsc);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((*rsc % 400) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", *rsc);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+            else if ((*rsc % 500) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", *rsc);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
         }
 
-        std::string body = getHttpBody((result.c_str()));
-        LOG_WARNING(logger,"[body] : %s",body.c_str());
-
+    TEARDOWN:
         mClient.stop();
-        return ret; 
+        return ret;
     }
 
     Status LwipHTTP::getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
@@ -341,13 +445,18 @@ namespace muffin { namespace http {
         return ret;
     }
 
-    Status LwipHTTP::processResponseHeader(const uint16_t timeout)
+    Status LwipHTTP::processResponseHeader(const uint16_t timeout, uint16_t* rsc, int32_t* contentLength)
     {
+        ASSERT((rsc != nullptr), "INPUT PARAMETER <uint16_t* rsc> CANNOT BE NULL");
+        ASSERT((contentLength != nullptr), "INPUT PARAMETER <int32_t* contentLength> CANNOT BE NULL");
+
+        *rsc = 0;
+        *contentLength = -1;
+
         const uint32_t startedMillis = millis();
         const uint8_t size = 128;
-        uint8_t buffer[size] = {0};
+        char line[size] = {0};
         uint8_t idx = 0;
-        bool isEnded = false;
 
         while ((millis() - startedMillis) < (timeout * SECOND_IN_MILLIS))
         {
@@ -356,24 +465,48 @@ namespace muffin { namespace http {
                 const int value = mClient.read();
                 if (value < 0)
                 {
-                    continue;
+                    LOG_ERROR(logger, "FAILED TO READ RxD");
+                    return Status(Status::Code::BAD_DATA_LOST);
                 }
                 
                 if (value == '\n')
                 {
-                    buffer[idx] = '\0';
+                    if (strlen(line) == 0)
+                    {
+                        goto END_OF_HEADER;
+                    }
+                    
+                    line[idx] = '\0';
                     break;
                 }
-                else if (value != '\r')
+                else if (value == '\r')
                 {
-                    buffer[idx++] = value;
+                    if (idx == 0)
+                    {
+                        line[idx] = '\0';
+                    }
+                }
+                else
+                {
+                    line[idx++] = value;
                 }
             }
 
+            if (strncmp(line, "HTTP/", 5) == 0)
+            {
+                char* pos = strchr(line, ' ');
+                *rsc = atoi(++pos);
+            }
+            else if (strncmp(line, "Content-Length:", 15) == 0)
+            {
+                char* pos = strchr(line, ' ');
+                *contentLength = atoi(++pos);
+            }
             idx = 0;
         }
-    
 
+    END_OF_HEADER:
+        return Status(Status::Code::GOOD);
     }
 
     std::string LwipHTTP::getHttpBody(const std::string& payload) 
