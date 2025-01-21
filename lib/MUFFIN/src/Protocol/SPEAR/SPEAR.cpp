@@ -431,7 +431,7 @@ namespace muffin {
         }
     }
 
-    Status SPEAR::SetJarvisProtocolConfig(const std::set<jarvis::prt_e> link)
+    Status SPEAR::SetJarvisProtocolConfig(const std::set<jvs::prt_e> link)
     {
         JsonDocument JarvisJson;
         JarvisJson["c"] = static_cast<uint8_t>(spear_cmd_e::JARVIS_SETUP);
@@ -442,7 +442,7 @@ namespace muffin {
         JsonArray configArray = config["l"].to<JsonArray>();
         for(auto& val : link)
         {
-           uint8_t value = val == jarvis::prt_e::PORT_2 ? 1 : 2;
+           uint8_t value = val == jvs::prt_e::PORT_2 ? 1 : 2;
            configArray.add(value);
         }
 
@@ -465,16 +465,16 @@ namespace muffin {
         return validateSetService();
     }
 
-    Status SPEAR::SetJarvisLinkConfig(jarvis::config::Base* cin, const jarvis::cfg_key_e type)
+    Status SPEAR::SetJarvisLinkConfig(jvs::config::Base* cin, const jvs::cfg_key_e type)
     {
         Status ret = Status(Status::Code::UNCERTAIN);
 
         switch (type)
         {
-        case jarvis::cfg_key_e::RS232:
+        case jvs::cfg_key_e::RS232:
             // ret = setJarvisRs232Config();
             break;
-        case jarvis::cfg_key_e::RS485:
+        case jvs::cfg_key_e::RS485:
             ret = setJarvisRs485Config(cin);
             break;
         default:
@@ -484,16 +484,16 @@ namespace muffin {
         return ret;
     }
 
-    Status SPEAR::setJarvisRs485Config(jarvis::config::Base* cin)
+    Status SPEAR::setJarvisRs485Config(jvs::config::Base* cin)
     {
         JsonDocument JarvisJson;
 
         JarvisJson["c"] = static_cast<uint8_t>(spear_cmd_e::JARVIS_SETUP);
         JsonObject body = JarvisJson["b"].to<JsonObject>();
 
-        jarvis::config::Rs485* data = Convert.ToRS485CIN(cin);
-        jarvis::prt_e port = data->GetPortIndex().second;
-        if (port == jarvis::prt_e::PORT_2)
+        jvs::config::Rs485* data = Convert.ToRS485CIN(cin);
+        jvs::prt_e port = data->GetPortIndex().second;
+        if (port == jvs::prt_e::PORT_2)
         {
             body["1"] = static_cast<uint8_t>(cfg_type_e::LINK1);
             body["2"] = static_cast<uint8_t>(cfg_key_e::RS485);
@@ -525,7 +525,7 @@ namespace muffin {
         memset(payload, 0, size);
 
         serializeJson(JarvisJson, payload, size);
-        std::string path = port == jarvis::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
+        std::string path = port == jvs::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
         writeJson(payload, path);
 
         LOG_INFO(logger,"payload : %s",payload);
@@ -763,7 +763,7 @@ namespace muffin {
         
         JarvisJson["c"] = static_cast<uint8_t>(spear_cmd_e::DAQ_POLL);
         JsonObject body = JarvisJson["b"].to<JsonObject>();
-        body["1"] = daq->Link == jarvis::prt_e::PORT_2 ? static_cast<uint8_t>(cfg_type_e::LINK1) : static_cast<uint8_t>(cfg_type_e::LINK2);
+        body["1"] = daq->Link == jvs::prt_e::PORT_2 ? static_cast<uint8_t>(cfg_type_e::LINK1) : static_cast<uint8_t>(cfg_type_e::LINK2);
         body["2"] = daq->SlaveID;
         body["3"] = static_cast<uint8_t>(daq->Area);
         body["4"] = daq->Address;
@@ -844,9 +844,9 @@ namespace muffin {
         }
 
         bool isValid = true;
-        isValid &= daq->Link == static_cast<jarvis::prt_e>(response["1"].as<uint8_t>());
+        isValid &= daq->Link == static_cast<jvs::prt_e>(response["1"].as<uint8_t>());
         isValid &= daq->SlaveID == response["2"].as<uint8_t>();
-        isValid &= daq->Area == static_cast<jarvis::mb_area_e>(response["3"].as<uint8_t>());
+        isValid &= daq->Area == static_cast<jvs::mb_area_e>(response["3"].as<uint8_t>());
         isValid &= daq->Address == response["4"].as<uint16_t>();
         isValid &= daq->Quantity == response["5"].as<uint16_t>();
 

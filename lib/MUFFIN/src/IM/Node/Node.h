@@ -27,7 +27,7 @@ namespace muffin { namespace im {
     class Node
     {
     public:
-        explicit Node(const jarvis::config::Node* cin);
+        explicit Node(const jvs::config::Node* cin);
         virtual ~Node();
     public:
         const std::string& GetNodeID() const;

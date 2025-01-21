@@ -188,16 +188,16 @@ namespace muffin {
 
         switch (datum.DataType)
         {
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             TotalValue = datum.Value.UInt8;
             break;
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             TotalValue = datum.Value.UInt16;
             break;
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             TotalValue = datum.Value.UInt32;
             break;
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             TotalValue = datum.Value.UInt64;
             break;
         default:
@@ -227,7 +227,7 @@ namespace muffin {
 
     }
 
-    void ProductionInfo::Config(jarvis::config::Production* cin)
+    void ProductionInfo::Config(jvs::config::Production* cin)
     {
         std::pair<Status,std::string> ret = cin->GetNodeIdTotal();
         if (ret.first == Status::Code::GOOD)

@@ -48,13 +48,13 @@ namespace muffin {
         static OperationTime* mInstance;
     
     public:
-        void Config(jarvis::config::OperationTime* cin);
+        void Config(jvs::config::OperationTime* cin);
         void Clear();
     private:
         std::string mNodeId;
-        jarvis::op_time_type_e mType;
+        jvs::op_time_type_e mType;
         std::pair<Status, int32_t> mCriterion;
-        std::pair<Status, jarvis::cmp_op_e> mOperator;
+        std::pair<Status, jvs::cmp_op_e> mOperator;
 
     public:
         void StartTask();
@@ -76,7 +76,7 @@ namespace muffin {
         TaskHandle_t xHandle;
         ut_pub_timer mPublishTimer;
     private:
-        jarvis::op_status_e mStauts = jarvis::op_status_e::TURN_OFF;
+        jvs::op_status_e mStauts = jvs::op_status_e::TURN_OFF;
     private:
         void publishOperationStauts();
     };

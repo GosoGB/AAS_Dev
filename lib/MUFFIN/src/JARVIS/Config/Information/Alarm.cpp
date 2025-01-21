@@ -24,7 +24,7 @@
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     Alarm::Alarm()
         : Base(cfg_key_e::ALARM)

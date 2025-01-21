@@ -43,12 +43,12 @@ namespace muffin {
     private:
         using AddressRange = im::NumericAddressRange;
     public:
-        Status SetPort(jarvis::config::Rs485* portConfig);
-        Status Config(jarvis::config::ModbusRTU* config);
+        Status SetPort(jvs::config::Rs485* portConfig);
+        Status Config(jvs::config::ModbusRTU* config);
         void Clear();
     private:
-        SerialConfig convert2SerialConfig(const jarvis::dbit_e dataBit, const jarvis::sbit_e stopBit, const jarvis::pbit_e parityBit);
-        Status configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig);
+        SerialConfig convert2SerialConfig(const jvs::dbit_e dataBit, const jvs::sbit_e stopBit, const jvs::pbit_e parityBit);
+        Status configurePort(jvs::prt_e portIndex, jvs::config::Rs485* portConfig);
         Status addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID);
         // Status removeNodeReference(const uint8_t slaveID, im::Node& node);
     private:
@@ -57,7 +57,7 @@ namespace muffin {
     public:
         Status Poll();
         Status PollTemp();
-        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area);
+        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area);
     private:
         Status implementPolling();
         Status updateVariableNodes();
@@ -68,7 +68,7 @@ namespace muffin {
     
     public:
         modbus::AddressTable mAddressTable;
-        jarvis::prt_e mPort;
+        jvs::prt_e mPort;
     private:
         modbus::NodeTable mNodeTable;
         modbus::PolledDataTable mPolledDataTable;

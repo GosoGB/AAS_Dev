@@ -31,7 +31,7 @@
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     class WiFi4 : public Base
     {

@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     ModbusTCP::ModbusTCP()
         : Base(cfg_key_e::MODBUS_TCP)

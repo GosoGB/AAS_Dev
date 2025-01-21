@@ -70,16 +70,16 @@ namespace muffin { namespace im {
     typedef struct PolledDataType
     {
         Status::Code StatusCode;
-        jarvis::adtp_e AddressType;
-        jarvis::addr_u Address;
+        jvs::adtp_e AddressType;
+        jvs::addr_u Address;
         uint64_t Timestamp;
-        jarvis::dt_e ValueType;
+        jvs::dt_e ValueType;
         var_value_u Value;
     } poll_data_t;
 
     typedef struct CastedDataType
     {
-        jarvis::dt_e ValueType;
+        jvs::dt_e ValueType;
         var_value_u Value;
     } casted_data_t;
 
@@ -87,7 +87,7 @@ namespace muffin { namespace im {
     {
         Status::Code StatusCode;
         uint64_t Timestamp;
-        jarvis::dt_e DataType;
+        jvs::dt_e DataType;
         var_value_u Value;
         bool HasValue     : 1;
         bool HasStatus    : 1;

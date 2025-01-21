@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     NodeValidator::NodeValidator()
         : mAddressType(rsc_e::UNCERTAIN, adtp_e::NUMERIC)
@@ -32,7 +32,7 @@ namespace muffin { namespace jarvis {
         , mNumericOffset(rsc_e::UNCERTAIN, 0.0f)
         , mMappingRules(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>())
         , mDataUnitOrders(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>())
-        , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jarvis::dt_e>())
+        , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mPatternUID(std::regex(R"(^(?:[PAE][A-Za-z0-9!@#$%^&*()_+=-]{3}|(?:DI|DO|MD)[A-Za-z0-9!@#$%^&*()_+=-]{2})$)"))
     {
@@ -316,7 +316,7 @@ namespace muffin { namespace jarvis {
             mNumericOffset    = std::make_pair(rsc_e::UNCERTAIN, 0.0f);
             mMappingRules     = std::make_pair(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>());
             mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
-            mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jarvis::dt_e>());
+            mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>());
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
             mUID.clear();
             mDisplayName.clear();

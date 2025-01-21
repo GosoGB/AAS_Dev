@@ -19,7 +19,7 @@
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     DataUnitOrder::DataUnitOrder(const uint8_t sizeOfOrder)
     {

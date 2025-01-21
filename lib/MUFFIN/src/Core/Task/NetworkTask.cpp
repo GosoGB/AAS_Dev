@@ -49,7 +49,7 @@ namespace muffin {
     static bool s_IsCatMqttTopicSubscribed = false;
 
 
-    Status InitCatM1(jarvis::config::CatM1* cin)
+    Status InitCatM1(jvs::config::CatM1* cin)
     {
         mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
         if (cia == nullptr)
@@ -91,7 +91,7 @@ namespace muffin {
             s_IsCatMqttTopicSubscribed = false;
         }
 
-        jarvis::config::Base* baseCIN = static_cast<jarvis::config::Base*>(cin);
+        jvs::config::Base* baseCIN = static_cast<jvs::config::Base*>(cin);
         Status ret = catM1->Config(baseCIN);
         if (ret != Status::Code::GOOD)
         {
@@ -118,7 +118,7 @@ namespace muffin {
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
 
-        ret = SyncWithNTP(jarvis::snic_e::LTE_CatM1);
+        ret = SyncWithNTP(jvs::snic_e::LTE_CatM1);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER: %s", ret.c_str());
@@ -465,7 +465,7 @@ namespace muffin {
                 s_IsCatMQTTConnected     = false;
                 s_IsCatHttpInitialized   = false;
 
-                jarvis::config::CatM1 retrievedCIN = catM1.RetrieveConfig().second;
+                jvs::config::CatM1 retrievedCIN = catM1.RetrieveConfig().second;
                 while (InitCatM1(&retrievedCIN) != Status::Code::GOOD)
                 {
                     vTaskDelay(1000 / portTICK_PERIOD_MS);

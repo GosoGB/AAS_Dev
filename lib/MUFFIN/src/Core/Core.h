@@ -34,9 +34,9 @@
 
 namespace muffin {
     
-    extern std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
-    extern std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
-    extern muffin::jarvis::config::Ethernet mEthernet;
+    extern std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
+    extern std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
+    extern muffin::jvs::config::Ethernet mEthernet;
     
     
     class Core
@@ -53,9 +53,9 @@ namespace muffin {
         void saveJarvisFlag(const std::string& payload);
         void saveFotaFlag(const std::string& payload);
         void startRemoteControll(const std::string& payload);
-        static void onJarvisValidationResult(jarvis::ValidationResult& result);
+        static void onJarvisValidationResult(jvs::ValidationResult& result);
     private:
-        static jarvis::ValidationResult mJarvisValidationResult;
+        static jvs::ValidationResult mJarvisValidationResult;
         static bool mHasJarvisCommand;
         static bool mHasFotaCommand;
     };

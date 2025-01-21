@@ -22,7 +22,7 @@
 
 namespace muffin {
 
-    Status InitCatM1(jarvis::config::CatM1* cin);
+    Status InitCatM1(jvs::config::CatM1* cin);
     Status InitCatHTTP();
     Status ConnectToBroker();
     Status ConnectToBrokerEthernet();

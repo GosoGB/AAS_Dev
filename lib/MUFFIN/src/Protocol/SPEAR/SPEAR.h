@@ -61,10 +61,10 @@ namespace muffin {
      * @brief JarvisServiceSets
      */
     public:
-        Status SetJarvisLinkConfig(jarvis::config::Base* cin, const jarvis::cfg_key_e type);
-        Status SetJarvisProtocolConfig(const std::set<jarvis::prt_e> link);
+        Status SetJarvisLinkConfig(jvs::config::Base* cin, const jvs::cfg_key_e type);
+        Status SetJarvisProtocolConfig(const std::set<jvs::prt_e> link);
     private:
-        Status setJarvisRs485Config(jarvis::config::Base* cin);
+        Status setJarvisRs485Config(jvs::config::Base* cin);
         Status validateSetService();
     public:
         Status resendSetService();

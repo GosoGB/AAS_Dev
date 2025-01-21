@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     Rs232::Rs232()
         : Base(cfg_key_e::RS232)

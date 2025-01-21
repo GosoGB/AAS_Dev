@@ -41,7 +41,7 @@ namespace muffin {
     
     OperationTime::OperationTime()
         : mCriterion(std::make_pair(Status(Status::Code::BAD), 0))
-        , mOperator(std::make_pair(Status(Status::Code::BAD), jarvis::cmp_op_e::EQUAL))
+        , mOperator(std::make_pair(Status(Status::Code::BAD), jvs::cmp_op_e::EQUAL))
         , xHandle(NULL)
     {
     }
@@ -50,15 +50,15 @@ namespace muffin {
     {
     }
 
-    void OperationTime::Config(jarvis::config::OperationTime* cin)
+    void OperationTime::Config(jvs::config::OperationTime* cin)
     {
         mNodeId = cin->GetNodeID().second;
         mType = cin->GetType().second;
-        if (mType != jarvis::op_time_type_e::FROM_MODLINK)
+        if (mType != jvs::op_time_type_e::FROM_MODLINK)
         {
             return;
         }
-        ASSERT((mType == jarvis::op_time_type_e::FROM_MODLINK), "UNSUPPORTED AGGREGATE TYPE FOR OPERATION TIME");
+        ASSERT((mType == jvs::op_time_type_e::FROM_MODLINK), "UNSUPPORTED AGGREGATE TYPE FOR OPERATION TIME");
         
         mCriterion  = cin->GetCriterion();
         mOperator   = cin->GetOperator();
@@ -190,9 +190,9 @@ namespace muffin {
                 {
                     if (currentErrorStatus == false)
                     {
-                        if (mStauts != jarvis::op_status_e::PROCESSING)
+                        if (mStauts != jvs::op_status_e::PROCESSING)
                         {
-                            mStauts = jarvis::op_status_e::PROCESSING;
+                            mStauts = jvs::op_status_e::PROCESSING;
                             publishOperationStauts();
                         }
                         
@@ -201,9 +201,9 @@ namespace muffin {
                 }
                 else
                 {
-                    if (mStauts != jarvis::op_status_e::IDLE)
+                    if (mStauts != jvs::op_status_e::IDLE)
                     {
-                        mStauts = jarvis::op_status_e::IDLE;
+                        mStauts = jvs::op_status_e::IDLE;
                         publishOperationStauts();
                     }
                 }
@@ -228,19 +228,19 @@ namespace muffin {
     {
         switch (mOperator.second)
         {
-        case jarvis::cmp_op_e::EQUAL:
+        case jvs::cmp_op_e::EQUAL:
             *isStatusProcessing = strategyEqual(datum, node);
             break;
-        case jarvis::cmp_op_e::GREATER_EQUAL:
+        case jvs::cmp_op_e::GREATER_EQUAL:
             *isStatusProcessing = strategyGreaterOrEqual(datum, node);
             break;
-        case jarvis::cmp_op_e::GREATER_THAN:
+        case jvs::cmp_op_e::GREATER_THAN:
             *isStatusProcessing = strategyGreaterThan(datum, node);
             break;
-        case jarvis::cmp_op_e::LESS_EQUAL:
+        case jvs::cmp_op_e::LESS_EQUAL:
             *isStatusProcessing = strategyLessOrEqual(datum, node);
             break;
-        case jarvis::cmp_op_e::LESS_THAN:
+        case jvs::cmp_op_e::LESS_THAN:
             *isStatusProcessing = strategyLessThan(datum, node);
             break;
         default:
@@ -252,40 +252,40 @@ namespace muffin {
     {
         switch (datum.DataType)
         {
-        case jarvis::dt_e::BOOLEAN:
+        case jvs::dt_e::BOOLEAN:
             return mCriterion.second == static_cast<int32_t>(datum.Value.Boolean);
 
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             return mCriterion.second == static_cast<int32_t>(datum.Value.Int8);
 
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             return mCriterion.second == static_cast<int32_t>(datum.Value.UInt8);
 
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             return mCriterion.second == static_cast<int32_t>(datum.Value.Int16);
 
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             return mCriterion.second == static_cast<int32_t>(datum.Value.UInt16);
 
-        case jarvis::dt_e::INT32:
+        case jvs::dt_e::INT32:
             return mCriterion.second == static_cast<int32_t>(datum.Value.Int32);
 
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             return mCriterion.second == static_cast<int32_t>(datum.Value.UInt32);
 
-        case jarvis::dt_e::INT64:
+        case jvs::dt_e::INT64:
             return mCriterion.second == static_cast<int32_t>(datum.Value.Int64);
 
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             return mCriterion.second == static_cast<int32_t>(datum.Value.UInt64);
 
-        case jarvis::dt_e::FLOAT32:
+        case jvs::dt_e::FLOAT32:
             return mCriterion.second == datum.Value.Float32;
 
-        case jarvis::dt_e::FLOAT64:
+        case jvs::dt_e::FLOAT64:
             return mCriterion.second == datum.Value.Float64;
 
-        case jarvis::dt_e::STRING:
+        case jvs::dt_e::STRING:
             {
                 const auto mappingRules = node.VariableNode.GetMappingRules();
                 for (auto& pair : mappingRules)
@@ -308,40 +308,40 @@ namespace muffin {
     {
         switch (datum.DataType)
         {
-        case jarvis::dt_e::BOOLEAN:
+        case jvs::dt_e::BOOLEAN:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.Boolean);
 
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.Int8);
 
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.UInt8);
 
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.Int16);
 
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.UInt16);
 
-        case jarvis::dt_e::INT32:
+        case jvs::dt_e::INT32:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.Int32);
 
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.UInt32);
 
-        case jarvis::dt_e::INT64:
+        case jvs::dt_e::INT64:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.Int64);
 
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             return mCriterion.second >= static_cast<int32_t>(datum.Value.UInt64);
 
-        case jarvis::dt_e::FLOAT32:
+        case jvs::dt_e::FLOAT32:
             return mCriterion.second >= datum.Value.Float32;
 
-        case jarvis::dt_e::FLOAT64:
+        case jvs::dt_e::FLOAT64:
             return mCriterion.second >= datum.Value.Float64;
 
-        case jarvis::dt_e::STRING:
+        case jvs::dt_e::STRING:
             {
                 const auto mappingRules = node.VariableNode.GetMappingRules();
                 for (auto& pair : mappingRules)
@@ -364,40 +364,40 @@ namespace muffin {
     {
         switch (datum.DataType)
         {
-        case jarvis::dt_e::BOOLEAN:
+        case jvs::dt_e::BOOLEAN:
             return mCriterion.second > static_cast<int32_t>(datum.Value.Boolean);
 
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             return mCriterion.second > static_cast<int32_t>(datum.Value.Int8);
 
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             return mCriterion.second > static_cast<int32_t>(datum.Value.UInt8);
 
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             return mCriterion.second > static_cast<int32_t>(datum.Value.Int16);
 
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             return mCriterion.second > static_cast<int32_t>(datum.Value.UInt16);
 
-        case jarvis::dt_e::INT32:
+        case jvs::dt_e::INT32:
             return mCriterion.second > static_cast<int32_t>(datum.Value.Int32);
 
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             return mCriterion.second > static_cast<int32_t>(datum.Value.UInt32);
 
-        case jarvis::dt_e::INT64:
+        case jvs::dt_e::INT64:
             return mCriterion.second > static_cast<int32_t>(datum.Value.Int64);
 
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             return mCriterion.second > static_cast<int32_t>(datum.Value.UInt64);
 
-        case jarvis::dt_e::FLOAT32:
+        case jvs::dt_e::FLOAT32:
             return mCriterion.second > datum.Value.Float32;
 
-        case jarvis::dt_e::FLOAT64:
+        case jvs::dt_e::FLOAT64:
             return mCriterion.second > datum.Value.Float64;
 
-        case jarvis::dt_e::STRING:
+        case jvs::dt_e::STRING:
             {
                 const auto mappingRules = node.VariableNode.GetMappingRules();
                 for (auto& pair : mappingRules)
@@ -420,40 +420,40 @@ namespace muffin {
     {
         switch (datum.DataType)
         {
-        case jarvis::dt_e::BOOLEAN:
+        case jvs::dt_e::BOOLEAN:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.Boolean);
 
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.Int8);
 
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.UInt8);
 
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.Int16);
 
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.UInt16);
 
-        case jarvis::dt_e::INT32:
+        case jvs::dt_e::INT32:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.Int32);
 
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.UInt32);
 
-        case jarvis::dt_e::INT64:
+        case jvs::dt_e::INT64:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.Int64);
 
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             return mCriterion.second <= static_cast<int32_t>(datum.Value.UInt64);
 
-        case jarvis::dt_e::FLOAT32:
+        case jvs::dt_e::FLOAT32:
             return mCriterion.second <= datum.Value.Float32;
 
-        case jarvis::dt_e::FLOAT64:
+        case jvs::dt_e::FLOAT64:
             return mCriterion.second <= datum.Value.Float64;
 
-        case jarvis::dt_e::STRING:
+        case jvs::dt_e::STRING:
             {
                 const auto mappingRules = node.VariableNode.GetMappingRules();
                 for (auto& pair : mappingRules)
@@ -476,40 +476,40 @@ namespace muffin {
     {
         switch (datum.DataType)
         {
-        case jarvis::dt_e::BOOLEAN:
+        case jvs::dt_e::BOOLEAN:
             return mCriterion.second < static_cast<int32_t>(datum.Value.Boolean);
 
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             return mCriterion.second < static_cast<int32_t>(datum.Value.Int8);
 
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             return mCriterion.second < static_cast<int32_t>(datum.Value.UInt8);
 
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             return mCriterion.second < static_cast<int32_t>(datum.Value.Int16);
 
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             return mCriterion.second < static_cast<int32_t>(datum.Value.UInt16);
 
-        case jarvis::dt_e::INT32:
+        case jvs::dt_e::INT32:
             return mCriterion.second < static_cast<int32_t>(datum.Value.Int32);
 
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             return mCriterion.second < static_cast<int32_t>(datum.Value.UInt32);
 
-        case jarvis::dt_e::INT64:
+        case jvs::dt_e::INT64:
             return mCriterion.second < static_cast<int32_t>(datum.Value.Int64);
 
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             return mCriterion.second < static_cast<int32_t>(datum.Value.UInt64);
 
-        case jarvis::dt_e::FLOAT32:
+        case jvs::dt_e::FLOAT32:
             return mCriterion.second < datum.Value.Float32;
 
-        case jarvis::dt_e::FLOAT64:
+        case jvs::dt_e::FLOAT64:
             return mCriterion.second < datum.Value.Float64;
 
-        case jarvis::dt_e::STRING:
+        case jvs::dt_e::STRING:
             {
                 const auto mappingRules = node.VariableNode.GetMappingRules();
                 for (auto& pair : mappingRules)
@@ -550,7 +550,7 @@ namespace muffin {
         operation_struct_t status;
 
         status.SourceTimestamp = GetTimestampInMillis();
-        status.Status = mStauts == jarvis::op_status_e::PROCESSING ? "processing" : "idle";
+        status.Status = mStauts == jvs::op_status_e::PROCESSING ? "processing" : "idle";
         status.Topic = mqtt::topic_e::OPERATION;
 
         JSON json;

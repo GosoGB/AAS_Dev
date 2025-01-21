@@ -89,14 +89,14 @@ namespace muffin {
 
     public:
         virtual Status Init() override;
-        virtual Status Config(jarvis::config::Base* config) override;
+        virtual Status Config(jvs::config::Base* config) override;
         virtual Status Connect() override;
         virtual Status Disconnect() override;
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
-        virtual jarvis::config::Base* GetConfig() override;
-        std::pair<bool, jarvis::config::CatM1> RetrieveConfig() const;
+        virtual jvs::config::Base* GetConfig() override;
+        std::pair<bool, jvs::config::CatM1> RetrieveConfig() const;
         state_e GetState() const;
         Status SyncWithNTP();
         void KillUrcTask(bool forOTA);
@@ -130,7 +130,7 @@ namespace muffin {
         size_t mMutexHandle = 0;
         SemaphoreHandle_t xSemaphore;
         Processor mProcessor;
-        std::pair<bool, jarvis::config::CatM1> mConfig;
+        std::pair<bool, jvs::config::CatM1> mConfig;
         static state_e mState;
         static std::bitset<8> mInitFlags;
         static std::bitset<6> mConnFlags;

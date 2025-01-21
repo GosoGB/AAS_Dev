@@ -18,7 +18,7 @@
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     CatM1& CatM1::operator=(const CatM1& obj)
     {

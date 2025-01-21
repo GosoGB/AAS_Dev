@@ -26,7 +26,7 @@
 #include "DataFormat/JSON/JSON.h"
 
 #include "IM/Custom/Device/DeviceStatus.h"
-#include "JARVIS/Jarvis.h"
+#include "JARVIS/JARVIS.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
@@ -60,11 +60,11 @@
 
 namespace muffin {
 
-    std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
-    std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
-    muffin::jarvis::config::Ethernet mEthernet;
+    std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
+    std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
+    muffin::jvs::config::Ethernet mEthernet;
 
-    jarvis::ValidationResult Core::mJarvisValidationResult;
+    jvs::ValidationResult Core::mJarvisValidationResult;
     bool Core::mHasJarvisCommand = false;
     bool Core::mHasFotaCommand = false;
 
@@ -75,8 +75,8 @@ namespace muffin {
         
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u", 
-            FW_VERSION_ESP32.GetSemanticVersion(), 
-            FW_VERSION_ESP32.GetVersionCode());       
+            FW_VERSION_ESP32.GetSemanticVersion(), FW_VERSION_ESP32.GetVersionCode()
+        );
 
     #if defined(MODLINK_T2)
     {
@@ -116,15 +116,6 @@ namespace muffin {
         nvs.begin("fota");
         mHasFotaCommand = nvs.getBool("fotaFlag",false);
         nvs.end();
-
-        /**
-         * @todo Reset 사유에 따라 자동으로 초기화 하는 기능의 개발이 필요합니다.
-         * @details JARVIS 설정으로 인해 런타임에 크래시 같은 문제가 있을 수 있습니다.
-         *          이러한 경우에는 계속해서 반복적으로 MODLINK가 리셋되는 현상이 발생할
-         *          수 있습니다. 따라서 reset 사유를 확인하여 JARVIS 설정을 초기화 하는
-         *          기능이 필요합니다. 단, 다른 부서와의 협의가 선행되어야 합니다.
-         */
-        deviceStatus.SetResetReason(esp_reset_reason());
 
         Initializer initializer;
         initializer.StartOrCrash();
@@ -229,37 +220,37 @@ namespace muffin {
             switch (retJSON.ToCode())
             {
             case Status::Code::BAD_END_OF_STREAM:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_COMMUNICATION);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_COMMUNICATION);
                 messageConfig.Description   = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
                 isError = true;
                 break;
             case Status::Code::BAD_NO_DATA:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
                 messageConfig.Description   = "PAYLOAD EMPTY";
                 isError = true;
                 break;
             case Status::Code::BAD_DATA_ENCODING_INVALID:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_DECODING_ERROR);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_ERROR);
                 messageConfig.Description   = "PAYLOAD INVALID ENCODING";
                 isError = true;
                 break;
             case Status::Code::BAD_OUT_OF_MEMORY:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_OUT_OF_MEMORY);
                 messageConfig.Description   = "PAYLOAD OUT OF MEMORY";
                 isError = true;
                 break;
             case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
                 messageConfig.Description   = "PAYLOAD EXCEEDED NESTING LIMIT";
                 isError = true;
                 break;
             case Status::Code::BAD_UNEXPECTED_ERROR:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
                 messageConfig.Description   = "UNDEFINED CONDITION";
                 isError = true;
                 break;
             default:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
                 messageConfig.Description   = "UNDEFINED CONDITION";
                 isError = true;
                 break;
@@ -267,20 +258,20 @@ namespace muffin {
         }
 
         const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
-        if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_2))
+        if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jvs::prtcl_ver_e::VERSEOIN_2))
         {
             LOG_ERROR(logger, "VERSION ERROR: %s , VERSION : %u", retVersion.first.c_str(),static_cast<uint8_t>(retVersion.second));
-            messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_INVALID_VERSION);
+            messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
             messageConfig.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
             isError = true;
         }
-        ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_2), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
+        ASSERT((retVersion.second == jvs::prtcl_ver_e::VERSEOIN_2), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
         if (doc.containsKey("rqi") == true)
         {
             const char* rqi = doc["rqi"].as<const char*>();
             if (rqi == nullptr || strlen(rqi) == 0)
             {
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD);
+                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD);
                 messageConfig.Description   = "INVALID REQUEST ID: CANNOT BE NULL OR EMPTY";
                 isError = true;
             }
@@ -349,7 +340,7 @@ namespace muffin {
          * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
          * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
          */
-        jarvis::rsc_e rsc;
+        jvs::rsc_e rsc;
         std::string description;
         switch (taskCreationResult)
         {
@@ -360,21 +351,21 @@ namespace muffin {
 
         case pdFAIL:
             // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            rsc = jarvis::rsc_e::BAD;
+            rsc = jvs::rsc_e::BAD;
             description = "FAILED TO START WITHOUT SPECIFIC REASON";
             LOG_ERROR(logger, description.c_str());
             break;
 
         case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
             // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            rsc = jarvis::rsc_e::BAD_OUT_OF_MEMORY;
+            rsc = jvs::rsc_e::BAD_OUT_OF_MEMORY;
             description = "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK";
             LOG_ERROR(logger, description.c_str());
             break;
 
         default:
             // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            rsc = jarvis::rsc_e::BAD_UNEXPECTED_ERROR;
+            rsc = jvs::rsc_e::BAD_UNEXPECTED_ERROR;
             description = "UNKNOWN ERROR: " + Convert.ToString(taskCreationResult);
             LOG_ERROR(logger, description.c_str());
             break;
@@ -629,8 +620,8 @@ namespace muffin {
                                     {
                                         retSlaveID.second = 0;
                                     }
-                                    jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
                                     std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
                         
                                     if (retBit.first == true)
@@ -653,10 +644,10 @@ namespace muffin {
                                     LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
                                     switch (modbusArea)
                                     {
-                                    case jarvis::mb_area_e::COILS:
+                                    case jvs::mb_area_e::COILS:
                                         writeResult = modbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
                                         break;
-                                    case jarvis::mb_area_e::HOLDING_REGISTER:
+                                    case jvs::mb_area_e::HOLDING_REGISTER:
                                         writeResult = modbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:
@@ -701,8 +692,8 @@ namespace muffin {
                                         retSlaveID.second = 0;
                                     }
 
-                                    jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
                                     std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
                         
                                     if (retBit.first == true)
@@ -723,10 +714,10 @@ namespace muffin {
 
                                     switch (modbusArea)
                                     {
-                                    case jarvis::mb_area_e::COILS:
+                                    case jvs::mb_area_e::COILS:
                                         writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
                                         break;
-                                    case jarvis::mb_area_e::HOLDING_REGISTER:
+                                    case jvs::mb_area_e::HOLDING_REGISTER:
                                         writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:
@@ -786,16 +777,16 @@ ERROR_RESPONSE:
         }
     }
 
-    void Core::onJarvisValidationResult(jarvis::ValidationResult& result)
+    void Core::onJarvisValidationResult(jvs::ValidationResult& result)
     {
-        if (result.GetRSC() >= jarvis::rsc_e::BAD)
+        if (result.GetRSC() >= jvs::rsc_e::BAD)
         {
             jarvis_struct_t messageConfig;
             messageConfig.ResponseCode     = Convert.ToUInt16(result.GetRSC());
             messageConfig.Description      = result.GetDescription();
             messageConfig.SourceTimestamp  = GetTimestampInMillis();
 
-            std::vector<jarvis::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
+            std::vector<jvs::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
             for (auto& key : vectorKeyWithNG)
             {
                 messageConfig.Config.emplace_back(Convert.ToString(key));
@@ -831,7 +822,7 @@ ERROR_RESPONSE:
         messageConfig.Description      = result.GetDescription();
         messageConfig.SourceTimestamp  = GetTimestampInMillis();
 
-        std::vector<jarvis::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
+        std::vector<jvs::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
 
         for (auto& key : vectorKeyWithNG)
         {

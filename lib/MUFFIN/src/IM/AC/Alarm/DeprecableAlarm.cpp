@@ -48,7 +48,7 @@ namespace muffin {
     {
     }
     
-    void AlarmMonitor::Add(jarvis::config::Alarm* cin)
+    void AlarmMonitor::Add(jvs::config::Alarm* cin)
     {
         mVectorConfig.emplace_back(*cin);
 
@@ -186,20 +186,20 @@ namespace muffin {
 
                     switch (cin.GetType().second)
                     {
-                    case jarvis::alarm_type_e::ONLY_LCL:
+                    case jvs::alarm_type_e::ONLY_LCL:
                         pubLclToScautr(cin, reference.second->VariableNode);
                         strategyLCL(cin, datum, reference.second->VariableNode);
                         break;
-                    case jarvis::alarm_type_e::ONLY_UCL:
+                    case jvs::alarm_type_e::ONLY_UCL:
                         pubUclToScautr(cin, reference.second->VariableNode);
                         strategyUCL(cin, datum, reference.second->VariableNode);
                         break;
-                    case jarvis::alarm_type_e::LCL_AND_UCL:
+                    case jvs::alarm_type_e::LCL_AND_UCL:
                         pubLclToScautr(cin, reference.second->VariableNode);
                         pubUclToScautr(cin, reference.second->VariableNode);
                         strategyLclAndUcl(cin, datum, reference.second->VariableNode);
                         break;
-                    case jarvis::alarm_type_e::CONDITION:
+                    case jvs::alarm_type_e::CONDITION:
                         strategyCondition(cin, datum, reference.second->VariableNode);
                         break;
                     default:
@@ -213,15 +213,15 @@ namespace muffin {
         }
     }
 
-    void AlarmMonitor::strategyLCL(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         const float lcl = cin.GetLCL().second;
         const float value = convertToFloat(datum);
-        const jarvis::alarm_type_e type = jarvis::alarm_type_e::ONLY_LCL;
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::ONLY_LCL || cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_LCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_LCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
 
         const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
         const bool isAlarmCondition = value < lcl;
@@ -250,15 +250,15 @@ namespace muffin {
         }
     }
 
-    void AlarmMonitor::strategyUCL(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyUCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         const float ucl = cin.GetUCL().second;
         const float value = convertToFloat(datum);
-        const jarvis::alarm_type_e type = jarvis::alarm_type_e::ONLY_UCL;
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::ONLY_UCL || cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_UCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_UCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
 
         const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
         const bool isAlarmCondition = value > ucl;
@@ -287,11 +287,11 @@ namespace muffin {
         }
     }
 
-    void AlarmMonitor::strategyLclAndUcl(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyLclAndUcl(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE BOTH LOWER AND UPPER CONTROL LIMITS");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE BOTH LOWER AND UPPER CONTROL LIMITS");
 
         const float ucl = cin.GetUCL().second;
         const float lcl = cin.GetLCL().second;
@@ -306,14 +306,14 @@ namespace muffin {
         {
             if (isLclCondition == true)
             {
-                activateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node);
             }
         }
         else
         {
             if (isLclCondition == false)
             {
-                deactivateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin);
             }
         }
 
@@ -321,48 +321,48 @@ namespace muffin {
         {
             if (isUclCondition == true)
             {
-                activateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node);
             }
         }
         else
         {
             if (isUclCondition == false)
             {
-                deactivateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin);
             }
 
         }
     }
 
-    void AlarmMonitor::strategyCondition(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyCondition(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::CONDITION), "ALARM TYPE MUST BE CONDITION TYPE");
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::CONDITION), "ALARM TYPE MUST BE CONDITION TYPE");
 
         int16_t value = 0;
         bool hasValue = false;
         switch (datum.DataType)
         {
-        case jarvis::dt_e::BOOLEAN:
+        case jvs::dt_e::BOOLEAN:
             value = static_cast<int16_t>(datum.Value.Boolean);
             hasValue = true;
             break;
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             value = static_cast<int16_t>(datum.Value.Int8);
             hasValue = true;
             break;
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             value = static_cast<int16_t>(datum.Value.Int16);
             hasValue = true;
             break;
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             value = static_cast<int16_t>(datum.Value.UInt8);
             hasValue = true;
             break;
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             value = static_cast<int16_t>(datum.Value.UInt16);
             hasValue = true;
             break;
-        case jarvis::dt_e::STRING:
+        case jvs::dt_e::STRING:
             {
                 const auto mappingRules = node.GetMappingRules();
                 for (auto& pair : mappingRules)
@@ -415,7 +415,7 @@ namespace muffin {
         {
             if (isCondition == true)
             {
-                activateAlarm(jarvis::alarm_type_e::CONDITION, cin, node);
+                activateAlarm(jvs::alarm_type_e::CONDITION, cin, node);
             }
             else
             {
@@ -439,7 +439,7 @@ namespace muffin {
                             if ((static_cast<int16_t>(history.Value.UInt16) == condition) &&
                                 (static_cast<int16_t>(datum.Value.UInt16)   != condition))
                             {
-                                deactivateAlarm(jarvis::alarm_type_e::CONDITION, cin);
+                                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
                             }
                         }
                     }
@@ -447,7 +447,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(jarvis::alarm_type_e::CONDITION, cin);
+                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
             }
         }
     }
@@ -467,33 +467,33 @@ namespace muffin {
 
     float AlarmMonitor::convertToFloat(const im::var_data_t& datum)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         /**
          * @todo double 타입을 처리할 수 있도록 코드를 수정해야 합니다.
          */
         switch (datum.DataType)
         {
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             return static_cast<float>(datum.Value.Int8);
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             return static_cast<float>(datum.Value.UInt8);
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             return static_cast<float>(datum.Value.Int16);
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             return static_cast<float>(datum.Value.UInt16);
-        case jarvis::dt_e::INT32:
+        case jvs::dt_e::INT32:
             return static_cast<float>(datum.Value.Int32);
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             return static_cast<float>(datum.Value.UInt32);
-        case jarvis::dt_e::INT64:
+        case jvs::dt_e::INT64:
             return static_cast<float>(datum.Value.Int64);
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             return static_cast<float>(datum.Value.UInt64);
-        case jarvis::dt_e::FLOAT32:
+        case jvs::dt_e::FLOAT32:
             return static_cast<float>(datum.Value.Float32);
-        case jarvis::dt_e::FLOAT64:
+        case jvs::dt_e::FLOAT64:
             return static_cast<float>(datum.Value.Float64);
         default:
             return 0.0f;
@@ -572,7 +572,7 @@ namespace muffin {
         return std::string(returnUUID).substr(0, 12);
     }
     
-    void AlarmMonitor::activateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin, const im::Variable& node)
+    void AlarmMonitor::activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node)
     {
         alarm_struct_t alarm;
         push_struct_t push;
@@ -586,17 +586,17 @@ namespace muffin {
 
         switch (type)
         {
-        case jarvis::alarm_type_e::ONLY_LCL:
+        case jvs::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
             alarm.Name = node.GetDisplayName() + " 하한 도달";
             push.Name = node.GetDisplayName() + " 하한 도달";
             break;
-        case jarvis::alarm_type_e::ONLY_UCL:
+        case jvs::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
             alarm.Name = node.GetDisplayName() + " 상한 초과";
             push.Name = node.GetDisplayName() + " 상한 초과";
             break;
-        case jarvis::alarm_type_e::CONDITION:
+        case jvs::alarm_type_e::CONDITION:
             {
                 im::NodeStore& nodeStore = im::NodeStore::GetInstance();
                 for (auto& nodeRef : nodeStore)
@@ -633,19 +633,19 @@ namespace muffin {
         mVectorAlarmInfo.emplace_back(alarm);
     }
 
-    void AlarmMonitor::deactivateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin)
+    void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin)
     {
         std::string uid;
 
         switch (type)
         {
-        case jarvis::alarm_type_e::ONLY_LCL:
+        case jvs::alarm_type_e::ONLY_LCL:
             uid = cin.GetLclAlarmUID().second;
             break;
-        case jarvis::alarm_type_e::ONLY_UCL:
+        case jvs::alarm_type_e::ONLY_UCL:
             uid = cin.GetUclAlarmUID().second;
             break;
-        case jarvis::alarm_type_e::CONDITION:
+        case jvs::alarm_type_e::CONDITION:
             {
                 im::NodeStore& nodeStore = im::NodeStore::GetInstance();
                 for (auto& node : nodeStore)
@@ -873,7 +873,7 @@ namespace muffin {
         }
     }
 
-    void AlarmMonitor::pubLclToScautr(jarvis::config::Alarm& cin, const im::Variable& node)
+    void AlarmMonitor::pubLclToScautr(jvs::config::Alarm& cin, const im::Variable& node)
     {
         float lcl = cin.GetLCL().second;
         if (lcl != cin.mPreviousLCL)
@@ -899,7 +899,7 @@ namespace muffin {
         
     }
 
-    void AlarmMonitor::pubUclToScautr(jarvis::config::Alarm& cin, const im::Variable& node)
+    void AlarmMonitor::pubUclToScautr(jvs::config::Alarm& cin, const im::Variable& node)
     {
         float ucl = cin.GetUCL().second;
         if (ucl != cin.mPreviousUCL)

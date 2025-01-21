@@ -25,7 +25,7 @@
 
 namespace muffin {
 
-namespace jarvis { namespace config {
+namespace jvs { namespace config {
     class Base;
     /*Information*/
     class Alarm;
@@ -56,13 +56,13 @@ namespace jarvis { namespace config {
         static int64_t ToInt64(const std::string& input);
     public:
         static uint8_t ToUInt8(const std::string& input);
-        static uint8_t ToUInt8(const jarvis::cfg_key_e input);
-        static uint8_t ToUInt8(const jarvis::prtcl_ver_e input);
+        static uint8_t ToUInt8(const jvs::cfg_key_e input);
+        static uint8_t ToUInt8(const jvs::prtcl_ver_e input);
         static uint16_t ToUInt16(const std::string& input);
-        static uint16_t ToUInt16(const jarvis::rsc_e input);
+        static uint16_t ToUInt16(const jvs::rsc_e input);
         static uint32_t ToUInt32(const std::string& input);
         static uint32_t ToUInt32(const time_t input);
-        static uint32_t ToUInt32(const jarvis::bdr_e input);
+        static uint32_t ToUInt32(const jvs::bdr_e input);
         static uint64_t ToUInt64(const std::string& input);
     public:
         static float ToFloat(const std::string& input);
@@ -70,23 +70,23 @@ namespace jarvis { namespace config {
     public:
         template <typename T>
         static std::string ToString(const T& input);
-        static std::string ToString(const jarvis::cfg_key_e input);
-        static std::string ToString(const jarvis::prtcl_ver_e input);
+        static std::string ToString(const jvs::cfg_key_e input);
+        static std::string ToString(const jvs::prtcl_ver_e input);
     public:
-        static std::pair<Status, jarvis::cfg_key_e> ToJarvisKey(const jarvis::prtcl_ver_e version, const std::string& input);
-        static std::pair<Status, jarvis::prtcl_ver_e> ToJarvisVersion(const std::string& input);
-        static jarvis::config::Alarm* ToAlarmCIN(jarvis::config::Base* config);
-        static jarvis::config::Node* ToNodeCIN(jarvis::config::Base* config);
-        static jarvis::config::OperationTime* ToOperationTimeCIN(jarvis::config::Base* config);
-        static jarvis::config::Production* ToProductionCIN(jarvis::config::Base* config);
-        static jarvis::config::Rs232* ToRS232CIN(jarvis::config::Base* config);
-        static jarvis::config::Rs485* ToRS485CIN(jarvis::config::Base* config);
-        static jarvis::config::CatM1* ToCatM1CIN(jarvis::config::Base* config);
-        static jarvis::config::Ethernet* ToEthernetCIN(jarvis::config::Base* config);
-        static jarvis::config::WiFi4* ToWiFi4CIN(jarvis::config::Base* config);
-        static jarvis::config::Operation* ToOperationCIN(jarvis::config::Base* config);
-        static jarvis::config::ModbusRTU* ToModbusRTUCIN(jarvis::config::Base* config);
-        static jarvis::config::ModbusTCP* ToModbusTCPCIN(jarvis::config::Base* config);
+        static std::pair<Status, jvs::cfg_key_e> ToJarvisKey(const jvs::prtcl_ver_e version, const std::string& input);
+        static std::pair<Status, jvs::prtcl_ver_e> ToJarvisVersion(const std::string& input);
+        static jvs::config::Alarm* ToAlarmCIN(jvs::config::Base* config);
+        static jvs::config::Node* ToNodeCIN(jvs::config::Base* config);
+        static jvs::config::OperationTime* ToOperationTimeCIN(jvs::config::Base* config);
+        static jvs::config::Production* ToProductionCIN(jvs::config::Base* config);
+        static jvs::config::Rs232* ToRS232CIN(jvs::config::Base* config);
+        static jvs::config::Rs485* ToRS485CIN(jvs::config::Base* config);
+        static jvs::config::CatM1* ToCatM1CIN(jvs::config::Base* config);
+        static jvs::config::Ethernet* ToEthernetCIN(jvs::config::Base* config);
+        static jvs::config::WiFi4* ToWiFi4CIN(jvs::config::Base* config);
+        static jvs::config::Operation* ToOperationCIN(jvs::config::Base* config);
+        static jvs::config::ModbusRTU* ToModbusRTUCIN(jvs::config::Base* config);
+        static jvs::config::ModbusTCP* ToModbusTCPCIN(jvs::config::Base* config);
     };
 
     template <typename T>

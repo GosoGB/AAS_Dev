@@ -5,7 +5,7 @@
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 정의합니다.
  * 
- * @date 2025-01-13
+ * @date 2025-01-21
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -14,9 +14,13 @@
 
 
 
+#include <esp_system.h>
+#include <Preferences.h>
+
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
+
 #include "Core/Core.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
@@ -25,6 +29,8 @@
 #include "DataFormat/JSON/JSON.h"
 
 #include "IM/Custom/MacAddress/MacAddress.h"
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "IM/Custom/Constants.h"
 
 #include "JARVIS/Config/Network/CatM1.h"
 #if defined(MODLINK_T2) || defined(MODLINK_B)
@@ -32,7 +38,7 @@
 #elif defined(MODLINK_B)
     #include "JARVIS/Config/Network/WiFi4.h"
 #endif
-#include "JARVIS/Jarvis.h"
+#include "JARVIS/JARVIS.h"
 
 #include "Network/CatM1/CatM1.h"
 #if defined(MODLINK_T2) || defined(MODLINK_B)
@@ -56,160 +62,215 @@
 
 
 namespace muffin {
-    
-    Initializer::Initializer()
-    {
-    }
-    
-    Initializer::~Initializer()
-    {
-    }
-    
+
     void Initializer::StartOrCrash()
     {
-        /**
-         * @todo LittleFS 파티션의 포맷 여부를 로우 레벨 API로 확인해야 합니다.
-         * @details 현재는 파티션 마운트에 실패할 경우 파티션을 자동으로 포맷하도록 개발하였습니다.
-         *          다만, 일시적인 하드웨어 실패가 발생한 경우에도 파티션이 포맷되는 문제가 있습니다.
-         */
-        Status ret = esp32FS.Begin(true);
+        LOG_INFO(logger, "Ethernet MAC: %s", macAddress.GetEthernet());
+
+        Status ret = esp32FS.Begin(false);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO MOUNT ESP32 FILE SYSTEM TO OPERATING SYSTEM");
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO MOUNT ESP32 FILE SYSTEM");
+            vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
             esp_restart();
         }
-        ASSERT((ret == Status::Code::GOOD), "ESP32FS REQUIRED AS A BASE FILE SYSTEM FOR MODLINK MUST BE MOUNTED");
-        /*MUFFIN 프레임워크가 동작하기 위한 최소한의 조건이 만족되었습니다.*/
+        LOG_INFO(logger, "Initialized ESP32 file system");
+        
+        ret = processResetReason();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO PROCESS RESET REASON");
+            vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
+            esp_restart();
+        }
+
+        LOG_INFO(logger, "Initializer has started");
+    }
+
+    Status Initializer::processResetReason()
+    {
+        Preferences pf;
+        const char* key = "prc";    // prc is short for "process reset reason"
+
+        if (pf.begin("Initializer", false) == false)
+        {
+            LOG_ERROR(logger, "FAILED TO BEGIN NVS PARTITION");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        if (pf.isKey(key) == false)
+        {
+            pf.putChar(key, 0);
+            if (pf.getChar(key, -1) != 0)
+            {
+                LOG_ERROR(logger, "FAILED TO WRITE PANIC RESET COUNT");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+            LOG_INFO(logger, "Created a panic reset count");
+        }
+
+        int8_t panicResetCount = pf.getChar(key, -1);
+        if (panicResetCount == -1)
+        {
+            LOG_ERROR(logger, "FAILED TO READ PANIC RESET COUNT");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        if (panicResetCount > MAX_RETRY_COUNT)
+        {
+            esp32FS.Remove(JARVIS_PATH);
+            /*
+             *  "/spear/protocol/config.json"
+             *  "/spear/link1/config.json"
+             *  "/spear/link2/config.json"
+            */
+        }
+        
+        const esp_reset_reason_t resetReason = esp_reset_reason();
+        deviceStatus.SetResetReason(resetReason);
+        LogResetReason(resetReason);
+
+        if (resetReason != ESP_RST_PANIC)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        
+        pf.putChar(key, ++panicResetCount);
+        if (panicResetCount != pf.getChar(key, -1))
+        {
+            LOG_ERROR(logger, "FAILED TO WRITE PANIC RESET COUNT");
+            pf.remove(key);
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        return Status(Status::Code::GOOD);
     }
 
     Status Initializer::Configure(const bool hasJARVIS, const bool hasOTA)
     {
         if (hasJARVIS || hasOTA)
         {
-            return configureWithoutJarvis(hasJARVIS);
-        }
-        
-        Status ret = esp32FS.DoesExist(JARVIS_FILE_PATH);
-        if (ret == Status::Code::GOOD)
-        {
-            return configureWithJarvis();
-        }
-        else
-        {
-            return configureWithoutJarvis(hasJARVIS);
-        }
-        return configureWithoutJarvis(hasJARVIS);
-    }
-
-    Status Initializer::configureWithoutJarvis(const bool hasJARVIS)
-    {
-        fs::File file = esp32FS.Open(JARVIS_FILE_PATH);
-        std::string payload;
-
-        while (file.available() > 0)
-        {
-            payload += file.read();
+            mHasJARVIS = hasJARVIS;
+            mHasUpdate = hasOTA;
+            return configureWithoutJarvis();
         }
 
-        file.close();
+        Status ret = esp32FS.DoesExist(JARVIS_PATH);
+
+        if (ret == Status::Code::BAD_NOT_FOUND)
         {
-            JSON json;
-            JsonDocument doc;
-            Status ret = json.Deserialize(payload, &doc);
+            LOG_INFO(logger, "Start to create default config");
+            ret = createDefaultConfig();
             if (ret != Status::Code::GOOD)
             {
+                LOG_ERROR(logger, "FAILED TO CREATE DEFAULT CONFIG");
                 return ret;
             }
+            LOG_INFO(logger, "Created default JARVIS config");
+        }
 
-            payload.clear();
-            payload.shrink_to_fit();
-
-            /**
-             * @todo DEMO용 디바이스들은 "fmt"로 저장되어있기 때문에 처리하기위해 임시로 구현하였음 1.2.0 버전 이후로 삭제 예정
-             * 
-             */
-            JsonArray operation = doc["cnt"]["op"];
-            for(JsonObject op : operation)
+        for (uint8_t count = 0; count < MAX_RETRY_COUNT; ++count)
+        {
+            ret = implementConfigure();
+            if (ret == Status::Code::GOOD)
             {
-                if(op.containsKey("snic"))
-                {
-                    const std::string value = op["snic"].as<std::string>();
-                    
-                }
+                LOG_INFO(logger, "Configured successfully");
+                return ret;
             }
             
-            Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
-            jarvis->Validate(doc);
-
-            for (auto& pair : *jarvis)
-            {
-                const jarvis::cfg_key_e key = pair.first;
-                if (key == jarvis::cfg_key_e::OPERATION)
-                {
-                    applyOperationCIN(pair.second);
-                    for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                    {
-                        delete *it;
-                    }
-                    break;
-                }
-            }
-
-
+            LOG_WARNING(logger, "[TRIAL: #%u] CONFIGURATION WAS UNSUCCESSFUL: %s", count, ret.c_str());
+            vTaskDelay((1 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
 
-    //     jarvis::config::CatM1 config;
-    //     config.SetModel(jarvis::md_e::LM5);
-    //     config.SetCounty(jarvis::ctry_e::KOREA);
-
-    //     Status ret = InitCatM1(&config);
-    //     if (ret != Status::Code::GOOD)
-    //     {
-    //         LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1");
-    //         return ret;
-    //     }
-    // #if !defined(CATFS)
-    //     ret = InitCatHTTP();
-    //     if (ret != Status::Code::GOOD)
-    //     {
-    //         LOG_ERROR(logger, "FAILED TO INITIALIZE CatHTTP");
-    //         return ret;
-    //     }
-        
-        // ret = ConnectToBroker();
-    //     if (ret != Status::Code::GOOD)
-    //     {
-    //         LOG_ERROR(logger, "FAILED TO CONNECT TO THE BROKER");
-    //         return ret;
-    //     }
-    // #endif
-    
-    //     StartCatM1Task();
-
-        Status ret = ConnectToBrokerEthernet(); 
-        StartEthernetTask();
-
-        if (hasJARVIS)
-        {
-            core.StartJarvisTask();
-        }
-        
         return ret;
     }
 
-    Status Initializer::configureWithJarvis()
+    Status Initializer::createDefaultConfig()
     {
-        LOG_WARNING(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
-
-        fs::File file = esp32FS.Open(JARVIS_FILE_PATH);
-        std::string payload;
-
-        while (file.available() > 0)
+        File file = esp32FS.Open(JARVIS_PATH, "w", true);
+        if (file == false)
         {
-            payload += file.read();
+            LOG_ERROR(logger, "FAILED TO OPEN JARVIS DIRECTORY");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        LOG_DEBUG(logger, "Opened JARVIS file with 'WRITE' mode");
+
+        JsonDocument doc;
+        doc["ver"] = "v1";
+
+        JsonObject cnt = doc["cnt"].to<JsonObject>();
+        cnt["rs232"].to<JsonArray>();
+        cnt["rs485"].to<JsonArray>();
+        cnt["wifi"].to<JsonArray>();
+        cnt["eth"].to<JsonArray>();
+        cnt["mbrtu"].to<JsonArray>();
+        cnt["mbtcp"].to<JsonArray>();
+        cnt["node"].to<JsonArray>();
+        cnt["alarm"].to<JsonArray>();
+        cnt["optime"].to<JsonArray>();
+        cnt["prod"].to<JsonArray>();
+
+        JsonArray catm1 = cnt["catm1"].to<JsonArray>();
+        JsonObject _catm1 = catm1.add<JsonObject>();
+        _catm1["md"]    = "LM5";
+        _catm1["ctry"]  = "KR";
+
+        JsonArray op    = cnt["op"].to<JsonArray>();
+        JsonObject _op = op.add<JsonObject>();
+        _op["snic"]  = "lte";
+
+        const size_t size = measureJson(doc) + 1;
+        char buffer[size] = {'\0'};
+        serializeJson(doc, buffer, size);
+        doc.clear();
+
+        // Status ret = ConnectToBrokerEthernet();
+        // StartEthernetTask();
+        // if (mHasJARVIS)
+        // {
+        //     core.StartJarvisTask();
+        // }
+        // return ret;
+
+        file.write(reinterpret_cast<uint8_t*>(buffer), size);
+        file.flush();
+        file.close();
+        ASSERT((file == false), "FILE MUST BE FLUSHED AND CLOSED AFTER WRITING");
+
+        file = esp32FS.Open(JARVIS_PATH);
+        if (size != file.size())
+        {
+            LOG_ERROR(logger, "FAILED TO WRITE: size != file.size()");
+            file.close();
+
+            for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+            {
+                if (esp32FS.Remove(JARVIS_PATH) == Status::Code::GOOD)
+                {
+                    break;
+                }
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+            }
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
 
+        LOG_INFO(logger, "Default JARVIS config has been saved");
+        vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
+        return Status(Status::Code::GOOD);
+    }
+
+    Status Initializer::implementConfigure()
+    {
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        const size_t size = file.size();
+        char buffer[size + 1] = {'\0'};
+
+        for (size_t idx = 0; idx < size; ++idx)
+        {
+            buffer[idx] = file.read();
+        }
         file.close();
+
         {
             JSON json;
             JsonDocument doc;
@@ -237,7 +298,7 @@ namespace muffin {
 
                     std::string Updatepayload;
                     serializeJson(doc, Updatepayload);
-                    file = esp32FS.Open(JARVIS_FILE_PATH, "w", true);
+                    file = esp32FS.Open(JARVIS_PATH, "w", true);
                     for (size_t i = 0; i < Updatepayload.length(); ++i)
                     {
                         file.write(Updatepayload[i]);

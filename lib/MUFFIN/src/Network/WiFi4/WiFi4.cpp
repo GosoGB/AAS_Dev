@@ -62,7 +62,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status WiFi4::Config(jarvis::config::Base* config)
+    Status WiFi4::Config(jvs::config::Base* config)
     {
         assert(config != nullptr);
         // assert(config->GetCategory() == cfg_key_e::WIFI4);
@@ -83,7 +83,7 @@ namespace muffin {
             }
         }
         
-        mConfig = *static_cast<jarvis::config::WiFi4*>(config);
+        mConfig = *static_cast<jvs::config::WiFi4*>(config);
         WiFi.setMinSecurity(mConfig.GetAuthMode().second);
         WiFi.setAutoReconnect(true);
 
@@ -217,9 +217,9 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    jarvis::config::Base* WiFi4::GetConfig()
+    jvs::config::Base* WiFi4::GetConfig()
     {
-        return static_cast<jarvis::config::Base*>(&mConfig);
+        return static_cast<jvs::config::Base*>(&mConfig);
     }
 
     const char* WiFi4::GetMacAddress() const

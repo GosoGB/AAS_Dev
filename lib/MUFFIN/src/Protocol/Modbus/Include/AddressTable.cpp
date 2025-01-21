@@ -31,7 +31,7 @@ namespace muffin { namespace modbus {
     {
     }
 
-    Status AddressTable::Update(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range)
+    Status AddressTable::Update(const uint8_t slaveID, const jvs::mb_area_e area, const AddressRange& range)
     {
         Status ret(Status::Code::UNCERTAIN);
 
@@ -75,7 +75,7 @@ namespace muffin { namespace modbus {
         return ret;
     }
 
-    Status AddressTable::Remove(const uint8_t slaveID, const jarvis::mb_area_e area, const AddressRange& range)
+    Status AddressTable::Remove(const uint8_t slaveID, const jvs::mb_area_e area, const AddressRange& range)
     {
         auto it = mMapAddressBySlave.find(slaveID);
         if (it == mMapAddressBySlave.end())
@@ -205,9 +205,9 @@ namespace muffin { namespace modbus {
             for (const auto& area : retrieved.second)
             {
                 const auto& ranges = address.RetrieveAddressRange(area);
-                const char* strArea = area == jarvis::mb_area_e::COILS          ? "COIL" :
-                                      area == jarvis::mb_area_e::DISCRETE_INPUT ? "D.I." :
-                                      area == jarvis::mb_area_e::INPUT_REGISTER ? "I.R." : "H.R.";
+                const char* strArea = area == jvs::mb_area_e::COILS          ? "COIL" :
+                                      area == jvs::mb_area_e::DISCRETE_INPUT ? "D.I." :
+                                      area == jvs::mb_area_e::INPUT_REGISTER ? "I.R." : "H.R.";
                 
                 for (const auto& range : ranges)
                 {

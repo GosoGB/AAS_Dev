@@ -28,7 +28,7 @@
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     class NetworkValidator
     {

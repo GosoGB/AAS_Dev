@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     typedef enum class ResponseStatusCodeEnum
         : uint16_t

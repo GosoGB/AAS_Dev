@@ -168,27 +168,27 @@ namespace muffin {
 		return std::string(dateTime);
 	}
 
-    Status SyncWithNTP(const jarvis::snic_e snic)
+    Status SyncWithNTP(const jvs::snic_e snic)
 	{
 		switch (snic)
 		{
-		case jarvis::snic_e::LTE_CatM1:
+		case jvs::snic_e::LTE_CatM1:
 			{
 				CatM1& catM1 = CatM1::GetInstance();
 				return catM1.SyncWithNTP();
 			}
 /* MFM Ver.1.2.0 이후에 구현해야 합니다.
 	#if defined(MODLINK_T2) || defined(MODLINK_B)
-		case jarvis::snic_e::Ethernet,:
+		case jvs::snic_e::Ethernet,:
 			{
 				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 			}
     #elif defined(MODLINK_B)
-		case jarvis::snic_e::Ethernet,:
+		case jvs::snic_e::Ethernet,:
 			{
 				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 			}
-        case jarvis::snic_e::WiFi4,:
+        case jvs::snic_e::WiFi4,:
 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
 	#endif
 */

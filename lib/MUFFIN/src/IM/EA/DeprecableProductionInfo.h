@@ -49,7 +49,7 @@ namespace muffin {
         static ProductionInfo* mInstance;
     
     public:
-        void Config(jarvis::config::Production* cin);
+        void Config(jvs::config::Production* cin);
         void Clear();
     private:
         std::pair<bool, std::string> mNodeIdTotal;

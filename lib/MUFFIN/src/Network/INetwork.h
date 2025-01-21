@@ -31,7 +31,7 @@ namespace muffin {
         virtual ~INetwork() {}
     public:
         virtual Status Init() = 0;
-        virtual Status Config(jarvis::config::Base* config) = 0;
+        virtual Status Config(jvs::config::Base* config) = 0;
         virtual Status Connect() = 0;
         virtual Status Disconnect() = 0;
         virtual Status Reconnect() = 0;
@@ -39,6 +39,6 @@ namespace muffin {
         virtual IPAddress GetIPv4() const = 0;
         virtual std::pair<Status, size_t> TakeMutex() = 0;
         virtual Status ReleaseMutex() = 0;
-        virtual jarvis::config::Base* GetConfig() = 0;
+        virtual jvs::config::Base* GetConfig() = 0;
     };
 }

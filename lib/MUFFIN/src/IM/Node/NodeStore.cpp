@@ -71,7 +71,7 @@ namespace muffin { namespace im {
     {
     }
 
-    Status NodeStore::Create(const jarvis::config::Node* cin)
+    Status NodeStore::Create(const jvs::config::Node* cin)
     {
         try
         {

@@ -28,7 +28,7 @@
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/EA/DeprecableOperationTime.h"
-#include "JARVIS/Jarvis.h"
+#include "JARVIS/JARVIS.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "JarvisTask.h"
 #include "Protocol/MQTT/CDO.h"
@@ -59,7 +59,7 @@ namespace muffin {
     static bool s_HasPlanExpirationCommand = false;
     static uint16_t s_PollingInterval =  1;
     static uint16_t s_PublishInterval = 60;
-    static jarvis::snic_e s_ServerNIC = jarvis::snic_e::LTE_CatM1;
+    static jvs::snic_e s_ServerNIC = jvs::snic_e::LTE_CatM1;
 
     /**
      * @todo LTE Cat.M1 모뎀을 쓰지 않을 때의 기능을 구현해야 합니다.
@@ -67,13 +67,13 @@ namespace muffin {
     void ProcessJarvisRequestTask(void* pvParameters)
     {
         jarvis_task_params* params = (jarvis_task_params*)pvParameters;
-        void (*callback)(jarvis::ValidationResult&) = params->Callback;
+        void (*callback)(jvs::ValidationResult&) = params->Callback;
         ASSERT((callback != nullptr), "CALLBACK FUNCTION CANNOT BE NULL");
         
         delete params;
         params = nullptr;
 
-        jarvis::ValidationResult validationResult;
+        jvs::ValidationResult validationResult;
 
 
 #ifdef DEBUG
@@ -83,7 +83,7 @@ namespace muffin {
         {/* JARVIS 설정 태스크는 한 번에 하나의 요청만 처리하도록 설계되어 있습니다. */
             if (s_IsJarvisTaskRunning == true)
             {
-                validationResult.SetRSC(jarvis::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
+                validationResult.SetRSC(jvs::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
                 validationResult.SetDescription("UNAVAILABLE DUE TO JARVIS TASK BEING ALREADY RUNNING OR BLOCKED");
 
                 callback(validationResult);
@@ -103,12 +103,14 @@ namespace muffin {
             Status ret = Status(Status::Code::UNCERTAIN);
             switch (s_ServerNIC)
             {
-            case jarvis::snic_e::LTE_CatM1:
+            case jvs::snic_e::LTE_CatM1:
                 ret = strategyCatHttp();
                 break;
-            case jarvis::snic_e::Ethernet:
+#if defined(MODLINK_T2)
+            case jvs::snic_e::Ethernet:
                 ret = strategyLwipHttp();
                 break;
+#endif
             default:
                 break;
             }
@@ -120,19 +122,19 @@ namespace muffin {
                 switch (ret.ToCode())
                 {
                 case Status::Code::BAD_TIMEOUT:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_TIMEOUT);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_COMMUNICATION_TIMEOUT);
                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: TIMEOUT");
                     break;
                 case Status::Code::BAD_NO_COMMUNICATION:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_COMMUNICATION);
                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: COMMUNICATION FAILED");
                     break;
                 case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_COMMUNICATION_CAPACITY_EXCEEDED);
                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER: OUT OF MEMORY");
                     break;
                 default:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_COMMUNICATION);
                     validationResult.SetDescription("FAILED TO FETCH FROM API SERVER");
                     break;
                 }
@@ -167,31 +169,31 @@ namespace muffin {
                 switch (retJSON.ToCode())
                 {
                 case Status::Code::BAD_END_OF_STREAM:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_COMMUNICATION);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_COMMUNICATION);
                     validationResult.SetDescription("PAYLOAD INSUFFICIENT OR INCOMPLETE");
                     break;
                 case Status::Code::BAD_NO_DATA:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
                     validationResult.SetDescription("PAYLOAD EMPTY");
                     break;
                 case Status::Code::BAD_DATA_ENCODING_INVALID:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_ERROR);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_DECODING_ERROR);
                     validationResult.SetDescription("PAYLOAD INVALID ENCODING");
                     break;
                 case Status::Code::BAD_OUT_OF_MEMORY:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_OUT_OF_MEMORY);
                     validationResult.SetDescription("PAYLOAD OUT OF MEMORY");
                     break;
                 case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
                     validationResult.SetDescription("PAYLOAD EXCEEDED NESTING LIMIT");
                     break;
                 case Status::Code::BAD_UNEXPECTED_ERROR:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
                     validationResult.SetDescription("UNDEFINED CONDITION");
                     break;
                 default:
-                    validationResult.SetRSC(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
+                    validationResult.SetRSC(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
                     validationResult.SetDescription("UNDEFINED CONDITION");
                     break;
                 }
@@ -209,7 +211,7 @@ namespace muffin {
              *       JARVIS 없이 설정하는 경우를 대비해서 GetInstanceOrCrash()룰 호출해야 합니다.
              * @todo CreateOrNULL()로 함수 명을 바꾸면 위의 투 두 없이도 가능합니다.
              */
-            Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
+            JARVIS* jarvis = new(std::nothrow) JARVIS::JARVIS();
             for (auto& pair : *jarvis)
             {
                 for (auto& element : pair.second)
@@ -246,11 +248,11 @@ namespace muffin {
      */
     void ApplyJarvisTask()
     {
-        Jarvis& jarvis = Jarvis::GetInstance();
+        JARVIS& jarvis = JARVIS::GetInstance();
         for (auto& pair : jarvis)
         {
-            const jarvis::cfg_key_e key = pair.first;
-            if (key == jarvis::cfg_key_e::LTE_CatM1)
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::LTE_CatM1)
             {
                 applyLteCatM1CIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
@@ -263,8 +265,8 @@ namespace muffin {
 
         for (auto& pair : jarvis)
         {
-            const jarvis::cfg_key_e key = pair.first;
-            if (key == jarvis::cfg_key_e::ETHERNET)
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::ETHERNET)
             {
                 applyEthernetCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
@@ -277,8 +279,8 @@ namespace muffin {
 
         for (auto& pair : jarvis)
         {
-            const jarvis::cfg_key_e key = pair.first;
-            if (key == jarvis::cfg_key_e::NODE)
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::NODE)
             {
                 applyNodeCIN(pair.second);
                 s_HasNode = true;
@@ -293,8 +295,8 @@ namespace muffin {
 
         for (auto& pair : jarvis)
         {
-            const jarvis::cfg_key_e key = pair.first;
-            if (key == jarvis::cfg_key_e::OPERATION)
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::OPERATION)
             {
                 applyOperationCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
@@ -307,25 +309,25 @@ namespace muffin {
 
         for (auto& pair : jarvis)
         {
-            const jarvis::cfg_key_e key = pair.first;
+            const jvs::cfg_key_e key = pair.first;
 
             switch (key)
             {
-            case jarvis::cfg_key_e::ALARM:
+            case jvs::cfg_key_e::ALARM:
                 applyAlarmCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
                 break;
-            case jarvis::cfg_key_e::OPERATION_TIME:
+            case jvs::cfg_key_e::OPERATION_TIME:
                 applyOperationTimeCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
                 break;
-            case jarvis::cfg_key_e::RS485:
+            case jvs::cfg_key_e::RS485:
                 applyRS485CIN(pair.second);
                 /**
                  * @todo 현재 MODLINK-L에서 해당 설정값을 제거하면 RTU 설정시 문제가 발생해서 주석처리 해주었음
@@ -336,20 +338,20 @@ namespace muffin {
                 //     delete *it;
                 // }
                 break;
-            case jarvis::cfg_key_e::PRODUCTION_INFO:
+            case jvs::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
                 break;
-            case jarvis::cfg_key_e::MODBUS_RTU:
+            case jvs::cfg_key_e::MODBUS_RTU:
                 {
                     for (auto cin : jarvis)
                     {
-                        if (cin.first == jarvis::cfg_key_e::RS485)
+                        if (cin.first == jvs::cfg_key_e::RS485)
                         {
-                            jarvis::config::Rs485* rs485CIN = static_cast<jarvis::config::Rs485*>(cin.second[0]);
+                            jvs::config::Rs485* rs485CIN = static_cast<jvs::config::Rs485*>(cin.second[0]);
                             applyModbusRtuCIN(pair.second, rs485CIN);
                             for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                             {
@@ -360,14 +362,14 @@ namespace muffin {
                     }
                 }
                 break;
-            case jarvis::cfg_key_e::NODE:
-            case jarvis::cfg_key_e::LTE_CatM1:
-            case jarvis::cfg_key_e::OPERATION:
-            case jarvis::cfg_key_e::RS232:
-            case jarvis::cfg_key_e::WIFI4:
-            case jarvis::cfg_key_e::ETHERNET:
+            case jvs::cfg_key_e::NODE:
+            case jvs::cfg_key_e::LTE_CatM1:
+            case jvs::cfg_key_e::OPERATION:
+            case jvs::cfg_key_e::RS232:
+            case jvs::cfg_key_e::WIFI4:
+            case jvs::cfg_key_e::ETHERNET:
                 break;
-            case jarvis::cfg_key_e::MODBUS_TCP:
+            case jvs::cfg_key_e::MODBUS_TCP:
                 applyModbusTcpCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
@@ -386,54 +388,54 @@ namespace muffin {
         }
     }
 
-    void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN)
+    void applyAlarmCIN(std::vector<jvs::config::Base*>& vectorAlarmCIN)
     {
         AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         for (auto cin : vectorAlarmCIN)
         {
-            alarmMonitor.Add(static_cast<jarvis::config::Alarm*>(cin));
+            alarmMonitor.Add(static_cast<jvs::config::Alarm*>(cin));
         }
         alarmMonitor.StartTask();
     }
     
-    void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN)
+    void applyNodeCIN(std::vector<jvs::config::Base*>& vectorNodeCIN)
     {
         im::NodeStore* nodeStore = im::NodeStore::CreateInstanceOrNULL();
         for (auto& baseCIN : vectorNodeCIN)
         {
-            jarvis::config::Node* nodeCIN = static_cast<jarvis::config::Node*>(baseCIN);
+            jvs::config::Node* nodeCIN = static_cast<jvs::config::Node*>(baseCIN);
             nodeStore->Create(nodeCIN);
         }
     }
     
-    void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN)
+    void applyOperationTimeCIN(std::vector<jvs::config::Base*>& vectorOperationTimeCIN)
     {
         OperationTime& operationTime = OperationTime::GetInstance();
         for (auto cin : vectorOperationTimeCIN)
         {
-            operationTime.Config(static_cast<jarvis::config::OperationTime*>(cin));
+            operationTime.Config(static_cast<jvs::config::OperationTime*>(cin));
         }
         operationTime.StartTask();
     }
     
-    void applyProductionInfoCIN(std::vector<jarvis::config::Base*>& vectorProductionInfoCIN)
+    void applyProductionInfoCIN(std::vector<jvs::config::Base*>& vectorProductionInfoCIN)
     {
         ProductionInfo& productionInfo = ProductionInfo::GetInstance();
         for (auto cin : vectorProductionInfoCIN)
         {
-            productionInfo.Config(static_cast<jarvis::config::Production*>(cin));
+            productionInfo.Config(static_cast<jvs::config::Production*>(cin));
         }
         productionInfo.StartTask();
     }
 
-    void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN)
+    void applyOperationCIN(std::vector<jvs::config::Base*>& vectorOperationCIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((vectorOperationCIN.size() == 1), "THERE MUST BE ONLY ONE OPERATION CIN");
     #endif
 
         //LOG_DEBUG(logger, "Start applying Operation CIN");
-        jarvis::config::Operation* cin = static_cast<jarvis::config::Operation*>(vectorOperationCIN[0]);
+        jvs::config::Operation* cin = static_cast<jvs::config::Operation*>(vectorOperationCIN[0]);
 
         s_HasFactoryResetCommand   = cin->GetFactoryReset().second;
         LOG_INFO(logger,"s_HasFactoryResetCommand : %s", s_HasFactoryResetCommand == true ? "true":"false" );
@@ -454,17 +456,17 @@ namespace muffin {
         return s_PublishInterval;
     }
 
-    jarvis::snic_e RetrieveServerNIC()
+    jvs::snic_e RetrieveServerNIC()
     {
         return s_ServerNIC;
     }
 
-    void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN)
+    void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND MODLINK-ML10");
-        jarvis::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
-        if (cin->GetPortIndex().second == jarvis::prt_e::PORT_2)
+        jvs::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
+        if (cin->GetPortIndex().second == jvs::prt_e::PORT_2)
         {
             RS485 = new(std::nothrow) RS485Class(Serial2, 17, -1, -1);
             if (RS485 == nullptr)
@@ -479,7 +481,7 @@ namespace muffin {
             size_t count = 0;
             while (count < 5)
             {
-                Status ret = spear.SetJarvisLinkConfig(Rs485CIN, jarvis::cfg_key_e::RS485);
+                Status ret = spear.SetJarvisLinkConfig(Rs485CIN, jvs::cfg_key_e::RS485);
                 if (ret == Status(Status::Code::GOOD))
                 {
                     break;
@@ -492,12 +494,12 @@ namespace muffin {
     #endif
     }
     
-    void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN)
+    void applyLteCatM1CIN(std::vector<jvs::config::Base*>& vectorLteCatM1CIN)
     {
         ASSERT((vectorLteCatM1CIN.size() == 1), "THERE MUST BE ONLY ONE LTE Cat.M1 CIN");
         LOG_INFO(logger, "Start to apply LTE Cat.M1 configuration");
 
-        jarvis::config::CatM1* cin = Convert.ToCatM1CIN(vectorLteCatM1CIN[0]);
+        jvs::config::CatM1* cin = Convert.ToCatM1CIN(vectorLteCatM1CIN[0]);
         while (InitCatM1(cin) != Status::Code::GOOD)
         {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -507,7 +509,7 @@ namespace muffin {
         StartCatM1Task();
     }
 
-    void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN)
+    void applyModbusRtuCIN(std::vector<jvs::config::Base*>& vectorModbusRTUCIN, jvs::config::Rs485* rs485CIN)
     {
         if (s_HasNode == false)
         {
@@ -529,7 +531,7 @@ namespace muffin {
         {
             ModbusRTU* modbusRTU = new ModbusRTU();
             modbusRTU->SetPort(rs485CIN);
-            jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
+            jvs::config::ModbusRTU* cin = static_cast<jvs::config::ModbusRTU*>(modbusRTUCIN);
             modbusRTU->mPort = cin->GetPort().second;
             Status ret = modbusRTU->Config(cin);
             if (ret != Status::Code::GOOD)
@@ -550,11 +552,11 @@ namespace muffin {
         ModbusRtuVector.clear();
         mVectorModbusRTU.clear();
         
-        std::set<jarvis::prt_e> link;
+        std::set<jvs::prt_e> link;
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
             ModbusRTU* modbusRTU = new ModbusRTU();
-            jarvis::config::ModbusRTU* cin = static_cast<jarvis::config::ModbusRTU*>(modbusRTUCIN);
+            jvs::config::ModbusRTU* cin = static_cast<jvs::config::ModbusRTU*>(modbusRTUCIN);
             modbusRTU->mPort = cin->GetPort().second;
             link.insert(modbusRTU->mPort);
             Status ret = modbusRTU->Config(cin);
@@ -587,14 +589,14 @@ namespace muffin {
         
     }
 
-    void applyEthernetCIN(std::vector<jarvis::config::Base*>& vectorEthernetCIN)
+    void applyEthernetCIN(std::vector<jvs::config::Base*>& vectorEthernetCIN)
     {
 
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
     #endif
         ASSERT((vectorEthernetCIN.size() == 1), "THERE MUST BE ONLY ONE ETHERNET CIN FOR MODLINK-B AND MODLINK-T2");
-        jarvis::config::Ethernet* cin = Convert.ToEthernetCIN(vectorEthernetCIN[0]);
+        jvs::config::Ethernet* cin = Convert.ToEthernetCIN(vectorEthernetCIN[0]);
         Status ret = Status(Status::Code::UNCERTAIN);
         if (ethernet == nullptr)
         {
@@ -640,7 +642,7 @@ namespace muffin {
         
     }
 
-    void applyModbusTcpCIN(std::vector<jarvis::config::Base*>& vectorModbusTCPCIN)
+    void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
@@ -663,7 +665,7 @@ namespace muffin {
         for (auto& modbusTCPCIN : vectorModbusTCPCIN)
         {
             ModbusTCP* modbusTCP = new ModbusTCP();
-            jarvis::config::ModbusTCP* cin = static_cast<jarvis::config::ModbusTCP*>(modbusTCPCIN);
+            jvs::config::ModbusTCP* cin = static_cast<jvs::config::ModbusTCP*>(modbusTCPCIN);
             Status ret = modbusTCP->Config(cin);
             if (ret != Status::Code::GOOD)
             {

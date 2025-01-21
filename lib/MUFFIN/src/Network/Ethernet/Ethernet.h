@@ -67,13 +67,13 @@ namespace muffin {
         } state_e;
     public:
         virtual Status Init() override;
-        virtual Status Config(jarvis::config::Base* config) override;
+        virtual Status Config(jvs::config::Base* config) override;
         virtual Status Connect() override;
         virtual Status Disconnect() override;
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
-        virtual jarvis::config::Base* GetConfig() override;
+        virtual jvs::config::Base* GetConfig() override;
         virtual std::pair<Status, size_t> TakeMutex() override;
         virtual Status ReleaseMutex() override;
         const char* GetMacAddress() const;
@@ -84,7 +84,7 @@ namespace muffin {
     private:
         static state_e mState;
         bool mHasBegun = false;
-        jarvis::config::Ethernet mConfig;
+        jvs::config::Ethernet mConfig;
         bool mIsArduinoEventCallbackRegistered = false;
     };
 

@@ -53,10 +53,10 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status Ethernet::Config(jarvis::config::Base* config)
+    Status Ethernet::Config(jvs::config::Base* config)
     {
         assert(config != nullptr);
-        assert(config->GetCategory() == jarvis::cfg_key_e::ETHERNET);
+        assert(config->GetCategory() == jvs::cfg_key_e::ETHERNET);
         assert(mState != state_e::NOT_INITIALIZED_YET);
 
         if (mIsArduinoEventCallbackRegistered == false)
@@ -74,7 +74,7 @@ namespace muffin {
             }
         }
 
-        mConfig = *static_cast<jarvis::config::Ethernet*>(config);
+        mConfig = *static_cast<jvs::config::Ethernet*>(config);
         mState = state_e::SUCCEDDED_TO_CONFIGURE;
         return Status(Status::Code::GOOD_ENTRY_REPLACED);
     }
@@ -168,9 +168,9 @@ namespace muffin {
         return ETH.localIP();
     }
 
-    jarvis::config::Base* Ethernet::GetConfig()
+    jvs::config::Base* Ethernet::GetConfig()
     {
-        return static_cast<jarvis::config::Base*>(&mConfig);
+        return static_cast<jvs::config::Base*>(&mConfig);
     }
 
     const char* Ethernet::GetMacAddress() const
@@ -236,7 +236,9 @@ namespace muffin {
             LOG_WARNING(logger,"count : %d",count);
             if(count>15)
             {
+#if defined(MODLINK_T2)
                 spear.Reset();   
+#endif
                 ESP.restart();
             }
             delay(1000);

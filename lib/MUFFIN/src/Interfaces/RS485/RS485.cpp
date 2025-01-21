@@ -60,12 +60,12 @@ namespace muffin {
     {
     }
     
-    void RS485::Config(jarvis::config::Rs485* config)
+    void RS485::Config(jvs::config::Rs485* config)
     {
         const auto cfg = config->GetPortIndex();
         ASSERT((cfg.first.ToCode() == Status::Code::GOOD), "INVALID CONFIGURATION STATUS: %s", cfg.first.c_str());
 
-        if (cfg.second == jarvis::prt_e::PORT_2)
+        if (cfg.second == jvs::prt_e::PORT_2)
         {
             mPort = &Serial2;
         }

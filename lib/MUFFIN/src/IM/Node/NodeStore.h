@@ -48,7 +48,7 @@ namespace muffin { namespace im {
         static NodeStore* mInstance;
     
     public:
-        Status Create(const jarvis::config::Node* cin);
+        Status Create(const jvs::config::Node* cin);
         Status Remove(const std::string& nodeID);
         void Clear();
         std::pair<Status, Node*> GetNodeReference(const std::string& nodeID);
