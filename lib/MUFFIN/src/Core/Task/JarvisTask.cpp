@@ -725,9 +725,14 @@ namespace muffin {
 
     Status strategyLwipHttp()
     {
-        http::LwipHTTP& lwipHttp = http::LwipHTTP::GetInstance();
-        INetwork* nic = lwipHttp.RetrieveNIC();
-
+        http::lwipHTTP = new(std::nothrow) http::LwipHTTP();
+        if (http::lwipHTTP == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR LWIP HTTP CLIENT");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        
+        INetwork* nic = http::lwipHTTP->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
@@ -736,23 +741,34 @@ namespace muffin {
         }
     
     #if defined(DEBUG)
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
+        http::RequestHeader header(
+            rest_method_e::GET,
+            http_scheme_e::HTTPS,
+            "api.mfm.edgecross.dev",
+            443,
+            "/api/mfm/device/write",
+            "MODLINK-L/0.0.1"
+        );
     #else
         http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
     #endif
         http::RequestParameter parameters;
         parameters.Add("mac", macAddress.GetEthernet());
 
-        lwipHttp.GET(mutex.second, header, parameters);
+        http::lwipHTTP->GET(mutex.second, header, parameters);
         s_JarvisApiPayload.clear();
-        Status ret = lwipHttp.Retrieve(mutex.second, &s_JarvisApiPayload);
+
+        Status ret = http::lwipHTTP->Retrieve(mutex.second, &s_JarvisApiPayload);
+        nic->ReleaseMutex();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
+            return ret;
+        }
         
         LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
         LOG_INFO(logger, "AFTER [TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
         LOG_INFO(logger, "AFTER Config Start: %u Bytes", ESP.getFreeHeap());
-
-        nic->ReleaseMutex();
-
         return Status(Status::Code::GOOD);
     }
 

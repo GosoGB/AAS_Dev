@@ -4,7 +4,7 @@
  * 
  * @brief LWIP TCP/IP stack 기반의 HTTP 클라이언트 클래스를 정의합니다.
  * 
- * @date 2025-01-20
+ * @date 2025-01-21
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -44,8 +44,8 @@ namespace muffin { namespace http {
         case http_scheme_e::HTTP:
             return getHTTP(header, parameter, timeout);
 
-        case http_scheme_e::HTTPS:
-            return getHTTPS(header, parameter, timeout);
+        // case http_scheme_e::HTTPS:
+        //     return getHTTPS(header, parameter, timeout);
 
         default:
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
@@ -56,11 +56,11 @@ namespace muffin { namespace http {
     {
         switch (header.GetScheme())
         {
-        case http_scheme_e::HTTP:
-            return postHTTP(header, body, timeout);
+        // case http_scheme_e::HTTP:
+        //     return postHTTP(header, body, timeout);
 
-        case http_scheme_e::HTTPS:
-            return postHTTPS(header, body, timeout);
+        // case http_scheme_e::HTTPS:
+        //     return postHTTPS(header, body, timeout);
 
         default:
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
@@ -71,11 +71,11 @@ namespace muffin { namespace http {
     {
         switch (header.GetScheme())
         {
-        case http_scheme_e::HTTP:
-            return postHTTP(header, parameter, timeout);
+        // case http_scheme_e::HTTP:
+        //     return postHTTP(header, parameter, timeout);
             
-        case http_scheme_e::HTTPS:
-            return postHTTPS(header, parameter, timeout);
+        // case http_scheme_e::HTTPS:
+        //     return postHTTPS(header, parameter, timeout);
             
         default:
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
@@ -84,44 +84,149 @@ namespace muffin { namespace http {
 
     Status LwipHTTP::Retrieve(const size_t mutexHandle, std::string* response)
     {
-        if (esp32FS.DoesExist(mResponsePath) == Status::Code::GOOD)
+        ASSERT((response != nullptr), "INPUT PARAMETER <std::string* response> CANNOT BE NULL");
+
+        if (mFlags.test(static_cast<uint8_t>(flag_e::FLASH)) == true)
         {
             File file = esp32FS.Open(mResponsePath);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+            
             try
             {
                 response->reserve(file.size());
             }
             catch(const std::bad_alloc& e)
             {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE");
-                return 
+                LOG_ERROR(logger, "FAILED TO RETRIEVE DUE TO MEMORY");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
             catch(const std::exception& e)
             {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE");
-                return 
+                LOG_ERROR(logger, "FAILED TO RETRIEVE RESPONSE");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
             }
             
-            
-        }
-        
-        *response = mResponseData;
-        if (*response == mResponseData)
-        {
-            /* code */
-        }
-        
-        mResponseData.clear();
-        mResponseData.shrink_to_fit();
-        
-        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
-        {
-            if (esp32FS.Remove(mResponsePath) == Status::Code::GOOD)
+            while (file.available() > 0)
             {
-                break;
+                *response += file.read();
             }
+            file.close();
+            ASSERT((file == false), "FILE MUST BE CLOSED TO BE REMOVED");
+
+            for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+            {
+                if (esp32FS.Remove(mResponsePath) == Status::Code::GOOD)
+                {
+                    return Status(Status::Code::GOOD);
+                }
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+            LOG_ERROR(logger, "FAILED TO REMOVE RESPONSE FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
-        return Status(Status::Code::GOOD);
+        else
+        {
+            ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::CLIENT)) == true), "FLAG MUST BE SET TO CLIENT");
+
+            try
+            {
+                response->reserve(mContentLength);
+                if (mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) == true)
+                {
+                    while (mClient.available() > 0)
+                    {
+                        *response += mClient.read();
+                    }
+                }
+                else
+                {
+                    ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::HTTPS)) == true), "FLAG MUST BE SET TO HTTPS");
+
+                    while (mClientSecure.available() > 0)
+                    {
+                        *response += mClientSecure.read();
+                    }
+                }
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE DUE TO MEMORY");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE RESPONSE");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+
+            return Status(Status::Code::GOOD);
+        }
+    }
+
+    Status LwipHTTP::Retrieve(const size_t mutexHandle, const size_t length, uint8_t output[])
+    {
+        ASSERT((output != nullptr), "INPUT PARAMETER <uint8_t output[]> CANNOT BE NULL");
+
+        if (mFlags.test(static_cast<uint8_t>(flag_e::FLASH)) == true)
+        {
+            File file = esp32FS.Open(mResponsePath);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+
+            size_t idx = 0;
+            while (file.available() > 0)
+            {
+                output[idx++] = file.read();
+                if ((idx + 1) == length)
+                {
+                    return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                }
+            }
+            file.close();
+            ASSERT((file == false), "FILE MUST BE CLOSED TO BE REMOVED");
+
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::CLIENT)) == true), "FLAG MUST BE SET TO CLIENT");
+
+            if (mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) == true)
+            {
+                size_t idx = 0;
+                while (mClient.available() > 0)
+                {
+                    output[idx++] = mClient.read();
+                    if ((idx + 1) == length)
+                    {
+                        return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                    }
+                }
+            }
+            else
+            {
+                ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::HTTPS)) == true), "FLAG MUST BE SET TO HTTPS");
+
+                size_t idx = 0;
+                while (mClientSecure.available() > 0)
+                {
+                    output[idx++] = mClientSecure.read();
+                    if ((idx + 1) == length)
+                    {
+                        return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                    }
+                }
+            }
+            
+            return Status(Status::Code::GOOD);
+        }
     }
 
     INetwork* LwipHTTP::RetrieveNIC()
@@ -129,7 +234,31 @@ namespace muffin { namespace http {
         return static_cast<INetwork*>(ethernet);
     }
 
-    Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout, uint16_t* rsc, int32_t* contentLength)
+    int32_t LwipHTTP::RetrieveContentLength() const
+    {
+        ASSERT(
+            (
+                (mFlags.test(static_cast<uint8_t>(flag_e::CLIENT)) == true) ||
+                (mFlags.test(static_cast<uint8_t>(flag_e::FLASH))  == true)
+            ), "INVALID RESPONSE STORAGE FLAG"
+        );
+
+        if (mFlags.test(static_cast<uint8_t>(flag_e::FLASH)) == true)
+        {
+            File file = esp32FS.Open(mResponsePath);
+            if (file == false)
+            {
+                return -1;
+            }
+            return file.size();
+        }
+        else
+        {
+            return mContentLength;
+        }
+    }
+
+    Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
@@ -146,28 +275,21 @@ namespace muffin { namespace http {
         
         mClient.print(header.ToString().c_str());
 
-        ASSERT((rsc != nullptr), "INPUT PARAMETER <uint16_t* rsc> CANNOT BE NULL");
-        ASSERT((contentLength != nullptr), "INPUT PARAMETER <int32_t* contentLength> CANNOT BE NULL");
+        mRSC = 0;
+        mContentLength = 0;
 
-        *rsc = 0;
-        *contentLength = 0;
-
-        ret = processResponseHeader(timeout, rsc, contentLength);
+        ret = processResponseHeader(timeout);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "INVALID RESPONSE HEADER: %s", ret.c_str());
             return ret;
         }
-        
-        
-        // std::string body = getHttpBody((result.c_str()));
 
-
-        if ((*rsc % 200) < 100)
+        if ((mRSC % 200) < 100)
         {
-            LOG_INFO(logger, "[GET] rsc: %u, length: %d", *rsc, *contentLength);
+            LOG_INFO(logger, "[GET] rsc: %u, length: %d", mRSC, mContentLength);
 
-            if (*contentLength == -1)
+            if (mContentLength == -1)
             {
                 File file = esp32FS.Open(mResponsePath, "w");
                 if (file == false)
@@ -192,7 +314,7 @@ namespace muffin { namespace http {
                     goto TEARDOWN;
                 }
 
-                *contentLength = file.size();
+                mContentLength = file.size();
                 file.close();
             }
             
@@ -201,27 +323,27 @@ namespace muffin { namespace http {
         }
         else
         {
-            if ((*rsc % 100) < 100)
+            if ((mRSC % 100) < 100)
             {
-                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", *rsc);
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
                 ret = Status::Code::BAD_UNKNOWN_RESPONSE;
                 goto TEARDOWN;
             }
-            else if ((*rsc % 300) < 100)
+            else if ((mRSC % 300) < 100)
             {
-                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", *rsc);
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
                 ret = Status::Code::BAD_UNKNOWN_RESPONSE;
                 goto TEARDOWN;
             }
-            else if ((*rsc % 400) < 100)
+            else if ((mRSC % 400) < 100)
             {
-                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", *rsc);
+                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", mRSC);
                 ret = Status::Code::BAD;
                 goto TEARDOWN;
             }
-            else if ((*rsc % 500) < 100)
+            else if ((mRSC % 500) < 100)
             {
-                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", *rsc);
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
                 ret = Status::Code::BAD;
                 goto TEARDOWN;
             }
@@ -232,6 +354,7 @@ namespace muffin { namespace http {
         return ret;
     }
 
+/*
     Status LwipHTTP::getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         Status ret = Status(Status::Code::GOOD);
@@ -444,14 +567,12 @@ namespace muffin { namespace http {
         
         return ret;
     }
+*/
 
-    Status LwipHTTP::processResponseHeader(const uint16_t timeout, uint16_t* rsc, int32_t* contentLength)
+    Status LwipHTTP::processResponseHeader(const uint16_t timeout)
     {
-        ASSERT((rsc != nullptr), "INPUT PARAMETER <uint16_t* rsc> CANNOT BE NULL");
-        ASSERT((contentLength != nullptr), "INPUT PARAMETER <int32_t* contentLength> CANNOT BE NULL");
-
-        *rsc = 0;
-        *contentLength = -1;
+        mRSC = 0;
+        mContentLength = -1;
 
         const uint32_t startedMillis = millis();
         const uint8_t size = 128;
@@ -495,12 +616,12 @@ namespace muffin { namespace http {
             if (strncmp(line, "HTTP/", 5) == 0)
             {
                 char* pos = strchr(line, ' ');
-                *rsc = atoi(++pos);
+                mRSC = atoi(++pos);
             }
             else if (strncmp(line, "Content-Length:", 15) == 0)
             {
                 char* pos = strchr(line, ' ');
-                *contentLength = atoi(++pos);
+                mContentLength = atoi(++pos);
             }
             idx = 0;
         }
@@ -509,6 +630,7 @@ namespace muffin { namespace http {
         return Status(Status::Code::GOOD);
     }
 
+/*
     std::string LwipHTTP::getHttpBody(const std::string& payload) 
     {
         bool HeaderExist = false;
@@ -586,4 +708,8 @@ namespace muffin { namespace http {
         }
         return body;
     }
+*/
+
+
+    LwipHTTP* lwipHTTP = nullptr;
 }}

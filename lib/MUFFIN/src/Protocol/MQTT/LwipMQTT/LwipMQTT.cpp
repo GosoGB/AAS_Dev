@@ -114,7 +114,7 @@ namespace muffin { namespace mqtt {
 
     Status LwipMQTT::Init()
     {
-        mLwipSecureClient.setCACert(certificates);
+        mLwipSecureClient.setCACert(ROOT_CA_CRT);
         mPubSubClient.setClient(mLwipSecureClient);
         mPubSubClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
         mPubSubClient.setKeepAlive(10);

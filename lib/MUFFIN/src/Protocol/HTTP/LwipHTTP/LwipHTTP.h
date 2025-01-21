@@ -4,7 +4,7 @@
  * 
  * @brief LWIP TCP/IP stack 기반의 HTTP 클라이언트 클래스를 선언합니다.
  * 
- * @date 2025-01-20
+ * @date 2025-01-21
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -15,10 +15,11 @@
 
 #pragma once
 
-#include <bitset>
+#include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 
 #include "Common/Status.h"
+#include "Common/DataStructure/bitset.h"
 #include "Network/TypeDefinitions.h"
 #include "Protocol/HTTP/Include/RequestBody.h"
 #include "Protocol/HTTP/Include/RequestHeader.h"
@@ -34,25 +35,22 @@ namespace muffin { namespace http {
     public:
         LwipHTTP() {}
         virtual ~LwipHTTP() {}
-    private:
-        WiFiClient mClient;
-        WiFiClientSecure mClientSecure;
-    private:
-        std::string mResponseData;
     public:
         Status Init();
         virtual Status GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60) override;
         virtual Status POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60) override;
         virtual Status POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60) override;
         virtual Status Retrieve(const size_t mutexHandle, std::string* response) override;
+        Status Retrieve(const size_t mutexHandle, const size_t length, uint8_t output[]);
         virtual INetwork* RetrieveNIC() override;
+        int32_t RetrieveContentLength() const;
     private:
-        Status getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout, uint16_t* rsc, int32_t* contentLength);
-        Status getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        Status postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
-        Status postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
-        Status postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        Status postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        Status getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        // Status getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        // Status postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
+        // Status postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
+        // Status postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        // Status postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
     private:
         /**
          * @brief response header 정보를 추출합니다.
@@ -62,9 +60,27 @@ namespace muffin { namespace http {
          * @param contentLength response body 길이로 헤더에 속성이 없는 경우 -1을 반환
          * @return Status 
          */
-        Status processResponseHeader(const uint16_t timeout, uint16_t* rsc, int32_t* contentLength);
+        Status processResponseHeader(const uint16_t timeout);
         std::string getHttpBody(const std::string& payload);
     private:
+        WiFiClient mClient;
+        WiFiClientSecure mClientSecure;
+    private:
+        typedef enum class StatusFlagEnum : uint8_t
+        {
+            HTTP    = 0,
+            HTTPS   = 1,
+            FLASH   = 2,
+            CLIENT  = 3,
+            TOP     = 4
+        } flag_e;
+        bitset<static_cast<uint8_t>(flag_e::TOP)> mFlags;
+    private:
         const char* mResponsePath = "/http/response";
+        uint16_t mRSC = 0;
+        int32_t mContentLength = 0;
     };
+
+
+    extern LwipHTTP* lwipHTTP;
 }}

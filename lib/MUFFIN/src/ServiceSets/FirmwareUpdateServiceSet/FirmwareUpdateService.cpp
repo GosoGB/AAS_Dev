@@ -175,7 +175,7 @@ namespace muffin {
             }
 
             uint8_t* buffer;
-            xQueueReceive(sQueueHandle, buffer, UINT32_MAX);
+            xQueueReceive(sQueueHandle, &buffer, UINT32_MAX);
             ret = strategy.Write(info.Size.Array[info.Chunk.FlashingIDX], buffer);
             if (ret != Status::Code::GOOD)
             {
