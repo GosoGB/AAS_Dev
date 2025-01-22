@@ -126,17 +126,15 @@ namespace muffin {
         const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
     
-        mqtt::CIA& cia = mqtt::CIA::GetInstance();
-
         while (true)
         {
-            if (cia.Count() == 0)
+            if (mqtt::cia.Count() == 0)
             {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 continue;
             }
 
-            const auto receivedMessage = cia.Retrieve();
+            const auto receivedMessage = mqtt::cia.Retrieve();
             const Status status = receivedMessage.first;
             if (status.ToCode() != Status::Code::GOOD)
             {
@@ -178,17 +176,16 @@ namespace muffin {
         nic = lwipMqtt.RetrieveNIC();
         serviceNetwork = static_cast<mqtt::IMQTT*>(&lwipMqtt);
 
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
         const uint8_t MAX_RETRY_COUNT = 5;
         while (true)
         {
-            if (cdo.Count() == 0)
+            if (mqtt::cdo.Count() == 0)
             {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 continue;
             }
 
-            const auto pubMessage = cdo.Peek();
+            const auto pubMessage = mqtt::cdo.Peek();
             const Status status = pubMessage.first;
 
             if (status.ToCode() != Status::Code::GOOD)
@@ -210,7 +207,7 @@ namespace muffin {
                 Status ret = serviceNetwork->Publish(mutex.second, pubMessage.second);
                 if (ret == Status::Code::GOOD)
                 {
-                    cdo.Retrieve();
+                    mqtt::cdo.Retrieve();
                     break;
                 }
                 else if ((i + 1) == MAX_RETRY_COUNT)

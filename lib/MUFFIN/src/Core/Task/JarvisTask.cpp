@@ -211,7 +211,7 @@ namespace muffin {
              *       JARVIS 없이 설정하는 경우를 대비해서 GetInstanceOrCrash()룰 호출해야 합니다.
              * @todo CreateOrNULL()로 함수 명을 바꾸면 위의 투 두 없이도 가능합니다.
              */
-            JARVIS* jarvis = new(std::nothrow) JARVIS::JARVIS();
+            JARVIS* jarvis = new(std::nothrow) JARVIS();
             for (auto& pair : *jarvis)
             {
                 for (auto& element : pair.second)
@@ -248,8 +248,7 @@ namespace muffin {
      */
     void ApplyJarvisTask()
     {
-        JARVIS& jarvis = JARVIS::GetInstance();
-        for (auto& pair : jarvis)
+        for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::LTE_CatM1)
@@ -263,7 +262,7 @@ namespace muffin {
             }
         }
 
-        for (auto& pair : jarvis)
+        for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::ETHERNET)
@@ -277,7 +276,7 @@ namespace muffin {
             }
         }
 
-        for (auto& pair : jarvis)
+        for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::NODE)
@@ -293,7 +292,7 @@ namespace muffin {
             }
         }
 
-        for (auto& pair : jarvis)
+        for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::OPERATION)
@@ -307,7 +306,7 @@ namespace muffin {
             }
         }
 
-        for (auto& pair : jarvis)
+        for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
 
@@ -347,7 +346,7 @@ namespace muffin {
                 break;
             case jvs::cfg_key_e::MODBUS_RTU:
                 {
-                    for (auto cin : jarvis)
+                    for (auto cin : *jarvis)
                     {
                         if (cin.first == jvs::cfg_key_e::RS485)
                         {
@@ -382,7 +381,7 @@ namespace muffin {
             }
         }
 
-        for (auto& pair : jarvis)
+        for (auto& pair : *jarvis)
         {
             pair.second.clear();
         }
@@ -431,10 +430,9 @@ namespace muffin {
     void applyOperationCIN(std::vector<jvs::config::Base*>& vectorOperationCIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((vectorOperationCIN.size() == 1), "THERE MUST BE ONLY ONE OPERATION CIN");
+        ASSERT((vectorOperationCIN.size() == 1), "THERE MUST BE ONLY ONE OPERATION CIN: %u", vectorOperationCIN.size());
     #endif
 
-        //LOG_DEBUG(logger, "Start applying Operation CIN");
         jvs::config::Operation* cin = static_cast<jvs::config::Operation*>(vectorOperationCIN[0]);
 
         s_HasFactoryResetCommand   = cin->GetFactoryReset().second;

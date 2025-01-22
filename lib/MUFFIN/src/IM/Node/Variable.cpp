@@ -575,9 +575,7 @@ namespace muffin { namespace im {
                 JSON json;
                 const std::string payload = json.Serialize(daq);
                 mqtt::Message message(daq.Topic, payload);
-
-                mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                cdo.Store(message);
+                mqtt::cdo.Store(message);
             }
         }
 

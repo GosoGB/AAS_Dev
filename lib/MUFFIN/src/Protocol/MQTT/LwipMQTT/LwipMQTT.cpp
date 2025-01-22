@@ -107,7 +107,7 @@ namespace muffin { namespace mqtt {
 
         const mqtt::topic_e topicCode = retTopic.second;
         mqtt::Message message(topicCode, payloads);
-        mqtt::CIA::Store(message);
+        mqtt::cia.Store(message);
         LOG_INFO(logger,"PAYLOAD : %s",payloads.c_str());
         return;
     }

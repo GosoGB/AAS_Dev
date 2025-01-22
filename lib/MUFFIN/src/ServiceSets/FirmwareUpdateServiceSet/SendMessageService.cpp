@@ -50,8 +50,7 @@ namespace muffin {
         LOG_INFO(logger, "\n Topic: fota/status \n Payload: %s", buffer);
 
         mqtt::Message message(mqtt::topic_e::FOTA_STATUS, buffer);
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        Status ret = cdo.Store(message);
+        Status ret = mqtt::cdo.Store(message);
         if (ret != Status::Code::GOOD)
         {
             /**

@@ -124,9 +124,7 @@ namespace muffin {
                     JSON json;
                     const std::string payload = json.Serialize(ret.second);
                     mqtt::Message message(ret.second.Topic, payload);
-
-                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                    cdo.Store(message);
+                    mqtt::cdo.Store(message);
                 }
             }
             

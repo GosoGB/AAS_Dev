@@ -285,9 +285,7 @@ namespace muffin {
             std::string payload = json.Serialize(messageConfig);
 
             mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
-            Status ret = cdo.Store(message);
+            Status ret = mqtt::cdo.Store(message);
             if (ret != Status::Code::GOOD)
             {
                 /**
@@ -380,9 +378,7 @@ namespace muffin {
         std::string payload = json.Serialize(messageConfig);
 
         mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
-        Status ret = cdo.Store(message);
+        Status ret = mqtt::cdo.Store(message);
         if (ret != Status::Code::GOOD)
         {
             /**
@@ -437,8 +433,7 @@ namespace muffin {
 
             serializedPayload = json.Serialize(messageconfig);
             mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
+            Status ret = mqtt::cdo.Store(message);
             if (ret != Status::Code::GOOD)
             {
                 /**
@@ -493,8 +488,7 @@ namespace muffin {
 
                     serializedPayload = json.Serialize(messageconfig);
                     mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                    Status ret = cdo.Store(message);
+                    Status ret = mqtt::cdo.Store(message);
                     if (ret != Status::Code::GOOD)
                     {
                         /**
@@ -528,8 +522,7 @@ namespace muffin {
 
                     serializedPayload = json.Serialize(messageconfig);
                     mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                    Status ret = cdo.Store(message);
+                    Status ret = mqtt::cdo.Store(message);
                     if (ret != Status::Code::GOOD)
                     {
                         /**
@@ -562,8 +555,7 @@ namespace muffin {
 
             serializedPayload = json.Serialize(messageconfig);
             mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
+            Status ret = mqtt::cdo.Store(message);
             if (ret != Status::Code::GOOD)
             {
                 /**
@@ -581,8 +573,7 @@ namespace muffin {
             messageconfig.ResponseCode    = "900 : " + retConvertModbus.first.ToString();
             serializedPayload = json.Serialize(messageconfig);
             mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
+            Status ret = mqtt::cdo.Store(message);
             if (ret != Status::Code::GOOD)
             {
                 /**
@@ -762,9 +753,7 @@ ERROR_RESPONSE:
             serializedPayload = json.Serialize(messageconfig);
 
             mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
+            Status ret = mqtt::cdo.Store(message);
             if (ret != Status::Code::GOOD)
             {
                 /**
@@ -796,9 +785,7 @@ ERROR_RESPONSE:
             std::string payload = json.Serialize(messageConfig);
 
             mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
-            Status ret = cdo.Store(message);
+            Status ret = mqtt::cdo.Store(message);
             if (ret != Status::Code::GOOD)
             {
                 /**
@@ -831,8 +818,7 @@ ERROR_RESPONSE:
 
         std::string payload = json.Serialize(messageConfig);
         mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        Status ret = cdo.Store(message);
+        Status ret = mqtt::cdo.Store(message);
         if (ret != Status::Code::GOOD)
         {
              /**
@@ -866,7 +852,7 @@ ERROR_RESPONSE:
             file.close();
 
             // 혹시라도 MFM RESPONSE를 서버로 못보내고 리셋이 될 수도 있나?
-            while (cdo.Count() > 0)
+            while (mqtt::cdo.Count() > 0)
             {
                 delay(1);
             }

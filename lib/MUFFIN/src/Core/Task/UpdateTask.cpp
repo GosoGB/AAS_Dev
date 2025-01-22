@@ -11,8 +11,7 @@ namespace muffin {
 
     void StopAllTask()
     {
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        while (cdo.Count() > 0)
+        while (mqtt::cdo.Count() > 0)
         {
             delay(100);
         }
