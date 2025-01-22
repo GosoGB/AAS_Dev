@@ -626,9 +626,8 @@ namespace muffin {
         const mqtt::topic_e pushTopic = push.Topic;
         mqtt::Message pushMessage(pushTopic, pushPayload);
 
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(AlarmMessage);
-        cdo.Store(pushMessage);
+        mqtt::cdo.Store(AlarmMessage);
+        mqtt::cdo.Store(pushMessage);
 
         mVectorAlarmInfo.emplace_back(alarm);
     }
@@ -671,9 +670,7 @@ namespace muffin {
         const std::string payload = json.Serialize(alarm);
         const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
         mqtt::Message message(topic, payload);
-
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(message);
+        mqtt::cdo.Store(message);
     }
 
     std::pair<bool,std::vector<std::string>> AlarmMonitor::GetUclUid()
@@ -890,9 +887,7 @@ namespace muffin {
             const std::string payload = json.Serialize(param);
             const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
             mqtt::Message message(topic, payload);
-
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            cdo.Store(message);
+            mqtt::cdo.Store(message);
 
             cin.mPreviousLCL = lcl;
         }
@@ -916,10 +911,7 @@ namespace muffin {
             const std::string payload = json.Serialize(param);
             const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
             mqtt::Message message(topic, payload);
-
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            cdo.Store(message);
-
+            mqtt::cdo.Store(message);
             cin.mPreviousUCL = ucl;
         }
     }

@@ -4,10 +4,10 @@
  * 
  * @brief MUFFIN 프레임워크에서 사용하는 ASSERT 매크로 함수를 정의합니다.
  * 
- * @date 2024-09-11
- * @version 1.0.0
+ * @date 2025-01-22
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -33,7 +33,7 @@
                           << "ASSERTION FAILED: (" #condition ") \n" \
                           << "FILE: " << __FILE__ << "\nLINE: " << __LINE__ << " \n" \
                           << "LOG: " << buffer << "\n\n" << std::endl; \
-                vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS); \
+                vTaskDelay(1000 / portTICK_PERIOD_MS); \
                 std::abort(); \
             } \
         } while (false)

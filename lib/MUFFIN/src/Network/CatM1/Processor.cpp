@@ -512,7 +512,7 @@ namespace muffin {
         const mqtt::topic_e topicCode = retTopic.second;
         const std::string payload = vectorToken[3];
         mqtt::Message message(topicCode, payload);
-        mqtt::CIA::Store(message);
+        mqtt::cia.Store(message);
         // void triggerCallbackQMTRECV();
     }
 

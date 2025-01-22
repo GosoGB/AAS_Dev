@@ -51,20 +51,6 @@ namespace muffin {
 
     Status InitCatM1(jvs::config::CatM1* cin)
     {
-        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
-        if (cia == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-
-        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
-        if (cdo == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-        
         CatM1* catM1 = CatM1::CreateInstanceOrNULL();
         if (catM1 == nullptr)
         {
@@ -178,20 +164,6 @@ namespace muffin {
 
     Status ConnectToBroker()
     {
-        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
-        if (cia == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-
-        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
-        if (cdo == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-        
         if (s_IsCatM1Connected == false)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO BROKER: LTE MODEM IS NOT CONNECTED");
@@ -324,20 +296,6 @@ namespace muffin {
 
     Status ConnectToBrokerEthernet()
     {
-        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
-        if (cia == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-
-        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
-        if (cdo == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-
         if (s_IsMqttTopicCreated == false)
         {
             if (mqtt::Topic::CreateTopic(macAddress.GetEthernet()) == false)
@@ -510,20 +468,6 @@ namespace muffin {
             return;
         }
         
-        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
-        if (cia == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-
-        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
-        if (cdo == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-        
         /**
          * @todo 향후 태스크의 메모리 사용량을 보고 스택 메모리 크기를 조정해야 합니다.
          */
@@ -614,20 +558,6 @@ namespace muffin {
         {
             LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
             return;
-        }
-        
-        mqtt::CIA* cia = mqtt::CIA::CreateInstanceOrNULL();
-        if (cia == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CIA DUE TO OUT OF MEMORY");
-            esp_restart();
-        }
-
-        mqtt::CDO* cdo = mqtt::CDO::CreateInstanceOrNULL();
-        if (cdo == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE MQTT CDO DUE TO OUT OF MEMORY");
-            esp_restart();
         }
         
         /**

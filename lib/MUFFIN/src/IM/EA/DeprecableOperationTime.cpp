@@ -539,10 +539,7 @@ namespace muffin {
         JSON json;
         const std::string payload = json.Serialize(production);
         mqtt::Message message(mqtt::topic_e::UPTIME, payload);
-
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(message);
-
+        mqtt::cdo.Store(message);
     }
 
     void OperationTime::publishOperationStauts()
@@ -556,10 +553,7 @@ namespace muffin {
         JSON json;
         const std::string payload = json.Serialize(status);
         mqtt::Message message(mqtt::topic_e::OPERATION, payload);
-
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(message);
-
+        mqtt::cdo.Store(message);
     }
 
 

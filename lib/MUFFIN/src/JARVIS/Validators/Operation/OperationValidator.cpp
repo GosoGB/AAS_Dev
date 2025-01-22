@@ -40,21 +40,25 @@ namespace muffin { namespace jvs {
         rsc_e rsc = validateMandatoryKeys(json);
         if (rsc != rsc_e::GOOD)
         {
+            LOG_ERROR(logger, "INVALID OPERATION : MANDATORY KEY CANNOT BE MISSING");
+            delay(10000);
             return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY CANNOT BE MISSING");
         }
 
         rsc = validateMandatoryValues(json);
         if (rsc != rsc_e::GOOD)
         {
+            LOG_ERROR(logger, "INVALID OPERATION : MANDATORY KEY'S VALUE CANNOT BE NULL");
+            delay(10000);
             return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY'S VALUE CANNOT BE NULL");
         }
         
-        const bool isExpired    = json["exp"].as<bool>();
-        const uint16_t pollingInverval = json["intvPoll"].as<uint16_t>();
-        const uint16_t serverInverval  = json["intvSrv"].as<uint16_t>();
-        const bool factoryReset = json["rst"].as<bool>();
+        const std::string snic          = json["snic"].as<std::string>();
+        const bool isExpired            = json["exp"].as<bool>();
+        const uint16_t pollingInverval  = json["intvPoll"].as<uint16_t>();
+        const uint16_t serverInverval   = json["intvSrv"].as<uint16_t>();
+        const bool factoryReset         = json["rst"].as<bool>();
 
-        const std::string snic = json["snic"].as<std::string>();
         const auto retSNIC = convertToServerNIC(snic);
         if (retSNIC.first != rsc_e::GOOD)
         {
@@ -68,12 +72,11 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR OPERATION CONFIG");
         }
 
+        operation->SetServerNIC(retSNIC.second);
         operation->SetPlanExpired(isExpired);
         operation->SetIntervalPolling(pollingInverval);
         operation->SetIntervalServer(serverInverval);
         operation->SetFactoryReset(factoryReset);
-        operation->SetServerNIC(retSNIC.second);
-
 
         rsc = emplaceCIN(static_cast<config::Base*>(operation), outVector);
         if (rsc != rsc_e::GOOD)

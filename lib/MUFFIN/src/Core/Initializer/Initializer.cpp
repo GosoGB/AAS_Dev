@@ -152,7 +152,8 @@ namespace muffin {
         {
             mHasJARVIS = hasJARVIS;
             mHasUpdate = hasOTA;
-            return configureWithoutJarvis();
+            ASSERT((false), "UNIMPLEMENTED SERVICE");
+            // return configureWithoutJarvis();
         }
 
         Status ret = esp32FS.DoesExist(JARVIS_PATH);
@@ -216,8 +217,12 @@ namespace muffin {
         _catm1["ctry"]  = "KR";
 
         JsonArray op    = cnt["op"].to<JsonArray>();
-        JsonObject _op = op.add<JsonObject>();
-        _op["snic"]  = "lte";
+        JsonObject _op  = op.add<JsonObject>();
+        _op["snic"]      = "lte";
+        _op["exp"]       = true;
+        _op["intvPoll"]  = 1;
+        _op["intvSrv"]   = 60;
+        _op["rst"]       = false;
 
         const size_t size = measureJson(doc) + 1;
         char buffer[size] = {'\0'};
@@ -255,65 +260,55 @@ namespace muffin {
         }
 
         LOG_INFO(logger, "Default JARVIS config has been saved");
-        vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
         return Status(Status::Code::GOOD);
     }
 
     Status Initializer::implementConfigure()
     {
-        File file = esp32FS.Open(JARVIS_PATH, "r", false);
-        const size_t size = file.size();
-        char buffer[size + 1] = {'\0'};
-
-        for (size_t idx = 0; idx < size; ++idx)
+        JSON json;
+        JsonDocument doc;
+        Status ret(Status::Code::UNCERTAIN);
         {
-            buffer[idx] = file.read();
-        }
-        file.close();
+            File file = esp32FS.Open(JARVIS_PATH, "r", false);
+            const size_t size = file.size();
+            char buffer[size + 1] = {'\0'};
+            for (size_t idx = 0; idx < size; ++idx)
+            {
+                buffer[idx] = file.read();
+            }
+            file.close();
+            ASSERT((file == false), "FILE MUST BE CLOSED");
+            LOG_DEBUG(logger, "JARVIS: %s", buffer);
 
-        {
-            JSON json;
-            JsonDocument doc;
-            Status ret = json.Deserialize(payload, &doc);
+            ret = json.Deserialize(buffer, &doc);
             if (ret != Status::Code::GOOD)
             {
+                LOG_ERROR(logger, "FAILED TO DESERIALIZE: %s", ret.c_str());
                 return ret;
             }
-
-            payload.clear();
-            payload.shrink_to_fit();
-
-            /**
-             * @todo DEMO용 디바이스들은 "fmt"로 저장되어있기 때문에 처리하기위해 임시로 구현하였음 1.2.0 버전 이후로 삭제 예정
-             * 
-             */
-            JsonArray operation = doc["cnt"]["op"];
-            for(JsonObject op : operation)
-            {
-                if(op.containsKey("fmt"))
-                {
-                    const bool value = op["fmt"].as<bool>();
-                    op["rst"] = value;
-                    op.remove("fmt");
-
-                    std::string Updatepayload;
-                    serializeJson(doc, Updatepayload);
-                    file = esp32FS.Open(JARVIS_PATH, "w", true);
-                    for (size_t i = 0; i < Updatepayload.length(); ++i)
-                    {
-                        file.write(Updatepayload[i]);
-                    }
-                    file.close();
-                }
-            }
-            
-            Jarvis* jarvis = Jarvis::CreateInstanceOrNULL();
-            jarvis->Validate(doc);
+            LOG_INFO(logger, "Deserialized JARVIS config file");
         }
+        
+    #if defined(DEBUG)
+        doc["cnt"].remove("catm1");
+        doc["cnt"]["catm1"].to<JsonArray>();
+        JsonObject eth = doc["cnt"]["eth"].add<JsonObject>();
+        eth["dhcp"]  = true;
+        eth["ip"]    = NULL;
+        eth["snm"]   = NULL;
+        eth["gtw"]   = NULL;
+        eth["dns1"]  = NULL;
+        eth["dns2"]  = NULL;
+        JsonObject op = doc["cnt"]["op"][0].as<JsonObject>();
+        op["snic"] = "eth";
+    #endif
+
+        ASSERT((jarvis == nullptr), "The instance <JARVIS* jarvis> MUST BE NULL");
+        jarvis = new(std::nothrow) JARVIS();
+        jarvis->Validate(doc);
+        doc.clear();
+        
         ApplyJarvisTask();
-
-        LOG_WARNING(logger, "Config Finished: %u Bytes", ESP.getFreeHeap());
-
         return Status(Status::Code::GOOD);
     }
 }
