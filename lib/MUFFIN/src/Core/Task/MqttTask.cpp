@@ -20,12 +20,17 @@
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
 #include "Core/Core.h"
+#include "IM/Custom/Constants.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "MqttTask.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/MQTT/IMQTT.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
+
+
 
 namespace muffin {
 
@@ -161,22 +166,14 @@ namespace muffin {
         const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
     
-        /**
-         * @todo 이렇게 바꿀거임
-         * 
-         */
-        // mqtt::IMQTT* serviceNetwork;
-        // INetwork* nic = serviceNetwork->RetrieveNIC();
+        if (mqtt::client == nullptr)
+        {
+            LOG_DEBUG(logger, "mqtt::client == nullptr");
+            delay(UINT32_MAX);
+        }
         
+        INetwork* nic = mqtt::client->RetrieveNIC();
 
-        INetwork* nic;
-        mqtt::IMQTT* serviceNetwork;
-        
-        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
-        nic = lwipMqtt.RetrieveNIC();
-        serviceNetwork = static_cast<mqtt::IMQTT*>(&lwipMqtt);
-
-        const uint8_t MAX_RETRY_COUNT = 5;
         while (true)
         {
             if (mqtt::cdo.Count() == 0)
@@ -195,6 +192,7 @@ namespace muffin {
                 continue;
             }
 
+            INetwork* nic = mqtt::client->RetrieveNIC();
             std::pair<Status, size_t> mutex = nic->TakeMutex();
             if (mutex.first != Status::Code::GOOD)
             {
@@ -204,7 +202,7 @@ namespace muffin {
             
             for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
             {
-                Status ret = serviceNetwork->Publish(mutex.second, pubMessage.second);
+                Status ret = mqtt::client->Publish(mutex.second, pubMessage.second);
                 if (ret == Status::Code::GOOD)
                 {
                     mqtt::cdo.Retrieve();

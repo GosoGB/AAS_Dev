@@ -37,6 +37,10 @@ static const uint16_t BLOCK_SIZE = 10*muffin::KILLOBYTE;
 static uint8_t sTrialCount = 0;
 static const uint8_t MAX_QUEUE_LENGTH = 5;
 static const size_t  QUEUE_ITEM_SIZE  = sizeof(uint8_t*);
+    
+size_t muffin::ota::fw_head_t::ID = 0;
+muffin::ota::url_t muffin::ota::fw_head_t::API;
+
 
 typedef enum class ServiceStatusEnum : uint8_t
 {

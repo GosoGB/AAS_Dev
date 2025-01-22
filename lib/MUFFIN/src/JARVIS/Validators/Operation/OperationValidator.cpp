@@ -22,14 +22,6 @@
 
 namespace muffin { namespace jvs {
 
-    OperationValidator::OperationValidator()
-    {
-    }
-    
-    OperationValidator::~OperationValidator()
-    {
-    }
-    
     std::pair<rsc_e, std::string> OperationValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((arrayCIN.isNull() == false), "INPUT PARAMETER <arrayCIN> CANNOT BE NULL");
@@ -63,12 +55,20 @@ namespace muffin { namespace jvs {
         if (retSNIC.first != rsc_e::GOOD)
         {
             const std::string message = "INVALID SERVER NETWORK INTERFACE: " + snic;
+
+            LOG_ERROR(logger, "%s", message.c_str());
+            delay(10000);
+
             return std::make_pair(rsc, message);
         }
         
         config::Operation* operation = new(std::nothrow) config::Operation();
         if (operation == nullptr)
         {
+
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR OPERATION CONFIG");
+            delay(10000);
+
             return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR OPERATION CONFIG");
         }
 
@@ -81,6 +81,10 @@ namespace muffin { namespace jvs {
         rsc = emplaceCIN(static_cast<config::Base*>(operation), outVector);
         if (rsc != rsc_e::GOOD)
         {
+
+            LOG_ERROR(logger, "FAILED TO EMPLACE: OPERATION CONFIG INSTANCE");
+            delay(10000);
+
             if (operation != nullptr)
             {
                 delete operation;

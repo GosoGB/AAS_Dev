@@ -76,8 +76,4 @@ namespace muffin { namespace ota {
         fw_cks_t Checksum;
         fw_size_t Size;
     } fw_info_t;
-
-    
-    size_t fw_head_t::ID;
-    url_t fw_head_t::API;
 }}

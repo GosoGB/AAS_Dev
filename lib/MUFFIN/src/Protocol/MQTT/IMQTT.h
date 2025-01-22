@@ -18,9 +18,10 @@
 #pragma once
 
 #include <vector>
+
 #include "Common/Status.h"
-#include "Include/Message.h"
 #include "Network/INetwork.h"
+#include "Protocol/MQTT/Include/Message.h"
 
 
 
@@ -40,4 +41,7 @@ namespace muffin { namespace mqtt {
         virtual Status Publish(const size_t mutexHandle, const Message& message) = 0;
         virtual INetwork* RetrieveNIC() = 0;
     };
+
+
+    extern IMQTT* client;
 }}

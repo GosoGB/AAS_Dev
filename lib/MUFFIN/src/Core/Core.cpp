@@ -72,12 +72,12 @@ namespace muffin {
     void Core::Init()
     {
         logger.Init();
-        
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u", 
-            FW_VERSION_ESP32.GetSemanticVersion(), FW_VERSION_ESP32.GetVersionCode()
-        );
+            FW_VERSION_ESP32.GetSemanticVersion(),
+            FW_VERSION_ESP32.GetVersionCode());
 
+/*
     #if defined(MODLINK_T2)
     {
         uint8_t trialCount = 0;    
@@ -107,6 +107,7 @@ namespace muffin {
             FW_VERSION_MEGA2560.GetVersionCode());
     }
     #endif
+*/
 
         Preferences nvs;
         nvs.begin("jarvis");
@@ -144,11 +145,11 @@ namespace muffin {
             {
                 LOG_WARNING(logger, "[TRIAL: #%u] CONFIGURATION WAS UNSUCCESSFUL: %s", i, ret.c_str());
             }
-            vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
+            vTaskDelay((5*SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
 
         StartTaskMQTT();
-        // PublishFirmwareStatusMessageService();
+        PublishFirmwareStatusMessageService();
         
         if (mHasJarvisCommand == false && mHasFotaCommand == true)
         {

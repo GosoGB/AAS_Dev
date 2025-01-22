@@ -335,20 +335,18 @@ namespace muffin {
 
         if (s_IsCatMqttInitialized == false)
         {
-            mqtt::LwipMQTT* lwipMqtt = mqtt::LwipMQTT::CreateInstanceOrNULL(info,lwt);
-            if (lwipMqtt == nullptr)
+            if (mqtt::client == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO CREATE LWIP MQTT DUE TO OUT OF MEMORY");
                 esp_restart();
             }
 
-            lwipMqtt->Init();
+            // lwipMqtt->Init(); @todo
             s_IsCatMqttInitialized = true;
         }
         
         
-        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
-        INetwork* nic = lwipMqtt.RetrieveNIC();
+        INetwork* nic = mqtt::client->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
@@ -356,8 +354,7 @@ namespace muffin {
             return mutex.first;
         }
 
-        mqtt::IMQTT& serviceNetwork = static_cast<mqtt::IMQTT&>(lwipMqtt);
-        Status ret = serviceNetwork.Connect(mutex.second);
+        Status ret = mqtt::client->Connect(mutex.second);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
@@ -384,7 +381,7 @@ namespace muffin {
                 return ret;
             }
 
-            ret = serviceNetwork.Subscribe(mutex.second, vectorTopicsToSubscribe);
+            ret = mqtt::client->Subscribe(mutex.second, vectorTopicsToSubscribe);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
@@ -516,16 +513,14 @@ namespace muffin {
         uint32_t checkRemainedStackMillis = millis();
         const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
-
-        mqtt::LwipMQTT& lwipMqtt = mqtt::LwipMQTT::GetInstance();
         
         while (true)
         {
             LOG_INFO(logger, "[TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
             LOG_INFO(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
-            if (lwipMqtt.IsConnected() != Status::Code::GOOD)
+            if (mqtt::client->IsConnected() != Status::Code::GOOD)
             {
-                INetwork* nic = lwipMqtt.RetrieveNIC();
+                INetwork* nic = mqtt::client->RetrieveNIC();
 
                 std::pair<Status, size_t> mutex = nic->TakeMutex();
                 if (mutex.first != Status::Code::GOOD)
@@ -534,7 +529,7 @@ namespace muffin {
                     continue; ;
                 }
 
-                lwipMqtt.Disconnect(mutex.second);
+                mqtt::client->Disconnect(mutex.second);
                 s_IsCatMqttTopicSubscribed = false;
                 nic->ReleaseMutex();
                 LOG_WARNING(logger, "LWIP MQTT LOST CONNECTION");
@@ -554,6 +549,10 @@ namespace muffin {
 
     void StartEthernetTask()
     {
+        mqtt::BrokerInfo broker("1");
+        mqtt::Message lwt;
+        mqtt::client = new mqtt::LwipMQTT(broker, lwt);
+
         if (xTaskEthernetHandle != NULL)
         {
             LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");

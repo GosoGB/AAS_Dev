@@ -1,87 +1,230 @@
 /**
+ * @file LwipMQTT.cpp
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
+ * @brief FreeRTOS TCP/IP 스택인 LwIP를 사용하는 MQTT 프로토콜 클래스를 정의합니다.
+ * 
+ * @date 2025-01-22
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * 
+ * @todo 향후 on-premise 방식으로 납품되는 경우, MQTTS 대신 MQTT 프로토콜로 
+ *       연결해야 할 수도 있기 때문에 초기화 방식을 변경 가능하게 수정해야 함
  */
 
 
 
 
-#include "LwipMQTT.h"
+
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Common/Convert/ConvertClass.h"
-#include "Network/Helper.h"
+#include "Common/Time/TimeUtils.h"
+#include "IM/Custom/Constants.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "Network/Ethernet/Ethernet.h"
+#include "Protocol/Certs.h"
+#include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/Include/Helper.h"
 #include "Protocol/MQTT/Include/Topic.h"
-#include "Protocol/MQTT/CIA.h"
-#include "Protocol/Certs.h"
+#include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 
 
 
 namespace muffin { namespace mqtt {
 
-    LwipMQTT* LwipMQTT::CreateInstanceOrNULL(BrokerInfo& broker, Message& lwt)
+    Status LwipMQTT::Init()
     {
-        if (mInstance == nullptr)
+        xTimer = xTimerCreate(
+            "lwip_mqtt_loop",   // pcTimerName
+            1000,               // xTimerPeriod,
+            pdTRUE,             // uxAutoReload,
+            (void *)0,          // pvTimerID,
+            vTimerCallback      // pxCallbackFunction
+        );
+
+        if (xTimer == NULL)
         {
-            mInstance = new(std::nothrow) LwipMQTT(broker, lwt);
-            if (mInstance == nullptr)
+            LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR LOOP TASK");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+        LOG_INFO(logger, "Created a timer for loop task");
+        
+        mClient.setCallback(
+            [this](char* topic, byte* payload, unsigned int length)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR LwipMQTT");
-                return mInstance;
+                this->callback(topic, payload, length);
             }
+        );
+        LOG_INFO(logger, "Set a callback for subscription event");
+
+        mNIC.setCACert(ROOT_CA_CRT);
+        mClient.setClient(mNIC);
+        mClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
+        mClient.setKeepAlive(KEEP_ALIVE);
+        const bool isBufferSizeSet = mClient.setBufferSize(BUFFER_SIZE);
+        if (isBufferSizeSet == false)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR BUFFER");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+
+        LOG_INFO(logger, "LwIP MQTT has been initialized");
+        return Status(Status::Code::GOOD);
+    }
+
+    Status LwipMQTT::Connect(const size_t mutexHandle)
+    {
+        LOG_INFO(logger, "Start to connect to MQTT broker");
+        mClient.connect(
+            mBrokerInfo.GetClientID(),
+            mBrokerInfo.GetUsername(),
+            mBrokerInfo.GetPassword(),
+            mMessageLWT.GetTopicString(),
+            static_cast<uint8_t>(mMessageLWT.GetQoS()),
+            mMessageLWT.IsRetain(),
+            mMessageLWT.GetPayload()
+        );
+
+        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
+        {
+            if (mClient.connected() == true)
+            {
+                LOG_INFO(logger, "Connected to the Broker");
+                goto CONNECTED;
+            }
+            LOG_WARNING(logger, "[TRIAL: #%u] NOT CONNECTED: %s", trialCount, getState());
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
         
-        return mInstance;
+        LOG_ERROR(logger, "FAILED TO CONNECT: %s", getState());
+        return Status(Status::Code::BAD_NOT_CONNECTED);
+
+    CONNECTED:
+        const uint8_t size = 64;
+        char buffer[size] = {'\0'};
+        snprintf(buffer, size, "%s,%llu,true,%s,%s",
+            mBrokerInfo.GetClientID(),
+            GetTimestampInMillis(),
+            FW_VERSION_ESP32.GetSemanticVersion(),
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            FW_VERSION_MEGA2560.GetSemanticVersion()
+        #else
+            "0.0.0"
+        #endif
+        );
+
+        if (mClient.publish(mMessageLWT.GetTopicString(), buffer) == true)
+        {
+            LOG_INFO(logger, "Published connection message");
+        }
+        else
+        {
+            LOG_ERROR(logger, "FAILED TO PUBLISH CONNECTION MESSAGE");
+        }
+        return Status(Status::Code::GOOD);
     }
 
-    LwipMQTT* LwipMQTT::CreateInstanceOrNULL(BrokerInfo& broker)
+    Status LwipMQTT::Disconnect(const size_t mutexHandle)
     {
-        if (mInstance == nullptr)
+        mClient.disconnect();
+        return Status(Status::Code::GOOD);
+    }
+
+    Status LwipMQTT::IsConnected()
+    {
+        if (mClient.connected() == true)
         {
-            mInstance = new(std::nothrow) LwipMQTT(broker);
-            if (mInstance == nullptr)
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD);
+        }
+    }
+
+    Status LwipMQTT::Subscribe(const size_t mutexHandle, const std::vector<Message>& messages)
+    {
+        uint8_t trialCount = 0;
+
+        for(const auto& message : messages)
+        {
+            for (trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR LwipMQTT");
-                return mInstance;
+                if (mClient.subscribe(message.GetTopicString()) == true)
+                {
+                    LOG_INFO(logger, "Subscribing: %s", message.GetTopicString());
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "[TRIAL: #%u] NOT SUBSCRIBED: %s", trialCount, getState());
+                    continue;
+                }
+            }
+
+            if (trialCount == MAX_RETRY_COUNT)
+            {
+                LOG_ERROR(logger, "FAILED TO SUBSCRIBE: %s", getState());
+                return Status(Status::Code::BAD_COMMUNICATION_ERROR);
             }
         }
-        
-        return mInstance;
+
+        LOG_INFO(logger, "Subscribed: %u topics", messages.size());
+        return Status(Status::Code::GOOD);
     }
 
-    LwipMQTT& LwipMQTT::GetInstance()
+    Status LwipMQTT::Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages)
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-        return *mInstance;
+        uint8_t trialCount = 0;
+
+        for(const auto& message : messages)
+        {
+            for (trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
+            {
+                if (mClient.unsubscribe(message.GetTopicString()) == true)
+                {
+                    LOG_INFO(logger, "Unsubscribing: %s", message.GetTopicString());
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "[TRIAL: #%u] NOT UNSUBSCRIBED: %s", trialCount, getState());
+                    continue;
+                }
+            }
+
+            if (trialCount == MAX_RETRY_COUNT)
+            {
+                LOG_ERROR(logger, "FAILED TO UNSUBSCRIBE: %s", getState());
+                return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+            }
+        }
+
+        LOG_INFO(logger, "Unsubscribed: %u topics", messages.size());
+        return Status(Status::Code::GOOD);
     }
 
-    LwipMQTT::LwipMQTT(BrokerInfo& broker, Message& lwt)
-        : mBrokerInfo(std::move(broker))
-        , mMessageLWT(std::move(lwt))
+    Status LwipMQTT::Publish(const size_t mutexHandle, const Message& message)
     {
-        mInitFlags.reset();
-        mInitFlags.set(init_flag_e::ENABLE_LWT_MSG);
-        mState = state_e::CONSTRUCTED;
-    }
-    
-    LwipMQTT::LwipMQTT( BrokerInfo& broker)
-        : mBrokerInfo(std::move(broker))
-        , mMessageLWT(Message(topic_e::LAST_WILL, std::string()))
-    {
-        mInitFlags.reset();
-        mInitFlags.reset(init_flag_e::ENABLE_LWT_MSG);
-        mState = state_e::CONSTRUCTED;
-        LOG_WARNING(logger, "LWT FEATURE IS TURNED OFF");
-    }
+        uint8_t trialCount = 0;
 
-    LwipMQTT::~LwipMQTT()
-    {
-    }
+        for (; trialCount < MAX_RETRY_COUNT; ++trialCount)
+        {
+            if (mClient.publish(message.GetTopicString(), message.GetPayload()) == true)
+            {
+                return Status(Status::Code::GOOD);
+            }
+            else
+            {
+                LOG_WARNING(logger, "[TRIAL: #%u] NOT PUBLISHED: %s", trialCount, getState());
+                continue;
+            }
+        }
 
-    void LwipMQTT::OnEventReset()
-    {
-        this->mInitFlags.reset();
+        LOG_ERROR(logger, "FAILED TO PUBLISH: %s", getState());
+        return Status(Status::Code::BAD_COMMUNICATION_ERROR);
     }
 
     INetwork* LwipMQTT::RetrieveNIC()
@@ -89,179 +232,59 @@ namespace muffin { namespace mqtt {
         return static_cast<INetwork*>(ethernet);
     }
 
-    void LwipMQTT::callback(char* topic, byte * payload, unsigned int length)
+    const char* LwipMQTT::getState()
     {
-        const auto retTopic = mqtt::Topic::ToCode(topic);
+        switch (mClient.state())
+        {
+        case MQTT_CONNECTION_TIMEOUT:
+            return "CONNECTION TIMEOUT";
+        case MQTT_CONNECTION_LOST:
+            return "CONNECTION LOST";
+        case MQTT_CONNECT_FAILED:
+            return "CONNECTION FAILED";
+        case MQTT_DISCONNECTED:
+            return "DISCONNECTED";
+        case MQTT_CONNECTED:
+            return "CONNECTED";
+        case MQTT_CONNECT_BAD_PROTOCOL:
+            return "BAD PROTOCOL";
+        case MQTT_CONNECT_BAD_CLIENT_ID:
+            return "BAD CLIENT ID";
+        case MQTT_CONNECT_UNAVAILABLE:
+            return "UNAVAILABLE CONNECTION";
+        case MQTT_CONNECT_BAD_CREDENTIALS:
+            return "BAD CREDENTIALS";
+        case MQTT_CONNECT_UNAUTHORIZED:
+            return "UNAUTHORIZED CONNECTION";
+        default:
+            return nullptr;
+        };
+    }
+
+    void LwipMQTT::vTimerCallback(TimerHandle_t xTimer)
+    {
+        configASSERT(xTimer);   // Optionally do something if xTimer is NULL
+        LOG_DEBUG(logger, "Called %u times", reinterpret_cast<uint32_t>(pvTimerGetTimerID(xTimer)));
+        mClient.loop();
+    }
+
+    void LwipMQTT::callback(char* topic, byte* payload, unsigned int length)
+    {
+        const std::pair<bool, mqtt::topic_e> retTopic = mqtt::Topic::ToCode(topic);
         if (retTopic.first == false)
         {
-            LOG_ERROR(logger, "INVALID TOPIC: %s", topic);
+            LOG_ERROR(logger, "INVALID TOPIC RECEIVED: %s", topic);
             return;
         }
 
-        std::string payloads;
-        for (int i=0;i<length;i++) 
-        {
-            Serial.print((char)payload[i]);
-            payloads = payloads + (char)payload[i];
-        }
+        std::string _payload(payload, payload + length);
+        LOG_INFO(logger,"[Topic] %s\r\n[Payload] %s\r\n", topic, _payload.c_str());
 
-        const mqtt::topic_e topicCode = retTopic.second;
-        mqtt::Message message(topicCode, payloads);
+        mqtt::Message message(retTopic.second, _payload);
         mqtt::cia.Store(message);
-        LOG_INFO(logger,"PAYLOAD : %s",payloads.c_str());
         return;
     }
 
-    Status LwipMQTT::Init()
-    {
-        mLwipSecureClient.setCACert(ROOT_CA_CRT);
-        mPubSubClient.setClient(mLwipSecureClient);
-        mPubSubClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
-        mPubSubClient.setKeepAlive(10);
-        mPubSubClient.setBufferSize(10240);
-        
-        return Status(Status::Code::GOOD);
-    }
 
-    Status LwipMQTT::Connect(const size_t mutexHandle)
-    {
-        /**
-         * @todo 연결 끊어졌을 때 상태를 다시 초기화해야 합니다. 그 다음 아래 assert를 다시 활성화시켜야 합니다.
-         */
-        // ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Connect()\"");
-
-        if (mState == state_e::CONNECTED)
-        {
-            LOG_WARNING(logger, "ALREADY CONNECTED. NOTHING TO DO");
-            return Status(Status::Code::GOOD);
-        }
-        
-        Status ret = connectBroker(mutexHandle);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO CONNECT TO MQTT BROKER: %s", ret.c_str());
-            return ret;
-        }
-        
-        LOG_INFO(logger, "Connected to broker: %s", ret.c_str());
-        mState = state_e::CONNECTED;
-        return ret;
-    }
-
-    Status LwipMQTT::Disconnect(const size_t mutexHandle)
-    {
-
-        Status ret = disconnectBroker(mutexHandle);
-        
-        LOG_INFO(logger, "Disconnected from broker: %s", ret.c_str());
-        mState = state_e::DISCONNECTED;
-        return ret;
-    }
-
-    Status LwipMQTT::IsConnected()
-    {
-        mPubSubClient.loop();
-
-        if (mPubSubClient.connected() == true)
-        {
-            mState = state_e::CONNECTED; 
-            return Status(Status::Code::GOOD);
-        }
-        else
-        {
-            mState = state_e::DISCONNECTED; 
-            return Status(Status::Code::BAD);
-        }
-    }
-
-    Status LwipMQTT::Subscribe(const size_t mutexHandle, const std::vector<Message>& messages)
-    {
-        for(auto& message : messages)
-        {
-            if (mPubSubClient.subscribe(message.GetTopicString()) == false)
-            {
-                LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", message.GetTopicString());
-                return Status(Status::Code::BAD);
-            }
-            else
-            {
-                LOG_INFO(logger, "SUCSESS TO SUBSCRIBE MQTT TOPICS: %s", message.GetTopicString());
-            }
-        }
-        return Status(Status::Code::GOOD);
-    }
-
-    Status LwipMQTT::Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages)
-    {
-        for(auto& message : messages)
-        {
-            if (mPubSubClient.unsubscribe(message.GetTopicString()) == false)
-            {
-                LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", message.GetTopicString());
-                return Status(Status::Code::BAD);
-            }
-            else
-            {
-                LOG_INFO(logger, "SUCSESS TO SUBSCRIBE MQTT TOPICS: %s", message.GetTopicString());
-            }
-        }
-        return Status(Status::Code::GOOD);
-    }
-
-    Status LwipMQTT::Publish(const size_t mutexHandle, const Message& message)
-    {
-        if (mPubSubClient.publish(message.GetTopicString(),message.GetPayload()))
-        {
-            return Status(Status::Code::GOOD);
-        }
-        else
-        {
-            return Status(Status::Code::BAD);
-        }
-    }
-
-
-    Status LwipMQTT::setLastWill(const size_t mutexHandle)
-    {
-        return Status(Status::Code::GOOD);
-    }
-
-    Status LwipMQTT::setKeepAlive(const size_t mutexHandle)
-    {
-        return Status(Status::Code::GOOD);
-    }
-
-    Status LwipMQTT::connectBroker(const size_t mutexHandle)
-    {
-        do
-        {
-            Serial.print(".");
-            delay(1000);
-        } while (mPubSubClient.connect(mBrokerInfo.GetClientID(),mBrokerInfo.GetUsername(),
-        mBrokerInfo.GetPassword(), mMessageLWT.GetTopicString(),0,false,mMessageLWT.GetPayload()) == false);
-        
-        LOG_DEBUG(logger, "Connected to the broker, payload : %s",mMessageLWT.GetPayload());
-
-        if (mPubSubClient.publish(mMessageLWT.GetTopicString(),"1097BD14F34B,connected"))
-        {
-            LOG_DEBUG(logger, "GOOD");
-        }
-
-        mPubSubClient.setCallback([this](char* topic, byte* payload, unsigned int length) {
-            this->callback(topic, payload, length);
-        });
-
-        return Status(Status::Code::GOOD);
-    }
-
-    Status LwipMQTT::disconnectBroker(const size_t mutexHandle)
-    {
-        mPubSubClient.disconnect();
-
-        
-        return Status(Status::Code::GOOD);
-    }
-
-
-    LwipMQTT* LwipMQTT::mInstance = nullptr;
+    IMQTT* client = nullptr;
 }}

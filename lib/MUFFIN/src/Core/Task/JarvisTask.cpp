@@ -433,6 +433,7 @@ namespace muffin {
         ASSERT((vectorOperationCIN.size() == 1), "THERE MUST BE ONLY ONE OPERATION CIN: %u", vectorOperationCIN.size());
     #endif
 
+        //LOG_DEBUG(logger, "Start applying Operation CIN");
         jvs::config::Operation* cin = static_cast<jvs::config::Operation*>(vectorOperationCIN[0]);
 
         s_HasFactoryResetCommand   = cin->GetFactoryReset().second;
@@ -589,16 +590,31 @@ namespace muffin {
 
     void applyEthernetCIN(std::vector<jvs::config::Base*>& vectorEthernetCIN)
     {
-
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
     #endif
         ASSERT((vectorEthernetCIN.size() == 1), "THERE MUST BE ONLY ONE ETHERNET CIN FOR MODLINK-B AND MODLINK-T2");
+
         jvs::config::Ethernet* cin = Convert.ToEthernetCIN(vectorEthernetCIN[0]);
-        Status ret = Status(Status::Code::UNCERTAIN);
-        if (ethernet == nullptr)
+        if (ethernet != nullptr)
         {
-            ethernet = new Ethernet();
+            if (mEthernet == *cin)
+            {
+                LOG_INFO(logger,"Ethernet settings have not been changed.");
+                return;
+            }
+            else
+            {
+                LOG_INFO(logger,"Ethernet settings have been changed. Reset to apply");
+                ESP.restart();
+            }
+        }
+
+        ethernet = new Ethernet();
+        
+        Status ret = Status(Status::Code::UNCERTAIN);
+
+            
             ret = ethernet->Init();
             LOG_INFO(logger,"ethernet->Init() : %s",ret.c_str());
             ret = ethernet->Config(cin);
@@ -622,22 +638,6 @@ namespace muffin {
             // lwipHttp->Init();
             // ConnectToBrokerEthernet();
             // StartEthernetTask();
-        }
-        else
-        {
-            if (mEthernet != *cin)
-            {
-                LOG_INFO(logger,"Ethernet settings have been changed. Device Reset!");
-                delay(3000);
-                ESP.restart();
-            }
-            else
-            {
-                LOG_INFO(logger,"Ethernet settings have not been changed.");
-            }
-        }
-
-        
     }
 
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN)

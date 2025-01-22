@@ -183,6 +183,7 @@ namespace muffin {
             vTaskDelay((1 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
 
+        LOG_ERROR(logger, "FAILED TO CONFIGURE JARVIS");
         return ret;
     }
 
@@ -301,6 +302,8 @@ namespace muffin {
         eth["dns2"]  = NULL;
         JsonObject op = doc["cnt"]["op"][0].as<JsonObject>();
         op["snic"] = "eth";
+    #else
+        std::abort();
     #endif
 
         ASSERT((jarvis == nullptr), "The instance <JARVIS* jarvis> MUST BE NULL");

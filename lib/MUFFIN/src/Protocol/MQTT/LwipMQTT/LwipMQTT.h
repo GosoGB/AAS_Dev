@@ -1,12 +1,14 @@
 /**
  * @file LwipMQTT.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2025-01-13
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
- * @copyright Copyright (c) 2025
+ * @brief FreeRTOS TCP/IP 스택인 LwIP를 사용하는 MQTT 프로토콜 클래스를 선언합니다.
  * 
+ * @date 2025-01-22
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -14,16 +16,14 @@
 
 #pragma once
 
-#include <WiFiClientSecure.h>
-#include <bitset>
 #include <vector>
+#include <WiFiClientSecure.h>
 
 #include "Common/Status.h"
-#include "Protocol/MQTT/LwipMQTT/PubSubClient.h"
-#include "Network/TypeDefinitions.h"
+#include "Protocol/MQTT/IMQTT.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Message.h"
-#include "Protocol/MQTT/IMQTT.h"
+#include "Protocol/MQTT/LwipMQTT/PubSubClient.h"
 
 
 
@@ -32,18 +32,8 @@ namespace muffin { namespace mqtt {
     class LwipMQTT : public IMQTT
     {
     public:
-        LwipMQTT() = delete;
-        void operator=(LwipMQTT const&) = delete;
-        static LwipMQTT* CreateInstanceOrNULL( BrokerInfo& broker, Message& lwt);
-        static LwipMQTT* CreateInstanceOrNULL( BrokerInfo& broker);
-        static LwipMQTT& GetInstance();
-    private:
-        LwipMQTT( BrokerInfo& broker, Message& lwt);
-        LwipMQTT( BrokerInfo& broker);
-        virtual ~LwipMQTT() override;
-    private:
-        static LwipMQTT* mInstance;
-
+        LwipMQTT(BrokerInfo& broker, Message& lwt) : mBrokerInfo(std::move(broker)), mMessageLWT(std::move(lwt)) {}
+        virtual ~LwipMQTT() override {}
     public:
         Status Init();
         virtual Status Connect(const size_t mutexHandle) override;
@@ -53,44 +43,18 @@ namespace muffin { namespace mqtt {
         virtual Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages) override;
         virtual Status Publish(const size_t mutexHandle, const Message& message) override;
         virtual INetwork* RetrieveNIC() override;
-    public:
-        void OnEventReset();
     private:
-        Status setLastWill(const size_t mutexHandle);
-        Status setKeepAlive(const size_t mutexHandle);
-        Status connectBroker(const size_t mutexHandle);
-        Status disconnectBroker(const size_t mutexHandle);
+        const char* getState();
+        static void vTimerCallback(TimerHandle_t xTimer);
         void callback(char* topic, byte * payload, unsigned int length);
-
     private:
-        bool mIsFirstConnect = false;
-        WiFiClientSecure mLwipSecureClient;
-        PubSubClient mPubSubClient;
-        BrokerInfo mBrokerInfo;
-        Message mMessageLWT;
+        static PubSubClient mClient;
+        WiFiClientSecure mNIC;
+        TimerHandle_t xTimer = NULL;
     private:
-        typedef enum LwipMqttInitializationFlagEnum
-            : uint8_t
-        {
-            INITIALIZED_PDP   = 0, // Set if PDP context is initialized, reset otherwise
-            INITIALIZED_SSL   = 1, // Set if SSL context is initialized, reset otherwise
-            INITIALIZED_VSN   = 2, // Set if protocol version is initialized, reset otherwise
-            INITIALIZED_LWT   = 3, // Set if last will and testament is initialized, reset otherwise
-            INITIALIZED_KAT   = 4, // Set if keep alive time is initialized, reset otherwise
-            INITIALIZED_ALL   = 5, // Set if initialization succeded, reset otherwise
-            ENABLE_LWT_MSG    = 6, // Set if LWT should be configured, reset otherwise
-        } init_flag_e;
-        std::bitset<7> mInitFlags;
-        typedef enum LwipMqttStateEnum
-            : int8_t
-        {
-            CONNECT_FAILED   = -2,
-            INIT_FAILED      = -1,
-            CONSTRUCTED      =  0,
-            INITIALIZED      =  1,
-            CONNECTED        =  2,
-            DISCONNECTED     =  3
-        } state_e;
-        state_e mState;
+        const BrokerInfo mBrokerInfo;
+        const Message mMessageLWT;
+        const uint16_t BUFFER_SIZE = 512;
+        const uint8_t KEEP_ALIVE  =  10;
     };
 }}

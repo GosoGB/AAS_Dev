@@ -7,10 +7,10 @@
  * @date 2025-01-21
  * @version 1.2.2
  * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * 
  * @todo Option #1: MODLINK 모델 별로 기본 설정이 달라지는 부분을 고려해야 합니다.
  * @todo Option #2: 블루투스를 이용해서 사용자가 설정할 수 있게 만들어야 합니다.
- * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
