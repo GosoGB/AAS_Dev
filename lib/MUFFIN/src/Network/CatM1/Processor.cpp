@@ -502,7 +502,7 @@ namespace muffin {
          * @todo 소켓과 메시지 식별자 정보의 처리도 추가해야 합니다.
          * @todo 올바르지 않은 토픽인 경우에 서버에 이를 알리는 방법을 고민해야 합니다.
          */
-        const auto retTopic = mqtt::Topic::ToCode(vectorToken[2]);
+        const auto retTopic = mqtt::topic.ToCode(vectorToken[2].c_str());
         if (retTopic.first == false)
         {
             LOG_ERROR(logger, "INVALID TOPIC: %s", vectorToken[2]);

@@ -25,6 +25,7 @@
 #include "Core/Task/CyclicalPubTask.h"
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Node/NodeStore.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/EA/DeprecableOperationTime.h"
@@ -40,12 +41,17 @@
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
+#include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
+#include "Protocol/MQTT/Include/Helper.h"
 #include "Protocol/SPEAR/SPEAR.h"
-#include "IM/Custom/MacAddress/MacAddress.h"
+
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Network/Ethernet/Ethernet.h"
 #include "Storage/CatFS/CatFS.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
+
+muffin::mqtt::IMQTT* mqttClient = nullptr;
+muffin::http::IHTTP* httpClient = nullptr;
 
 
 
@@ -60,6 +66,29 @@ namespace muffin {
     static uint16_t s_PollingInterval =  1;
     static uint16_t s_PublishInterval = 60;
     static jvs::snic_e s_ServerNIC = jvs::snic_e::LTE_CatM1;
+
+    #if defined(DEBUG)
+        mqtt::BrokerInfo brokerInfo(
+            macAddress.GetEthernet(),
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
+            40,
+            mqtt::socket_e::SOCKET_0,
+            "vitcon",
+            "tkfkdgo5!@#$"
+        );
+    #else
+        mqtt::BrokerInfo brokerInfo(
+            macAddress.GetEthernet(),
+            "mqtt.vitcon.iotops.opsnow.com",
+            8883,
+            40,
+            mqtt::socket_e::SOCKET_0,
+            "vitcon",
+            "tkfkdgo5!@#$"
+        );
+    #endif
+
 
     /**
      * @todo LTE Cat.M1 모뎀을 쓰지 않을 때의 기능을 구현해야 합니다.
@@ -611,33 +640,45 @@ namespace muffin {
         }
 
         ethernet = new Ethernet();
+        Status ret = ethernet->Init();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INITIALIZE ETHERNET");
+            return;
+        }
+        LOG_INFO(logger,"Initialized ethernet interface");
         
-        Status ret = Status(Status::Code::UNCERTAIN);
+        ret = ethernet->Config(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNET CIN");
+            return;
+        }
+        LOG_INFO(logger,"Configured ethernet CIN");
+        
+        ret = ethernet->Connect();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONNECT ETHERNET");
+            return;
+        }
+        LOG_INFO(logger,"Ethernet has been connected");
+        
+        while (ethernet->IsConnected() == false)
+        {
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
+        
+        ethernet->SyncWithNTP();
 
-            
-            ret = ethernet->Init();
-            LOG_INFO(logger,"ethernet->Init() : %s",ret.c_str());
-            ret = ethernet->Config(cin);
-            LOG_INFO(logger,"ethernet->Config() : %s",ret.c_str());
-            ret = ethernet->Connect();
-            LOG_INFO(logger,"ethernet->Connect() : %s",ret.c_str());
-            mEthernet = *cin;
-
-            /**
-         * @todo 만약 서비스네트워크가 ethernet이면 여기서 활성화
-         * 
-         * 
-         */
-            // ethernet->SyncWithNTP();
-            // http::LwipHTTP* lwipHttp = http::LwipHTTP::CreateInstanceOrNULL();
-            // if (lwipHttp == nullptr)
-            // {
-            //     LOG_ERROR(logger, "FAILED TO INITIALIZE LWIP HTTP");
-            //     esp_restart();
-            // }
-            // lwipHttp->Init();
-            // ConnectToBrokerEthernet();
-            // StartEthernetTask();
+        mqtt::Message lwt = mqtt::GenerateWillMessage(false);
+        mqttClient = new mqtt::LwipMQTT(brokerInfo, lwt);
+        httpClient = new http::LwipHTTP();
+        ConnectToBrokerEthernet();
+        StartEthernetTask();
+        
+        mEthernet = *cin;
+        return;
     }
 
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN)

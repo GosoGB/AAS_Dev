@@ -69,7 +69,7 @@ namespace muffin {
         parameters.Add(attributeVersionCode, std::to_string(params->Info->Head.VersionCode));
         parameters.Add(attributeSemanticVersion, params->Info->Head.SemanticVersion);
 
-        INetwork* nic = http::client->RetrieveNIC();
+        INetwork* nic = httpClient->RetrieveNIC();
         Status ret(Status::Code::UNCERTAIN);
 
         while (params->Info->Chunk.DownloadIDX < params->Info->Chunk.Count)
@@ -85,7 +85,7 @@ namespace muffin {
                 goto TEARDOWN;
             }
             
-            ret = http::client->GET(mutex.second, header, parameters, 300);
+            ret = httpClient->GET(mutex.second, header, parameters, 300);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD: %s", ret.c_str());
@@ -94,7 +94,7 @@ namespace muffin {
             }
 
             std::string* output = new std::string();
-            ret = http::client->Retrieve(mutex.second, output);
+            ret = httpClient->Retrieve(mutex.second, output);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
@@ -142,7 +142,7 @@ namespace muffin {
 
     Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue, void (*callback)(Status status))
     {
-        ASSERT((http::client != nullptr), "HTTP CLIENT CANNOT BE NULL");
+        ASSERT((httpClient != nullptr), "HTTP CLIENT CANNOT BE NULL");
         ASSERT((uxQueueMessagesWaiting(queue) == 0), "QUEUE MUST BE EMPTY");
 
         download_task_params* pvParameters = (download_task_params*)malloc(sizeof(download_task_params));

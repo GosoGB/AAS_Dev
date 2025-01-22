@@ -65,7 +65,7 @@ namespace muffin {
     
     Status implementPostDownloadResult(const ota::fw_info_t& info, const char* result)
     {
-        INetwork* nic = http::client->RetrieveNIC();
+        INetwork* nic = httpClient->RetrieveNIC();
         const std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first.ToCode() != Status::Code::GOOD)
         {
@@ -109,7 +109,7 @@ namespace muffin {
             body.AddProperty("mcu2.result",    result);
         }
 
-        Status ret = http::client->POST(mutex.second, header, body);
+        Status ret = httpClient->POST(mutex.second, header, body);
         nic->ReleaseMutex();
 
         if (ret != Status::Code::GOOD)
@@ -125,7 +125,7 @@ namespace muffin {
     
     Status implementPostUpdateResult(const ota::fw_info_t& info, const char* result)
     {
-        INetwork* nic = http::client->RetrieveNIC();
+        INetwork* nic = httpClient->RetrieveNIC();
         const std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first.ToCode() != Status::Code::GOOD)
         {
@@ -165,7 +165,7 @@ namespace muffin {
             parameters.Add("mcu2.result",    result);
         }
 
-        Status ret = http::client->POST(mutex.second, header, parameters);
+        Status ret = httpClient->POST(mutex.second, header, parameters);
         nic->ReleaseMutex();
 
         if (ret != Status::Code::GOOD)

@@ -30,7 +30,7 @@ namespace muffin {
 
     Status FetchFirmwareInfo(const ota::fw_info_t& info, std::string* output)
     {
-        INetwork* nic = http::client->RetrieveNIC();
+        INetwork* nic = httpClient->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
@@ -56,7 +56,7 @@ namespace muffin {
         http::RequestParameter parameters;
         parameters.Add("mac", macAddress.GetEthernet());
 
-        Status ret = http::client->GET(mutex.second, header, parameters);
+        Status ret = httpClient->GET(mutex.second, header, parameters);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO FETCH: %s", ret.c_str());
@@ -64,7 +64,7 @@ namespace muffin {
             return ret;
         }
 
-        ret = http::client->Retrieve(mutex.second, output);
+        ret = httpClient->Retrieve(mutex.second, output);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());

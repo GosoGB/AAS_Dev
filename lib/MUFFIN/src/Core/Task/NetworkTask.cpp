@@ -41,7 +41,6 @@ namespace muffin {
     TaskHandle_t xTaskCatM1Handle;
     TaskHandle_t xTaskEthernetHandle;
 
-    static bool s_IsMqttTopicCreated      = false;
     static bool s_IsCatM1Connected        = false;
     static bool s_IsCatMqttInitialized    = false;
     static bool s_IsCatMQTTConnected      = false;
@@ -69,7 +68,6 @@ namespace muffin {
         {
             LOG_INFO(logger, "New configuration for LTE Cat.M1 modem");
 
-            s_IsMqttTopicCreated      = false;
             s_IsCatM1Connected        = false;
             s_IsCatMqttInitialized    = false;
             s_IsCatMQTTConnected      = false;
@@ -168,17 +166,6 @@ namespace muffin {
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO BROKER: LTE MODEM IS NOT CONNECTED");
             return Status(Status::Code::BAD_NO_CONTINUATION_POINTS);
-        }
-
-        if (s_IsMqttTopicCreated == false)
-        {
-            if (mqtt::Topic::CreateTopic(macAddress.GetEthernet()) == false)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT TOPIC");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            }
-
-            s_IsMqttTopicCreated = true;
         }
 
         /**
@@ -296,17 +283,6 @@ namespace muffin {
 
     Status ConnectToBrokerEthernet()
     {
-        if (s_IsMqttTopicCreated == false)
-        {
-            if (mqtt::Topic::CreateTopic(macAddress.GetEthernet()) == false)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT TOPIC");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            }
-
-            s_IsMqttTopicCreated = true;
-        }
-
     #if defined(DEBUG)
         mqtt::BrokerInfo info(
             macAddress.GetEthernet(),
@@ -335,7 +311,7 @@ namespace muffin {
 
         if (s_IsCatMqttInitialized == false)
         {
-            if (mqtt::client == nullptr)
+            if (mqttClient == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO CREATE LWIP MQTT DUE TO OUT OF MEMORY");
                 esp_restart();
@@ -346,7 +322,7 @@ namespace muffin {
         }
         
         
-        INetwork* nic = mqtt::client->RetrieveNIC();
+        INetwork* nic = mqttClient->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
@@ -354,7 +330,7 @@ namespace muffin {
             return mutex.first;
         }
 
-        Status ret = mqtt::client->Connect(mutex.second);
+        Status ret = mqttClient->Connect(mutex.second);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO THE MQTT BROKER: %s", ret.c_str());
@@ -381,7 +357,7 @@ namespace muffin {
                 return ret;
             }
 
-            ret = mqtt::client->Subscribe(mutex.second, vectorTopicsToSubscribe);
+            ret = mqttClient->Subscribe(mutex.second, vectorTopicsToSubscribe);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO SUBSCRIBE MQTT TOPICS: %s", ret.c_str());
@@ -414,7 +390,6 @@ namespace muffin {
             {
                 LOG_WARNING(logger, "LTE Cat.M1 LOST CONNECTION");
                 catM1.Reconnect();
-                s_IsMqttTopicCreated     = false;
                 s_IsCatM1Connected       = false;
                 s_IsCatMqttInitialized   = false;
                 s_IsCatMQTTConnected     = false;
@@ -518,9 +493,9 @@ namespace muffin {
         {
             LOG_INFO(logger, "[TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
             LOG_INFO(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
-            if (mqtt::client->IsConnected() != Status::Code::GOOD)
+            if (mqttClient->IsConnected() != Status::Code::GOOD)
             {
-                INetwork* nic = mqtt::client->RetrieveNIC();
+                INetwork* nic = mqttClient->RetrieveNIC();
 
                 std::pair<Status, size_t> mutex = nic->TakeMutex();
                 if (mutex.first != Status::Code::GOOD)
@@ -529,7 +504,7 @@ namespace muffin {
                     continue; ;
                 }
 
-                mqtt::client->Disconnect(mutex.second);
+                mqttClient->Disconnect(mutex.second);
                 s_IsCatMqttTopicSubscribed = false;
                 nic->ReleaseMutex();
                 LOG_WARNING(logger, "LWIP MQTT LOST CONNECTION");
@@ -551,7 +526,7 @@ namespace muffin {
     {
         mqtt::BrokerInfo broker("1");
         mqtt::Message lwt;
-        mqtt::client = new mqtt::LwipMQTT(broker, lwt);
+        mqttClient = new mqtt::LwipMQTT(broker, lwt);
 
         if (xTaskEthernetHandle != NULL)
         {

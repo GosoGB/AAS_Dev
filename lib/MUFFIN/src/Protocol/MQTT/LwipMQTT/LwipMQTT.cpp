@@ -270,7 +270,7 @@ namespace muffin { namespace mqtt {
 
     void LwipMQTT::callback(char* topic, byte* payload, unsigned int length)
     {
-        const std::pair<bool, mqtt::topic_e> retTopic = mqtt::Topic::ToCode(topic);
+        const std::pair<bool, mqtt::topic_e> retTopic = mqtt::topic.ToCode(topic);
         if (retTopic.first == false)
         {
             LOG_ERROR(logger, "INVALID TOPIC RECEIVED: %s", topic);
@@ -286,5 +286,5 @@ namespace muffin { namespace mqtt {
     }
 
 
-    IMQTT* client = nullptr;
+    PubSubClient LwipMQTT::mClient;
 }}

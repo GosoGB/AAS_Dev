@@ -16,11 +16,13 @@
 #pragma once
 
 #include "TypeDefinitions.h"
+#include "Message.h"
 
 
 
 namespace muffin { namespace mqtt {
 
     const char* ConvertVersionToString(const version_e version);
+    Message GenerateWillMessage(const bool isConnected);
     version_e ConvertUInt32ToVersion(const uint32_t integer);
 }}

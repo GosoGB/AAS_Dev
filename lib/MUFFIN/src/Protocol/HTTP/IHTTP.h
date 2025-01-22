@@ -39,7 +39,7 @@ namespace muffin { namespace http {
         virtual Status Retrieve(const size_t mutexHandle, std::string* response) = 0;
         virtual INetwork* RetrieveNIC() = 0;
     };
-
-
-    extern IHTTP* client;
 }}
+
+
+extern muffin::http::IHTTP* httpClient;

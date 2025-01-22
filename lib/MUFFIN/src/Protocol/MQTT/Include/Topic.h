@@ -15,8 +15,6 @@
 
 #pragma once
 
-
-#include <string>
 #include <sys/_stdint.h>
 
 #include "TypeDefinitions.h"
@@ -28,35 +26,32 @@ namespace muffin { namespace mqtt {
     class Topic
     {
     public:
-        Topic(Topic const&) = delete;
-        void operator=(Topic const&) = delete;
-        static bool CreateTopic(const std::string& macAddress);
-    private:
-        Topic(const std::string& macAddress);
-        virtual ~Topic();
-    private:
-        static Topic* mInstance;
-
+        Topic();
+        virtual ~Topic() {}
     public:
-        static const char* ToString(const topic_e topicCode);
-        static std::pair<bool, topic_e> ToCode(const std::string& topicString);
+        const char* ToString(const topic_e topicCode);
+        std::pair<bool, topic_e> ToCode(const char* topicString);
     private:
-        static std::string mLastWill;
-        static std::string mJarvisRequest;
-        static std::string mJarvisResponse;
-        static std::string mRemoteControlRequest;
-        static std::string mRemoteControlResponse;
-        static std::string mDaqIntput;
-        static std::string mDaqOutput;
-        static std::string mDaqParam;
-        static std::string mAlarm;
-        static std::string mError;
-        static std::string mPush;
-        static std::string mOperation;
-        static std::string mUptime;
-        static std::string mFinishedGoods;
-        static std::string mFotaConfig;
-        static std::string mFotaUpdate;
-        static std::string mFotaStatus;
+        const char* mLastWill        = "mfm/status/lwt";
+        const char* mDaqIntput       = "scautr/equipment/daq/input";
+        const char* mDaqOutput       = "scautr/equipment/daq/output";
+        const char* mDaqParam        = "scautr/equipment/param";
+        const char* mAlarm           = "scautr/equipment/status/alarm";
+        const char* mError           = "scautr/equipment/status/error";
+        const char* mPush            = "progix/push";
+        const char* mOperation       = "scautr/equipment/status/operation";
+        const char* mUptime          = "progix/dashboard/ut";
+        const char* mFinishedGoods   = "progix/dashboard/fg";
+        const char* mFotaConfig      = "fota/config";
+        const char* mFotaStatus      = "fota/status";
+    private:
+        char mFotaUpdate[25] = {'\0'};
+        char mJarvisRequest[17] = {'\0'};
+        char mJarvisResponse[22] = {'\0'};
+        char mRemoteControlRequest[24] = {'\0'};
+        char mRemoteControlResponse[25] = {'\0'};
     };
+
+
+    extern Topic topic;
 }}

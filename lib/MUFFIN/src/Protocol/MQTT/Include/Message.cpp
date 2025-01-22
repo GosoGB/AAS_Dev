@@ -158,7 +158,7 @@ namespace muffin { namespace mqtt {
     const char* Message::GetTopicString() const
     {
         ASSERT((mIsTopicSet == true), "TOPIC CODE NOT FOUND");
-        return Topic::ToString(mTopicCode);;
+        return topic.ToString(mTopicCode);
     }
 
     const char* Message::GetPayload() const

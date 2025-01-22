@@ -41,7 +41,7 @@ namespace muffin { namespace mqtt {
         virtual Status Publish(const size_t mutexHandle, const Message& message) = 0;
         virtual INetwork* RetrieveNIC() = 0;
     };
-
-
-    extern IMQTT* client;
 }}
+
+
+extern muffin::mqtt::IMQTT* mqttClient;

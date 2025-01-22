@@ -116,7 +116,7 @@ namespace muffin {
 
     File ESP32FS::Open(const char* path, const char* mode, const bool create)
     {
-        LOG_DEBUG(logger, "Path: %s, Mode: %s, Create: %s", path, mode, create ? "true" : "false");
+        LOG_VERBOSE(logger, "Path: %s, Mode: %s, Create: %s", path, mode, create ? "true" : "false");
         return LittleFS.open(path, mode, create);
     }
 
@@ -129,7 +129,7 @@ namespace muffin {
     {
         if (LittleFS.exists(path) == true)
         {
-            LOG_DEBUG(logger, "Found: %s", path);
+            LOG_VERBOSE(logger, "Found: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -148,7 +148,7 @@ namespace muffin {
     {
         if (LittleFS.remove(path) == true)
         {
-            LOG_DEBUG(logger, "Removed: %s", path);
+            LOG_VERBOSE(logger, "Removed: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -167,7 +167,7 @@ namespace muffin {
     {
         if (LittleFS.rename(pathFrom, pathTo) == true)
         {
-            LOG_DEBUG(logger, "Renamed: %s to %s", pathFrom, pathTo);
+            LOG_VERBOSE(logger, "Renamed: %s to %s", pathFrom, pathTo);
             return Status(Status::Code::GOOD);
         }
         else
@@ -186,7 +186,7 @@ namespace muffin {
     {
         if (LittleFS.mkdir(path) == true)
         {
-            LOG_DEBUG(logger, "Directory created: %s", path);
+            LOG_VERBOSE(logger, "Directory created: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
@@ -205,7 +205,7 @@ namespace muffin {
     {
         if (LittleFS.rmdir(path) == true)
         {
-            LOG_DEBUG(logger, "Directory removed: %s", path);
+            LOG_VERBOSE(logger, "Directory removed: %s", path);
             return Status(Status::Code::GOOD);
         }
         else

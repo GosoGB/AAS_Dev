@@ -76,7 +76,7 @@ namespace muffin {
 
         mConfig = *static_cast<jvs::config::Ethernet*>(config);
         mState = state_e::SUCCEDDED_TO_CONFIGURE;
-        return Status(Status::Code::GOOD_ENTRY_REPLACED);
+        return Status(Status::Code::GOOD);
     }
 
     Status Ethernet::Connect()

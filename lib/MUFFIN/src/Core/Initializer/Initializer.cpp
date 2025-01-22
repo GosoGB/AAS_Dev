@@ -279,7 +279,9 @@ namespace muffin {
             }
             file.close();
             ASSERT((file == false), "FILE MUST BE CLOSED");
-            LOG_DEBUG(logger, "JARVIS: %s", buffer);
+        #if defined(DEBUG)
+            LOG_DEBUG(logger, "%s", buffer);
+        #endif
 
             ret = json.Deserialize(buffer, &doc);
             if (ret != Status::Code::GOOD)

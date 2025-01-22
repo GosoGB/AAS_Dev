@@ -166,13 +166,13 @@ namespace muffin {
         const uint16_t remainedStackCheckInterval = 5 * 1000;
     #endif
     
-        if (mqtt::client == nullptr)
+        if (mqttClient == nullptr)
         {
-            LOG_DEBUG(logger, "mqtt::client == nullptr");
+            LOG_DEBUG(logger, "mqttClient == nullptr");
             delay(UINT32_MAX);
         }
         
-        INetwork* nic = mqtt::client->RetrieveNIC();
+        INetwork* nic = mqttClient->RetrieveNIC();
 
         while (true)
         {
@@ -192,7 +192,7 @@ namespace muffin {
                 continue;
             }
 
-            INetwork* nic = mqtt::client->RetrieveNIC();
+            INetwork* nic = mqttClient->RetrieveNIC();
             std::pair<Status, size_t> mutex = nic->TakeMutex();
             if (mutex.first != Status::Code::GOOD)
             {
@@ -202,7 +202,7 @@ namespace muffin {
             
             for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
             {
-                Status ret = mqtt::client->Publish(mutex.second, pubMessage.second);
+                Status ret = mqttClient->Publish(mutex.second, pubMessage.second);
                 if (ret == Status::Code::GOOD)
                 {
                     mqtt::cdo.Retrieve();
