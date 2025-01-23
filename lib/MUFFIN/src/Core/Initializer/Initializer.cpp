@@ -71,7 +71,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FATAL ERROR: FAILED TO MOUNT ESP32 FILE SYSTEM");
-            vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
             esp_restart();
         }
         LOG_INFO(logger, "Initialized ESP32 file system");
@@ -80,7 +80,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FATAL ERROR: FAILED TO PROCESS RESET REASON");
-            vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
             esp_restart();
         }
 
@@ -118,6 +118,7 @@ namespace muffin {
 
         if (panicResetCount > MAX_RETRY_COUNT)
         {
+            pf.putChar(key, 0);
             esp32FS.Remove(JARVIS_PATH);
             /*
              * @todo 나중에 코드에 반영시킬 것

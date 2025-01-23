@@ -4,12 +4,11 @@
  * 
  * @brief 수신한 JARIVS 설정 정보를 검증하여 유효하다면 적용하는 태스크를 정의합니다.
  * 
- * @date 2024-10-18
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) EdgecrBoss Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
-
 
 
 
@@ -24,11 +23,14 @@
 #include "Core/Task/ModbusTask.h"
 #include "Core/Task/CyclicalPubTask.h"
 #include "DataFormat/JSON/JSON.h"
-#include "IM/Node/NodeStore.h"
+
+#include "IM/Custom/Constants.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
+#include "IM/Node/NodeStore.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/EA/DeprecableOperationTime.h"
+
 #include "JARVIS/JARVIS.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "JarvisTask.h"
@@ -59,13 +61,8 @@ namespace muffin {
 
     static bool s_IsJarvisTaskRunning = false;
     static std::string s_JarvisApiPayload;
-
     static bool s_HasNode = false;
-    static bool s_HasFactoryResetCommand   = false;
-    static bool s_HasPlanExpirationCommand = false;
-    static uint16_t s_PollingInterval =  1;
-    static uint16_t s_PublishInterval = 60;
-    static jvs::snic_e s_ServerNIC = jvs::snic_e::LTE_CatM1;
+
 
     #if defined(DEBUG)
         mqtt::BrokerInfo brokerInfo(
@@ -128,9 +125,8 @@ namespace muffin {
 
       
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
-
             Status ret = Status(Status::Code::UNCERTAIN);
-            switch (s_ServerNIC)
+            switch (jvs::config::operation.GetServerNIC().second)
             {
             case jvs::snic_e::LTE_CatM1:
                 ret = strategyCatHttp();
@@ -456,37 +452,94 @@ namespace muffin {
         productionInfo.StartTask();
     }
 
-    void applyOperationCIN(std::vector<jvs::config::Base*>& vectorOperationCIN)
+    void applyOperationCIN()
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((vectorOperationCIN.size() == 1), "THERE MUST BE ONLY ONE OPERATION CIN: %u", vectorOperationCIN.size());
-    #endif
+        LOG_DEBUG(logger, "Start to apply CIN: Operation");
 
-        //LOG_DEBUG(logger, "Start applying Operation CIN");
-        jvs::config::Operation* cin = static_cast<jvs::config::Operation*>(vectorOperationCIN[0]);
-
-        s_HasFactoryResetCommand   = cin->GetFactoryReset().second;
-        LOG_INFO(logger,"s_HasFactoryResetCommand : %s", s_HasFactoryResetCommand == true ? "true":"false" );
-        s_HasPlanExpirationCommand = cin->GetPlanExpired().second;
-        s_PollingInterval = cin->GetIntervalPolling().second;
-        s_PublishInterval = cin->GetIntervalServer().second;
-        s_ServerNIC = cin->GetServerNIC().second;
-
-        if (s_HasFactoryResetCommand == true)
+        const bool hasFactoryReset = jvs::config::operation.GetFactoryReset().second;
+        if (hasFactoryReset == true)
         {
-            esp32FS.Format();
+            LOG_INFO(logger,"Received the factory reset command");
+            
+            for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
+            {
+                Status ret = esp32FS.Format();
+                if (ret == Status::Code::GOOD)
+                {
+                    LOG_INFO(logger, "Factory reset has finished. Will be reset");
+                    vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
+                    esp_restart();
+                }
+                LOG_WARNING(logger, "[TRIAL: #%u] FACTORY RESET WAS UNSUCCESSFUL: %s", trialCount, ret.c_str());
+            }
+            
+            LOG_ERROR(logger, "FACTORY RESET HAS FAILED");
             esp_restart();
         }
-    }
 
-    uint16_t RetrievePublishInterval()
-    {
-        return s_PublishInterval;
-    }
+        mqtt::Message lwt = mqtt::GenerateWillMessage(false);
+        switch (jvs::config::operation.GetServerNIC().second)
+        {
+        case jvs::snic_e::LTE_CatM1:
+        {
+            CatM1& catM1 = CatM1::GetInstance();
+            std::pair<muffin::Status, size_t> mutex = catM1.TakeMutex();
+            if (mutex.first != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO TAKE MUTEX: %s", mutex.first.c_str());
+                return;
+            }
 
-    jvs::snic_e RetrieveServerNIC()
-    {
-        return s_ServerNIC;
+            mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, brokerInfo, lwt);
+            Status ret = catMQTT->Init(mutex.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1 MQTT Client: %s", ret.c_str());
+                catM1.ReleaseMutex();
+                return;
+            }
+            mqttClient = catMQTT;
+
+            http::CatHTTP* catHTTP = http::CatHTTP::CreateInstanceOrNULL(catM1);
+            ret = catHTTP->Init(mutex.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1 MQTT Client: %s", ret.c_str());
+                catM1.ReleaseMutex();
+                return;
+            }
+            httpClient = catHTTP;
+            catM1.ReleaseMutex();
+            break;
+        }
+
+        case jvs::snic_e::Ethernet:
+        {
+            ethernet->SyncWithNTP();
+            
+            mqtt::LwipMQTT* lwipMQTT= new mqtt::LwipMQTT(brokerInfo, lwt);
+            Status ret = lwipMQTT->Init();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO INITIALIZE LwIP MQTT Client: %s", ret.c_str());
+                return;
+            }
+            mqttClient = lwipMQTT;
+        
+            http::LwipHTTP* lwipHTTP = new http::LwipHTTP();
+            ret = lwipHTTP->Init();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO INITIALIZE LwIP HTTTP Client: %s", ret.c_str());
+                return;
+            }
+            httpClient = lwipHTTP;
+            break;
+        }
+
+        default:
+            break;
+        }
     }
 
     void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN)
@@ -545,7 +598,7 @@ namespace muffin {
             return;
         }
         
-        if (s_HasPlanExpirationCommand == true)
+        if (jvs::config::operation.GetPlanExpired().second == true)
         {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
@@ -573,9 +626,9 @@ namespace muffin {
 
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
 
-        SetPollingInterval(s_PollingInterval);
+        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(s_PublishInterval);
+        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     #else
         ModbusRtuVector.clear();
         mVectorModbusRTU.clear();
@@ -612,7 +665,7 @@ namespace muffin {
         }
 
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(s_PublishInterval);
+        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     #endif
         
     }
@@ -659,10 +712,6 @@ namespace muffin {
         /**
          * @todo 서비스 네트워크에 따라서 실행되게 코드 수정 필요함
          */
-        ethernet->SyncWithNTP();
-        mqtt::Message lwt = mqtt::GenerateWillMessage(false);
-        mqttClient = new mqtt::LwipMQTT(brokerInfo, lwt);
-        httpClient = new http::LwipHTTP();
         ConnectToBrokerEthernet();
         StartEthernetTask();
         return;
@@ -680,7 +729,7 @@ namespace muffin {
             return;
         }
 
-        if (s_HasPlanExpirationCommand == true)
+        if (jvs::config::operation.GetPlanExpired().second == true)
         {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
@@ -702,9 +751,9 @@ namespace muffin {
             ModbusTcpVector.emplace_back(*modbusTCP);
         }
 
-        SetPollingInterval(s_PollingInterval);
+        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
         StartModbusTcpTask();
-        StartTaskCyclicalsMSG(s_PublishInterval);
+        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     }
 
     Status strategyCatHttp()

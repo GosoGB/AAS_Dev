@@ -5,7 +5,7 @@
  * 
  * @brief FreeRTOS TCP/IP 스택인 LwIP를 사용하는 MQTT 프로토콜 클래스를 선언합니다.
  * 
- * @date 2025-01-22
+ * @date 2025-01-23
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -46,11 +46,13 @@ namespace muffin { namespace mqtt {
     private:
         const char* getState();
         static void vTimerCallback(TimerHandle_t xTimer);
+        static void implTimerCallback();
         void callback(char* topic, byte * payload, unsigned int length);
     private:
+        TimerHandle_t xTimer = NULL;
+    public:
         static PubSubClient mClient;
         WiFiClientSecure mNIC;
-        TimerHandle_t xTimer = NULL;
     private:
         const BrokerInfo mBrokerInfo;
         const Message mMessageLWT;

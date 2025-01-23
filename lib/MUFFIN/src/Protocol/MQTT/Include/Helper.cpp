@@ -45,17 +45,23 @@ namespace muffin { namespace mqtt {
         const uint8_t size = 64;
         char buffer[size] = {'\0'};
 
-        snprintf(buffer, size, "%s,%llu,false,%s,%s",
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        snprintf(buffer, size, "%s,%llu,%s,%s,null",
             macAddress.GetEthernet(),
             GetTimestampInMillis(),
-            FW_VERSION_ESP32.GetSemanticVersion(),
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
-            FW_VERSION_MEGA2560.GetSemanticVersion()
-        #else
-            "N/A"
-        #endif
+            isConnected ? "true" : "false",
+            FW_VERSION_ESP32.GetSemanticVersion()
         );
-
+    #else
+        snprintf(buffer, size, "%s,%llu,%s,%s,%s",
+            macAddress.GetEthernet(),
+            GetTimestampInMillis(),
+            isConnected ? "true" : "false",
+            FW_VERSION_ESP32.GetSemanticVersion(),
+            FW_VERSION_MEGA2560.GetSemanticVersion()
+        );
+    #endif
+        
         return mqtt::Message(mqtt::topic_e::LAST_WILL, buffer);
     }
 

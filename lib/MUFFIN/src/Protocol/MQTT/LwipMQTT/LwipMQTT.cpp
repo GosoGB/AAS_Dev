@@ -49,7 +49,16 @@ namespace muffin { namespace mqtt {
             LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR LOOP TASK");
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
-        LOG_INFO(logger, "Created a timer for loop task");
+        else
+        {
+            LOG_INFO(logger, "Created a timer for loop task");
+            if (xTimerStart(xTimer, 0) != pdPASS)
+            {
+                LOG_ERROR(logger, "FAILED TO START TIMER FOR LOOP TASK");
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+        
         
         mClient.setCallback(
             [this](char* topic, byte* payload, unsigned int length)
@@ -86,7 +95,7 @@ namespace muffin { namespace mqtt {
             mMessageLWT.IsRetain(),
             mMessageLWT.GetPayload()
         );
-
+        
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
             if (mClient.connected() == true)
@@ -97,25 +106,11 @@ namespace muffin { namespace mqtt {
             LOG_WARNING(logger, "[TRIAL: #%u] NOT CONNECTED: %s", trialCount, getState());
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
-        
         LOG_ERROR(logger, "FAILED TO CONNECT: %s", getState());
         return Status(Status::Code::BAD_NOT_CONNECTED);
 
     CONNECTED:
-        const uint8_t size = 64;
-        char buffer[size] = {'\0'};
-        snprintf(buffer, size, "%s,%llu,true,%s,%s",
-            mBrokerInfo.GetClientID(),
-            GetTimestampInMillis(),
-            FW_VERSION_ESP32.GetSemanticVersion(),
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
-            FW_VERSION_MEGA2560.GetSemanticVersion()
-        #else
-            "0.0.0"
-        #endif
-        );
-
-        if (mClient.publish(mMessageLWT.GetTopicString(), buffer) == true)
+        if (mClient.publish(mMessageLWT.GetTopicString(), mqtt::GenerateWillMessage(true).GetPayload()) == true)
         {
             LOG_INFO(logger, "Published connection message");
         }
@@ -274,7 +269,11 @@ namespace muffin { namespace mqtt {
     void LwipMQTT::vTimerCallback(TimerHandle_t xTimer)
     {
         configASSERT(xTimer);   // Optionally do something if xTimer is NULL
-        LOG_DEBUG(logger, "Called %u times", reinterpret_cast<uint32_t>(pvTimerGetTimerID(xTimer)));
+        implTimerCallback();
+    }
+    
+    void LwipMQTT::implTimerCallback()
+    {
         mClient.loop();
     }
 

@@ -4,10 +4,10 @@
  * 
  * @brief 시간 정보를 생성, 관리, 교환하기 위한 기능을 정의
  * 
- * @date 2024-10-29
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -177,21 +177,24 @@ namespace muffin {
 				CatM1& catM1 = CatM1::GetInstance();
 				return catM1.SyncWithNTP();
 			}
-/* MFM Ver.1.2.0 이후에 구현해야 합니다.
+
 	#if defined(MODLINK_T2) || defined(MODLINK_B)
-		case jvs::snic_e::Ethernet,:
+		case jvs::snic_e::Ethernet:
 			{
 				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 			}
+
     #elif defined(MODLINK_B)
+/* MFM Ver.1.3.0 이후에 구현해야 합니다.
 		case jvs::snic_e::Ethernet,:
 			{
 				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 			}
         case jvs::snic_e::WiFi4,:
 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
-	#endif
 */
+	#endif
+
 		default:
 			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 		}

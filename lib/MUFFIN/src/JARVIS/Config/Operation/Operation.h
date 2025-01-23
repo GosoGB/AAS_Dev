@@ -4,7 +4,7 @@
  * 
  * @brief Operation 설정 정보를 관리하는 클래스를 선언합니다.
  * 
- * @date 2025-01-17
+ * @date 2025-01-23
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -65,5 +65,5 @@ namespace muffin { namespace jvs { namespace config {
     };
 
 
-    extern Operation opeartion;
+    extern Operation operation;
 }}}

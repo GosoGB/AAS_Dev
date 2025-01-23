@@ -25,12 +25,13 @@
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "JARVIS/Include/Base.h"
 #include "NetworkTask.h"
+#include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Topic.h"
+#include "Protocol/MQTT/Include/Helper.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
-#include "Protocol/HTTP/CatHTTP/CatHTTP.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 
 
@@ -305,30 +306,13 @@ namespace muffin {
         );
     #endif
         
-        char buffer[32] = { '\0' };
-        sprintf(buffer, "%s,disconnected", macAddress.GetEthernet());
-        mqtt::Message lwt(mqtt::topic_e::LAST_WILL, buffer);
-
-        if (s_IsCatMqttInitialized == false)
-        {
-            if (mqttClient == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO CREATE LWIP MQTT DUE TO OUT OF MEMORY");
-                esp_restart();
-            }
-
-            // lwipMqtt->Init(); @todo
-            s_IsCatMqttInitialized = true;
-        }
-        
-        
         INetwork* nic = mqttClient->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
             return mutex.first;
-        }
+        }       
 
         Status ret = mqttClient->Connect(mutex.second);
         if (ret != Status::Code::GOOD)
