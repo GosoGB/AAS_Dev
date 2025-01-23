@@ -439,14 +439,6 @@ namespace muffin {
     
     void applyLteCatM1CIN(std::vector<jvs::config::Base*>& vectorLteCatM1CIN)
     {
-        ASSERT((vectorLteCatM1CIN.size() == 1), "THERE MUST BE ONLY ONE LTE Cat.M1 CIN");
-        LOG_INFO(logger, "Start to apply LTE Cat.M1 configuration");
-
-        jvs::config::CatM1* cin = Convert.ToCatM1CIN(vectorLteCatM1CIN[0]);
-        while (InitCatM1(cin) != Status::Code::GOOD)
-        {
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
         InitCatHTTP();
         ConnectToBroker();
         StartCatM1Task();
@@ -588,8 +580,7 @@ namespace muffin {
 
     Status strategyCatHttp()
     {
-        CatM1& catM1 = CatM1::GetInstance();
-        const auto mutexHandle = catM1.TakeMutex();
+        const auto mutexHandle = catM1->TakeMutex();
       
         /* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             JSON json;
@@ -615,7 +606,7 @@ namespace muffin {
                 return ret;
             }
  
-            catM1.ReleaseMutex();
+            catM1->ReleaseMutex();
             CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
             ret = catFS->Begin();
             if (ret != Status::Code::GOOD)
@@ -632,13 +623,6 @@ namespace muffin {
 
     Status strategyLwipHttp()
     {
-        http::lwipHTTP = new(std::nothrow) http::LwipHTTP();
-        if (http::lwipHTTP == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR LWIP HTTP CLIENT");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        }
-        
         INetwork* nic = http::lwipHTTP->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)

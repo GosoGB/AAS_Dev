@@ -4,7 +4,7 @@
  * 
  * @brief ESP32 LittleFS 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2025-01-14
+ * @date 2025-01-24
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025

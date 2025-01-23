@@ -217,11 +217,6 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    jvs::config::Base* WiFi4::GetConfig()
-    {
-        return static_cast<jvs::config::Base*>(&mConfig);
-    }
-
     const char* WiFi4::GetMacAddress() const
     {
         return mMacAddress;

@@ -101,24 +101,13 @@ namespace muffin { namespace mqtt {
             if (mClient.connected() == true)
             {
                 LOG_INFO(logger, "Connected to the Broker");
-                goto CONNECTED;
+                return Status(Status::Code::GOOD);
             }
             LOG_WARNING(logger, "[TRIAL: #%u] NOT CONNECTED: %s", trialCount, getState());
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
         LOG_ERROR(logger, "FAILED TO CONNECT: %s", getState());
         return Status(Status::Code::BAD_NOT_CONNECTED);
-
-    CONNECTED:
-        if (mClient.publish(mMessageLWT.GetTopicString(), mqtt::GenerateWillMessage(true).GetPayload()) == true)
-        {
-            LOG_INFO(logger, "Published connection message");
-        }
-        else
-        {
-            LOG_ERROR(logger, "FAILED TO PUBLISH CONNECTION MESSAGE");
-        }
-        return Status(Status::Code::GOOD);
     }
 
     Status LwipMQTT::Disconnect(const size_t mutexHandle)
@@ -220,11 +209,6 @@ namespace muffin { namespace mqtt {
 
         LOG_ERROR(logger, "FAILED TO PUBLISH: %s", getState());
         return Status(Status::Code::BAD_COMMUNICATION_ERROR);
-    }
-
-    INetwork* LwipMQTT::RetrieveNIC()
-    {
-        return static_cast<INetwork*>(ethernet);
     }
 
     const char* LwipMQTT::getState()

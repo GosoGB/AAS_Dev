@@ -42,7 +42,6 @@ namespace muffin { namespace http {
         virtual Status POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60) override;
         virtual Status Retrieve(const size_t mutexHandle, std::string* response) override;
         Status Retrieve(const size_t mutexHandle, const size_t length, uint8_t output[]);
-        virtual INetwork* RetrieveNIC() override;
         int32_t RetrieveContentLength() const;
     private:
         Status getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);

@@ -64,33 +64,4 @@ namespace muffin {
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
     }
-
-/*
-    switch (jvs::config::operationCIN.GetServerNIC().second)
-    {
-    case jvs::snic_e::LTE_CatM1:
-    {
-        mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, brokerInfo, lwt);
-        Status ret = catMQTT->Init(mutex.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1 MQTT Client: %s", ret.c_str());
-            catM1.ReleaseMutex();
-            return;
-        }
-        mqttClient = catMQTT;
-
-        http::CatHTTP* catHTTP = http::CatHTTP::CreateInstanceOrNULL(catM1);
-        ret = catHTTP->Init(mutex.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1 MQTT Client: %s", ret.c_str());
-            catM1.ReleaseMutex();
-            return;
-        }
-        httpClient = catHTTP;
-        catM1.ReleaseMutex();
-        break;
-    }
-*/
 }

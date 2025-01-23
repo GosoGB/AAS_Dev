@@ -20,6 +20,7 @@
 
 #include "Common/Status.h"
 #include "JARVIS/Include/TypeDefinitions.h"
+#include "Protocol/MQTT/Include/TypeDefinitions.h"
 
 
 
@@ -72,6 +73,7 @@ namespace jvs { namespace config {
         static std::string ToString(const T& input);
         static std::string ToString(const jvs::cfg_key_e input);
         static std::string ToString(const jvs::prtcl_ver_e input);
+        static const char* ToString(const mqtt::version_e input);
     public:
         static std::pair<Status, jvs::cfg_key_e> ToJarvisKey(const jvs::prtcl_ver_e version, const std::string& input);
         static std::pair<Status, jvs::prtcl_ver_e> ToJarvisVersion(const std::string& input);

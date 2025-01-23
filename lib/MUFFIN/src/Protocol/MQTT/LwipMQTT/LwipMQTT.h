@@ -42,7 +42,6 @@ namespace muffin { namespace mqtt {
         virtual Status Subscribe(const size_t mutexHandle, const std::vector<Message>& messages) override;
         virtual Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages) override;
         virtual Status Publish(const size_t mutexHandle, const Message& message) override;
-        virtual INetwork* RetrieveNIC() override;
     private:
         const char* getState();
         static void vTimerCallback(TimerHandle_t xTimer);

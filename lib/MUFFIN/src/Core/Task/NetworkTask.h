@@ -21,11 +21,6 @@
 
 
 namespace muffin {
-
-    Status InitCatM1(jvs::config::CatM1* cin);
-    Status InitCatHTTP();
-    Status ConnectToBroker();
-    Status ConnectToBrokerEthernet();
-
+    
     void StartCatM1Task();
 }

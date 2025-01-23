@@ -114,10 +114,10 @@ namespace muffin { namespace jvs {
                     break;
                 case cfg_key_e::WIFI4:
                 case cfg_key_e::ETHERNET:
-                    ret = validateNicLAN(key, cinArray, &outputVector);
+                    ret = validateNicLAN(key, cinArray);
                     break;
                 case cfg_key_e::LTE_CatM1:
-                    ret = validateNicLTE(key, cinArray, &outputVector);
+                    ret = validateNicLTE(key, cinArray);
                     break;
                 case cfg_key_e::MODBUS_RTU:
                 case cfg_key_e::MODBUS_TCP:
@@ -398,22 +398,16 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json)
     {
-        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
-        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
-        
         NetworkValidator validator;
-        return validator.Inspect(key, json, outputVector);
+        return validator.Inspect(key, json);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateNicLTE(const cfg_key_e key, const JsonArray json)
     {
-        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
-        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
-        
         LteValidator validator;
-        return validator.Inspect(key, json, outputVector);
+        return validator.Inspect(key, json);
     }
 
     std::pair<rsc_e, std::string> Validator::validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)

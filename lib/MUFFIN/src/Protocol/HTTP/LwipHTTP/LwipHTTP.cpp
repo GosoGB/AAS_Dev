@@ -229,11 +229,6 @@ namespace muffin { namespace http {
         }
     }
 
-    INetwork* LwipHTTP::RetrieveNIC()
-    {
-        return static_cast<INetwork*>(ethernet);
-    }
-
     int32_t LwipHTTP::RetrieveContentLength() const
     {
         ASSERT(

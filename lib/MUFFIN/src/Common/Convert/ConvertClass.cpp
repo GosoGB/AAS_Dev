@@ -264,6 +264,20 @@ namespace muffin {
         }
     }
 
+    const char* ConvertClass::ToString(const mqtt::version_e input)
+    {
+        switch (input)
+        {
+        case mqtt::version_e::Ver_3_1_0:
+            return "3.1.0";
+        case mqtt::version_e::Ver_3_1_1:
+            return "3.1.1";
+        default:
+            ASSERT(false, "UNDEFINED MQTT PROTOCOL VERSION");
+            return nullptr;
+        }
+    }
+
     std::pair<Status, jvs::cfg_key_e> ConvertClass::ToJarvisKey(const jvs::prtcl_ver_e version, const std::string& input)
     {
         using namespace jvs;

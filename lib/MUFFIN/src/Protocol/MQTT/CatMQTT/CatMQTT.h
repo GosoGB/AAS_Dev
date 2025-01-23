@@ -4,8 +4,11 @@
  * 
  * @brief LTE Cat.M1 모듈의 MQTT 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * 
  * 
  * @todo 시간 제약으로 인해 Ver.0.0.1에서는 하기 함수를 구현하지 않기로 하였습니다.
  *       다음 버전에서는 미구현된 모든 함수를 구현하는 작업이 필용합니다.
@@ -24,8 +27,6 @@
  *       @li +QMTSTAT: 0,1
  * 
  * @todo Init(), Connect()와 같은 함수는 별도의 태스크로 만들어야 할 수도 있습니다.
- * 
- * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -37,7 +38,6 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "Network/CatM1/CatM1.h"
 #include "Network/TypeDefinitions.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Message.h"
@@ -50,18 +50,8 @@ namespace muffin { namespace mqtt {
     class CatMQTT : public IMQTT
     {
     public:
-        CatMQTT(CatMQTT const&) = delete;
-        void operator=(CatMQTT const&) = delete;
-        static CatMQTT* CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt);
-        static CatMQTT* CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker);
-        static CatMQTT& GetInstance();
-    private:
-        CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt);
-        CatMQTT(CatM1& catM1, BrokerInfo& broker);
-        virtual ~CatMQTT() override;
-    private:
-        static CatMQTT* mInstance;
-
+        CatMQTT(BrokerInfo& broker, Message& lwt);
+        virtual ~CatMQTT() override {}
     public:
         Status Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl);
         virtual Status Connect(const size_t mutexHandle) override;
@@ -70,7 +60,6 @@ namespace muffin { namespace mqtt {
         virtual Status Subscribe(const size_t mutexHandle, const std::vector<Message>& messages) override;
         virtual Status Unsubscribe(const size_t mutexHandle, const std::vector<Message>& messages) override;
         virtual Status Publish(const size_t mutexHandle, const Message& message) override;
-        virtual INetwork* RetrieveNIC() override;
     public:
         void OnEventReset();
     private:
@@ -95,7 +84,6 @@ namespace muffin { namespace mqtt {
         Status readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd);
         Status processCmeErrorCode(const std::string& rxd);
     private:
-        CatM1& mCatM1;
         BrokerInfo mBrokerInfo;
         Message mMessageLWT;
         network::lte::pdp_ctx_e mContextPDP;

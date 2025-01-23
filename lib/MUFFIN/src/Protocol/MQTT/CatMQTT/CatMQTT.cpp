@@ -4,95 +4,39 @@
  * 
  * @brief LTE Cat.M1 모듈의 MQTT 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
 
 
-#include "CatMQTT.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
+#include "Network/CatM1/CatM1.h"
 #include "Network/Helper.h"
+#include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/Include/Helper.h"
 
 
 
 namespace muffin { namespace mqtt {
 
-    CatMQTT* CatMQTT::CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker, Message& lwt)
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) CatMQTT(catM1, broker, lwt);
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
-                return mInstance;
-            }
-        }
-        
-        return mInstance;
-    }
-
-    CatMQTT* CatMQTT::CreateInstanceOrNULL(CatM1& catM1, BrokerInfo& broker)
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) CatMQTT(catM1, broker);
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatMQTT");
-                return mInstance;
-            }
-        }
-        
-        return mInstance;
-    }
-
-    CatMQTT& CatMQTT::GetInstance()
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-        return *mInstance;
-    }
-
-    CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker, Message& lwt)
-        : mCatM1(catM1)
-        , mBrokerInfo(std::move(broker))
+    CatMQTT::CatMQTT(BrokerInfo& broker, Message& lwt)
+        : mBrokerInfo(std::move(broker))
         , mMessageLWT(std::move(lwt))
     {
         mInitFlags.reset();
         mInitFlags.set(init_flag_e::ENABLE_LWT_MSG);
         mState = state_e::CONSTRUCTED;
     }
-    
-    CatMQTT::CatMQTT(CatM1& catM1, BrokerInfo& broker)
-        : mCatM1(catM1)
-        , mBrokerInfo(std::move(broker))
-        , mMessageLWT(Message(topic_e::LAST_WILL, std::string()))
-    {
-        mInitFlags.reset();
-        mInitFlags.reset(init_flag_e::ENABLE_LWT_MSG);
-        mState = state_e::CONSTRUCTED;
-        LOG_WARNING(logger, "LWT FEATURE IS TURNED OFF");
-    }
-
-    CatMQTT::~CatMQTT()
-    {
-    }
 
     void CatMQTT::OnEventReset()
     {
         this->mInitFlags.reset();
-    }
-    
-    INetwork* CatMQTT::RetrieveNIC()
-    {
-        return static_cast<INetwork*>(&mCatM1);
     }
 
     Status CatMQTT::Init(const size_t mutexHandle, const network::lte::pdp_ctx_e pdp, const network::lte::ssl_ctx_e ssl)
@@ -145,8 +89,7 @@ namespace muffin { namespace mqtt {
             mInitFlags.set(init_flag_e::INITIALIZED_VSN);
         }
 
-        // if (mInitFlags.test(init_flag_e::INITIALIZED_LWT) == false)
-        if (true)
+        if (mInitFlags.test(init_flag_e::INITIALIZED_LWT) == false)
         {
             ret = setLastWill(mutexHandle);
             if (ret != Status::Code::GOOD)
@@ -304,7 +247,7 @@ namespace muffin { namespace mqtt {
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SUBSCRIBE: %s", ret.c_str());
@@ -323,7 +266,7 @@ namespace muffin { namespace mqtt {
 
         while (millis() - startedMillis < timeoutMillis)
         {
-            const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+            const std::string betweenPatterns = catM1->ReadBetweenPatterns(patternBegin, patternEnd);
             if (betweenPatterns.length() == 0)
             {
                 vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -457,7 +400,7 @@ namespace muffin { namespace mqtt {
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO UNSUBSCRIBE: %s", ret.c_str());
@@ -477,7 +420,7 @@ namespace muffin { namespace mqtt {
 
         while (millis() - startedMillis < timeoutMillis)
         {
-            const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+            const std::string betweenPatterns = catM1->ReadBetweenPatterns(patternBegin, patternEnd);
             if (betweenPatterns.length() == 0)
             {
                 vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -585,7 +528,7 @@ namespace muffin { namespace mqtt {
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PUBLISH: %s", ret.c_str());
@@ -595,9 +538,9 @@ namespace muffin { namespace mqtt {
         bool hasReadyToSendSignal = false;
         while (uint32_t(millis() - startedMillis) < timeoutMillis)
         {
-            while (mCatM1.GetAvailableBytes() > 0)
+            while (catM1->GetAvailableBytes() > 0)
             {
-                if (mCatM1.Read() == static_cast<int16_t>('>'))
+                if (catM1->Read() == static_cast<int16_t>('>'))
                 {
                     hasReadyToSendSignal = true;
                     goto HAS_RTS_SIGNAL;
@@ -611,7 +554,7 @@ namespace muffin { namespace mqtt {
         }
 
 HAS_RTS_SIGNAL:
-        ret = mCatM1.Execute(message.GetPayload(), mutexHandle);
+        ret = catM1->Execute(message.GetPayload(), mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PUBLISH: %s", ret.c_str());
@@ -651,7 +594,7 @@ HAS_RTS_SIGNAL:
 
         while (millis() - startedMillis < timeoutMillis)
         {
-            const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+            const std::string betweenPatterns = catM1->ReadBetweenPatterns(patternBegin, patternEnd);
             if (betweenPatterns.length() == 0)
             {
                 vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -745,7 +688,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET PDP CONTEXT: %s", ret.c_str());
@@ -786,7 +729,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET SSL CONTEXT: %s", ret.c_str());
@@ -819,7 +762,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET VERSION: %s", ret.c_str());
@@ -829,7 +772,7 @@ PATTERN_FOUND:
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
         if (ret == Status::Code::GOOD)
         {
-            LOG_INFO(logger, "MQTT version: %s", ConvertVersionToString(mBrokerInfo.GetVersion()));
+            LOG_INFO(logger, "MQTT version: %s", Convert.ToString(mBrokerInfo.GetVersion()));
             return ret;
         }
         else
@@ -872,7 +815,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         LOG_WARNING(logger, "LWT: %s", command);
         if (ret != Status::Code::GOOD)
         {
@@ -907,7 +850,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET KEEPALIVE: %s", ret.c_str());
@@ -946,7 +889,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CHECK PROTOCOL VERSION: %s", ret.c_str());
@@ -984,8 +927,8 @@ PATTERN_FOUND:
         else
         {
             LOG_ERROR(logger, "BROKER REQUIRES: %s,  MODEM CONFIG: %s", 
-                ConvertVersionToString(mBrokerInfo.GetVersion()), 
-                ConvertVersionToString(convertedVersion));
+                Convert.ToString(mBrokerInfo.GetVersion()), 
+                Convert.ToString(convertedVersion));
             return Status(Status::Code::BAD);
         }
     }
@@ -1005,7 +948,7 @@ PATTERN_FOUND:
         const uint32_t timeoutMillis = 300;
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CHECK PROTOCOL VERSION: %s", ret.c_str());
@@ -1091,7 +1034,7 @@ PATTERN_FOUND:
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO OPEN SESSION: %s", ret.c_str());
@@ -1111,7 +1054,7 @@ PATTERN_FOUND:
 
         while (millis() - startedMillis < timeoutMillis)
         {
-            const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+            const std::string betweenPatterns = catM1->ReadBetweenPatterns(patternBegin, patternEnd);
             if (betweenPatterns.length() == 0)
             {
                 vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -1189,7 +1132,7 @@ PATTERN_FOUND:
         const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT TO BROKER: %s", ret.c_str());
@@ -1209,7 +1152,7 @@ PATTERN_FOUND:
 
         while (millis() - startedMillis < timeoutMillis)
         {
-            const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+            const std::string betweenPatterns = catM1->ReadBetweenPatterns(patternBegin, patternEnd);
             if (betweenPatterns.length() == 0)
             {
                 vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -1310,7 +1253,7 @@ PATTERN_FOUND:
         // const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DISCONNECT: %s", ret.c_str());
@@ -1332,7 +1275,7 @@ PATTERN_FOUND:
         
         // while (millis() - startedMillis < timeoutMillis)
         // {
-        //     const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+        //     const std::string betweenPatterns = catM1->ReadBetweenPatterns(patternBegin, patternEnd);
         //     if (betweenPatterns.length() == 0)
         //     {
         //         vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -1377,7 +1320,7 @@ PATTERN_FOUND:
         // const uint32_t startedMillis = millis();
         std::string rxd;
 
-        Status ret = mCatM1.Execute(command, mutexHandle);
+        Status ret = catM1->Execute(command, mutexHandle);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CLOSE: %s", ret.c_str());
@@ -1399,7 +1342,7 @@ PATTERN_FOUND:
         
         // while (millis() - startedMillis < timeoutMillis)
         // {
-        //     const std::string betweenPatterns = mCatM1.ReadBetweenPatterns(patternBegin, patternEnd);
+        //     const std::string betweenPatterns = catM1->ReadBetweenPatterns(patternBegin, patternEnd);
         //     if (betweenPatterns.length() == 0)
         //     {
         //         vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -1452,9 +1395,9 @@ PATTERN_FOUND:
 
         while (uint32_t(millis() - startMillis) < timeoutMillis)
         {
-            while (mCatM1.GetAvailableBytes() > 0)
+            while (catM1->GetAvailableBytes() > 0)
             {
-                int16_t value = mCatM1.Read();
+                int16_t value = catM1->Read();
                 if (value == -1)
                 {
                     LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
@@ -1609,7 +1552,4 @@ PATTERN_FOUND:
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
     }
-
-
-    CatMQTT* CatMQTT::mInstance = nullptr;
 }}

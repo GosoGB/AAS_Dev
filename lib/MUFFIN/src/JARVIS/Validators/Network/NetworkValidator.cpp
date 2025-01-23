@@ -4,7 +4,7 @@
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2025-01-23
+ * @date 2025-01-24
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -25,26 +25,17 @@
 
 namespace muffin { namespace jvs {
 
-    NetworkValidator::NetworkValidator()
-    {
-    }
-    
-    NetworkValidator::~NetworkValidator()
-    {
-    }
-
-    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN)
     {
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
-        ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
 
         switch (key)
         {
         case cfg_key_e::ETHERNET:
             return validateEthernet(arrayCIN);
         case cfg_key_e::WIFI4:
-            return validateWiFi4(arrayCIN, outVector);
+            return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, "Wi-Fi IS NOT SUPPORTED IN THE CURRENT VERSION");
         default:
             return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "UNDEFINED CONFIG KEY FOR NETWORK INTERFACE");
         };
@@ -443,14 +434,14 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc, "INVALID ETHERNET: MANDATORY KEY'S VALUE CANNOT BE NULL");
         }
         
-        config::ethernetCIN = new(std::nothrow) config::Ethernet();
-        if (config::ethernetCIN == nullptr)
+        config::ethernet = new(std::nothrow) config::Ethernet();
+        if (config::ethernet == nullptr)
         {
             return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR CIN: ETHERNET");
         }
 
         const bool DHCP = cin["dhcp"].as<bool>();
-        config::ethernetCIN->SetDHCP(DHCP);
+        config::ethernet->SetDHCP(DHCP);
 
         if (DHCP == false)
         {
@@ -485,11 +476,11 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, "INVALID ETHERNET DNS2");
             }
 
-            config::ethernetCIN->SetStaticIPv4(retIP.second);
-            config::ethernetCIN->SetSubnetmask(retSVM.second);
-            config::ethernetCIN->SetGateway(retGTW.second);
-            config::ethernetCIN->SetDNS1(retDNS1.second);
-            config::ethernetCIN->SetDNS2(retDNS2.second);
+            config::ethernet->SetStaticIPv4(retIP.second);
+            config::ethernet->SetSubnetmask(retSVM.second);
+            config::ethernet->SetGateway(retGTW.second);
+            config::ethernet->SetDNS1(retDNS1.second);
+            config::ethernet->SetDNS2(retDNS2.second);
         }
 
         return std::make_pair(rsc_e::GOOD, "GOOD");

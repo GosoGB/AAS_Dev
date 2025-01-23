@@ -69,7 +69,7 @@ namespace muffin {
             goto ON_FAIL;
         }
 
-        if (jvs::config::ethernetCIN->GetDHCP().second == true)
+        if (jvs::config::ethernet->GetDHCP().second == true)
         {
             IPAddress dhcpIPv4(0, 0, 0, 0);
             if (ETH.config(dhcpIPv4, dhcpIPv4, dhcpIPv4, dhcpIPv4, dhcpIPv4) == true)
@@ -83,11 +83,11 @@ namespace muffin {
         }
         else
         {
-            const bool isConfigured = ETH.config(jvs::config::ethernetCIN->GetStaticIPv4().second,
-                                                 jvs::config::ethernetCIN->GetGateway().second,
-                                                 jvs::config::ethernetCIN->GetSubnetmask().second,
-                                                 jvs::config::ethernetCIN->GetDNS1().second,
-                                                 jvs::config::ethernetCIN->GetDNS2().second);
+            const bool isConfigured = ETH.config(jvs::config::ethernet->GetStaticIPv4().second,
+                                                 jvs::config::ethernet->GetGateway().second,
+                                                 jvs::config::ethernet->GetSubnetmask().second,
+                                                 jvs::config::ethernet->GetDNS1().second,
+                                                 jvs::config::ethernet->GetDNS2().second);
 
             if (isConfigured == true)
             {

@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 모듈 설정 정보를 관리하는 클래스를 선언합니다.
  * 
- * @date 2025-01-14
+ * @date 2025-01-24
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -52,4 +52,7 @@ namespace muffin { namespace jvs { namespace config {
         md_e mModel;
         ctry_e mCountry;
     };
+
+
+    extern CatM1* catM1;
 }}}

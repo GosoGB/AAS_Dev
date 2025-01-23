@@ -234,16 +234,6 @@ namespace muffin {
         return IPAddress(0,0,0,0);
     }
 
-    jvs::config::Base* CatM1::GetConfig()
-    {
-        return static_cast<jvs::config::Base*>(&(mConfig.second));
-    }
-
-    std::pair<bool, jvs::config::CatM1> CatM1::RetrieveConfig() const
-    {
-        return mConfig;
-    }
-
     CatM1::state_e CatM1::GetState() const
     {
         return mState;

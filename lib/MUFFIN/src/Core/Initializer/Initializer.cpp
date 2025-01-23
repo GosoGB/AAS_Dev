@@ -61,6 +61,7 @@
 
 
 #include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
+#include "ServiceSets/HttpServiceSet/StartHttpClientService.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
 
 
@@ -338,12 +339,34 @@ namespace muffin {
         do
         {
             ret = ApplyOperationService();
-            vTaskDelay((5*SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = InitHttpService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = InitMqttService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = ConnectMqttService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+        RETRY:
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+            
         } while (ret != Status::Code::GOOD);
-        
-        ret = InitMqttService();
-        ret = ConnectMqttService();
-        
+
         ApplyJarvisTask();
         return ret;
     }

@@ -84,8 +84,6 @@ namespace muffin {
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
-        virtual jvs::config::Base* GetConfig() override;
-        std::pair<bool, jvs::config::CatM1> RetrieveConfig() const;
         state_e GetState() const;
         virtual Status SyncNTP() override;
         void KillUrcTask(bool forOTA);

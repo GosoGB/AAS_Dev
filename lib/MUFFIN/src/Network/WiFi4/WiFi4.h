@@ -84,7 +84,6 @@ namespace muffin {
         virtual IPAddress GetIPv4() const override;
         virtual std::pair<Status, size_t> TakeMutex() override;
         virtual Status ReleaseMutex() override;
-        virtual jvs::config::Base* GetConfig() override;
         const char* GetMacAddress() const;
         state_e GetState() const;
     private:

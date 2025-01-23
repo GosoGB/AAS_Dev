@@ -25,19 +25,68 @@
 
 namespace muffin {
 
-    
-
-
     Status InitCatM1Service()
     {
-        CatM1& catM1 = CatM1::GetInstance();
-        std::pair<muffin::Status, size_t> mutex = catM1.TakeMutex();
-        if (mutex.first != Status::Code::GOOD)
+        if (catM1 == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO TAKE MUTEX: %s", mutex.first.c_str());
-            return;
+            catM1 = new(std::nothrow) CatM1();
+            if (catM1 == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
         }
-        ;
+
+        if (catM1->IsConnected() == true)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        
+        Status ret = catM1->Config(jvs::config::catM1);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE CatM1 CIN");
+            return ret;
+        }
+        LOG_INFO(logger,"Configured CatM1 CIN");
+
+        ret = catM1->Init();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1");
+            return ret;
+        }
+
+        ret = catM1->Connect();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONNECT CatM1 MODULE TO ISP");
+            return ret;
+        }
+        LOG_INFO(logger,"CatM1 has connected");
+        
+        do
+        {
+            if (catM1->IsConnected() == false)
+            {
+                ret = Status::Code::BAD_NO_COMMUNICATION;
+                goto RETRY;
+            }
+            
+            ret = catM1->SyncNTP();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+        RETRY:
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+
+        } while (ret != Status::Code::GOOD);
+        LOG_INFO(logger, "Synchronized with NTP server");
+        
+        LOG_INFO(logger,"Initialized CatM1 interface");
+        return ret;
     }
 
     Status InitEthernetService()
@@ -52,6 +101,11 @@ namespace muffin {
             }
         }
         
+        if (ethernet->IsConnected() == true)
+        {
+            return Status(Status::Code::GOOD);
+        }
+
         Status ret = ethernet->Init();
         if (ret != Status::Code::GOOD)
         {
@@ -59,7 +113,7 @@ namespace muffin {
             return ret;
         }
         
-        ret = ethernet->Config(jvs::config::ethernetCIN);
+        ret = ethernet->Config(jvs::config::ethernet);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNET CIN");

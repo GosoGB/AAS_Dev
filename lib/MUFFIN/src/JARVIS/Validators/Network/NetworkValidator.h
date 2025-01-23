@@ -4,7 +4,7 @@
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2025-01-23
+ * @date 2025-01-24
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -33,12 +33,12 @@ namespace muffin { namespace jvs {
     class NetworkValidator
     {
     public:
-        NetworkValidator();
-        virtual ~NetworkValidator();
+        NetworkValidator() {}
+        virtual ~NetworkValidator() {}
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN);
     private:
         std::pair<rsc_e, std::string> validateEthernet(const JsonArray array);
         rsc_e validateMandatoryKeysEthernet(const JsonObject json);
@@ -63,7 +63,5 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::string> convertToClientCertificate(JsonVariant crt);
         std::pair<rsc_e, std::string> convertToClientKey(JsonVariant key);
         std::pair<rsc_e, IPAddress> convertToIPv4(JsonVariant ip, const bool& isSubnetmask);
-   
-     
     };
 }}
