@@ -625,19 +625,6 @@ namespace muffin {
         ASSERT((vectorEthernetCIN.size() == 1), "THERE MUST BE ONLY ONE ETHERNET CIN FOR MODLINK-B AND MODLINK-T2");
 
         jvs::config::Ethernet* cin = Convert.ToEthernetCIN(vectorEthernetCIN[0]);
-        if (ethernet != nullptr)
-        {
-            if (mEthernet == *cin)
-            {
-                LOG_INFO(logger,"Ethernet settings have not been changed.");
-                return;
-            }
-            else
-            {
-                LOG_INFO(logger,"Ethernet settings have been changed. Reset to apply");
-                ESP.restart();
-            }
-        }
 
         ethernet = new Ethernet();
         Status ret = ethernet->Init();
@@ -669,15 +656,15 @@ namespace muffin {
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
         
+        /**
+         * @todo 서비스 네트워크에 따라서 실행되게 코드 수정 필요함
+         */
         ethernet->SyncWithNTP();
-
         mqtt::Message lwt = mqtt::GenerateWillMessage(false);
         mqttClient = new mqtt::LwipMQTT(brokerInfo, lwt);
         httpClient = new http::LwipHTTP();
         ConnectToBrokerEthernet();
         StartEthernetTask();
-        
-        mEthernet = *cin;
         return;
     }
 

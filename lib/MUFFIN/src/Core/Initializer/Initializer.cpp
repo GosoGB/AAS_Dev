@@ -120,6 +120,7 @@ namespace muffin {
         {
             esp32FS.Remove(JARVIS_PATH);
             /*
+             * @todo 나중에 코드에 반영시킬 것
              *  "/spear/protocol/config.json"
              *  "/spear/link1/config.json"
              *  "/spear/link2/config.json"
@@ -230,13 +231,16 @@ namespace muffin {
         serializeJson(doc, buffer, size);
         doc.clear();
 
-        // Status ret = ConnectToBrokerEthernet();
-        // StartEthernetTask();
-        // if (mHasJARVIS)
-        // {
-        //     core.StartJarvisTask();
-        // }
-        // return ret;
+        /**
+         * @todo 아래 코드를 맞는 위치에 리팩토링 해야 함
+         * Status ret = ConnectToBrokerEthernet();
+         * StartEthernetTask();
+         * if (mHasJARVIS)
+         * {
+         *     core.StartJarvisTask();
+         * }
+         * return ret;
+         */
 
         file.write(reinterpret_cast<uint8_t*>(buffer), size);
         file.flush();

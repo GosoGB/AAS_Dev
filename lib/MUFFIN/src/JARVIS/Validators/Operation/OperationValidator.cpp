@@ -32,16 +32,12 @@ namespace muffin { namespace jvs {
         rsc_e rsc = validateMandatoryKeys(json);
         if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID OPERATION : MANDATORY KEY CANNOT BE MISSING");
-            delay(10000);
             return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY CANNOT BE MISSING");
         }
 
         rsc = validateMandatoryValues(json);
         if (rsc != rsc_e::GOOD)
         {
-            LOG_ERROR(logger, "INVALID OPERATION : MANDATORY KEY'S VALUE CANNOT BE NULL");
-            delay(10000);
             return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY'S VALUE CANNOT BE NULL");
         }
         
@@ -55,20 +51,12 @@ namespace muffin { namespace jvs {
         if (retSNIC.first != rsc_e::GOOD)
         {
             const std::string message = "INVALID SERVER NETWORK INTERFACE: " + snic;
-
-            LOG_ERROR(logger, "%s", message.c_str());
-            delay(10000);
-
             return std::make_pair(rsc, message);
         }
         
         config::Operation* operation = new(std::nothrow) config::Operation();
         if (operation == nullptr)
         {
-
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR OPERATION CONFIG");
-            delay(10000);
-
             return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR OPERATION CONFIG");
         }
 
@@ -81,10 +69,6 @@ namespace muffin { namespace jvs {
         rsc = emplaceCIN(static_cast<config::Base*>(operation), outVector);
         if (rsc != rsc_e::GOOD)
         {
-
-            LOG_ERROR(logger, "FAILED TO EMPLACE: OPERATION CONFIG INSTANCE");
-            delay(10000);
-
             if (operation != nullptr)
             {
                 delete operation;

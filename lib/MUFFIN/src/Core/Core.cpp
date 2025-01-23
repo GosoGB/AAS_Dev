@@ -62,7 +62,6 @@ namespace muffin {
 
     std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
     std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
-    muffin::jvs::config::Ethernet mEthernet;
 
     jvs::ValidationResult Core::mJarvisValidationResult;
     bool Core::mHasJarvisCommand = false;

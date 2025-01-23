@@ -17,6 +17,7 @@
 #pragma once
 
 #include <vector>
+
 #include "Common/Status.h"
 #include "Network/INetwork.h"
 #include "Network/TypeDefinitions.h"

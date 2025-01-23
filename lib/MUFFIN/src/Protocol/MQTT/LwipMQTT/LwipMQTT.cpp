@@ -238,24 +238,34 @@ namespace muffin { namespace mqtt {
         {
         case MQTT_CONNECTION_TIMEOUT:
             return "CONNECTION TIMEOUT";
+            
         case MQTT_CONNECTION_LOST:
             return "CONNECTION LOST";
+            
         case MQTT_CONNECT_FAILED:
             return "CONNECTION FAILED";
+            
         case MQTT_DISCONNECTED:
             return "DISCONNECTED";
+            
         case MQTT_CONNECTED:
             return "CONNECTED";
+            
         case MQTT_CONNECT_BAD_PROTOCOL:
             return "BAD PROTOCOL";
+            
         case MQTT_CONNECT_BAD_CLIENT_ID:
             return "BAD CLIENT ID";
+            
         case MQTT_CONNECT_UNAVAILABLE:
             return "UNAVAILABLE CONNECTION";
+            
         case MQTT_CONNECT_BAD_CREDENTIALS:
             return "BAD CREDENTIALS";
+            
         case MQTT_CONNECT_UNAUTHORIZED:
             return "UNAUTHORIZED CONNECTION";
+            
         default:
             return nullptr;
         };
