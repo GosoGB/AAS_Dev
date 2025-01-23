@@ -4,10 +4,10 @@
  * 
  * @brief JSON 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 정의합니다.
  * 
- * @date 2024-09-27
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -31,37 +31,7 @@ namespace muffin {
 
         const DeserializationError error = ArduinoJson::deserializeJson(*json, payload);
         ASSERT((json->isNull() == false), "DESERIALIZED JSON CANNOT BE NULL");
-
-        switch (error.code())
-        {
-        case DeserializationError::Code::Ok:
-            LOG_DEBUG(logger, "Deserialized the payload");
-            return Status(Status::Code::GOOD);
-
-        case DeserializationError::Code::EmptyInput:
-            LOG_ERROR(logger, "ERROR: EMPTY PAYLOAD");
-            return Status(Status::Code::BAD_NO_DATA);
-            
-        case DeserializationError::Code::IncompleteInput:
-            LOG_ERROR(logger, "ERROR: INSUFFICIENT PAYLOAD: %s", payload);
-            return Status(Status::Code::BAD_END_OF_STREAM);
-        
-        case DeserializationError::Code::InvalidInput:
-            LOG_ERROR(logger, "ERROR: INVALID ENCODING: %s", payload);
-            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
-        
-        case DeserializationError::Code::NoMemory:
-            LOG_ERROR(logger, "ERROR: OUT OF MEMORY: %u", strlen(payload));
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        
-        case DeserializationError::Code::TooDeep:
-            LOG_ERROR(logger, "ERROR: EXCEEDED NESTING LIMIT: %s", payload);
-            return Status(Status::Code::BAD_ENCODING_LIMITS_EXCEEDED);
-
-        default:
-            ASSERT(false, "UNDEFINED CONDITION: %s", error.c_str());
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
+        return processErrorCode(error);
     }
 
     Status JSON::Deserialize(const std::string& payload, JsonDocument* json)
@@ -73,6 +43,48 @@ namespace muffin {
         return Deserialize(payload.c_str(), json);
     }
 
+    Status JSON::Deserialize(fs::File& file, JsonDocument* json)
+    {
+        ASSERT((file != false), "INPUT PARAMETER <fs::File& file> CANNOT BE NULL");
+        
+        const DeserializationError error = ArduinoJson::deserializeJson(*json, file);
+        ASSERT((json->isNull() == false), "DESERIALIZED JSON CANNOT BE NULL");
+        return processErrorCode(error);
+    }
+
+    Status JSON::processErrorCode(const DeserializationError& errorCode)
+    {
+        switch (errorCode.code())
+        {
+        case DeserializationError::Code::Ok:
+            LOG_DEBUG(logger, "Deserialized the payload");
+            return Status(Status::Code::GOOD);
+
+        case DeserializationError::Code::EmptyInput:
+            LOG_ERROR(logger, "ERROR: EMPTY PAYLOAD");
+            return Status(Status::Code::BAD_NO_DATA);
+            
+        case DeserializationError::Code::IncompleteInput:
+            LOG_ERROR(logger, "ERROR: INSUFFICIENT PAYLOAD");
+            return Status(Status::Code::BAD_END_OF_STREAM);
+        
+        case DeserializationError::Code::InvalidInput:
+            LOG_ERROR(logger, "ERROR: INVALID ENCODING");
+            return Status(Status::Code::BAD_DATA_ENCODING_INVALID);
+        
+        case DeserializationError::Code::NoMemory:
+            LOG_ERROR(logger, "ERROR: OUT OF MEMORY");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        
+        case DeserializationError::Code::TooDeep:
+            LOG_ERROR(logger, "ERROR: EXCEEDED NESTING LIMIT");
+            return Status(Status::Code::BAD_ENCODING_LIMITS_EXCEEDED);
+
+        default:
+            ASSERT(false, "UNDEFINED CONDITION: %s", errorCode.c_str());
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+    }
 
     std::string JSON::Serialize(jarvis_struct_t& _struct)
     {
@@ -268,7 +280,6 @@ namespace muffin {
 
         serializeJson(doc, output, size);
     }
-
 
     void JSON::Serialize(const spear_remote_control_msg_t& msg, const uint8_t size, char output[])
     {

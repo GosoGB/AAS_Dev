@@ -4,7 +4,7 @@
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 선언합니다.
  * 
- * @date 2025-01-21
+ * @date 2025-01-23
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025

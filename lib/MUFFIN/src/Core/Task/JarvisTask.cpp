@@ -126,7 +126,7 @@ namespace muffin {
       
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             Status ret = Status(Status::Code::UNCERTAIN);
-            switch (jvs::config::operation.GetServerNIC().second)
+            switch (jvs::config::operationCIN.GetServerNIC().second)
             {
             case jvs::snic_e::LTE_CatM1:
                 ret = strategyCatHttp();
@@ -320,20 +320,6 @@ namespace muffin {
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
-            if (key == jvs::cfg_key_e::OPERATION)
-            {
-                applyOperationCIN(pair.second);
-                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                {
-                    delete *it;
-                }
-                break;
-            }
-        }
-
-        for (auto& pair : *jarvis)
-        {
-            const jvs::cfg_key_e key = pair.first;
 
             switch (key)
             {
@@ -452,96 +438,6 @@ namespace muffin {
         productionInfo.StartTask();
     }
 
-    void applyOperationCIN()
-    {
-        LOG_DEBUG(logger, "Start to apply CIN: Operation");
-
-        const bool hasFactoryReset = jvs::config::operation.GetFactoryReset().second;
-        if (hasFactoryReset == true)
-        {
-            LOG_INFO(logger,"Received the factory reset command");
-            
-            for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
-            {
-                Status ret = esp32FS.Format();
-                if (ret == Status::Code::GOOD)
-                {
-                    LOG_INFO(logger, "Factory reset has finished. Will be reset");
-                    vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
-                    esp_restart();
-                }
-                LOG_WARNING(logger, "[TRIAL: #%u] FACTORY RESET WAS UNSUCCESSFUL: %s", trialCount, ret.c_str());
-            }
-            
-            LOG_ERROR(logger, "FACTORY RESET HAS FAILED");
-            esp_restart();
-        }
-
-        mqtt::Message lwt = mqtt::GenerateWillMessage(false);
-        switch (jvs::config::operation.GetServerNIC().second)
-        {
-        case jvs::snic_e::LTE_CatM1:
-        {
-            CatM1& catM1 = CatM1::GetInstance();
-            std::pair<muffin::Status, size_t> mutex = catM1.TakeMutex();
-            if (mutex.first != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO TAKE MUTEX: %s", mutex.first.c_str());
-                return;
-            }
-
-            mqtt::CatMQTT* catMQTT = mqtt::CatMQTT::CreateInstanceOrNULL(catM1, brokerInfo, lwt);
-            Status ret = catMQTT->Init(mutex.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_0);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1 MQTT Client: %s", ret.c_str());
-                catM1.ReleaseMutex();
-                return;
-            }
-            mqttClient = catMQTT;
-
-            http::CatHTTP* catHTTP = http::CatHTTP::CreateInstanceOrNULL(catM1);
-            ret = catHTTP->Init(mutex.second, network::lte::pdp_ctx_e::PDP_01, network::lte::ssl_ctx_e::SSL_1);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO INITIALIZE CatM1 MQTT Client: %s", ret.c_str());
-                catM1.ReleaseMutex();
-                return;
-            }
-            httpClient = catHTTP;
-            catM1.ReleaseMutex();
-            break;
-        }
-
-        case jvs::snic_e::Ethernet:
-        {
-            ethernet->SyncWithNTP();
-            
-            mqtt::LwipMQTT* lwipMQTT= new mqtt::LwipMQTT(brokerInfo, lwt);
-            Status ret = lwipMQTT->Init();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO INITIALIZE LwIP MQTT Client: %s", ret.c_str());
-                return;
-            }
-            mqttClient = lwipMQTT;
-        
-            http::LwipHTTP* lwipHTTP = new http::LwipHTTP();
-            ret = lwipHTTP->Init();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO INITIALIZE LwIP HTTTP Client: %s", ret.c_str());
-                return;
-            }
-            httpClient = lwipHTTP;
-            break;
-        }
-
-        default:
-            break;
-        }
-    }
-
     void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
@@ -598,7 +494,7 @@ namespace muffin {
             return;
         }
         
-        if (jvs::config::operation.GetPlanExpired().second == true)
+        if (jvs::config::operationCIN.GetPlanExpired().second == true)
         {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
@@ -626,9 +522,9 @@ namespace muffin {
 
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
 
-        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
+        SetPollingInterval(jvs::config::operationCIN.GetIntervalPolling().second);
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartTaskCyclicalsMSG(jvs::config::operationCIN.GetIntervalServer().second);
     #else
         ModbusRtuVector.clear();
         mVectorModbusRTU.clear();
@@ -665,49 +561,18 @@ namespace muffin {
         }
 
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartTaskCyclicalsMSG(jvs::config::operationCIN.GetIntervalServer().second);
     #endif
         
     }
 
-    void applyEthernetCIN(std::vector<jvs::config::Base*>& vectorEthernetCIN)
+    void applyEthernetCIN()
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
     #endif
-        ASSERT((vectorEthernetCIN.size() == 1), "THERE MUST BE ONLY ONE ETHERNET CIN FOR MODLINK-B AND MODLINK-T2");
 
-        jvs::config::Ethernet* cin = Convert.ToEthernetCIN(vectorEthernetCIN[0]);
-
-        ethernet = new Ethernet();
-        Status ret = ethernet->Init();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO INITIALIZE ETHERNET");
-            return;
-        }
-        LOG_INFO(logger,"Initialized ethernet interface");
-        
-        ret = ethernet->Config(cin);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNET CIN");
-            return;
-        }
-        LOG_INFO(logger,"Configured ethernet CIN");
-        
-        ret = ethernet->Connect();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO CONNECT ETHERNET");
-            return;
-        }
-        LOG_INFO(logger,"Ethernet has been connected");
-        
-        while (ethernet->IsConnected() == false)
-        {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-        }
+        ;
         
         /**
          * @todo 서비스 네트워크에 따라서 실행되게 코드 수정 필요함
@@ -729,7 +594,7 @@ namespace muffin {
             return;
         }
 
-        if (jvs::config::operation.GetPlanExpired().second == true)
+        if (jvs::config::operationCIN.GetPlanExpired().second == true)
         {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
@@ -751,9 +616,9 @@ namespace muffin {
             ModbusTcpVector.emplace_back(*modbusTCP);
         }
 
-        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
+        SetPollingInterval(jvs::config::operationCIN.GetIntervalPolling().second);
         StartModbusTcpTask();
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartTaskCyclicalsMSG(jvs::config::operationCIN.GetIntervalServer().second);
     }
 
     Status strategyCatHttp()

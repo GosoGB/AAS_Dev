@@ -25,45 +25,6 @@
 
 
 namespace muffin { namespace mqtt {
-    
-    const char* ConvertVersionToString(const version_e version)
-    {
-        switch (version)
-        {
-        case version_e::Ver_3_1_0:
-            return "Ver.3.1.0";
-        case version_e::Ver_3_1_1:
-            return "Ver.3.1.1";
-        default:
-            ASSERT(false, "UNDEFINED OR UNSUPPORTED VERSION");
-            return nullptr;
-        }
-    }
-
-    Message GenerateWillMessage(const bool isConnected)
-    {
-        const uint8_t size = 64;
-        char buffer[size] = {'\0'};
-
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        snprintf(buffer, size, "%s,%llu,%s,%s,null",
-            macAddress.GetEthernet(),
-            GetTimestampInMillis(),
-            isConnected ? "true" : "false",
-            FW_VERSION_ESP32.GetSemanticVersion()
-        );
-    #else
-        snprintf(buffer, size, "%s,%llu,%s,%s,%s",
-            macAddress.GetEthernet(),
-            GetTimestampInMillis(),
-            isConnected ? "true" : "false",
-            FW_VERSION_ESP32.GetSemanticVersion(),
-            FW_VERSION_MEGA2560.GetSemanticVersion()
-        );
-    #endif
-        
-        return mqtt::Message(mqtt::topic_e::LAST_WILL, buffer);
-    }
 
     version_e ConvertUInt32ToVersion(const uint32_t integer)
     {

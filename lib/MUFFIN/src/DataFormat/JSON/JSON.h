@@ -4,12 +4,12 @@
  * 
  * @brief JSON 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 선언합니다.
  * 
- * @date 2024-09-27
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
  * @todo 인코딩 함수를 추가로 구현해야 합니다.
- * 
- * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -18,12 +18,13 @@
 #pragma once
 
 #include <ArduinoJson.h>
-#include <Protocol/MQTT/Include/TypeDefinitions.h>
-#include "Protocol/SPEAR/Include/TypeDefinitions.h"
-
+#include <FS.h>
 #include <vector>
 
 #include "Common/Status.h"
+#include "Protocol/MQTT/Include/TypeDefinitions.h"
+#include "Protocol/SPEAR/Include/TypeDefinitions.h"
+
 
 
 namespace muffin {
@@ -124,6 +125,9 @@ namespace muffin {
     public:
         Status Deserialize(const char* payload, JsonDocument* json);
         Status Deserialize(const std::string& payload, JsonDocument* json);
+        Status Deserialize(fs::File& file, JsonDocument* json);
+    private:
+        Status processErrorCode(const DeserializationError& errorCode);
         // Status Deserialize(const spear_msg_t& message, JsonDocument* json);
     
     // private:

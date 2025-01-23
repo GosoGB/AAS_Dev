@@ -5,7 +5,7 @@
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 정의합니다.
  * 
- * @date 2025-01-21
+ * @date 2025-01-23
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -172,7 +172,7 @@ namespace muffin {
             LOG_INFO(logger, "Created default JARVIS config");
         }
 
-        for (uint8_t count = 0; count < MAX_RETRY_COUNT; ++count)
+        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
             ret = implementConfigure();
             if (ret == Status::Code::GOOD)
@@ -181,8 +181,8 @@ namespace muffin {
                 return ret;
             }
             
-            LOG_WARNING(logger, "[TRIAL: #%u] CONFIGURATION WAS UNSUCCESSFUL: %s", count, ret.c_str());
-            vTaskDelay((1 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
+            LOG_WARNING(logger, "[TRIAL: #%u] CONFIGURATION WAS UNSUCCESSFUL: %s", trialCount, ret.c_str());
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
         }
 
         LOG_ERROR(logger, "FAILED TO CONFIGURE JARVIS");
@@ -276,22 +276,35 @@ namespace muffin {
         Status ret(Status::Code::UNCERTAIN);
         {
             File file = esp32FS.Open(JARVIS_PATH, "r", false);
-            const size_t size = file.size();
-            char buffer[size + 1] = {'\0'};
-            for (size_t idx = 0; idx < size; ++idx)
+            if (file == false)
             {
-                buffer[idx] = file.read();
+                LOG_ERROR(logger, "FAILED TO OPEN JARVIS CONFIG");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
             }
+            
+            ret = json.Deserialize(file, &doc);
             file.close();
             ASSERT((file == false), "FILE MUST BE CLOSED");
-        #if defined(DEBUG)
-            LOG_DEBUG(logger, "%s", buffer);
-        #endif
 
-            ret = json.Deserialize(buffer, &doc);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DESERIALIZE: %s", ret.c_str());
+                if (esp32FS.Remove(JARVIS_PATH) == Status::Code::GOOD)
+                {
+                #if !defined(DEBUG)
+                    Preferences pf;
+                    Preferences pf;
+                    const char* key = "prc";    // prc is short for "process reset reason"
+
+                    if (pf.begin("Initializer", false) == false)
+                    {
+                        LOG_ERROR(logger, "FAILED TO BEGIN NVS PARTITION");
+                        return Status(Status::Code::BAD_DEVICE_FAILURE);
+                    }
+                    @todo mfm/status 토픽에 설정값에 변화가 있었다고 알려줘야 함
+                #endif
+                }
+
                 return ret;
             }
             LOG_INFO(logger, "Deserialized JARVIS config file");

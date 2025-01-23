@@ -61,7 +61,7 @@ namespace muffin {
 
     Status initializeService()
     {
-        if (jvs::config::opeartion.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
+        if (jvs::config::operationCIN.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
         {
             CatM1& catM1 = CatM1::GetInstance();
             catM1.KillUrcTask(true);

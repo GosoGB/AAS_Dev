@@ -4,14 +4,14 @@
  * 
  * @brief JARVIS 설정 정보의 유효성을 검사하기 위한 모듈 클래스를 선언합니다.
  * 
- * @date 2024-10-15
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
  * @todo 시간이 부족해서 코드나 함수 레벨에서 중복된 작업들이 많습니다.
  *       향후 유지보수를 위해서 이렇게 중복된 코드나 함수를 정리해서 
  *       하나의 표준화 된 함수로 만들어 적용하는 작업이 필요합니다.
- * 
- * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -36,8 +36,8 @@ namespace muffin { namespace jvs {
     class Validator
     {
     public:
-        Validator();
-        virtual ~Validator();
+        Validator() {}
+        virtual ~Validator() {}
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
@@ -48,7 +48,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::string> validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateOperation(const JsonArray json, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateOperation(const JsonArray json);
         std::pair<rsc_e, std::string> validateNode(const JsonArray json, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateAlarm(const JsonArray json, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateOperationTime(const JsonArray json, cin_vector* outputVector);

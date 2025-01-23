@@ -265,4 +265,7 @@ namespace muffin { namespace jvs { namespace config {
             return std::make_pair(Status(Status::Code::BAD), mDNS2);
         }
     }
+
+
+    Ethernet* ethernetCIN = nullptr;
 }}}

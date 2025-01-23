@@ -70,4 +70,7 @@ namespace muffin { namespace jvs { namespace config {
         IPAddress mDNS1;
         IPAddress mDNS2;
     };
+
+
+    extern Ethernet* ethernetCIN;
 }}}

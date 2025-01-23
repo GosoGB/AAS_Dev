@@ -4,10 +4,10 @@
  * 
  * @brief JARVIS 설정 정보의 유효성을 검사하기 위한 모듈 클래스를 정의합니다.
  * 
- * @date 2024-10-15
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -33,14 +33,6 @@
 
  
 namespace muffin { namespace jvs {
-
-    Validator::Validator()
-    {
-    }
-
-    Validator::~Validator()
-    {
-    }
 
     ValidationResult Validator::Inspect(JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN)
     {
@@ -132,7 +124,7 @@ namespace muffin { namespace jvs {
                     ret = validateModbus(key, cinArray, &outputVector);
                     break;
                 case cfg_key_e::OPERATION:
-                    ret = validateOperation(cinArray, &outputVector);
+                    ret = validateOperation(cinArray);
                     break;
                 case cfg_key_e::NODE:
                     ret = validateNode(cinArray, &outputVector);
@@ -169,8 +161,7 @@ namespace muffin { namespace jvs {
             }
         }
     
-        result = createInspectionReport();
-        return result;
+        return createInspectionReport();
     }
 
     /**
@@ -434,13 +425,10 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateOperation(const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateOperation(const JsonArray json)
     {
-        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
-        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
-        
         OperationValidator validator;
-        return validator.Inspect(json, outputVector);
+        return validator.Inspect(json);
     }
 
     std::pair<rsc_e, std::string> Validator::validateNode(const JsonArray json, cin_vector* outputVector)

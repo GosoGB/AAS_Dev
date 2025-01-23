@@ -15,12 +15,13 @@
 
 #include <esp_littlefs.h>
 #include <LittleFS.h>
-#include <Preferences.h>
 #include <nvs_flash.h>
+#include <Preferences.h>
 
-#include "ESP32FS.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "IM/Custom/Constants.h"
+#include "Storage/ESP32FS/ESP32FS.h"
 
 
 
@@ -84,13 +85,19 @@ namespace muffin {
 
     Status ESP32FS::Format()
     {
-        if (LittleFS.format() == true)
+        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
-            LOG_INFO(logger, "Succedded to format ESP32 file system");
-            return Status(Status::Code::GOOD);
-        }
-        else
-        {
+            if (LittleFS.format() == true)
+            {
+                LOG_INFO(logger, "Succedded to format ESP32 file system");
+                return Status(Status::Code::GOOD);
+            }
+            else
+            {
+                LOG_WARNING(logger, "[TRIAL: #%u] FORMAT WAS UNSUCCESSFUL", trialCount);
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+
             LOG_ERROR(logger, "FAILED TO FORMAT ESP32 FILE SYSTEM");
             return Status(Status::Code::BAD);
         }
@@ -146,16 +153,22 @@ namespace muffin {
 
     Status ESP32FS::Remove(const char* path)
     {
-        if (LittleFS.remove(path) == true)
+        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
-            LOG_VERBOSE(logger, "Removed: %s", path);
-            return Status(Status::Code::GOOD);
+            if (LittleFS.remove(path) == true)
+            {
+                LOG_VERBOSE(logger, "Removed: %s", path);
+                return Status(Status::Code::GOOD);
+            }
+            else
+            {
+                LOG_WARNING(logger, "[TRIAL: #%u] REMOVE WAS UNSUCCESSFUL", trialCount);
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
         }
-        else
-        {
-            LOG_ERROR(logger, "FAILED TO REMOVE FILE: %s", path);
-            return Status(Status::Code::BAD);
-        }
+        
+        LOG_ERROR(logger, "FAILED TO REMOVE FILE: %s", path);
+        return Status(Status::Code::BAD);
     }
 
     Status ESP32FS::Remove(const std::string& path)
