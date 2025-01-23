@@ -28,5 +28,4 @@ namespace muffin {
     Status ConnectToBrokerEthernet();
 
     void StartCatM1Task();
-    void StartEthernetTask();
 }

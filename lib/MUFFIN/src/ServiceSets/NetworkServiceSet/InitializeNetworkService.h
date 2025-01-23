@@ -23,5 +23,4 @@ namespace muffin {
 
     Status InitCatM1Service();
     Status InitEthernetService();
-    Status InitWiFiService();
 }

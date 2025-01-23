@@ -84,10 +84,4 @@ namespace muffin {
      * @return std::string datetime
      */
     std::string Convert2Datetime(const time_t timestamp);
-
-    namespace jvs {
-        enum class ServerNetworkInterfaceCardEnum;  // forward declaration
-        typedef ServerNetworkInterfaceCardEnum snic_e; // typedef for convenience
-    }
-    Status SyncWithNTP(const jvs::snic_e snic);
 }

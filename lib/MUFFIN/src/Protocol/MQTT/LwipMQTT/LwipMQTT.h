@@ -32,7 +32,7 @@ namespace muffin { namespace mqtt {
     class LwipMQTT : public IMQTT
     {
     public:
-        LwipMQTT(BrokerInfo& broker, Message& lwt) : mBrokerInfo(std::move(broker)), mMessageLWT(std::move(lwt)) {}
+        LwipMQTT(const BrokerInfo& broker, const Message& lwt) : mBrokerInfo(std::move(broker)), mMessageLWT(std::move(lwt)) {}
         virtual ~LwipMQTT() override {}
     public:
         Status Init();

@@ -283,29 +283,7 @@ namespace muffin {
     }
 
     Status ConnectToBrokerEthernet()
-    {
-    #if defined(DEBUG)
-        mqtt::BrokerInfo info(
-            macAddress.GetEthernet(),
-            "mqtt.vitcon.iotops.opsnow.com",
-            8883,
-            40,
-            mqtt::socket_e::SOCKET_0,
-            "vitcon",
-            "tkfkdgo5!@#$"
-        );
-    #else
-        mqtt::BrokerInfo info(
-            macAddress.GetEthernet(),
-            "mqtt.vitcon.iotops.opsnow.com",
-            8883,
-            40,
-            mqtt::socket_e::SOCKET_0,
-            "vitcon",
-            "tkfkdgo5!@#$"
-        );
-    #endif
-        
+    {   
         INetwork* nic = mqttClient->RetrieveNIC();
         std::pair<Status, size_t> mutex = nic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
@@ -445,100 +423,6 @@ namespace muffin {
         {
         case pdPASS:
             LOG_INFO(logger, "The CatM1 task has been started");
-            // return Status(Status::Code::GOOD);
-            break;
-
-        case pdFAIL:
-            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            break;
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            break;
-
-        default:
-            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            break;
-        }
-    }
-
-    void implEthernetTask(void* pvParameters)
-    {
-        constexpr uint16_t SECOND_IN_MILLIS = 1000;
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 5 * 1000;
-    #endif
-        
-        while (true)
-        {
-            LOG_INFO(logger, "[TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-            LOG_INFO(logger, "Config Start: %u Bytes", ESP.getFreeHeap());
-            if (mqttClient->IsConnected() != Status::Code::GOOD)
-            {
-                INetwork* nic = mqttClient->RetrieveNIC();
-
-                std::pair<Status, size_t> mutex = nic->TakeMutex();
-                if (mutex.first != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
-                    continue; ;
-                }
-
-                mqttClient->Disconnect(mutex.second);
-                s_IsCatMqttTopicSubscribed = false;
-                nic->ReleaseMutex();
-                LOG_WARNING(logger, "LWIP MQTT LOST CONNECTION");
-                ConnectToBrokerEthernet();
-            }
-
-            vTaskDelay(1* SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                checkRemainedStackMillis = millis();
-            }
-        #endif
-        }
-    }
-
-    void StartEthernetTask()
-    {
-        mqtt::BrokerInfo broker("1");
-        mqtt::Message lwt;
-        mqttClient = new mqtt::LwipMQTT(broker, lwt);
-
-        if (xTaskEthernetHandle != NULL)
-        {
-            LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
-            return;
-        }
-        
-        /**
-         * @todo 향후 태스크의 메모리 사용량을 보고 스택 메모리 크기를 조정해야 합니다.
-         */
-        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            implEthernetTask,      // Function to be run inside of the task
-            "EthernetTask",        // The identifier of this task for men
-            6500,			// Stack memory size to allocate
-            NULL,			    // Task parameters to be passed to the function
-            0,				    // Task Priority for scheduling
-            &xTaskCatM1Handle,  // The identifier of this task for machines
-            0				    // Index of MCU core where the function to run
-        );
-
-        /**
-         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
-         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
-         */
-        switch (taskCreationResult)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "The Ethernet task has been started");
             // return Status(Status::Code::GOOD);
             break;
 

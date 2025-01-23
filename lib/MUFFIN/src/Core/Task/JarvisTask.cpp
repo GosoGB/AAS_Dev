@@ -64,29 +64,6 @@ namespace muffin {
     static bool s_HasNode = false;
 
 
-    #if defined(DEBUG)
-        mqtt::BrokerInfo brokerInfo(
-            macAddress.GetEthernet(),
-            "mqtt.vitcon.iotops.opsnow.com",
-            8883,
-            40,
-            mqtt::socket_e::SOCKET_0,
-            "vitcon",
-            "tkfkdgo5!@#$"
-        );
-    #else
-        mqtt::BrokerInfo brokerInfo(
-            macAddress.GetEthernet(),
-            "mqtt.vitcon.iotops.opsnow.com",
-            8883,
-            40,
-            mqtt::socket_e::SOCKET_0,
-            "vitcon",
-            "tkfkdgo5!@#$"
-        );
-    #endif
-
-
     /**
      * @todo LTE Cat.M1 모뎀을 쓰지 않을 때의 기능을 구현해야 합니다.
      */
@@ -100,12 +77,6 @@ namespace muffin {
         params = nullptr;
 
         jvs::ValidationResult validationResult;
-
-
-#ifdef DEBUG
-    //LOG_DEBUG(logger, "[TASK: JARVIS][PARAMS RECEIVED] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-
         {/* JARVIS 설정 태스크는 한 번에 하나의 요청만 처리하도록 설계되어 있습니다. */
             if (s_IsJarvisTaskRunning == true)
             {
@@ -118,11 +89,6 @@ namespace muffin {
             ASSERT((s_IsJarvisTaskRunning == false), "JARVIS TASK CANNOT BE HANDLED AT THE SAME TIME");
         }
         s_IsJarvisTaskRunning = true;
-
-#ifdef DEBUG
-    //LOG_DEBUG(logger, "[TASK: JARVIS][SINGLE TASK CHECK] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-
       
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             Status ret = Status(Status::Code::UNCERTAIN);
@@ -578,7 +544,6 @@ namespace muffin {
          * @todo 서비스 네트워크에 따라서 실행되게 코드 수정 필요함
          */
         ConnectToBrokerEthernet();
-        StartEthernetTask();
         return;
     }
 

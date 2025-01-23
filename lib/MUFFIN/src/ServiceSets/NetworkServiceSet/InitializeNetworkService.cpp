@@ -25,7 +25,7 @@
 
 namespace muffin {
 
-
+    
 
 
     Status InitCatM1Service()
@@ -42,11 +42,14 @@ namespace muffin {
 
     Status InitEthernetService()
     {
-        ethernet = new(std::nothrow) Ethernet();
         if (ethernet == nullptr)
         {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            ethernet = new(std::nothrow) Ethernet();
+            if (ethernet == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
         }
         
         Status ret = ethernet->Init();
@@ -72,15 +75,11 @@ namespace muffin {
         }
         LOG_INFO(logger,"Ethernet has connected");
         
-        const uint32_t startedMillis = millis();
-        while ((millis() - startedMillis) < (5*SECOND_IN_MILLIS))
+        do
         {
-            if (ethernet->IsConnected() == false)
-            {
-                break;
-            }
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-        }
+            ret = ethernet->SyncNTP();
+        } while (ret != Status::Code::GOOD);
+        LOG_INFO(logger, "Synchronized with NTP server");
 
         LOG_INFO(logger,"Initialized ethernet interface");
         return ret;

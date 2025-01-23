@@ -19,6 +19,6 @@
 
 namespace muffin {
 
-    Status InitializeMqttClient();
-    Status Connect2Broker();
+    Status InitMqttService();
+    Status ConnectMqttService();
 }

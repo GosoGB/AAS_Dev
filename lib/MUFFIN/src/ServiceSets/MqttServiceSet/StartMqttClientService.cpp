@@ -18,15 +18,27 @@
 #include "Common/Time/TimeUtils.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
+#include "JARVIS/Config/Operation/Operation.h"
 #include "Network/INetwork.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Helper.h"
 #include "Protocol/MQTT/Include/Message.h"
+#include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
 
 
 
 namespace muffin {
+
+    mqtt::BrokerInfo brokerInfo(
+        macAddress.GetEthernet(),           // clientID
+        "mqtt.vitcon.iotops.opsnow.com",    // host
+        8883,                               // port
+        7,                                  // keepalive
+        mqtt::socket_e::SOCKET_0,           // socketID
+        "vitcon",                           // username
+        "tkfkdgo5!@#$"                      // password
+    );
 
     mqtt::Message GenerateWillMessage(const bool isConnected)
     {
@@ -53,19 +65,66 @@ namespace muffin {
         return mqtt::Message(mqtt::topic_e::LAST_WILL, buffer);
     }
 
-
-    Status InitializeMqttClient()
+    Status strategyInitCatM1()
     {
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        ;
     }
 
-    Status Connect2Broker()
+    Status strategyInitEthernet()
     {
+        mqtt::Message lwt = GenerateWillMessage(false);
+        mqtt::LwipMQTT* lwipMQTT = new mqtt::LwipMQTT(brokerInfo, lwt);
+
+        Status ret = lwipMQTT->Init();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INITIALIZE LwIP MQTT Client: %s", ret.c_str());
+            return ret;
+        }
+        mqttClient = lwipMQTT;
+
+        ;
+        
+    /*
+        http::LwipHTTP* lwipHTTP = new http::LwipHTTP();
+        ret = lwipHTTP->Init();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INITIALIZE LwIP HTTTP Client: %s", ret.c_str());
+            return;
+        }
+        httpClient = lwipHTTP;
+        break;
+    */
+    }
+
+    Status strategyInitCatM1()
+    {
+        ;
+    }
+
+
+    Status InitMqttService()
+    {
+        switch (jvs::config::operationCIN.GetServerNIC().second)
+        {
+        case jvs::snic_e::LTE_CatM1:
+            return ;
+
+        case jvs::snic_e::Ethernet:
+            return strategyInitEthernet();
+        
+        default:
+            ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operationCIN.GetServerNIC().second));
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+    }
+
+    Status ConnectMqttService()
+    {
+
         mqtt::Message lwt = GenerateWillMessage(false);
         
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
-
-
-
 }

@@ -167,36 +167,4 @@ namespace muffin {
 		strftime(dateTime, 20, "%Y-%m-%dT%H:%M:%S", localTime);
 		return std::string(dateTime);
 	}
-
-    Status SyncWithNTP(const jvs::snic_e snic)
-	{
-		switch (snic)
-		{
-		case jvs::snic_e::LTE_CatM1:
-			{
-				CatM1& catM1 = CatM1::GetInstance();
-				return catM1.SyncWithNTP();
-			}
-
-	#if defined(MODLINK_T2) || defined(MODLINK_B)
-		case jvs::snic_e::Ethernet:
-			{
-				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-			}
-
-    #elif defined(MODLINK_B)
-/* MFM Ver.1.3.0 이후에 구현해야 합니다.
-		case jvs::snic_e::Ethernet,:
-			{
-				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-			}
-        case jvs::snic_e::WiFi4,:
-			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
-*/
-	#endif
-
-		default:
-			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-		}
-	}
 }

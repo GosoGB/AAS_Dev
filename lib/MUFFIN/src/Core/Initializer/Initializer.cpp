@@ -20,7 +20,6 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
-
 #include "Core/Core.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
@@ -58,6 +57,11 @@
 
 #include "Storage/ESP32FS/ESP32FS.h"
 
+
+
+
+#include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
+#include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
 
 
 
@@ -330,8 +334,17 @@ namespace muffin {
         jarvis = new(std::nothrow) JARVIS();
         jarvis->Validate(doc);
         doc.clear();
+
+        do
+        {
+            ret = ApplyOperationService();
+            vTaskDelay((5*SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
+        } while (ret != Status::Code::GOOD);
+        
+        ret = InitMqttService();
+        ret = ConnectMqttService();
         
         ApplyJarvisTask();
-        return Status(Status::Code::GOOD);
+        return ret;
     }
 }

@@ -4,7 +4,7 @@
  * 
  * @brief LTE Cat.M1 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2025-01-20
+ * @date 2025-01-23
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -27,33 +27,13 @@
 
 namespace muffin {
 
-    CatM1* CatM1::mInstance = nullptr;
     CatM1::state_e CatM1::mState = CatM1::state_e::NOT_INITIALIZED_YET;
     std::bitset<8> CatM1::mInitFlags;
     std::bitset<6> CatM1::mConnFlags;
     uint32_t CatM1::mLastInterruptMillis = 0;
 
 
-    CatM1* CatM1::CreateInstanceOrNULL()
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) CatM1();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatM1");
-                return mInstance;
-            }
-        }
-        
-        return mInstance;
-    }
 
-    CatM1& CatM1::GetInstance() noexcept
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-        return *mInstance;
-    }
 
     CatM1::CatM1()
         : xSemaphore(NULL)
@@ -61,10 +41,6 @@ namespace muffin {
     {
         mInitFlags.reset();
         mConnFlags.reset();
-    }
-
-    CatM1::~CatM1()
-    {
     }
 
     Status CatM1::Init()
@@ -273,7 +249,7 @@ namespace muffin {
         return mState;
     }
 
-    Status CatM1::SyncWithNTP()
+    Status CatM1::SyncNTP()
     {
         const std::string command = "AT+QLTS=1";
         const std::string expected = "+QLTS: ";
@@ -792,4 +768,7 @@ namespace muffin {
             mState = state_e::SUCCEDDED_TO_START;
         }
     }
+
+
+    CatM1* catM1 = nullptr;
 }

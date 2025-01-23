@@ -6,16 +6,16 @@
  * @details 현재는 Quectel 사의 BG96 칩셋을 사용한 LTE Cat.M1 모듈만을 대상으로 
  * 개발했습니다. 향후 향지에 따라서 별도의 칩셋을 사용한다면 추가 개발이 필요합니다.
  * 
- * @date 2025-01-20
+ * @date 2025-01-23
  * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
  * @todo 추후 버전 개발 시 FSM 수정 및 재적용이 필요함
  * @todo IPv6만 할당되고 있기 떄문에 인터페이스 수정이 필요함
  * @todo timeout 에러 발생 이후 RxD가 들어온다면 그건 또 어떻게 처리할지 결정해야 합니다.
  *       아마 버리는 게 합리적일 것 같은데 언제, 얼마나 timeout 이후에 들어올지 알 수 없기
  *       때문에 실제 처리는 조금 어렵지 않을까 생각합니다.
- * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -36,19 +36,10 @@ namespace muffin {
     class CatM1 : public INetwork
     {
     public:
-        CatM1(CatM1 const&) = delete;
-        void operator=(CatM1 const&) = delete;
-        static CatM1* CreateInstanceOrNULL();
-        static CatM1& GetInstance() noexcept;
-    private:
         CatM1();
-        virtual ~CatM1() override;
-    private:
-        static CatM1* mInstance;
-
+        virtual ~CatM1() override {}
     public:
-        typedef enum class CatM1FiniteStateMachineEnum
-            : int8_t
+        typedef enum class CatM1FiniteStateMachineEnum : int8_t
         {
             FAILED_TO_CONNECT            = -3,
             FAILED_TO_START              = -2,
@@ -63,8 +54,7 @@ namespace muffin {
             CatM1_DISCONNECTED           = 11
         } state_e;
     private:
-        typedef enum LteModemInitializationFlagEnum
-            : uint8_t
+        typedef enum LteModemInitializationFlagEnum : uint8_t
         {
             DIGITAL_PIN  = 0,
             SERIAL_PORT  = 1,
@@ -76,8 +66,7 @@ namespace muffin {
             APP_READY    = 7
         } init_flags_e;
 
-        typedef enum LteModemConnectionFlagEnum
-            : uint8_t
+        typedef enum LteModemConnectionFlagEnum : uint8_t
         {
             STATUS_PIN_GOOD   = 0,
             MODEM_AVAILABLE   = 1,
@@ -98,7 +87,7 @@ namespace muffin {
         virtual jvs::config::Base* GetConfig() override;
         std::pair<bool, jvs::config::CatM1> RetrieveConfig() const;
         state_e GetState() const;
-        Status SyncWithNTP();
+        virtual Status SyncNTP() override;
         void KillUrcTask(bool forOTA);
     public:
         virtual std::pair<Status, size_t> TakeMutex() override;
@@ -147,4 +136,7 @@ namespace muffin {
         static const uint32_t mDebounceMillis = 7 * 1000; // LTE 모뎀 평균 부팅시간
         static uint32_t mLastInterruptMillis;
     };
+
+
+    extern CatM1* catM1;
 }
