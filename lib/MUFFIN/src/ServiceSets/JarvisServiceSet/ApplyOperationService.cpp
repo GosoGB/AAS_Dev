@@ -46,12 +46,12 @@ namespace muffin {
     {
         LOG_DEBUG(logger, "Start to apply JARVIS Operation CIN");
         
-        if (jvs::config::operationCIN.GetFactoryReset().second == true)
+        if (jvs::config::operation.GetFactoryReset().second == true)
         {
             executeFactoryReset();
         }
 
-        switch (jvs::config::operationCIN.GetServerNIC().second)
+        switch (jvs::config::operation.GetServerNIC().second)
         {
         case jvs::snic_e::LTE_CatM1:
             return InitCatM1Service();
@@ -60,7 +60,7 @@ namespace muffin {
             return InitEthernetService();
 
         default:
-            ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operationCIN.GetServerNIC().second));
+            ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operation.GetServerNIC().second));
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
     }

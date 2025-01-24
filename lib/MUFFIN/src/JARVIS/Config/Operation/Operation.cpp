@@ -145,5 +145,5 @@ namespace muffin { namespace jvs { namespace config {
     }
 
 
-    Operation operationCIN;
+    Operation operation;
 }}}

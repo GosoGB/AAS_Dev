@@ -21,12 +21,73 @@
 #include "Network/Ethernet/Ethernet.h"
 #include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
 
+static TimerHandle_t xTimer = NULL;
+
 
 
 namespace muffin {
 
+    void implLteTimerCallback()
+    {
+        if (catM1->IsConnected() == false)
+        {
+            // CatHTTP & CatMQTT에 연결 끊어졌다는 신호 줘야 함
+
+            LOG_WARNING(logger, "LTE Cat.M1 HAS LOST CONNECTION");
+            catM1->Reconnect();
+            InitCatM1Service();
+
+            // CatHTTP & CatMQTT 다시 설정을 잡도록 해줘야 함
+            // InitCatHTTP();
+            // ConnectToBroker();
+        }
+    }
+
+    void vLteTimerCallback(TimerHandle_t xTimer)
+    {
+        configASSERT(xTimer);   // Optionally do something if xTimer is NULL
+        implLteTimerCallback();
+    }
+
+    Status startTaskMonitoringCatM1()
+    {
+        if (xTimer != NULL)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        
+        xTimer = xTimerCreate(
+            "lte_timer_loop",     // pcTimerName
+            10*SECOND_IN_MILLIS,  // xTimerPeriod,
+            pdTRUE,               // uxAutoReload,
+            (void *)0,            // pvTimerID,
+            vLteTimerCallback     // pxCallbackFunction
+        );
+
+        if (xTimer == NULL)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR LTE MONITORING");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+        else
+        {
+            LOG_INFO(logger, "Created a timer for LTE monitoring task");
+            if (xTimerStart(xTimer, 0) != pdPASS)
+            {
+                LOG_ERROR(logger, "FAILED TO START TIMER FOR LTE MONITORING TASK");
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+    }
+
     Status InitCatM1Service()
     {
+        if (jvs::config::catM1 == nullptr)
+        {
+            LOG_DEBUG(logger, "CatM1 is not configured");
+            return Status(Status::Code::GOOD);
+        }
+        
         if (catM1 == nullptr)
         {
             catM1 = new(std::nothrow) CatM1();
@@ -65,6 +126,14 @@ namespace muffin {
         }
         LOG_INFO(logger,"CatM1 has connected");
         
+        ret = startTaskMonitoringCatM1();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO START CatM1 MONITORING TASK");
+            return ret;
+        }
+        LOG_INFO(logger,"Start to monitoring CatM1 modem");
+        
         do
         {
             if (catM1->IsConnected() == false)
@@ -81,7 +150,6 @@ namespace muffin {
 
         RETRY:
             vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-
         } while (ret != Status::Code::GOOD);
         LOG_INFO(logger, "Synchronized with NTP server");
         
@@ -91,6 +159,12 @@ namespace muffin {
 
     Status InitEthernetService()
     {
+        if (jvs::config::ethernet == nullptr)
+        {
+            LOG_DEBUG(logger, "Ethernet is not configured");
+            return Status(Status::Code::GOOD);
+        }
+        
         if (ethernet == nullptr)
         {
             ethernet = new(std::nothrow) Ethernet();

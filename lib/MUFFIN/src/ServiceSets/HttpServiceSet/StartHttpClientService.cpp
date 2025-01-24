@@ -84,7 +84,7 @@ namespace muffin {
         }
         
         std::pair<Status, size_t> mutex = std::make_pair(Status(Status::Code::BAD), 0);
-        if (jvs::config::operationCIN.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
+        if (jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
         {
             mutex = catM1->TakeMutex();
             if (mutex.first != Status::Code::GOOD)
@@ -94,7 +94,7 @@ namespace muffin {
         }
         
         Status ret(Status::Code::UNCERTAIN);
-        switch (jvs::config::operationCIN.GetServerNIC().second)
+        switch (jvs::config::operation.GetServerNIC().second)
         {
         case jvs::snic_e::LTE_CatM1:
             ret = strategyInitCatM1(mutex.second);
@@ -105,7 +105,7 @@ namespace muffin {
             return strategyInitEthernet();
         
         default:
-            ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operationCIN.GetServerNIC().second));
+            ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operation.GetServerNIC().second));
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
     }

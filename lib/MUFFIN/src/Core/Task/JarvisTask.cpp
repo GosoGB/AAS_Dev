@@ -19,7 +19,6 @@
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Core/Core.h"
-#include "Core/Task/NetworkTask.h"
 #include "Core/Task/ModbusTask.h"
 #include "Core/Task/CyclicalPubTask.h"
 #include "DataFormat/JSON/JSON.h"
@@ -92,7 +91,7 @@ namespace muffin {
       
         {/* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
             Status ret = Status(Status::Code::UNCERTAIN);
-            switch (jvs::config::operationCIN.GetServerNIC().second)
+            switch (jvs::config::operation.GetServerNIC().second)
             {
             case jvs::snic_e::LTE_CatM1:
                 ret = strategyCatHttp();
@@ -242,34 +241,6 @@ namespace muffin {
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
-            if (key == jvs::cfg_key_e::LTE_CatM1)
-            {
-                applyLteCatM1CIN(pair.second);
-                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                {
-                    delete *it;
-                }
-                break;
-            }
-        }
-
-        for (auto& pair : *jarvis)
-        {
-            const jvs::cfg_key_e key = pair.first;
-            if (key == jvs::cfg_key_e::ETHERNET)
-            {
-                applyEthernetCIN(pair.second);
-                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                {
-                    delete *it;
-                }
-                break;
-            }
-        }
-
-        for (auto& pair : *jarvis)
-        {
-            const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::NODE)
             {
                 applyNodeCIN(pair.second);
@@ -338,19 +309,19 @@ namespace muffin {
                     }
                 }
                 break;
-            case jvs::cfg_key_e::NODE:
-            case jvs::cfg_key_e::LTE_CatM1:
-            case jvs::cfg_key_e::OPERATION:
-            case jvs::cfg_key_e::RS232:
-            case jvs::cfg_key_e::WIFI4:
-            case jvs::cfg_key_e::ETHERNET:
-                break;
             case jvs::cfg_key_e::MODBUS_TCP:
                 applyModbusTcpCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
                 }
+                break;
+            case jvs::cfg_key_e::NODE:
+            case jvs::cfg_key_e::LTE_CatM1:
+            case jvs::cfg_key_e::OPERATION:
+            case jvs::cfg_key_e::RS232:
+            case jvs::cfg_key_e::WIFI4:
+            case jvs::cfg_key_e::ETHERNET:
                 break;
             default:
                 ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
@@ -436,13 +407,6 @@ namespace muffin {
 
     #endif
     }
-    
-    void applyLteCatM1CIN(std::vector<jvs::config::Base*>& vectorLteCatM1CIN)
-    {
-        InitCatHTTP();
-        ConnectToBroker();
-        StartCatM1Task();
-    }
 
     void applyModbusRtuCIN(std::vector<jvs::config::Base*>& vectorModbusRTUCIN, jvs::config::Rs485* rs485CIN)
     {
@@ -452,7 +416,7 @@ namespace muffin {
             return;
         }
         
-        if (jvs::config::operationCIN.GetPlanExpired().second == true)
+        if (jvs::config::operation.GetPlanExpired().second == true)
         {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
@@ -480,9 +444,9 @@ namespace muffin {
 
         LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
 
-        SetPollingInterval(jvs::config::operationCIN.GetIntervalPolling().second);
+        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(jvs::config::operationCIN.GetIntervalServer().second);
+        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     #else
         ModbusRtuVector.clear();
         mVectorModbusRTU.clear();
@@ -519,24 +483,9 @@ namespace muffin {
         }
 
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(jvs::config::operationCIN.GetIntervalServer().second);
+        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     #endif
         
-    }
-
-    void applyEthernetCIN()
-    {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
-    #endif
-
-        ;
-        
-        /**
-         * @todo 서비스 네트워크에 따라서 실행되게 코드 수정 필요함
-         */
-        ConnectToBrokerEthernet();
-        return;
     }
 
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN)
@@ -551,7 +500,7 @@ namespace muffin {
             return;
         }
 
-        if (jvs::config::operationCIN.GetPlanExpired().second == true)
+        if (jvs::config::operation.GetPlanExpired().second == true)
         {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
@@ -573,94 +522,8 @@ namespace muffin {
             ModbusTcpVector.emplace_back(*modbusTCP);
         }
 
-        SetPollingInterval(jvs::config::operationCIN.GetIntervalPolling().second);
+        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
         StartModbusTcpTask();
-        StartTaskCyclicalsMSG(jvs::config::operationCIN.GetIntervalServer().second);
+        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     }
-
-    Status strategyCatHttp()
-    {
-        const auto mutexHandle = catM1->TakeMutex();
-      
-        /* API 서버로부터 JARVIS 설정 정보를 가져오는 데 성공한 경우에만 태스크를 이어가도록 설계되어 있습니다.*/
-            JSON json;
-            JsonDocument doc;
-
-            http::CatHTTP& catHttp = http::CatHTTP::GetInstance();
-        #if defined(DEBUG)
-            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.dev", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-        #else
-            http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-        #endif
-            http::RequestParameter parameters;
-            parameters.Add("mac", macAddress.GetEthernet());
-
-        #ifdef DEBUG
-            //LOG_DEBUG(logger, "[TASK: JARVIS][REQUEST HTTP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-        #endif
-            catHttp.SetSinkToCatFS(true, "http_response_file");
-            Status ret = catHttp.GET(mutexHandle.second, header, parameters);
-            catHttp.SetSinkToCatFS(false, "");
-            if (ret != Status::Code::GOOD)
-            {
-                return ret;
-            }
- 
-            catM1->ReleaseMutex();
-            CatFS* catFS = CatFS::CreateInstanceOrNULL(catM1);
-            ret = catFS->Begin();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger," FAIL TO BEGIN CATFS");
-                return ret;
-            }
-            s_JarvisApiPayload.clear();
-            ret = catFS->DownloadFile("http_response_file", &s_JarvisApiPayload);
-            LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
-
-            return ret;
-    }
-
-    Status strategyLwipHttp()
-    {
-        INetwork* nic = http::lwipHTTP->RetrieveNIC();
-        std::pair<Status, size_t> mutex = nic->TakeMutex();
-        if (mutex.first != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
-            return Status(Status::Code::BAD_TIMEOUT);
-        }
-    
-    #if defined(DEBUG)
-        http::RequestHeader header(
-            rest_method_e::GET,
-            http_scheme_e::HTTPS,
-            "api.mfm.edgecross.dev",
-            443,
-            "/api/mfm/device/write",
-            "MODLINK-L/0.0.1"
-        );
-    #else
-        http::RequestHeader header(rest_method_e::GET, http_scheme_e::HTTPS, "api.mfm.edgecross.ai", 443, "/api/mfm/device/write", "MODLINK-L/0.0.1");
-    #endif
-        http::RequestParameter parameters;
-        parameters.Add("mac", macAddress.GetEthernet());
-
-        http::lwipHTTP->GET(mutex.second, header, parameters);
-        s_JarvisApiPayload.clear();
-
-        Status ret = http::lwipHTTP->Retrieve(mutex.second, &s_JarvisApiPayload);
-        nic->ReleaseMutex();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
-            return ret;
-        }
-        
-        LOG_INFO(logger, "RECEIVED JARVIS: %s", s_JarvisApiPayload.c_str());
-        LOG_INFO(logger, "AFTER [TASK: implEthernetTask] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-        LOG_INFO(logger, "AFTER Config Start: %u Bytes", ESP.getFreeHeap());
-        return Status(Status::Code::GOOD);
-    }
-
 }

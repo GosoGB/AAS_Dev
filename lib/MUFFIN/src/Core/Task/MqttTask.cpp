@@ -58,32 +58,7 @@ namespace muffin {
             0				   // Index of MCU core where the function to run
         );
 
-        /**
-         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
-         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
-         */
-        switch (taskCreationResult)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "The MQTT task has been started");
-            // return Status(Status::Code::GOOD);
-            break;
 
-        case pdFAIL:
-            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            break;
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            break;
-
-        default:
-            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            break;
-        }
 
         // mqtt::IMQTT* serviceNetwork; 인자로 추가
         taskCreationResult = xTaskCreatePinnedToCore(
@@ -95,42 +70,10 @@ namespace muffin {
             &xTaskMqttHandle,     // The identifier of this task for machines
             0				      // Index of MCU core where the function to run
         );
-
-        /**
-         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
-         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
-         */
-        switch (taskCreationResult)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "The Publish MQTT task has been started");
-            // return Status(Status::Code::GOOD);
-            break;
-
-        case pdFAIL:
-            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            break;
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            break;
-
-        default:
-            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            break;
-        }
     }
 
     void implMqttTask(void* pvParameter)
     {
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 5 * 1000;
-    #endif
-    
         while (true)
         {
             if (mqtt::cia.Count() == 0)
@@ -148,32 +91,12 @@ namespace muffin {
             }
 
             core.RouteMqttMessage(receivedMessage.second);
-
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                checkRemainedStackMillis = millis();
-            }
-        #endif
         }
     }
 
     void publishMqttTask(void* pvParameter)
     {
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 5 * 1000;
-    #endif
-    
-        if (mqttClient == nullptr)
-        {
-            LOG_DEBUG(logger, "mqttClient == nullptr");
-            delay(UINT32_MAX);
-        }
-        
         INetwork* nic = mqttClient->RetrieveNIC();
-
         while (true)
         {
             if (mqtt::cdo.Count() == 0)
@@ -227,14 +150,6 @@ namespace muffin {
                 }
             }
             nic->ReleaseMutex();
-
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                LOG_DEBUG(logger, "[TASK: CatM1] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                checkRemainedStackMillis = millis();
-            }
-        #endif
         }
     }
 }

@@ -39,6 +39,7 @@ namespace muffin { namespace http {
         virtual Status POST(const size_t mutex, RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60) override;
         virtual Status POST(const size_t mutex, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60) override;
         virtual Status Retrieve(const size_t mutex, std::string* response) override;
+        virtual Status Retrieve(const size_t mutex, const size_t length, uint8_t response[]) override;
         void SetSinkToCatFS(const bool save2CatFS, const std::string catFsPath);
         Status IsInitialized() const;
     public:

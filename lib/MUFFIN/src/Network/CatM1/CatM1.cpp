@@ -33,8 +33,6 @@ namespace muffin {
     uint32_t CatM1::mLastInterruptMillis = 0;
 
 
-
-
     CatM1::CatM1()
         : xSemaphore(NULL)
         , mConfig(std::make_pair(false, jvs::config::CatM1()))

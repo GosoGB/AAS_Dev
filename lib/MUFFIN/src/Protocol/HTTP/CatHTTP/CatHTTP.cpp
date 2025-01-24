@@ -603,6 +603,12 @@ namespace muffin { namespace http {
         return cmeErrorCode;
     }
 
+    Status CatHTTP::Retrieve(const size_t mutexHandle, const size_t length, uint8_t output[])
+    {
+        ;
+        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+    }
+
     void CatHTTP::SetSinkToCatFS(const bool save2CatFS, const std::string catFsPath)
     {
         mSetSinkToCatFS = save2CatFS;

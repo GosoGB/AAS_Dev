@@ -237,7 +237,7 @@ namespace muffin { namespace jvs {
         TTLS  = 2
     } wifi_eap_auth_e;
 
-    typedef enum class ServerNetworkInterfaceCardEnum
+    typedef enum class ServerNetworkInterfaceCardEnum : uint8_t
     {
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         Ethernet,
@@ -247,8 +247,7 @@ namespace muffin { namespace jvs {
         LTE_CatM1
     } snic_e;
 
-    typedef enum class DataUnitEnum
-        : uint8_t
+    typedef enum class DataUnitEnum : uint8_t
     {
         BYTE   =  8,
         WORD   = 16,

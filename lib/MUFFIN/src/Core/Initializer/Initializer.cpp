@@ -24,7 +24,6 @@
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
 #include "Core/Task/JarvisTask.h"
-#include "Core/Task/NetworkTask.h"
 #include "DataFormat/JSON/JSON.h"
 
 #include "IM/Custom/MacAddress/MacAddress.h"

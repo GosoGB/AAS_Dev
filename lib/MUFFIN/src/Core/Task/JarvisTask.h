@@ -41,11 +41,6 @@ namespace muffin {
     void applyOperationTimeCIN(std::vector<jvs::config::Base*>& vectorOperationTimeCIN);
     void applyProductionInfoCIN(std::vector<jvs::config::Base*>& vectorProductionInfoCIN);
     void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN);
-    
-    void applyLteCatM1CIN(std::vector<jvs::config::Base*>& vectorLteCatM1CIN);
-    void applyEthernetCIN(std::vector<jvs::config::Base*>& vectorEthernetCIN);
-    // void applyWiFi4CIN(std::vector<jvs::config::Base*>& vectorWiFi4CIN);
-
 
     void applyModbusRtuCIN(std::vector<jvs::config::Base*>& vectorModbusRTUCIN, jvs::config::Rs485* rs485CIN);
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN);

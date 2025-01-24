@@ -38,7 +38,7 @@ namespace muffin { namespace mqtt {
     {
         xTimer = xTimerCreate(
             "lwip_mqtt_loop",   // pcTimerName
-            1000,               // xTimerPeriod,
+            SECOND_IN_MILLIS,   // xTimerPeriod,
             pdTRUE,             // uxAutoReload,
             (void *)0,          // pvTimerID,
             vTimerCallback      // pxCallbackFunction
