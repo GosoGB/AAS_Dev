@@ -13,6 +13,8 @@
 
 
 
+#if defined(MODLINK_T2) || defined(MODLINK_B)
+
 #include "Common/Time/TimeUtils.h"
 #include "IM/Custom/Constants.h"
 #include "Network/Ethernet/Ethernet.h"
@@ -234,3 +236,5 @@ namespace muffin {
 
     Ethernet* ethernet = nullptr;
 }
+
+#endif

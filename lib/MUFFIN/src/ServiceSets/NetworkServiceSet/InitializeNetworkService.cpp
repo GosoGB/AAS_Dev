@@ -78,6 +78,9 @@ namespace muffin {
                 return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
         }
+
+        LOG_INFO(logger, "Started CatM1 monitoring timer task");
+        return Status(Status::Code::GOOD);
     }
 
     Status InitCatM1Service()
@@ -157,6 +160,7 @@ namespace muffin {
         return ret;
     }
 
+#if defined(MODLINK_T2) || defined(MODLINK_B)
     Status InitEthernetService()
     {
         if (jvs::config::ethernet == nullptr)
@@ -212,6 +216,7 @@ namespace muffin {
         LOG_INFO(logger,"Initialized ethernet interface");
         return ret;
     }
+#endif
 
     Status InitWiFiService()
     {

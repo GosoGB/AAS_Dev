@@ -24,6 +24,7 @@
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
+#include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 
 
 
@@ -69,15 +70,16 @@ namespace muffin {
         parameters.Add(attributeVersionCode, std::to_string(params->Info->Head.VersionCode));
         parameters.Add(attributeSemanticVersion, params->Info->Head.SemanticVersion);
 
-        INetwork* nic = httpClient->RetrieveNIC();
-        Status ret(Status::Code::UNCERTAIN);
 
+
+        Status ret(Status::Code::UNCERTAIN);
         while (params->Info->Chunk.DownloadIDX < params->Info->Chunk.Count)
         {
             parameters.Add(attributeFileNumber, std::to_string(params->Info->Chunk.IndexArray[params->Info->Chunk.DownloadIDX]));
             parameters.Add(attributeFilePath, params->Info->Chunk.PathArray[params->Info->Chunk.DownloadIDX]);
 
-            const std::pair<Status, size_t> mutex = nic->TakeMutex();
+            INetwork* snic = RetrieveServiceNicService();
+            const std::pair<Status, size_t> mutex = snic->TakeMutex();
             if (mutex.first.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
@@ -89,7 +91,7 @@ namespace muffin {
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD: %s", ret.c_str());
-                nic->ReleaseMutex();
+                snic->ReleaseMutex();
                 goto TEARDOWN;
             }
 
@@ -98,17 +100,17 @@ namespace muffin {
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
-                nic->ReleaseMutex();
+                snic->ReleaseMutex();
                 goto TEARDOWN;
             }
             else if (output->length() != params->Info->Size.Array[params->Info->Chunk.DownloadIDX])
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
                 ret = Status::Code::BAD_DATA_LOST;
-                nic->ReleaseMutex();
+                snic->ReleaseMutex();
                 goto TEARDOWN;
             }
-            nic->ReleaseMutex();
+            snic->ReleaseMutex();
 
             const uint32_t integerCRC32 = params->Crc32->Calculate(*output);
             char calculatedCRC32[sizeof(ota::fw_cks_t::Array[0])] = {'\0'};

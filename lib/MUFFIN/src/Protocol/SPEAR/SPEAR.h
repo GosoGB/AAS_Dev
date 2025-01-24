@@ -4,14 +4,16 @@
  * 
  * @brief SPEAR 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-12-24
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
 
+
+#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 #pragma once
 
@@ -26,7 +28,6 @@
 #include "Protocol/Modbus/Include/AddressTable.h"
 
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 namespace muffin {
 

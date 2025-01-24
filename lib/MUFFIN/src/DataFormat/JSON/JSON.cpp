@@ -86,7 +86,7 @@ namespace muffin {
         }
     }
 
-    std::string JSON::Serialize(jarvis_struct_t& _struct)
+    std::string JSON::Serialize(const jarvis_struct_t& _struct)
     {
         JsonDocument doc;
         doc["ts"]  = _struct.SourceTimestamp;

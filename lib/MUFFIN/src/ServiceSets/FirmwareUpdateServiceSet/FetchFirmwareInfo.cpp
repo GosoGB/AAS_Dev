@@ -23,6 +23,7 @@
 #include "Protocol/HTTP/Include/RequestParameter.h"
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/HTTP/IHTTP.h"
+#include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 
 
 
@@ -30,8 +31,8 @@ namespace muffin {
 
     Status FetchFirmwareInfo(const ota::fw_info_t& info, std::string* output)
     {
-        INetwork* nic = httpClient->RetrieveNIC();
-        std::pair<Status, size_t> mutex = nic->TakeMutex();
+        INetwork* snic = RetrieveServiceNicService();
+        std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
@@ -60,7 +61,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO FETCH: %s", ret.c_str());
-            nic->ReleaseMutex();
+            snic->ReleaseMutex();
             return ret;
         }
 
@@ -68,12 +69,12 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE PAYLOAD FROM MODEM: %s", ret.c_str());
-            nic->ReleaseMutex();
+            snic->ReleaseMutex();
             return ret;
         }
 
         LOG_INFO(logger, "Firmware Version Info\n%s", output->c_str());
-        nic->ReleaseMutex();
+        snic->ReleaseMutex();
         return ret;
     }
 }

@@ -55,10 +55,12 @@ namespace muffin {
         {
         case jvs::snic_e::LTE_CatM1:
             return InitCatM1Service();
-
+    
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         case jvs::snic_e::Ethernet:
             return InitEthernetService();
-
+    #endif
+    
         default:
             ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operation.GetServerNIC().second));
             return Status(Status::Code::BAD_INVALID_ARGUMENT);

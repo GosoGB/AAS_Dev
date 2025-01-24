@@ -139,7 +139,7 @@ namespace muffin {
             
             Preferences nvs;
             nvs.begin("jarvis");
-            nvs.putBool("jarvisFlag",false);
+            nvs.putBool("flagJARVIS",false);
             nvs.end();
 
         }

@@ -5,7 +5,7 @@
  * 
  * @brief MUFFIN 프레임워크의 초기화를 담당하는 클래스를 정의합니다.
  * 
- * @date 2025-01-23
+ * @date 2025-01-24
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -20,30 +20,17 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
+
 #include "Core/Core.h"
 #include "Core/Initializer/Initializer.h"
 #include "Core/Include/Helper.h"
 #include "Core/Task/JarvisTask.h"
 #include "DataFormat/JSON/JSON.h"
 
-#include "IM/Custom/MacAddress/MacAddress.h"
-#include "IM/Custom/Device/DeviceStatus.h"
 #include "IM/Custom/Constants.h"
+#include "IM/Custom/Device/DeviceStatus.h"
 
-#include "JARVIS/Config/Network/CatM1.h"
-#if defined(MODLINK_T2) || defined(MODLINK_B)
-    #include "JARVIS/Config/Network/Ethernet.h"
-#elif defined(MODLINK_B)
-    #include "JARVIS/Config/Network/WiFi4.h"
-#endif
 #include "JARVIS/JARVIS.h"
-
-#include "Network/CatM1/CatM1.h"
-#if defined(MODLINK_T2) || defined(MODLINK_B)
-    #include "Network/Ethernet/Ethernet.h"
-#elif defined(MODLINK_B)
-    #include "Network/WiFi4/WiFi4.h"
-#endif
 
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CDO.h"
@@ -57,8 +44,6 @@
 #include "Storage/ESP32FS/ESP32FS.h"
 
 
-
-
 #include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
 #include "ServiceSets/HttpServiceSet/StartHttpClientService.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
@@ -69,8 +54,6 @@ namespace muffin {
 
     void Initializer::StartOrCrash()
     {
-        LOG_INFO(logger, "Ethernet MAC: %s", macAddress.GetEthernet());
-
         Status ret = esp32FS.Begin(false);
         if (ret != Status::Code::GOOD)
         {
@@ -78,7 +61,7 @@ namespace muffin {
             vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
             esp_restart();
         }
-        LOG_INFO(logger, "Initialized ESP32 file system");
+        LOG_INFO(logger, "Initialized the ESP32 file system");
         
         ret = processResetReason();
         if (ret != Status::Code::GOOD)
@@ -91,21 +74,40 @@ namespace muffin {
         LOG_INFO(logger, "Initializer has started");
     }
 
+    Status writeJarvisResetByCrash()
+    {
+        Preferences pf;
+        
+        const int8_t defaultValue  = -1;
+        const int8_t value2Write   =  1;
+
+        pf.putChar(NVS_KEY_JARVIS_RESET_BY_CRASH, value2Write);
+        if (pf.getChar(NVS_KEY_JARVIS_RESET_BY_CRASH, defaultValue) != value2Write)
+        {
+            LOG_ERROR(logger, "FAILED TO WRITE JARVIS RESET DUE TO CONTINUOUS CRASH");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        LOG_INFO(logger, "Wrote JARVIS reset event due to continuous crash");
+        return Status(Status::Code::GOOD);
+    }
+
     Status Initializer::processResetReason()
     {
         Preferences pf;
-        const char* key = "prc";    // prc is short for "process reset reason"
-
-        if (pf.begin("Initializer", false) == false)
+        if (pf.begin(NVS_NAMESPACE_INIT, false) == false)
         {
             LOG_ERROR(logger, "FAILED TO BEGIN NVS PARTITION");
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
 
-        if (pf.isKey(key) == false)
+        const int8_t defaultValue  = -1;
+        const int8_t value2Write   =  0;
+
+        if (pf.isKey(NVS_KEY_PANIC_RESET_COUNT) == false)
         {
-            pf.putChar(key, 0);
-            if (pf.getChar(key, -1) != 0)
+            pf.putChar(NVS_KEY_PANIC_RESET_COUNT, value2Write);
+            if (pf.getChar(NVS_KEY_PANIC_RESET_COUNT, defaultValue) != value2Write)
             {
                 LOG_ERROR(logger, "FAILED TO WRITE PANIC RESET COUNT");
                 return Status(Status::Code::BAD_DEVICE_FAILURE);
@@ -113,8 +115,8 @@ namespace muffin {
             LOG_INFO(logger, "Created a panic reset count");
         }
 
-        int8_t panicResetCount = pf.getChar(key, -1);
-        if (panicResetCount == -1)
+        int8_t panicResetCount = pf.getChar(NVS_KEY_PANIC_RESET_COUNT, defaultValue);
+        if (panicResetCount == defaultValue)
         {
             LOG_ERROR(logger, "FAILED TO READ PANIC RESET COUNT");
             return Status(Status::Code::BAD_DEVICE_FAILURE);
@@ -122,14 +124,33 @@ namespace muffin {
 
         if (panicResetCount > MAX_RETRY_COUNT)
         {
-            pf.putChar(key, 0);
-            esp32FS.Remove(JARVIS_PATH);
+            Status ret = writeJarvisResetByCrash();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO WRITE JARVIS RESET: %s", ret.c_str());
+                return ret;
+            }
+            
+            ret = esp32FS.Remove(JARVIS_PATH);
             /*
              * @todo 나중에 코드에 반영시킬 것
              *  "/spear/protocol/config.json"
              *  "/spear/link1/config.json"
              *  "/spear/link2/config.json"
             */
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO REMOVE JARVIS CONFIG: %s", ret.c_str());
+                return ret;
+            }
+
+            pf.putChar(NVS_KEY_PANIC_RESET_COUNT, value2Write);
+            if (pf.getChar(NVS_KEY_PANIC_RESET_COUNT, defaultValue) != value2Write)
+            {
+                LOG_ERROR(logger, "FAILED TO RESET PANIC RESET COUNT");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+            LOG_INFO(logger, "Reset the panic reset count to 0");
         }
         
         const esp_reset_reason_t resetReason = esp_reset_reason();
@@ -141,11 +162,10 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
         
-        pf.putChar(key, ++panicResetCount);
-        if (panicResetCount != pf.getChar(key, -1))
+        pf.putChar(NVS_KEY_PANIC_RESET_COUNT, ++panicResetCount);
+        if (panicResetCount != pf.getChar(NVS_KEY_PANIC_RESET_COUNT, defaultValue))
         {
             LOG_ERROR(logger, "FAILED TO WRITE PANIC RESET COUNT");
-            pf.remove(key);
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
@@ -300,7 +320,7 @@ namespace muffin {
                     Preferences pf;
                     const char* key = "prc";    // prc is short for "process reset reason"
 
-                    if (pf.begin("Initializer", false) == false)
+                    if (pf.begin(NVS_NAMESPACE_INIT, false) == false)
                     {
                         LOG_ERROR(logger, "FAILED TO BEGIN NVS PARTITION");
                         return Status(Status::Code::BAD_DEVICE_FAILURE);

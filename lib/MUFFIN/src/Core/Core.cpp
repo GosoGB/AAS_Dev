@@ -70,11 +70,14 @@ namespace muffin {
     {
         logger.Init();
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
-        LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u", 
+        LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),
             FW_VERSION_ESP32.GetVersionCode());
 
-/*
+        Initializer initializer;
+        initializer.StartOrCrash();
+
+#if !defined(DEBUG)
     #if defined(MODLINK_T2)
     {
         uint8_t trialCount = 0;    
@@ -104,19 +107,16 @@ namespace muffin {
             FW_VERSION_MEGA2560.GetVersionCode());
     }
     #endif
-*/
+#endif
 
         Preferences nvs;
         nvs.begin("jarvis");
-        mHasJarvisCommand = nvs.getBool("jarvisFlag",false);
+        mHasJarvisCommand = nvs.getBool("flagJARVIS",false);
         nvs.end();
 
         nvs.begin("fota");
         mHasFotaCommand = nvs.getBool("fotaFlag",false);
         nvs.end();
-
-        Initializer initializer;
-        initializer.StartOrCrash();
 
 
         /**

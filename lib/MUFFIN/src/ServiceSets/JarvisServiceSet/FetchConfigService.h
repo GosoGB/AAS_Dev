@@ -17,8 +17,6 @@
 
 #include "Common/Status.h"
 
-constexpr const char* DOWNLOADED_JARVIS_PATH = "/jarvis/config.tmp";
-
 
 
 namespace muffin {

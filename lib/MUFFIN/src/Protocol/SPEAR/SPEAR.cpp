@@ -4,14 +4,16 @@
  * 
  * @brief SPEAR 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-12-24
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
 
+
+#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
@@ -22,7 +24,6 @@
 #include "JARVIS/Config/Interfaces/Rs485.h"
 #include "SPEAR.h"
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
 namespace muffin {
 
     SemaphoreHandle_t xSemaphoreSPEAR = NULL;

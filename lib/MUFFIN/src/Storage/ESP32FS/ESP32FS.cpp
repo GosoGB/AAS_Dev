@@ -39,7 +39,7 @@ namespace muffin {
         Preferences pf;
         const char* key = "firstBoot";
 
-        if (pf.begin("ESP32FS", false) == false)
+        if (pf.begin(NVS_NAMESPACE_INIT, false) == false)
         {
             std::cerr << "\n\n\033[31mFAILED TO BEGIN NVS PARTITION" << std::endl;
             std::abort();
@@ -97,10 +97,10 @@ namespace muffin {
                 LOG_WARNING(logger, "[TRIAL: #%u] FORMAT WAS UNSUCCESSFUL", trialCount);
                 vTaskDelay(100 / portTICK_PERIOD_MS);
             }
-
-            LOG_ERROR(logger, "FAILED TO FORMAT ESP32 FILE SYSTEM");
-            return Status(Status::Code::BAD);
         }
+
+        LOG_ERROR(logger, "FAILED TO FORMAT ESP32 FILE SYSTEM");
+        return Status(Status::Code::BAD);
     }
 
     size_t ESP32FS::GetTotalBytes() const

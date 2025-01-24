@@ -31,7 +31,10 @@
 #include "Protocol/MQTT/Include/Helper.h"
 #include "Protocol/MQTT/Include/Message.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
+#include "Protocol/SPEAR/SPEAR.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
+#include "ServiceSets/MqttServiceSet/MqttTaskService.h"
+#include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 
 static TaskHandle_t xHandle = NULL;
 static uint8_t RECONNECT_TRIAL_COUNT = 0;
@@ -39,24 +42,6 @@ static uint8_t RECONNECT_TRIAL_COUNT = 0;
 
 
 namespace muffin {
-
-    INetwork* retrieveServiceNetwork()
-    {
-        const jvs::snic_e snicType = jvs::config::operation.GetServerNIC().second;
-
-        switch (snicType)
-        {
-        case jvs::snic_e::LTE_CatM1:
-            return static_cast<INetwork*>(catM1);
-
-        case jvs::snic_e::Ethernet:
-            return static_cast<INetwork*>(ethernet);
-        
-        default:
-            ASSERT(false, "UNDEFINED SERVICE NETWORK TYPE: %u", static_cast<uint8_t>(snicType));
-            return nullptr;
-        }
-    }
 
     Status manageConnection()
     {
@@ -72,7 +57,7 @@ namespace muffin {
         }
         LOG_WARNING(logger, "MQTT CLIENT IS NOT CONNECTED");
         
-        INetwork* snic = retrieveServiceNetwork();
+        INetwork* snic = RetrieveServiceNicService();
         std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
@@ -120,7 +105,7 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
 
-        INetwork* snic = retrieveServiceNetwork();
+        INetwork* snic = RetrieveServiceNicService();
         std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
@@ -156,84 +141,12 @@ namespace muffin {
         return ret;
     }
 
-    jarvis_struct_t createJarvisResponse(Status::Code errorCode)
-    {
-        jarvis_struct_t response;
-
-        switch (errorCode)
-        {
-        case Status::Code::BAD_END_OF_STREAM:
-            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_COMMUNICATION);
-            response.Description   = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
-            break;
-        case Status::Code::BAD_NO_DATA:
-            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
-            response.Description   = "PAYLOAD EMPTY";
-            break;
-        case Status::Code::BAD_DATA_ENCODING_INVALID:
-            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_ERROR);
-            response.Description   = "PAYLOAD INVALID ENCODING";
-            break;
-        case Status::Code::BAD_OUT_OF_MEMORY:
-            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_OUT_OF_MEMORY);
-            response.Description   = "PAYLOAD OUT OF MEMORY";
-            break;
-        case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
-            response.Description   = "PAYLOAD EXCEEDED NESTING LIMIT";
-            break;
-        case Status::Code::BAD_UNEXPECTED_ERROR:
-            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
-            response.Description   = "UNDEFINED CONDITION";
-            break;
-        default:
-            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
-            response.Description   = "UNDEFINED CONDITION";
-            break;
-        }
-
-        return response;
-    }
-
-    Status processMessageJARVIS(const char* payload)
+    Status publishResponseJARVIS(const jarvis_struct_t& response)
     {
         JSON json;
-        JsonDocument doc;
-        jarvis_struct_t response;
-        Status ret = json.Deserialize(payload, &doc);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", ret.c_str());
-            response = createJarvisResponse(ret.ToCode());
-            response.SourceTimestamp = GetTimestampInMillis();
-            goto ON_FAIL;
-        }
-        else
-        {
-            const std::pair<Status, jvs::prtcl_ver_e> retVersion = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
-            if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jvs::prtcl_ver_e::VERSEOIN_2))
-            {
-                LOG_ERROR(logger, "VERSION ERROR: %s , VERSION : %u", retVersion.first.c_str() ,static_cast<uint8_t>(retVersion.second));
-                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
-                response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
-            }
-            ASSERT((retVersion.second == jvs::prtcl_ver_e::VERSEOIN_2), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
-            
-            if (doc.containsKey("rqi") == true)
-            {
-                const char* rqi = doc["rqi"].as<const char*>();
-                if (rqi == nullptr || strlen(rqi) == 0)
-                {
-                    response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD);
-                    response.Description   = "INVALID REQUEST ID: CANNOT BE NULL OR EMPTY";
-                }
-                ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
-            }
-        }
-    
-    ON_FAIL:
+        Status ret(Status::Code::UNCERTAIN);
         const std::string payload = json.Serialize(response);
-        mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
+        mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, std::move(payload));
 
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
@@ -246,30 +159,110 @@ namespace muffin {
         }
         LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE: %s", ret.c_str());
         return ret;
+    }
 
-    ON_SUCCESS:
+    Status writeFlagJARVIS()
+    {
         Preferences pf;
-        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
+        if (pf.begin(NVS_NAMESPACE_INIT) == false)
         {
-            if (pf.begin("jarvis") == false)
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        const int8_t defaultValue  = -1;
+        const int8_t value2Write   =  1;
+        
+        pf.putChar(NVS_KEY_FLAG_JARVIS_REQUEST, value2Write);
+        if (pf.getChar(NVS_KEY_FLAG_JARVIS_REQUEST, defaultValue) == value2Write)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_DATA_LOST);
+        }
+    }
+
+    Status processMessageJARVIS(const char* payload)
+    {
+        JSON json;
+        JsonDocument doc;
+        jarvis_struct_t response;
+        response.SourceTimestamp = GetTimestampInMillis();
+
+        Status ret = json.Deserialize(payload, &doc);
+        if (ret != Status::Code::GOOD)
+        {
+            switch (ret.ToCode())
             {
-                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-                continue;
+            case Status::Code::BAD_END_OF_STREAM:
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_COMMUNICATION);
+                response.Description   = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
+                break;
+            case Status::Code::BAD_NO_DATA:
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
+                response.Description   = "PAYLOAD EMPTY";
+                break;
+            case Status::Code::BAD_DATA_ENCODING_INVALID:
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_ERROR);
+                response.Description   = "PAYLOAD INVALID ENCODING";
+                break;
+            case Status::Code::BAD_OUT_OF_MEMORY:
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_OUT_OF_MEMORY);
+                response.Description   = "PAYLOAD OUT OF MEMORY";
+                break;
+            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
+                response.Description   = "PAYLOAD EXCEEDED NESTING LIMIT";
+                break;
+            case Status::Code::BAD_UNEXPECTED_ERROR:
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
+                response.Description   = "UNDEFINED CONDITION";
+                break;
+            default:
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
+                response.Description   = "UNDEFINED CONDITION";
+                break;
             }
+            return publishResponseJARVIS(response);
+        }
+        
+        const auto version = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
+        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second > jvs::prtcl_ver_e::VERSEOIN_2))
+        {
+            response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
+            response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
+            return publishResponseJARVIS(response);
+        }
 
-            pf.putChar("jarvisFlag", 1);
-            const int8_t readback = pf.getChar("jarvisFlag", -1);
-
-            if (readback != 1)
+        if (doc.containsKey("rqi") == true)
+        {
+            const char* rqi = doc["rqi"].as<const char*>();
+            if ((rqi == nullptr) || (strlen(rqi) == 0))
             {
-                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-                continue;
+                response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD);
+                response.Description   = "INVALID REQUEST ID: CANNOT BE NULL OR EMPTY";
+                return publishResponseJARVIS(response);
             }
         }
-        pf.end();
-        LOG_INFO(logger,"Device will be reset due to JARVIS request");
-        esp_restart();
-        return ret;
+
+        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
+        {
+            ret = writeFlagJARVIS();
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger,"Device will be reset due to JARVIS request");
+            #if defined(MODLINK_T2) || defined(MODLINK_B)
+                spear.Reset();
+            #endif
+                esp_restart();
+            }
+        }
+        
+        LOG_ERROR(logger, "FAILED TO WRITE JARVIS FLAG TO NVS");
+        response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_HARDWARE_FAILURE);
+        response.Description   = "HARDWARE FAILURE: SECONDARY MEMORY MALFUNCTIONED";
+        return publishResponseJARVIS(response);
     }
 
     Status processMessageRemoteControl(const char* payload)

@@ -15,6 +15,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "IM/Custom/Constants.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "JARVIS/Config/Operation/Operation.h"
@@ -22,29 +23,12 @@
 #include "Network/Ethernet/Ethernet.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
+#include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 
 
 
 namespace muffin {
-
-    INetwork* retrieveServiceNetwork()
-    {
-        const jvs::snic_e snicType = jvs::config::operation.GetServerNIC().second;
-
-        switch (snicType)
-        {
-        case jvs::snic_e::LTE_CatM1:
-            return static_cast<INetwork*>(catM1);
-
-        case jvs::snic_e::Ethernet:
-            return static_cast<INetwork*>(ethernet);
-        
-        default:
-            ASSERT(false, "UNDEFINED SERVICE NETWORK TYPE: %u", static_cast<uint8_t>(snicType));
-            return nullptr;
-        }
-    }
 
     http::RequestHeader createRequestHeader()
     {
@@ -79,7 +63,7 @@ namespace muffin {
 
     Status FetchConfigService()
     {
-        INetwork* snic = retrieveServiceNetwork();
+        INetwork* snic = RetrieveServiceNicService();
         if (snic->IsConnected() == false)
         {
             LOG_ERROR(logger, "FAILED TO FETCH DUE TO SNIC DISCONNECTION");
@@ -102,7 +86,7 @@ namespace muffin {
         }
         
         std::string response;
-        Status ret = httpClient->Retrieve(mutex.second, &response);
+        ret = httpClient->Retrieve(mutex.second, &response);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE THE RESPONSE");
@@ -112,7 +96,7 @@ namespace muffin {
         LOG_INFO(logger, "Fetched JARVIS config from the server");
         snic->ReleaseMutex();
 
-        File file = esp32FS.Open(DOWNLOADED_JARVIS_PATH, "w", true);
+        File file = esp32FS.Open(FS_JARVIS_PATH_TMP, "w", true);
         if (file == false)
         {
             return Status(Status::Code::BAD_DEVICE_FAILURE);

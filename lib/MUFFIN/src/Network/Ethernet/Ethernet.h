@@ -9,6 +9,7 @@
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
+ * 
  * @todo Network 모듈 단에서 Ethernet 인터페이스의 MAC 주소를 어떻게 읽어가는
  * 것이 좋을지 결정하지 못하였습니다. 현재는 다음의 두 개의 방안을 고민 중입니다.
  *   - 방법 #1: GetMacAddress() 함수를 정적 메서드로 선언
@@ -21,6 +22,8 @@
 
 
 
+
+#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 #pragma once
 
@@ -78,3 +81,5 @@ namespace muffin {
 
     extern Ethernet* ethernet;
 }
+
+#endif

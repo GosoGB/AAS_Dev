@@ -104,7 +104,7 @@ namespace muffin {
         JSON() {}
         virtual ~JSON() {}
     public:
-        std::string Serialize(jarvis_struct_t& _struct);
+        std::string Serialize(const jarvis_struct_t& _struct);
         std::string Serialize(const remote_controll_struct_t& _struct);
         std::string Serialize(const daq_struct_t& _struct);
         std::string Serialize(const alarm_struct_t& _struct);

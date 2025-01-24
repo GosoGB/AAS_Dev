@@ -24,6 +24,7 @@
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "SendMessageService.h"
+#include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 
 
 
@@ -65,8 +66,8 @@ namespace muffin {
     
     Status implementPostDownloadResult(const ota::fw_info_t& info, const char* result)
     {
-        INetwork* nic = httpClient->RetrieveNIC();
-        const std::pair<Status, size_t> mutex = nic->TakeMutex();
+        INetwork* snic = RetrieveServiceNicService();
+        const std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first.ToCode() != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
@@ -110,7 +111,7 @@ namespace muffin {
         }
 
         Status ret = httpClient->POST(mutex.second, header, body);
-        nic->ReleaseMutex();
+        snic->ReleaseMutex();
 
         if (ret != Status::Code::GOOD)
         {
@@ -125,8 +126,8 @@ namespace muffin {
     
     Status implementPostUpdateResult(const ota::fw_info_t& info, const char* result)
     {
-        INetwork* nic = httpClient->RetrieveNIC();
-        const std::pair<Status, size_t> mutex = nic->TakeMutex();
+        INetwork* snic = RetrieveServiceNicService();
+        const std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first.ToCode() != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
@@ -166,7 +167,7 @@ namespace muffin {
         }
 
         Status ret = httpClient->POST(mutex.second, header, parameters);
-        nic->ReleaseMutex();
+        snic->ReleaseMutex();
 
         if (ret != Status::Code::GOOD)
         {

@@ -63,8 +63,8 @@ namespace muffin {
     {
         if (jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
         {
-            CatM1& catM1 = CatM1::GetInstance();
-            catM1.KillUrcTask(true);
+            ASSERT((catM1 != nullptr), "CatM1 INSTANCE CANNOT BE NULL");
+            catM1->KillUrcTask(true);
         }
         
         if (sQueueHandle != NULL && sMemoryPool != nullptr)

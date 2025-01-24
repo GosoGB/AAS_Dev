@@ -51,7 +51,8 @@ namespace muffin {
         return ret;
     }
 
-    Status strategyInitEthernet()
+#if defined(MODLINK_T2) || defined(MODLINK_B)
+    static Status strategyInitEthernet()
     {
         http::LwipHTTP* lwipHTTP = new(std::nothrow) http::LwipHTTP();
         if (lwipHTTP == nullptr)
@@ -75,6 +76,7 @@ namespace muffin {
         
         return ret;
     }
+#endif
 
     Status InitHttpService()
     {
@@ -100,9 +102,10 @@ namespace muffin {
             ret = strategyInitCatM1(mutex.second);
             catM1->ReleaseMutex();
             return ret;
-
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         case jvs::snic_e::Ethernet:
             return strategyInitEthernet();
+    #endif
         
         default:
             ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operation.GetServerNIC().second));
