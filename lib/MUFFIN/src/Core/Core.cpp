@@ -23,7 +23,6 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Core.h"
 #include "Core/Task/ModbusTask.h"
-#include "DataFormat/JSON/JSON.h"
 
 #include "IM/Custom/Device/DeviceStatus.h"
 #include "JARVIS/JARVIS.h"
@@ -39,7 +38,6 @@
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/SPEAR/SPEAR.h"
 #include "Storage/ESP32FS/ESP32FS.h"
-#include "Task/MqttTask.h"
 #include "Task/JarvisTask.h"
 #include "Task/CyclicalPubTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
@@ -147,7 +145,6 @@ namespace muffin {
             vTaskDelay((5*SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
         }
 
-        StartTaskMQTT();
         PublishFirmwareStatusMessageService();
         
         if (mHasJarvisCommand == false && mHasFotaCommand == true)
@@ -163,142 +160,12 @@ namespace muffin {
         }
     }
 
-    void Core::RouteMqttMessage(const mqtt::Message& message)
-    {
-        const mqtt::topic_e topic = message.GetTopicCode();
-        const std::string payload = message.GetPayload();
-
-        switch (topic)
-        {
-        /**
-         * @todo 현재 CIA 개체에 저장된 메시지를 Peek() 하는 게 아니라 Retrieve()로
-         *       가져오기 때문에 startJarvisTask()가 실패하는 경우 해당 메시지는
-         *       소실되게 됩니다. 따라서 요청이 사라지지 않게 보완하는 작업이 필요합니다.
-         */
-        case mqtt::topic_e::JARVIS_REQUEST:
-            saveJarvisFlag(payload);
-            return;
-        case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
-            startRemoteControll(payload);
-            break;
-        case mqtt::topic_e::FOTA_UPDATE:
-            saveFotaFlag(payload);
-            break;
-        default:
-            ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(topic));
-            break;
-        }
-    }
-
     void Core::saveFotaFlag(const std::string& payload)
     {
         Preferences nvs;
         nvs.begin("fota");
         nvs.putBool("fotaFlag",true);
         nvs.putString("fotaPayload",payload.c_str());
-        nvs.end();
-
-        LOG_WARNING(logger,"ESP RESET!");
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-        spear.Reset();
-    #endif
-        ESP.restart();
-    }
-
-    void Core::saveJarvisFlag(const std::string& payload)
-    {
-        bool isError = false;
-        jarvis_struct_t messageConfig;
-
-        JSON json;
-        JsonDocument doc;
-
-        Status retJSON = json.Deserialize(payload, &doc);
-        if (retJSON != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-            switch (retJSON.ToCode())
-            {
-            case Status::Code::BAD_END_OF_STREAM:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_COMMUNICATION);
-                messageConfig.Description   = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
-                isError = true;
-                break;
-            case Status::Code::BAD_NO_DATA:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
-                messageConfig.Description   = "PAYLOAD EMPTY";
-                isError = true;
-                break;
-            case Status::Code::BAD_DATA_ENCODING_INVALID:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_ERROR);
-                messageConfig.Description   = "PAYLOAD INVALID ENCODING";
-                isError = true;
-                break;
-            case Status::Code::BAD_OUT_OF_MEMORY:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_OUT_OF_MEMORY);
-                messageConfig.Description   = "PAYLOAD OUT OF MEMORY";
-                isError = true;
-                break;
-            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
-                messageConfig.Description   = "PAYLOAD EXCEEDED NESTING LIMIT";
-                isError = true;
-                break;
-            case Status::Code::BAD_UNEXPECTED_ERROR:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
-                messageConfig.Description   = "UNDEFINED CONDITION";
-                isError = true;
-                break;
-            default:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_UNEXPECTED_ERROR);
-                messageConfig.Description   = "UNDEFINED CONDITION";
-                isError = true;
-                break;
-            }
-        }
-
-        const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
-        if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jvs::prtcl_ver_e::VERSEOIN_2))
-        {
-            LOG_ERROR(logger, "VERSION ERROR: %s , VERSION : %u", retVersion.first.c_str(),static_cast<uint8_t>(retVersion.second));
-            messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
-            messageConfig.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
-            isError = true;
-        }
-        ASSERT((retVersion.second == jvs::prtcl_ver_e::VERSEOIN_2), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
-        if (doc.containsKey("rqi") == true)
-        {
-            const char* rqi = doc["rqi"].as<const char*>();
-            if (rqi == nullptr || strlen(rqi) == 0)
-            {
-                messageConfig.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD);
-                messageConfig.Description   = "INVALID REQUEST ID: CANNOT BE NULL OR EMPTY";
-                isError = true;
-            }
-            ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
-        }
-
-        if (isError)
-        {
-            messageConfig.SourceTimestamp  = GetTimestampInMillis();
-            JSON json;
-            std::string payload = json.Serialize(messageConfig);
-
-            mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
-                 */
-                LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
-            }
-            return;
-        }
-    
-        Preferences nvs;
-        nvs.begin("jarvis");
-        nvs.putBool("jarvisFlag",true);
         nvs.end();
 
         LOG_WARNING(logger,"ESP RESET!");

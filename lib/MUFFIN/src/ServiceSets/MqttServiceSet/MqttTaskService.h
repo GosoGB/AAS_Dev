@@ -1,8 +1,8 @@
 /**
- * @file StartMqttClientService.h
+ * @file MqttTaskService.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief MQTT 클라이언트 초기화 및 연결하는 서비스를 선언합니다.
+ * @brief MQTT 태스크를 실행하고 정지하는 서비스를 선언합니다.
  * 
  * @date 2025-01-24
  * @version 1.2.2
@@ -20,7 +20,7 @@
 
 
 namespace muffin {
-
-    Status InitMqttClientService();
-    Status ConnectMqttClientService();
+    
+    Status StartMqttTaskService();
+    Status StopMqttTaskService();
 }

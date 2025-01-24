@@ -349,13 +349,13 @@ namespace muffin {
                 goto RETRY;
             }
 
-            ret = InitMqttService();
+            ret = InitMqttClientService();
             if (ret != Status::Code::GOOD)
             {
                 goto RETRY;
             }
 
-            ret = ConnectMqttService();
+            ret = ConnectMqttClientService();
             if (ret != Status::Code::GOOD)
             {
                 goto RETRY;

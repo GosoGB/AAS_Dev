@@ -29,9 +29,6 @@
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
 
-static TaskHandle_t xHandle = NULL;
-static uint8_t RECONNECT_TRIAL_COUNT = 0;
-
 
 
 namespace muffin {
@@ -45,130 +42,6 @@ namespace muffin {
         "vitcon",                           // username
         "tkfkdgo5!@#$"                      // password
     );
-
-    Status manageConnection()
-    {
-        if (mqttClient == nullptr)
-        {
-            LOG_ERROR(logger, "MQTT CLIENT DOES NOT EXIST");
-            return Status(Status::Code::BAD_NOT_EXECUTABLE);
-        }
-
-        if (mqttClient->IsConnected() == Status::Code::GOOD)
-        {
-            return Status(Status::Code::GOOD);
-        }
-        LOG_WARNING(logger, "MQTT CLIENT IS NOT CONNECTED");
-        
-        Status ret = mqttClient->Disconnect();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO DISCONNECT: %s", ret.c_str());
-            return ret;
-        }
-        
-        if (implInitMqttService() != Status::Code::GOOD)
-        {
-            ++RECONNECT_TRIAL_COUNT;
-            return;
-        }
-
-        if (RECONNECT_TRIAL_COUNT == MAX_RETRY_COUNT)
-        {
-            LOG_ERROR(logger, "FAILED TO RECONNECT TO THE BROKER");
-            LOG_INFO(logger, "Restart the device");
-            esp_restart();
-        }
-    }
-
-    void implStopMqttTask(TimerHandle_t)
-    {
-        vTaskDelete(xHandle);
-        xHandle = NULL;
-    }
-
-    Status StopMqttService()
-    {
-        TimerHandle_t xTimer = xTimerCreate("implStopMqttTask",  // pcTimerName
-                                            SECOND_IN_MILLIS,   // xTimerPeriod,
-                                            pdFALSE,            // uxAutoReload,
-                                            (void *)0,          // pvTimerID,
-                                            implStopMqttTask);  // pxCallbackFunction
-
-        if (xTimer == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR STOPPING MQTT SERVICE");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-        else
-        {
-            LOG_INFO(logger, "Created a timer for stopping mqtt service");
-            if (xTimerStart(xTimer, 0) != pdPASS)
-            {
-                LOG_ERROR(logger, "FAILED TO START TIMER FOR STOPPING MQTT SERVICE");
-                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            }
-        }
-        
-        LOG_INFO(logger, "Stopping the MQTT service");
-        return Status(Status::Code::GOOD);
-    }
-
-    void implMqttTask(void* pvParameters)
-    {
-        uint32_t reconnectMillis  = millis();
-
-        while (true)
-        {
-            if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
-            {
-                if (manageConnection() == Status::Code::BAD_NOT_EXECUTABLE)
-                {
-                    StopMqttService();
-                }
-                reconnectMillis = millis();
-            }
-            
-            cia 와 cdo 작업 이어서 해야 함;
-            
-            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-        }
-    }
-
-    Status startMqttTask()
-    {
-        if (xHandle != NULL)
-        {
-            return Status(Status::Code::GOOD);
-        }
-
-        BaseType_t ret = xTaskCreatePinnedToCore(implMqttTask,     // Function to be run inside of the task
-                                                 "implMqttTask",   // The identifier of this task for men
-                                                 4*KILLOBYTE,	   // Stack memory size to allocate
-                                                 NULL,			   // Task parameters to be passed to the function
-                                                 0,				   // Task Priority for scheduling
-                                                 &xHandle,         // The identifier of this task for machines
-                                                 0);			   // Index of MCU core where the function to run
-
-        switch (ret)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "MQTT task has been started");
-            return Status(Status::Code::GOOD);
-
-        case pdFAIL:
-            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-
-        default:
-            LOG_ERROR(logger, "UNKNOWN ERROR: %d", static_cast<int>(ret));
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-    }
 
     mqtt::Message GenerateWillMessage(const bool isConnected)
     {
@@ -269,38 +142,6 @@ namespace muffin {
         return ret;
     }
 
-    Status implInitMqttService()
-    {
-        switch (jvs::config::operation.GetServerNIC().second)
-        {
-        case jvs::snic_e::LTE_CatM1:
-            return strategyInitCatM1();
-
-        case jvs::snic_e::Ethernet:
-            return strategyInitEthernet();
-        
-        default:
-            ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operation.GetServerNIC().second));
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
-    }
-
-    Status InitMqttService()
-    {
-        if (mqttClient != nullptr)
-        {
-            return Status(Status::Code::GOOD);
-        }
-
-        Status ret = startMqttTask();
-        if (ret != Status::Code::GOOD)
-        {
-            return ret;
-        }
-        
-        return implInitMqttService();
-    }
-
     Status subscribeTopics(const size_t mutex)
     {
         mqtt::Message jarvis(mqtt::topic_e::JARVIS_REQUEST, "");
@@ -327,8 +168,34 @@ namespace muffin {
         return mqttClient->Subscribe(mutex, topics);
     }
 
-    Status ConnectMqttService()
+    Status InitMqttClientService()
     {
+        if (mqttClient != nullptr)
+        {
+            if (mqttClient->IsConnected() == Status::Code::GOOD)
+            {
+                return Status(Status::Code::GOOD);
+            }
+        }
+
+        switch (jvs::config::operation.GetServerNIC().second)
+        {
+        case jvs::snic_e::LTE_CatM1:
+            return strategyInitCatM1();
+
+        case jvs::snic_e::Ethernet:
+            return strategyInitEthernet();
+        
+        default:
+            ASSERT(false, "UNDEFINED SNIC: %u", static_cast<uint8_t>(jvs::config::operation.GetServerNIC().second));
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+    }
+
+    Status ConnectMqttClientService()
+    {
+        ASSERT((mqttClient != nullptr), "MQTT CLIENT MUST EXIST");
+
         if (mqttClient->IsConnected() == Status::Code::GOOD)
         {
             return Status(Status::Code::GOOD);

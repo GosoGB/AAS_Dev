@@ -46,7 +46,6 @@ namespace muffin {
         virtual ~Core() {}
     public:
         void Init();
-        void RouteMqttMessage(const mqtt::Message& message);
         void StartJarvisTask();
         void StartOTA(const std::string& payload);
     private:

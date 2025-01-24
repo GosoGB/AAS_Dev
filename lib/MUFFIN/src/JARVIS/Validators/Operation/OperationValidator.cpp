@@ -54,11 +54,11 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc, buffer);
         }
 
-        config::operationCIN.SetPlanExpired(isExpired);
-        config::operationCIN.SetFactoryReset(hasFactoryReset);
-        config::operationCIN.SetServerNIC(retSNIC.second);
-        config::operationCIN.SetIntervalPolling(pollingInverval);
-        config::operationCIN.SetIntervalServer(publishInverval);
+        config::operation.SetPlanExpired(isExpired);
+        config::operation.SetFactoryReset(hasFactoryReset);
+        config::operation.SetServerNIC(retSNIC.second);
+        config::operation.SetIntervalPolling(pollingInverval);
+        config::operation.SetIntervalServer(publishInverval);
 
         if (arrayCIN.size() > 1)
         {
