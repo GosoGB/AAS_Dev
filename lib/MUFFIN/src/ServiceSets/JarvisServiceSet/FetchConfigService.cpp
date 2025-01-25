@@ -96,7 +96,7 @@ namespace muffin {
         LOG_INFO(logger, "Fetched JARVIS config from the server");
         snic->ReleaseMutex();
 
-        File file = esp32FS.Open(FS_JARVIS_PATH_TMP, "w", true);
+        File file = esp32FS.Open(JARVIS_PATH_FETCHED, "w", true);
         if (file == false)
         {
             return Status(Status::Code::BAD_DEVICE_FAILURE);

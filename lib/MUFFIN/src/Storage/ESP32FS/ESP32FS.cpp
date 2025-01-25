@@ -73,12 +73,10 @@ namespace muffin {
     {
         if (LittleFS.begin(formatOnFail, basePath, maxOpenFiles, partitionLabel) == true)
         {
-            LOG_INFO(logger, "Succedded to begin ESP32 file system");
             return Status(Status::Code::GOOD);
         }
         else
         {
-            LOG_ERROR(logger, "FAILED TO START ESP32 FILE SYSTEM");
             return Status(Status::Code::BAD);
         }
     }
@@ -89,18 +87,15 @@ namespace muffin {
         {
             if (LittleFS.format() == true)
             {
-                LOG_INFO(logger, "Succedded to format ESP32 file system");
                 return Status(Status::Code::GOOD);
             }
             else
             {
-                LOG_WARNING(logger, "[TRIAL: #%u] FORMAT WAS UNSUCCESSFUL", trialCount);
                 vTaskDelay(100 / portTICK_PERIOD_MS);
             }
         }
 
-        LOG_ERROR(logger, "FAILED TO FORMAT ESP32 FILE SYSTEM");
-        return Status(Status::Code::BAD);
+        return Status(Status::Code::BAD_DEVICE_FAILURE);
     }
 
     size_t ESP32FS::GetTotalBytes() const
@@ -136,12 +131,10 @@ namespace muffin {
     {
         if (LittleFS.exists(path) == true)
         {
-            LOG_VERBOSE(logger, "Found: %s", path);
             return Status(Status::Code::GOOD);
         }
         else
         {
-            LOG_DEBUG(logger, "Not found: %s", path);
             return Status(Status::Code::BAD_NOT_FOUND);
         }
     }
@@ -153,22 +146,24 @@ namespace muffin {
 
     Status ESP32FS::Remove(const char* path)
     {
+        if (DoesExist(path) == Status::Code::BAD_NOT_FOUND)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
             if (LittleFS.remove(path) == true)
             {
-                LOG_VERBOSE(logger, "Removed: %s", path);
                 return Status(Status::Code::GOOD);
             }
             else
             {
-                LOG_WARNING(logger, "[TRIAL: #%u] REMOVE WAS UNSUCCESSFUL", trialCount);
                 vTaskDelay(100 / portTICK_PERIOD_MS);
             }
         }
         
-        LOG_ERROR(logger, "FAILED TO REMOVE FILE: %s", path);
-        return Status(Status::Code::BAD);
+        return Status(Status::Code::BAD_DEVICE_FAILURE);
     }
 
     Status ESP32FS::Remove(const std::string& path)

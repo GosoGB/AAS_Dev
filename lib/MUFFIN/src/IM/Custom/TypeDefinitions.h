@@ -16,15 +16,25 @@
 
 #pragma once
 
+#include <sys/_stdint.h>
+
 
 
 namespace muffin {
 
-    typedef enum class McuTypeEnum
+    typedef enum class McuTypeEnum : uint8_t
     {
         MCU_ESP32,
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         MCU_ATmega2560
     #endif
     } mcu_type_e;
+
+    typedef struct InitConfigFileType
+    {
+        int8_t PanicResetCount;
+        int8_t HasPendingJARVIS;
+        int8_t HasPendingUpdate;
+    } init_cfg_t;
+
 }

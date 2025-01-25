@@ -44,8 +44,6 @@ namespace muffin {
 
     Status ApplyOperationService()
     {
-        LOG_DEBUG(logger, "Start to apply JARVIS Operation CIN");
-        
         if (jvs::config::operation.GetFactoryReset().second == true)
         {
             executeFactoryReset();

@@ -3,7 +3,7 @@
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
- * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
+ * @brief MUFFIN 프레임워크를 초기화 기능을 제공하는 클래스를 정의합니다.
  * 
  * @date 2025-01-20
  * @version 1.2.2
@@ -24,6 +24,8 @@
 #include "Core.h"
 #include "Core/Task/ModbusTask.h"
 
+#include "DataFormat/CSV/CSV.h"
+
 #include "IM/Custom/Device/DeviceStatus.h"
 #include "JARVIS/JARVIS.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
@@ -33,7 +35,7 @@
 #include "IM/EA/DeprecableOperationTime.h"
 #include "IM/EA/DeprecableProductionInfo.h"
 #include "IM/Node/NodeStore.h"
-#include "Initializer/Initializer.h"
+
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/SPEAR/SPEAR.h"
@@ -53,6 +55,9 @@
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
+#include "ServiceSets/HttpServiceSet/StartHttpClientService.h"
+#include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
+#include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
 
 
 
@@ -60,10 +65,6 @@ namespace muffin {
 
     std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
     std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
-
-    jvs::ValidationResult Core::mJarvisValidationResult;
-    bool Core::mHasJarvisCommand = false;
-    bool Core::mHasFotaCommand = false;
 
 
     void Core::Init()
@@ -74,8 +75,142 @@ namespace muffin {
             FW_VERSION_ESP32.GetSemanticVersion(),
             FW_VERSION_ESP32.GetVersionCode());
 
-        Initializer initializer;
-        initializer.StartOrCrash();
+        Status ret = esp32FS.Begin(false);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO MOUNT ESP32 FILE SYSTEM");
+            std::abort();
+        }
+        LOG_INFO(logger, "File system: %s", ret.c_str());
+
+        init_cfg_t initConfig;
+        ret = readInitConfig(&initConfig);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO LOAD INIT CONFIG FILE");
+            std::abort();
+        }
+
+        if (isResetByPanic() == true)
+        {
+            if (++initConfig.PanicResetCount == MAX_RETRY_COUNT)
+            {
+                ret = esp32FS.Remove(JARVIS_PATH);
+            #if !defined(DEBUG)
+            ---------------------------------------------------------------------
+            |  @todo #1  JARVIS 설정 초기화 사유를 <INIT_FILE_PATH>에 저장해야 함  |
+            |  @todo #2  mfm/status 토픽에 설정값에 변화가 있었다고 알려줘야 함     |
+            ---------------------------------------------------------------------
+            #endif
+                if (ret == Status::Code::BAD_DEVICE_FAILURE)
+                {
+                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO REMOVE JARVIS CONFIG");
+                    std::abort();
+                }
+            }
+            
+            initConfig.PanicResetCount = 0;
+            ret = writeInitConfig(initConfig);
+            if (ret == Status::Code::BAD_ENCODING_ERROR)
+            {
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO ENCODE INIT CONFIG");
+                std::abort();
+            }
+            else if (ret == Status::Code::BAD_DEVICE_FAILURE)
+            {
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO WRITE INIT CONFIG");
+                std::abort();
+            }
+
+            LOG_INFO(logger, "JARVIS config has been reset due to panic reset");
+        }
+
+        if (esp32FS.DoesExist(JARVIS_PATH) == Status::Code::BAD_NOT_FOUND)
+        {
+            LOG_INFO(logger, "No JARVIS config found");
+            
+            ret = createDefaultJARVIS();
+            if (ret == Status::Code::BAD_DEVICE_FAILURE)
+            {
+                LOG_ERROR(logger, "FAILED TO CREATE DEAULT JARVIS CONFIG");
+                std::abort();
+            }
+
+            LOG_INFO(logger, "Created default JARVIS config");
+        }
+        
+        ret = loadJarvisConfig();
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO LOAD JARVIS CONFIG: %s", ret.c_str());
+            std::abort();
+        }
+        
+        do
+        {
+            ret = ApplyOperationService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = InitHttpService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = InitMqttClientService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = ConnectMqttClientService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+        RETRY:
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+            
+        } while (ret != Status::Code::GOOD);
+
+
+        if (initConfig.HasPendingJARVIS == true)
+        {
+            ;
+        }
+        
+        if (initConfig.HasPendingUpdate == true)
+        {
+            // start firmware update
+            // reset device
+        }
+    /*
+        if (mHasJarvisCommand == false && mHasFotaCommand == true)
+        {
+            Preferences nvs;
+            nvs.begin("fota");
+            const std::string payload = nvs.getString("fotaPayload").c_str();
+            LOG_WARNING(logger, "payload : %s",payload.c_str());
+            nvs.putBool("fotaFlag",false);
+            nvs.end();
+
+            StartOTA(payload);
+        }
+    */
+        
+        // call ApplyJarvisTask() function; a.k.a. start jarvis task
+
+
+
+
+        PublishFirmwareStatusMessageService();
+
+
+
 
 #if !defined(DEBUG)
     #if defined(MODLINK_T2)
@@ -108,57 +243,265 @@ namespace muffin {
     }
     #endif
 #endif
+    }
 
-        Preferences nvs;
-        nvs.begin("jarvis");
-        mHasJarvisCommand = nvs.getBool("flagJARVIS",false);
-        nvs.end();
+    Status Core::readInitConfig(init_cfg_t* output)
+    {
+        ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
-        nvs.begin("fota");
-        mHasFotaCommand = nvs.getBool("fotaFlag",false);
-        nvs.end();
+        Status ret = esp32FS.DoesExist(INIT_FILE_PATH);
+        LOG_INFO(logger, "Init config file: %s", ret.c_str());
 
-
-        /**
-         * @todo 설정이 정상적이지 않을 때 어떻게 처리할 것인지 결정해야 합니다.
-         * @details 현재는 설정에 실패했을 때, 최대 5번까지 다시 시도하게 되어 있습니다.
-         *          설정에 성공했다면 루프를 빠져나가게 됩니다.
-         */
-        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+        if (ret == Status::Code::BAD_NOT_FOUND)
         {
-            Status ret = initializer.Configure(mHasJarvisCommand, mHasFotaCommand);
-            if (ret == Status::Code::GOOD)
+            File file = esp32FS.Open(INIT_FILE_PATH, "w", true);
+            if (file == false)
             {
-                LOG_INFO(logger, "MUFFIN is configured and ready to go!");
-                break;
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO OPEN INIT CONFIG FILE");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
             }
             
-            if ((i + 1) == MAX_RETRY_COUNT)
-            {
-                LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", ret.c_str());
-                esp_restart();
-            }
-            else
-            {
-                LOG_WARNING(logger, "[TRIAL: #%u] CONFIGURATION WAS UNSUCCESSFUL: %s", i, ret.c_str());
-            }
-            vTaskDelay((5*SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
-        }
+            const init_cfg_t DEFAULT_INIT_CONFIG = {
+                .PanicResetCount  = 0,
+                .HasPendingJARVIS = 0,
+                .HasPendingUpdate = 0
+            };
 
-        PublishFirmwareStatusMessageService();
+            char buffer[16] = {'\0'};
+            sprintf(buffer, "%u,%u,%u", DEFAULT_INIT_CONFIG.PanicResetCount, 
+                                        DEFAULT_INIT_CONFIG.HasPendingJARVIS, 
+                                        DEFAULT_INIT_CONFIG.HasPendingUpdate);
+            file.write(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
+            file.close();
+
+            file = esp32FS.Open(INIT_FILE_PATH, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO OPEN INIT CONFIG FILE");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+
+            char readback[16] = {'\0'};
+            file.readBytes(readback, sizeof(readback));
+            file.close();
+
+            if (strcmp(buffer, readback) != 0)
+            {
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO CREATE INIT CONFIG FILE");
+                if (esp32FS.Format() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO FORMAT FILE SYSTEM");
+                }                
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+            
+            LOG_INFO(logger, "Created init config file");
+            return Status(Status::Code::GOOD);
+        }
         
-        if (mHasJarvisCommand == false && mHasFotaCommand == true)
+        File file = esp32FS.Open(INIT_FILE_PATH, "r", "false");
+        if (file == false)
         {
-            Preferences nvs;
-            nvs.begin("fota");
-            const std::string payload = nvs.getString("fotaPayload").c_str();
-            LOG_WARNING(logger, "payload : %s",payload.c_str());
-            nvs.putBool("fotaFlag",false);
-            nvs.end();
-
-            StartOTA(payload);
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO OPEN INIT CONFIG FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
+        
+        const size_t size = file.size();
+        char buffer[size] = {'\0'};
+        file.readBytes(buffer, size);
+
+        CSV csv;
+        ret = csv.Decode(buffer, output);
+        if (ret == Status::Code::BAD_NO_DATA)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: EMPTY INIT CONFIG");
+            return ret;
+        }
+        else if (ret == Status::Code::BAD_DATA_LOST)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: CORRUPTED INIT CONFIG");
+            return ret;
+        }
+        else if (ret == Status::Code::UNCERTAIN_DATA_SUBNORMAL)
+        {
+            LOG_WARNING(logger, "INIT CONFIG: BUFFER OVERFLOW");
+        }
+        
+        return ret;
     }
+
+    Status Core::writeInitConfig(const init_cfg_t& config)
+    {
+        const uint8_t size = 16;
+        char buffer[size] = {'\0'};
+
+        CSV csv;
+        Status ret = csv.Encode(config, size, buffer);
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        
+        File file = esp32FS.Open(INIT_FILE_PATH, "w", true);
+        if (file == false)
+        {
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+
+        file.write(reinterpret_cast<uint8_t*>(buffer), strlen(buffer));
+        file.flush();
+        file.close();
+        
+        char readback[size] = {'\0'};
+        file = esp32FS.Open(INIT_FILE_PATH, "r", false);
+        if (file == false)
+        {
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+
+        file.readBytes(readback, size);
+        if (strcmp(buffer, readback) != 0)
+        {
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+        
+        ret = Status::Code::GOOD;
+        return ret;
+    }
+
+    bool Core::isResetByPanic()
+    {
+        const esp_reset_reason_t resetReason = esp_reset_reason();
+        deviceStatus.SetResetReason(resetReason);
+        return resetReason == ESP_RST_PANIC;
+    }
+
+    Status Core::createDefaultJARVIS()
+    {
+        File file = esp32FS.Open(JARVIS_PATH, "w", true);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        JsonDocument doc;
+        doc["ver"] = "v1";
+
+        JsonObject cnt = doc["cnt"].to<JsonObject>();
+        cnt["rs232"].to<JsonArray>();
+        cnt["rs485"].to<JsonArray>();
+        cnt["wifi"].to<JsonArray>();
+        cnt["eth"].to<JsonArray>();
+        cnt["mbrtu"].to<JsonArray>();
+        cnt["mbtcp"].to<JsonArray>();
+        cnt["node"].to<JsonArray>();
+        cnt["alarm"].to<JsonArray>();
+        cnt["optime"].to<JsonArray>();
+        cnt["prod"].to<JsonArray>();
+
+        JsonArray catm1 = cnt["catm1"].to<JsonArray>();
+        JsonObject _catm1 = catm1.add<JsonObject>();
+        _catm1["md"]    = "LM5";
+        _catm1["ctry"]  = "KR";
+
+        JsonArray op     = cnt["op"].to<JsonArray>();
+        JsonObject _op   = op.add<JsonObject>();
+        _op["snic"]      = "lte";
+        _op["exp"]       = true;
+        _op["intvPoll"]  =  1;
+        _op["intvSrv"]   = 60;
+        _op["rst"]       = false;
+
+        const size_t size = measureJson(doc);
+        char buffer[size] = {'\0'};
+        serializeJson(doc, buffer, size);
+        doc.clear();
+
+        file.write(reinterpret_cast<uint8_t*>(buffer), size);
+        file.flush();
+        file.close();
+
+        char readback[size] = {'\0'};
+        file = esp32FS.Open(JARVIS_PATH);
+        file.readBytes(readback, size);
+        file.close();
+
+        if (strcmp(buffer, readback) != 0)
+        {
+            esp32FS.Remove(JARVIS_PATH);
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+    Status Core::loadJarvisConfig()
+    {
+        ASSERT((esp32FS.DoesExist(JARVIS_PATH) == Status::Code::GOOD), "JARVIS CONFIG MUST EXIST");
+
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        JSON json;
+        JsonDocument doc;
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
+
+        if (ret != Status::Code::GOOD)
+        {
+            esp32FS.Remove(JARVIS_PATH);
+            return ret;
+        }
+
+    #if defined(DEBUG)
+        doc["cnt"].remove("catm1");
+        doc["cnt"]["catm1"].to<JsonArray>();
+        JsonObject eth = doc["cnt"]["eth"].add<JsonObject>();
+        eth["dhcp"]  = true;
+        eth["ip"]    = NULL;
+        eth["snm"]   = NULL;
+        eth["gtw"]   = NULL;
+        eth["dns1"]  = NULL;
+        eth["dns2"]  = NULL;
+        JsonObject op = doc["cnt"]["op"][0].as<JsonObject>();
+        op["snic"] = "eth";
+    #else
+    -------------------------------------------------------------------
+    |  @todo #1  이더넷 테스트를 위해 DEBUG 플래그 안의 코드를 만들었음   |
+    |  @todo #2  릴리즈fmf 할 때는 반드시 지우고 펌웨어를 출고시켜야 함   |
+    -------------------------------------------------------------------
+    #endif
+        
+        jarvis = new(std::nothrow) JARVIS();
+        if (jarvis == nullptr)
+        {
+            ret = Status::Code::BAD_OUT_OF_MEMORY;
+            return ret;
+        }
+        
+        jvs::ValidationResult result = jarvis->Validate(doc);
+        doc.clear();
+
+        if (result.GetRSC() == jvs::rsc_e::GOOD)
+        {
+            ret = Status::Code::BAD_DATA_LOST;
+        }
+        
+        return ret;
+    }
+
+
+
+
+
+
+
 
     void Core::saveFotaFlag(const std::string& payload)
     {
@@ -167,12 +510,6 @@ namespace muffin {
         nvs.putBool("fotaFlag",true);
         nvs.putString("fotaPayload",payload.c_str());
         nvs.end();
-
-        LOG_WARNING(logger,"ESP RESET!");
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-        spear.Reset();
-    #endif
-        ESP.restart();
     }
 
     void Core::StartJarvisTask()

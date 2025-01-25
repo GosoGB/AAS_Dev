@@ -3,7 +3,7 @@
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
- * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 선언합니다.
+ * @brief MUFFIN 프레임워크를 초기화 기능을 제공하는 클래스를 선언합니다.
  * 
  * @date 2025-01-25
  * @version 1.2.2
@@ -25,6 +25,7 @@
 #include <freertos/task.h>
 
 #include "Common/Status.h"
+#include "IM/Custom/TypeDefinitions.h"
 #include "Protocol/MQTT/Include/Message.h"
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Protocol/ModbusTCP.h"
@@ -37,23 +38,26 @@ namespace muffin {
     
     extern std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
     extern std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
-    extern muffin::jvs::config::Ethernet mEthernet;
+    extern muffin::jvs::config::Ethernet mEthernet; 
     
     
     class Core
     {
     public:
         void Init();
+    private:
+        Status readInitConfig(init_cfg_t* output);
+        Status writeInitConfig(const init_cfg_t& config);
+        bool isResetByPanic();
+        Status createDefaultJARVIS();
+        Status loadJarvisConfig();
+    public:
         void StartJarvisTask();
         void StartOTA(const std::string& payload);
     private:
         void saveFotaFlag(const std::string& payload);
         void startRemoteControll(const std::string& payload);
         static void onJarvisValidationResult(jvs::ValidationResult& result);
-    private:
-        static jvs::ValidationResult mJarvisValidationResult;
-        static bool mHasJarvisCommand;
-        static bool mHasFotaCommand;
     };
 
 

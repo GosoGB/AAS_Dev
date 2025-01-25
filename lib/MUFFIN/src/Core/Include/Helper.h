@@ -26,9 +26,7 @@
 
 
 namespace muffin {
-
-    void LogResetReason(const esp_reset_reason_t resetReason);
-
+    
     template <typename T>
     Status EmplaceBack(T&& value, std::vector<T>* vector)
     {
