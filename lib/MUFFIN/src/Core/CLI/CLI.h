@@ -29,11 +29,13 @@ namespace muffin {
         Status configureNetworkInterface();
         Status configureLTE();
         Status configureEthernet();
-        bool isValidIpFormat(const std::string &ip, const bool& isSubnetmask = false);
+        bool isValidIpFormat(const std::string& ip, const bool& isSubnetmask = false);
     private:
         std::string getSerialInput();
         JsonDocument mJarvisJson;
         Status saveJarvisJson();
+    private:
+        void printNetworkInfo(const std::string& info);
 
     };
 }

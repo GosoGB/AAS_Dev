@@ -166,82 +166,34 @@ namespace muffin {
 
                 if (dhcp == false)
                 {
-                    // std::string ip = eth["ip"].as<std::string>();
-                    // std::string gateway = eth["gtw"].as<std::string>();
-                    // std::string subnet = eth["snm"].as<std::string>();
-                    // std::string dns1 = eth["dns1"].as<std::string>();
-                    // std::string dns2 = eth["dns2"].as<std::string>();
-                    std::string ip      = "255.255.255.255";
-                    std::string gateway = "192.168.1.255";
-                    std::string subnet  = "255.255.255.0";
-                    std::string dns1    = "8.8.8.255";
-                    std::string dns2    = "8.0.255.8";
-
-                    size_t buffSize = 20;
-                    char buff[20];
-
-                    int inputLen = ip.length();
-                    strncpy(buff, ip.c_str(), inputLen);
-                    for (int i = inputLen; i < buffSize - 1; i++) 
-                    {
-                        buff[i] = ' ';
-                    }
-                    buff[buffSize - 1] = '\0';
-
+                    std::string ip = eth["ip"].as<std::string>();
+                    std::string gateway = eth["gtw"].as<std::string>();
+                    std::string subnet = eth["snm"].as<std::string>();
+                    std::string dns1 = eth["dns1"].as<std::string>();
+                    std::string dns2 = eth["dns2"].as<std::string>();
+                
                     Serial.print("| IP                    | ");
-                    Serial.print(buff);
+                    printNetworkInfo(ip);
                     Serial.print("|\r\n");
                     Serial.print("+-----------------------+--------------------+\r\n");
-
-                    inputLen = gateway.length();
-                    strncpy(buff, gateway.c_str(), inputLen);
-                    for (int i = inputLen; i < buffSize -1; i++) 
-                    {
-                        buff[i] = ' ';
-                    }
-                    buff[buffSize -1] = '\0';
 
                     Serial.print("| GateWay               | ");
-                    Serial.print(buff);
+                    printNetworkInfo(gateway);
                     Serial.print("|\r\n");
                     Serial.print("+-----------------------+--------------------+\r\n");
-
-                    inputLen = subnet.length();
-                    strncpy(buff, subnet.c_str(), inputLen);
-                    for (int i = inputLen; i < buffSize -1; i++) 
-                    {
-                        buff[i] = ' ';
-                    }
-                    buff[buffSize -1] = '\0';
 
                     Serial.print("| SubnetMask            | ");
-                    Serial.print(buff);
+                    printNetworkInfo(subnet);
                     Serial.print("|\r\n");
                     Serial.print("+-----------------------+--------------------+\r\n");
-
-                    inputLen = dns1.length();
-                    strncpy(buff, dns1.c_str(), inputLen);
-                    for (int i = inputLen; i < buffSize -1; i++) 
-                    {
-                        buff[i] = ' ';
-                    }
-                    buff[buffSize -1] = '\0';
 
                     Serial.print("| DNS1                  | ");
-                    Serial.print(buff);
+                    printNetworkInfo(dns1);
                     Serial.print("|\r\n");
                     Serial.print("+-----------------------+--------------------+\r\n");
 
-                    inputLen = dns2.length();
-                    strncpy(buff, dns2.c_str(), inputLen);
-                    for (int i = inputLen; i < buffSize -1; i++) 
-                    {
-                        buff[i] = ' ';
-                    }
-                    buff[buffSize -1] = '\0';
-
                     Serial.print("| DNS2                  | ");
-                    Serial.print(buff);
+                    printNetworkInfo(dns2);
                     Serial.print("|\r\n");
                     Serial.print("+-----------------------+--------------------+\r\n");
                 }
@@ -249,8 +201,7 @@ namespace muffin {
             }
             
         }
-
-
+        
         std::string settingStr;
         while (true)
         {
@@ -471,7 +422,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    bool CommandLineInterface::isValidIpFormat(const std::string &ip, const bool& isSubnetmask)
+    bool CommandLineInterface::isValidIpFormat(const std::string& ip, const bool& isSubnetmask)
     {
         std::regex validationRegex;
 
@@ -492,6 +443,22 @@ namespace muffin {
         {
             return false;
         }
+    }
+
+    void CommandLineInterface::printNetworkInfo(const std::string& info)
+    {
+        size_t buffSize = 20;
+        char buff[20];
+
+        int inputLen = info.length();
+        strncpy(buff, info.c_str(), inputLen);
+        for (int i = inputLen; i < buffSize - 1; i++) 
+        {
+            buff[i] = ' ';
+        }
+        buff[buffSize - 1] = '\0';
+
+        Serial.print(buff);
     }
 
 }
