@@ -283,10 +283,12 @@ namespace muffin {
     Status CommandLineInterface::configureEthernet()
     {
         Serial.print("서비스 네트워크는 Ethernet으로 설정 되었습니다.\r\n");
-        mJarvisJson["cnt"].remove("eth");
-        JsonObject op = mJarvisJson["cnt"]["op"][0].as<JsonObject>();
-        op["snic"] = "eth";
         JsonObject cnt = mJarvisJson["cnt"].as<JsonObject>();
+        cnt.remove("catm1");
+        cnt["catm1"].to<JsonArray>();
+
+        JsonObject op = cnt["op"][0].as<JsonObject>();
+        op["snic"] = "eth";
         JsonArray ethObj = cnt["eth"].to<JsonArray>();
         JsonObject _eth = ethObj.add<JsonObject>();
 
@@ -302,6 +304,11 @@ namespace muffin {
             {
                 Serial.print("DHCP로 설정합니다.\r\n");
                 _eth["dhcp"] = true;
+                _eth["ip"]   = nullptr;
+                _eth["snm"]  =  nullptr;
+                _eth["gtw"]  =  nullptr;
+                _eth["dns1"] = nullptr;
+                _eth["dns2"] = nullptr;
                 return saveJarvisJson();
             }
             else if (settingStr == "N" || settingStr == "n")
