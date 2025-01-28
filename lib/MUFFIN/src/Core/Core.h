@@ -47,17 +47,12 @@ namespace muffin {
         void Init();
     private:
         Status readInitConfig(init_cfg_t* output);
-        Status writeInitConfig(const init_cfg_t& config);
+        static Status writeInitConfig(const init_cfg_t& config);
         bool isResetByPanic();
         Status createDefaultJARVIS();
         Status loadJarvisConfig();
-    public:
-        void StartJarvisTask();
-        void StartOTA(const std::string& payload);
     private:
-        void saveFotaFlag(const std::string& payload);
         void startRemoteControll(const std::string& payload);
-        static void onJarvisValidationResult(jvs::ValidationResult& result);
     };
 
 

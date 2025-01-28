@@ -18,6 +18,8 @@
 
 #include <sys/_stdint.h>
 
+#include "Common/Status.h"
+
 
 
 namespace muffin {
@@ -37,4 +39,5 @@ namespace muffin {
         int8_t HasPendingUpdate;
     } init_cfg_t;
 
+    typedef muffin::Status (*CallbackUpdateInitConfig)(const muffin::init_cfg_t&);
 }

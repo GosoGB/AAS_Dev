@@ -39,6 +39,17 @@ namespace muffin { namespace jvs {
         ASSERT((mapCIN != nullptr), "OUTPUT PARAMETER <mapCIN> CANNOT BE A NULL POINTER");
         ASSERT((mapCIN->size() == 0), "OUTPUT PARAMETER <mapCIN> MUST BE EMPTY");
 
+        for (auto& pair : *mapCIN)
+        {
+            for (auto& cin : pair.second)
+            {
+                delete cin;
+            }
+            pair.second.clear();
+        }
+        mapCIN->clear();
+
+
         ValidationResult result;
 
         if (jsonDocument.is<JsonObject>() == false)

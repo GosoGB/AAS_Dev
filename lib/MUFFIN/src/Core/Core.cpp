@@ -57,7 +57,10 @@
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
 #include "ServiceSets/HttpServiceSet/StartHttpClientService.h"
 #include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
+#include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
+#include "ServiceSets/JarvisServiceSet/ValidateConfigService.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
+#include "ServiceSets/MqttServiceSet/MqttTaskService.h"
 
 
 
@@ -172,6 +175,12 @@ namespace muffin {
                 goto RETRY;
             }
 
+            ret = StartMqttTaskService(initConfig, &muffin::Core::writeInitConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
         RETRY:
             vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
             
@@ -180,35 +189,64 @@ namespace muffin {
 
         if (initConfig.HasPendingJARVIS == true)
         {
-            ;
+            initConfig.HasPendingJARVIS = false;
+            ret = writeInitConfig(initConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+
+            ret = FetchConfigService();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FETCH JARVIS: %s", ret.c_str());
+                esp32FS.Remove(JARVIS_PATH_FETCHED);
+                std::abort();
+            }
+
+            jarvis_struct_t response;
+            ret = ValidateConfigService(&response);
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger, "Fetched JARVIS config is valid");
+                esp32FS.Remove(JARVIS_PATH);
+                esp32FS.Rename(JARVIS_PATH_FETCHED, JARVIS_PATH);
+            }
+            else
+            {
+                LOG_INFO(logger, "Fetched JARVIS config is invalid");
+            }
+
+            PublishResponseJARVIS(response);
+            
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            spear.Reset();
+        #endif 
+            esp_restart();
         }
         
         if (initConfig.HasPendingUpdate == true)
         {
+            initConfig.HasPendingUpdate = false;
+            ret = writeInitConfig(initConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+
+            // read update request message from spiffs
+            여기서 이어서
+
             // start firmware update
             // reset device
         }
-    /*
-        if (mHasJarvisCommand == false && mHasFotaCommand == true)
-        {
-            Preferences nvs;
-            nvs.begin("fota");
-            const std::string payload = nvs.getString("fotaPayload").c_str();
-            LOG_WARNING(logger, "payload : %s",payload.c_str());
-            nvs.putBool("fotaFlag",false);
-            nvs.end();
 
-            StartOTA(payload);
-        }
-    */
-        
+
         // call ApplyJarvisTask() function; a.k.a. start jarvis task
-
-
-
-
+        // device status 발행해야 함
         PublishFirmwareStatusMessageService();
-
 
 
 
@@ -271,7 +309,7 @@ namespace muffin {
             sprintf(buffer, "%u,%u,%u", DEFAULT_INIT_CONFIG.PanicResetCount, 
                                         DEFAULT_INIT_CONFIG.HasPendingJARVIS, 
                                         DEFAULT_INIT_CONFIG.HasPendingUpdate);
-            file.write(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
+            file.write(reinterpret_cast<uint8_t*>(buffer), strlen(buffer));
             file.close();
 
             file = esp32FS.Open(INIT_FILE_PATH, "r", false);
@@ -488,109 +526,12 @@ namespace muffin {
         jvs::ValidationResult result = jarvis->Validate(doc);
         doc.clear();
 
-        if (result.GetRSC() == jvs::rsc_e::GOOD)
+        if (result.GetRSC() != jvs::rsc_e::GOOD)
         {
             ret = Status::Code::BAD_DATA_LOST;
         }
         
         return ret;
-    }
-
-
-
-
-
-
-
-
-    void Core::saveFotaFlag(const std::string& payload)
-    {
-        Preferences nvs;
-        nvs.begin("fota");
-        nvs.putBool("fotaFlag",true);
-        nvs.putString("fotaPayload",payload.c_str());
-        nvs.end();
-    }
-
-    void Core::StartJarvisTask()
-    {
-        jarvis_task_params* pvParameters = new(std::nothrow) jarvis_task_params();
-        if (pvParameters == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR TASK PARAMETERS");
-            return;
-        }
-        
-        pvParameters->Callback = onJarvisValidationResult;
-
-        /**
-         * @todo 스택 오버플로우를 방지하기 위해서 JARVIS 설정 정보 크기에 따라서 태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
-         * @todo 실행 도중에 태스크를 시작하면 필요한만큼의 스택을 할당할 수 없습니다. 그 외에도 태스크를 실행시키는 데 실패할 수 있습니다.
-         *       이러한 경우에는 서버로 오류 메시지를 보낼 수 있도록 코드를 추가로 개발해야 합니다.
-         */
-        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            ProcessJarvisRequestTask,   // Function to be run inside of the task
-            "ProcessJarvisRequestTask", // The identifier of this task for men
-            10 * KILLOBYTE,              // Stack memory size to allocate
-            pvParameters,	            // Task parameters to be passed to the function
-            0,				            // Task Priority for scheduling
-            NULL,                       // The identifier of this task for machines
-            0				            // Index of MCU core where the function to run
-        );
-
-        /**
-         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
-         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
-         */
-        jvs::rsc_e rsc;
-        std::string description;
-        switch (taskCreationResult)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "The JARVIS task has been started");
-            // return Status(Status::Code::GOOD);
-            return;
-
-        case pdFAIL:
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            rsc = jvs::rsc_e::BAD;
-            description = "FAILED TO START WITHOUT SPECIFIC REASON";
-            LOG_ERROR(logger, description.c_str());
-            break;
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            rsc = jvs::rsc_e::BAD_OUT_OF_MEMORY;
-            description = "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK";
-            LOG_ERROR(logger, description.c_str());
-            break;
-
-        default:
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            rsc = jvs::rsc_e::BAD_UNEXPECTED_ERROR;
-            description = "UNKNOWN ERROR: " + Convert.ToString(taskCreationResult);
-            LOG_ERROR(logger, description.c_str());
-            break;
-        }
-
-        jarvis_struct_t messageConfig;
-        messageConfig.ResponseCode     = Convert.ToUInt16(rsc);
-        messageConfig.Description      = description;
-        messageConfig.SourceTimestamp  = GetTimestampInMillis();
-
-        JSON json;
-        std::string payload = json.Serialize(messageConfig);
-
-        mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-        Status ret = mqtt::cdo.Store(message);
-        if (ret != Status::Code::GOOD)
-        {
-            /**
-             * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
-             */
-            LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
-            return;
-        }
     }
 
     void Core::startRemoteControll(const std::string& payload)
@@ -968,108 +909,6 @@ ERROR_RESPONSE:
             }
             return;
         }
-    }
-
-    void Core::onJarvisValidationResult(jvs::ValidationResult& result)
-    {
-        if (result.GetRSC() >= jvs::rsc_e::BAD)
-        {
-            jarvis_struct_t messageConfig;
-            messageConfig.ResponseCode     = Convert.ToUInt16(result.GetRSC());
-            messageConfig.Description      = result.GetDescription();
-            messageConfig.SourceTimestamp  = GetTimestampInMillis();
-
-            std::vector<jvs::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
-            for (auto& key : vectorKeyWithNG)
-            {
-                messageConfig.Config.emplace_back(Convert.ToString(key));
-            }
-
-            JSON json;
-            std::string payload = json.Serialize(messageConfig);
-
-            mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
-                 */
-                LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
-                return;
-            }
-
-            return;
-        }
-
-
-        /**
-         * @todo 설정 값 적용한 다음에 문제가 없으면 결과 값을 전송하도록 순서를 변경해야 합니다.
-         */
-        JSON json;
-        jarvis_struct_t messageConfig;
-
-        messageConfig.ResponseCode     = Convert.ToUInt16(result.GetRSC());
-        messageConfig.Description      = result.GetDescription();
-        messageConfig.SourceTimestamp  = GetTimestampInMillis();
-
-        std::vector<jvs::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
-
-        for (auto& key : vectorKeyWithNG)
-        {
-           messageConfig.Config.emplace_back(Convert.ToString(key));
-        }
-
-        std::string payload = json.Serialize(messageConfig);
-        mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-        Status ret = mqtt::cdo.Store(message);
-        if (ret != Status::Code::GOOD)
-        {
-             /**
-             * @todo Store 실패시 falsh 메모리에 저장하는 방법
-             * 
-             */
-            LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-        }
-
-        {
-            LOG_INFO(logger, "JARVIS configuration is valid. Proceed to save and apply");
-            std::string jarvisPayload;
-            RetrieveJarvisRequestPayload(&jarvisPayload);
-
-            /** 
-             * @todo string이 아니라 enum class와 ConvertClass를 사용하도록 코드를 수정해야 합니다.
-             */
-            File file = esp32FS.Open("/jarvis/config.json", "w", true);
-
-            /**
-             * @todo 성능 향상을 위해 속도가 더 빠른 buffered IO 방식으로 코드를 수정해야 합니다.
-             */
-            for (size_t i = 0; i < jarvisPayload.length(); ++i)
-            {
-                file.write(jarvisPayload[i]);
-            }
-
-            /**
-             * @todo 저장 성공 유무를 확인할 수 있는 기능을 추가해야 합니다.
-             */
-            file.close();
-
-            // 혹시라도 MFM RESPONSE를 서버로 못보내고 리셋이 될 수도 있나?
-            while (mqtt::cdo.Count() > 0)
-            {
-                delay(1);
-            }
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
-            spear.Reset();
-        #endif 
-            ESP.restart();
-        }
-    }
-
-    void Core::StartOTA(const std::string& payload)
-    {
-        // StartManualFirmwareUpdate(payload);
     }
 
 

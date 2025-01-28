@@ -26,14 +26,6 @@
 
 namespace muffin {
 
-    typedef struct JarvisTaskParameters
-    {
-        void (*Callback)(muffin::jvs::ValidationResult&);
-    } jarvis_task_params;
-
-
-    void ProcessJarvisRequestTask(void* pvParameters);
-    void RetrieveJarvisRequestPayload(std::string* outputpayload);
     void ApplyJarvisTask();
 
     void applyAlarmCIN(std::vector<jvs::config::Base*>& vectorAlarmCIN);
@@ -44,7 +36,4 @@ namespace muffin {
 
     void applyModbusRtuCIN(std::vector<jvs::config::Base*>& vectorModbusRTUCIN, jvs::config::Rs485* rs485CIN);
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN);
-    
-    Status strategyCatHttp();
-    Status strategyLwipHttp();
 }

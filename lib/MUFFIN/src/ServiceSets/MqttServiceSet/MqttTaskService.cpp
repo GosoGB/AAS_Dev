@@ -4,7 +4,7 @@
  * 
  * @brief MQTT 태스크를 실행하고 정지하는 서비스를 정의합니다.
  * 
- * @date 2025-01-24
+ * @date 2025-01-28
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -32,12 +32,15 @@
 #include "Protocol/MQTT/Include/Message.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 #include "Protocol/SPEAR/SPEAR.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
 #include "ServiceSets/MqttServiceSet/MqttTaskService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
+#include "Storage/ESP32FS/ESP32FS.h"
 
 static TaskHandle_t xHandle = NULL;
 static uint8_t RECONNECT_TRIAL_COUNT = 0;
+muffin::CallbackUpdateInitConfig cbUpdateInitConfig = nullptr;
 
 
 
@@ -113,35 +116,39 @@ namespace muffin {
         }
 
         Status ret(Status::Code::UNCERTAIN);
-        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
+        while (mqtt::cdo.Count() > 0)
         {
-            if (mqtt::cdo.Count() == 0)
+            uint8_t trialCount = 0;
+
+            for (; trialCount < MAX_RETRY_COUNT; ++trialCount)
             {
-                return Status(Status::Code::GOOD);
-            }
-            
-            const std::pair<Status, mqtt::Message> message = mqtt::cdo.Peek();
-            if (message.first.ToCode() != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO PEEK MESSAGE: %s ", message.first.c_str());
-                return message.first;
+                const std::pair<Status, mqtt::Message> message = mqtt::cdo.Peek();
+                if (message.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO PEEK MESSAGE: %s ", message.first.c_str());
+                    continue;
+                }
+
+                ret = mqttClient->Publish(mutex.second, message.second);
+                if (ret == Status::Code::GOOD)
+                {
+                    mqtt::cdo.Retrieve();
+                    continue;
+                }
             }
 
-            ret = mqttClient->Publish(mutex.second, message.second);
-            if (ret == Status::Code::GOOD)
+            if (trialCount == MAX_RETRY_COUNT)
             {
-                mqtt::cdo.Retrieve();
-                continue;
+                LOG_WARNING(logger, "FAILED TO PUBLISH MESSAGE: %s", ret.c_str());
+                break;
             }
-
-            LOG_WARNING(logger, "FAILED TO PUBLISH MESSAGE: %s", ret.c_str());
         }
         
         snic->ReleaseMutex();
         return ret;
     }
 
-    Status publishResponseJARVIS(const jarvis_struct_t& response)
+    Status PublishResponseJARVIS(const jarvis_struct_t& response)
     {
         JSON json;
         Status ret(Status::Code::UNCERTAIN);
@@ -161,34 +168,20 @@ namespace muffin {
         return ret;
     }
 
-    Status writeFlagJARVIS()
+    Status processMessageJARVIS(init_cfg_t& params, const char* payload)
     {
-        Preferences pf;
-        if (pf.begin(NVS_NAMESPACE_INIT) == false)
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
-        
-        const int8_t defaultValue  = -1;
-        const int8_t value2Write   =  1;
-        
-        pf.putChar(NVS_KEY_FLAG_JARVIS_REQUEST, value2Write);
-        if (pf.getChar(NVS_KEY_FLAG_JARVIS_REQUEST, defaultValue) == value2Write)
-        {
-            return Status(Status::Code::GOOD);
-        }
-        else
-        {
-            return Status(Status::Code::BAD_DATA_LOST);
-        }
-    }
-
-    Status processMessageJARVIS(const char* payload)
-    {
-        JSON json;
-        JsonDocument doc;
         jarvis_struct_t response;
         response.SourceTimestamp = GetTimestampInMillis();
+
+        if (params.HasPendingJARVIS == true || params.HasPendingUpdate == true)
+        {
+            response.ResponseCode = Convert.ToUInt16(jvs::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
+            response.Description = "UNAVAILABLE DUE TO JARVIS TASK BEING ALREADY RUNNING OR BLOCKED";
+            return PublishResponseJARVIS(response);
+        }
+        
+        JSON json;
+        JsonDocument doc;
 
         Status ret = json.Deserialize(payload, &doc);
         if (ret != Status::Code::GOOD)
@@ -224,7 +217,7 @@ namespace muffin {
                 response.Description   = "UNDEFINED CONDITION";
                 break;
             }
-            return publishResponseJARVIS(response);
+            return PublishResponseJARVIS(response);
         }
         
         const auto version = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
@@ -232,7 +225,7 @@ namespace muffin {
         {
             response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
             response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
-            return publishResponseJARVIS(response);
+            return PublishResponseJARVIS(response);
         }
 
         if (doc.containsKey("rqi") == true)
@@ -242,13 +235,15 @@ namespace muffin {
             {
                 response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD);
                 response.Description   = "INVALID REQUEST ID: CANNOT BE NULL OR EMPTY";
-                return publishResponseJARVIS(response);
+                return PublishResponseJARVIS(response);
             }
         }
 
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
-            ret = writeFlagJARVIS();
+            params.HasPendingJARVIS = true;
+            ASSERT((cbUpdateInitConfig != nullptr), "INIT CONFIG UPDATE CALLBACK MUST NOT BE NULL");
+            ret = cbUpdateInitConfig(params);
             if (ret == Status::Code::GOOD)
             {
                 LOG_INFO(logger,"Device will be reset due to JARVIS request");
@@ -259,18 +254,92 @@ namespace muffin {
             }
         }
         
-        LOG_ERROR(logger, "FAILED TO WRITE JARVIS FLAG TO NVS");
+        LOG_ERROR(logger, "FAILED TO UPDATE INIT CONFIG DUE TO THE SECONDARY MEMORY MALFUNCTION");
         response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_HARDWARE_FAILURE);
         response.Description   = "HARDWARE FAILURE: SECONDARY MEMORY MALFUNCTIONED";
-        return publishResponseJARVIS(response);
+        return PublishResponseJARVIS(response);
+    }
+
+    Status processMessageUpdate(init_cfg_t& params, const char* payload)
+    {
+        if (params.HasPendingUpdate == true)
+        {
+            #if defined(MODLINK_T2) || defined(MODLINK_B)
+                spear.Reset();
+            #endif
+                esp_restart();
+        }
+        
+        ota::fw_info_t esp32;
+        ota::fw_info_t mega2560;
+        Status ret = ParseUpdateInfoService(payload, &esp32, &mega2560);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO PARSE: %s", ret.c_str());
+            return ret;
+        }
+
+        params.HasPendingUpdate = true;
+        ASSERT((cbUpdateInitConfig != nullptr), "INIT CONFIG UPDATE CALLBACK MUST NOT BE NULL");
+        ret = cbUpdateInitConfig(params);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE INIT CONFIG DUE TO THE SECONDARY MEMORY MALFUNCTION");
+            return ret;
+        }
+        
+        File file = esp32FS.Open(OTA_REQUEST_PATH, "w", true);
+        if (file == false)
+        {
+            LOG_ERROR(logger, "FAILED TO OPEN OTA REQUEST PATH");
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+        
+        file.write(reinterpret_cast<const uint8_t*>(payload), strlen(payload));
+        file.flush();
+        file.close();
+
+        file = esp32FS.Open(OTA_REQUEST_PATH, "r", false);
+        if (file == false)
+        {
+            LOG_ERROR(logger, "FAILED TO OPEN OTA REQUEST PATH");
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+
+        const size_t size = file.size();
+        char readback[size] = {'\0'};
+        file.readBytes(readback, size);
+        file.close();
+
+        if (strcmp(readback, payload) != 0)
+        {
+            LOG_ERROR(logger, "FAILED TO WRITE OTA REQUEST PATH");
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            esp32FS.Remove(OTA_REQUEST_PATH);
+            return ret;
+        }
+        
+        LOG_INFO(logger,"Device will be reset due to OTA request");
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        spear.Reset();
+    #endif
+        esp_restart();
     }
 
     Status processMessageRemoteControl(const char* payload)
     {
+        while (true)
+        {
+            LOG_ERROR(logger, "BAD_SERVICE_UNSUPPORTED");
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+        }
+        
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
-    Status subscribehMessages()
+    Status subscribeMessages(init_cfg_t& params)
     {
         if (mqtt::cia.Count() == 0)
         {
@@ -288,14 +357,17 @@ namespace muffin {
         switch (message.second.GetTopicCode())
         {
         case mqtt::topic_e::JARVIS_REQUEST:
-            return processMessageJARVIS(message.second.GetPayload());
+            ret = processMessageJARVIS(params, message.second.GetPayload());
+            LOG_ERROR(logger, "FAILED TO PROCESS JARVIS REQUEST MESSAGE: %s", ret.c_str());
+            return ret;
+
+        case mqtt::topic_e::FOTA_UPDATE:
+            ret = processMessageUpdate(params, message.second.GetPayload());
+            LOG_ERROR(logger, "FAILED TO PROCESS OTA REQUEST MESSAGE: %s", ret.c_str());
+            return ret;
 
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
             return processMessageRemoteControl(message.second.GetPayload());
-
-        case mqtt::topic_e::FOTA_UPDATE:
-            // saveFotaFlag(payload);
-            return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
 
         default:
             ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(message.second.GetTopicCode()));
@@ -306,6 +378,11 @@ namespace muffin {
     void implMqttTask(void* pvParameters)
     {
         uint32_t reconnectMillis  = millis();
+        init_cfg_t params = {
+            .PanicResetCount   = reinterpret_cast<init_cfg_t*>(pvParameters)->PanicResetCount,
+            .HasPendingJARVIS  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingJARVIS,
+            .HasPendingUpdate  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingUpdate
+        };
 
         while (true)
         {
@@ -319,7 +396,7 @@ namespace muffin {
             }
             
             publishMessages();
-            subscribehMessages();
+            subscribeMessages(params);
             vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
         }
     }
@@ -329,21 +406,31 @@ namespace muffin {
         /**
          * @todo 전송하지 못한 메시지는 플래시 메모리에라도 저장해야 합니다.
          */
+        if (xHandle == NULL)
+        {
+            return;
+        }
+        
         vTaskDelete(xHandle);
         xHandle = NULL;
     }
 
-    Status StartMqttTaskService()
+    Status StartMqttTaskService(init_cfg_t& config, CallbackUpdateInitConfig callbackJARVIS)
     {
         if (xHandle != NULL)
         {
             return Status(Status::Code::GOOD);
         }
 
+        if (cbUpdateInitConfig == nullptr)
+        {
+            cbUpdateInitConfig = callbackJARVIS;
+        }
+
         BaseType_t ret = xTaskCreatePinnedToCore(implMqttTask,     // Function to be run inside of the task
                                                  "implMqttTask",   // The identifier of this task for men
                                                  4*KILLOBYTE,	   // Stack memory size to allocate
-                                                 NULL,			   // Task parameters to be passed to the function
+                                                 &config,		   // Task parameters to be passed to the function
                                                  0,				   // Task Priority for scheduling
                                                  &xHandle,         // The identifier of this task for machines
                                                  0);			   // Index of MCU core where the function to run

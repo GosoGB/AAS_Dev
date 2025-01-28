@@ -14,7 +14,10 @@
 
 
 #include "Common/Assert.h"
+#include "Common/Convert/ConvertClass.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
+#include "DataFormat/JSON/JSON.h"
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
@@ -24,6 +27,7 @@
 #include "Protocol/HTTP/IHTTP.h"
 #include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
+#include "ServiceSets/MqttServiceSet/MqttTaskService.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 
 
@@ -63,16 +67,24 @@ namespace muffin {
 
     Status FetchConfigService()
     {
+        jarvis_struct_t response;
+        response.SourceTimestamp = GetTimestampInMillis();
+        
         INetwork* snic = RetrieveServiceNicService();
         if (snic->IsConnected() == false)
         {
-            LOG_ERROR(logger, "FAILED TO FETCH DUE TO SNIC DISCONNECTION");
+            response.ResponseCode = Convert.ToUInt16(jvs::rsc_e::BAD_COMMUNICATION);
+            response.Description = "FAILED TO FETCH DUE TO SERVICE NETWORK HAD BEEN DISCONNECTED";
+            PublishResponseJARVIS(response);
             return Status(Status::Code::BAD_NOT_CONNECTED);
         }
         
         std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
+            response.ResponseCode = Convert.ToUInt16(jvs::rsc_e::BAD_TEMPORARY_UNAVAILABLE);
+            response.Description = "FAILED TO FETCH: SERVICE NETWORK BUSY";
+            PublishResponseJARVIS(response);
             return mutex.first;
         }
 
@@ -81,35 +93,50 @@ namespace muffin {
         Status ret = httpClient->GET(mutex.second, header, parameters);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO REQUEST FOR FETCHING CONFIG");
+            response.ResponseCode = Convert.ToUInt16(jvs::rsc_e::BAD_COMMUNICATION);
+            response.Description = "FAILED TO FETCH: ";
+            response.Description += ret.c_str();
+            snic->ReleaseMutex();
+            PublishResponseJARVIS(response);
             return ret;
         }
         
-        std::string response;
-        ret = httpClient->Retrieve(mutex.second, &response);
+        std::string payload;
+        ret = httpClient->Retrieve(mutex.second, &payload);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO RETRIEVE THE RESPONSE");
+            response.ResponseCode = Convert.ToUInt16(jvs::rsc_e::BAD_INTERNAL_ERROR);
+            response.Description = "FAILED TO FETCH: RETRIEVE ERROR";
+            snic->ReleaseMutex();
+            PublishResponseJARVIS(response);
             return ret;
         }
-
-        LOG_INFO(logger, "Fetched JARVIS config from the server");
-        snic->ReleaseMutex();
 
         File file = esp32FS.Open(JARVIS_PATH_FETCHED, "w", true);
         if (file == false)
         {
+            response.ResponseCode = Convert.ToUInt16(jvs::rsc_e::BAD_HARDWARE_FAILURE);
+            response.Description = "FAILED TO FETCH: MEMORY I/O ERROR";
+            snic->ReleaseMutex();
+            PublishResponseJARVIS(response);
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
-        const size_t writtenBytes = file.write(reinterpret_cast<const uint8_t*>(response.data()),
-                                               response.length());
+        const size_t writtenBytes = file.write(reinterpret_cast<const uint8_t*>(payload.data()),
+                                               payload.length());
+        file.flush();
+        file.close();
 
-        if (writtenBytes != response.length())
+        if (writtenBytes != payload.length())
         {
+            response.ResponseCode = Convert.ToUInt16(jvs::rsc_e::BAD_HARDWARE_FAILURE);
+            response.Description = "FAILED TO FETCH: DATA LOST DUE TO MEMORY I/O ERROR";
+            snic->ReleaseMutex();
+            PublishResponseJARVIS(response);
             return Status(Status::Code::BAD_DATA_LOST);
         }
 
+        ret = Status::Code::GOOD;
         return ret;
     }
 }

@@ -21,7 +21,7 @@
 #include "Common/Logger/Logger.h"
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
-#include "ParseUpdateInfoService.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
 
 
 

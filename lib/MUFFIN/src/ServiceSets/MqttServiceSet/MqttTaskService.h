@@ -16,11 +16,13 @@
 #pragma once
 
 #include "Common/Status.h"
+#include "IM/Custom/TypeDefinitions.h"
 
 
 
 namespace muffin {
     
-    Status StartMqttTaskService();
+    Status PublishResponseJARVIS(const jarvis_struct_t& response);
+    Status StartMqttTaskService(init_cfg_t& config, CallbackUpdateInitConfig callbackJARVIS);
     Status StopMqttTaskService();
 }

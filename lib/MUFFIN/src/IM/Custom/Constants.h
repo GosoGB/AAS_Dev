@@ -39,4 +39,5 @@ namespace muffin {
     constexpr const char* INIT_FILE_PATH         = "/init/config.csv";
     constexpr const char* JARVIS_PATH            = "/jarvis/config.json";
     constexpr const char* JARVIS_PATH_FETCHED    = "/jarvis/fetched.json";
+    constexpr const char* OTA_REQUEST_PATH       = "/ota/request.json";
 }
