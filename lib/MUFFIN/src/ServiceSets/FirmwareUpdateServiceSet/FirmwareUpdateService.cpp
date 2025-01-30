@@ -30,6 +30,7 @@
 #include "ServiceSets/FirmwareUpdateServiceSet/FirmwareUpdateService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
+#include "Storage/ESP32FS/ESP32FS.h"
 
 static QueueHandle_t sQueueHandle;
 static muffin::MemoryPool* sMemoryPool;
@@ -311,7 +312,7 @@ namespace muffin {
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
-    Status FirmwareUpdateService(const char* payload)
+    Status FirmwareUpdateService()
     {
         Status ret = initializeService();
         if (ret != Status::Code::GOOD)
@@ -319,7 +320,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO INITIALIZE: %s", ret.c_str());
             return ret;
         }
-
+        
         ota::fw_info_t* esp32 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         ota::fw_info_t* mega2560 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         if (esp32 == nullptr || mega2560 == nullptr)
@@ -328,8 +329,19 @@ namespace muffin {
             ret = Status::Code::BAD_OUT_OF_MEMORY;
             return ret;
         }
+
+        File file = esp32FS.Open(OTA_REQUEST_PATH, "r", false);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        const size_t size = file.size();
+        char buffer[size] = {'\0'};
+        file.readBytes(buffer, size);
+        file.close();
     
-        ret = ParseUpdateInfoService(payload, esp32, mega2560);
+        ret = ParseUpdateInfoService(buffer, esp32, mega2560);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PARSE FIRMWARE INFO");

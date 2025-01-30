@@ -22,5 +22,5 @@
 
 namespace muffin {
 
-    Status FirmwareUpdateService(const char* payload);
+    Status FirmwareUpdateService();
 }

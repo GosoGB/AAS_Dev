@@ -54,6 +54,7 @@
 #include "Protocol/HTTP/IHTTP.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 
+#include "ServiceSets/FirmwareUpdateServiceSet/FirmwareUpdateService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
 #include "ServiceSets/HttpServiceSet/StartHttpClientService.h"
 #include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
@@ -236,11 +237,20 @@ namespace muffin {
                 std::abort();
             }
 
-            // read update request message from spiffs
-            여기서 이어서
-
-            // start firmware update
-            // reset device
+            ret = FirmwareUpdateService();
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger, "Updated successfully");
+            }
+            else
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE: %s", ret.c_str());
+            }
+            
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            spear.Reset();
+        #endif 
+            esp_restart();
         }
 
 
@@ -543,7 +553,6 @@ namespace muffin {
         Status retJSON = json.Deserialize(payload, &doc);
         std::string Description;
 
-    
         if (retJSON != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
