@@ -304,8 +304,8 @@ namespace muffin {
                 Serial.print("DHCP로 설정합니다.\r\n");
                 _eth["dhcp"] = true;
                 _eth["ip"]   = nullptr;
-                _eth["snm"]  =  nullptr;
-                _eth["gtw"]  =  nullptr;
+                _eth["snm"]  = nullptr;
+                _eth["gtw"]  = nullptr;
                 _eth["dns1"] = nullptr;
                 _eth["dns2"] = nullptr;
                 return saveJarvisJson();

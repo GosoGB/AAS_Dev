@@ -24,6 +24,7 @@
 #include "Common/Status.h"
 #include "Protocol/MQTT/Include/TypeDefinitions.h"
 #include "Protocol/SPEAR/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
@@ -46,6 +47,42 @@ namespace muffin {
         std::string Description;
         std::vector<std::string> Config;
     } jarvis_struct_t;
+    typedef struct JarvisRs485Struct
+    {
+        jvs::prt_e PortIndex;
+        jvs::bdr_e BaudRate;
+        jvs::dbit_e DataBit;
+        jvs::pbit_e ParityBit;
+        jvs::sbit_e StopBit;
+    } jarvis_rs485_struct_t;
+
+    typedef struct JarvisEthernetStruct
+    {
+        bool IsEthernetSet = false;
+        bool EnableDHCP;
+        IPAddress StaticIPv4;
+        IPAddress Subnetmask;
+        IPAddress Gateway;
+        IPAddress DNS1;
+        IPAddress DNS2;
+    } jarvis_ethernet_struct_t;
+
+    typedef struct JarvisCatm1Struct
+    {
+        bool IsCatM1Set = false;
+        jvs::md_e Model;
+        jvs::ctry_e Country;
+    } jarvis_catm1_struct_t;
+
+    typedef struct JarvisInterfaceStruct
+    {
+        mqtt::topic_e Topic;
+        uint64_t SourceTimestamp;
+        jvs::snic_e SNIC;
+        std::vector<jarvis_rs485_struct_t> RS485;
+        jarvis_ethernet_struct_t Ethernet;
+        jarvis_catm1_struct_t CatM1;
+    } jarvis_interface_struct_t;
 
     typedef struct RemoteControllStruct
     {
@@ -111,6 +148,7 @@ namespace muffin {
         std::string Serialize(const operation_struct_t& _struct);
         std::string Serialize(const push_struct_t& _struct);
         std::string Serialize(const progix_struct_t& _struct);
+        std::string Serialize(const jarvis_interface_struct_t& _struct);
         size_t Serialize(const fota_status_t& _struct, const size_t size, char output[]);
 
     public:

@@ -197,6 +197,81 @@ namespace muffin {
         return payload;
     }
 
+    std::string JSON::Serialize(const jarvis_interface_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["ts"] =  _struct.SourceTimestamp;
+        JsonObject interface = doc["if"].to<JsonObject>();
+
+        switch (_struct.SNIC)
+        {
+        case jvs::snic_e::LTE_CatM1:
+            interface["snic"] = "lte";
+            break;
+        case jvs::snic_e::Ethernet:
+            interface["snic"] = "eth";
+            break;
+        default:
+            interface["snic"] = "undefined";
+            break;
+        }
+
+        if (_struct.RS485.size() != 0)
+        {
+            JsonArray rs485 = interface["rs485"].to<JsonArray>();
+
+            for (auto& rs485CIN : _struct.RS485)
+            {
+                JsonObject _rs485 = rs485.add<JsonObject>();
+                _rs485["prt"] = static_cast<uint8_t>(rs485CIN.PortIndex);
+                _rs485["bdr"] = static_cast<uint32_t>(rs485CIN.BaudRate);
+                _rs485["dbit"] = static_cast<uint8_t>(rs485CIN.DataBit);
+                _rs485["pbit"] = static_cast<uint8_t>(rs485CIN.ParityBit);
+                _rs485["sbit"] = static_cast<uint8_t>(rs485CIN.StopBit);
+            }
+            
+        }
+        
+        if (_struct.CatM1.IsCatM1Set == true)
+        {
+            JsonArray catm1 = interface["catm1"].to<JsonArray>();
+            JsonObject _catm1 = catm1.add<JsonObject>();
+            _catm1["md"]    = _struct.CatM1.Model == jvs::md_e::LM5 ? "LM5" : "LCM300";
+            _catm1["ctry"]  = _struct.CatM1.Country == jvs::ctry_e::KOREA ? "KR" : "USA";
+        }
+        
+        if (_struct.Ethernet.IsEthernetSet == true)
+        {
+            JsonArray eth   = interface["eth"].to<JsonArray>();
+            JsonObject _eth = eth.add<JsonObject>();
+            _eth["dhcp"]    = _struct.Ethernet.EnableDHCP;
+            
+            if (_struct.Ethernet.EnableDHCP == true)
+            {
+                _eth["ip"]   = nullptr;
+                _eth["snm"]  = nullptr;
+                _eth["gtw"]  = nullptr;
+                _eth["dns1"] = nullptr;
+                _eth["dns2"] = nullptr;
+            }
+            else
+            {
+                _eth["ip"]   = _struct.Ethernet.StaticIPv4;
+                _eth["snm"]  = _struct.Ethernet.Subnetmask;
+                _eth["gtw"]  = _struct.Ethernet.Gateway;
+                _eth["dns1"] = _struct.Ethernet.DNS1;
+                _eth["dns2"] = _struct.Ethernet.DNS2;
+            }
+            
+        }
+
+        serializeJson(doc,payload);
+
+        return payload;
+    }
+
     size_t JSON::Serialize(const fota_status_t& _struct, const size_t size, char output[])
     {
         ASSERT((strlen(output) == 0), "OUTPUT BUFFER MUST BE EMPTY");

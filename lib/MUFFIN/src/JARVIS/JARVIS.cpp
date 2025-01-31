@@ -48,6 +48,8 @@ namespace muffin {
     
     std::map<jvs::cfg_key_e, std::vector<jvs::config::Base*>>::iterator JARVIS::begin()
     {
+        LOG_INFO(logger,"SIZE : %d",mMapCIN.size());
+        
         return mMapCIN.begin();
     }
 
