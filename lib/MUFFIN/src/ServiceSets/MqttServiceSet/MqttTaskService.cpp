@@ -118,22 +118,21 @@ namespace muffin {
         Status ret(Status::Code::UNCERTAIN);
         while (mqtt::cdo.Count() > 0)
         {
-            uint8_t trialCount = 0;
+            const std::pair<Status, mqtt::Message> message = mqtt::cdo.Peek();
+            if (message.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO PEEK MESSAGE: %s ", message.first.c_str());
+                continue;
+            }
 
+            uint8_t trialCount = 0;
             for (; trialCount < MAX_RETRY_COUNT; ++trialCount)
             {
-                const std::pair<Status, mqtt::Message> message = mqtt::cdo.Peek();
-                if (message.first.ToCode() != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FAILED TO PEEK MESSAGE: %s ", message.first.c_str());
-                    continue;
-                }
-
                 ret = mqttClient->Publish(mutex.second, message.second);
                 if (ret == Status::Code::GOOD)
                 {
                     mqtt::cdo.Retrieve();
-                    continue;
+                    break;
                 }
             }
 

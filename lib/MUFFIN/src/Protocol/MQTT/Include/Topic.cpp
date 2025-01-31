@@ -24,7 +24,7 @@
 
 namespace muffin { namespace mqtt {
 
-    Topic::Topic()
+    void Topic::Init()
     {
         snprintf(
             mFotaUpdate,

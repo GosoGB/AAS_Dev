@@ -26,9 +26,10 @@ namespace muffin { namespace mqtt {
     class Topic
     {
     public:
-        Topic();
+        Topic() {}
         virtual ~Topic() {}
     public:
+        void Init();
         const char* ToString(const topic_e topicCode);
         std::pair<bool, topic_e> ToCode(const char* topicString);
     private:

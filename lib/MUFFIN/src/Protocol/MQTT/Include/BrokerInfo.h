@@ -28,6 +28,7 @@ namespace muffin { namespace mqtt {
     class BrokerInfo
     {
     public:
+        BrokerInfo() {}
         BrokerInfo(const char* clientID, const char* host = "broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "vitcon", const char* password = "!1vola2proutr09@", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true);
         BrokerInfo(const BrokerInfo&& obj) noexcept;
         virtual ~BrokerInfo();

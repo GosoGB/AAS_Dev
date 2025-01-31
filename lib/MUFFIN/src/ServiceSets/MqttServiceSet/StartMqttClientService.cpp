@@ -25,6 +25,7 @@
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Helper.h"
 #include "Protocol/MQTT/Include/Message.h"
+#include "Protocol/MQTT/Include/Topic.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
 #include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
@@ -33,15 +34,7 @@
 
 namespace muffin {
 
-    mqtt::BrokerInfo brokerInfo(
-        macAddress.GetEthernet(),           // clientID
-        "mqtt.vitcon.iotops.opsnow.com",    // host
-        8883,                               // port
-        7,                                  // keepalive
-        mqtt::socket_e::SOCKET_0,           // socketID
-        "vitcon",                           // username
-        "tkfkdgo5!@#$"                      // password
-    );
+    mqtt::BrokerInfo brokerInfo;
 
     mqtt::Message GenerateWillMessage(const bool isConnected)
     {
@@ -177,6 +170,15 @@ namespace muffin {
                 return Status(Status::Code::GOOD);
             }
         }
+
+        mqtt::topic.Init();
+        brokerInfo.SetClientID(macAddress.GetEthernet());
+        brokerInfo.SetHost("mqtt.vitcon.iotops.opsnow.com");
+        brokerInfo.SetPort(8883);
+        brokerInfo.SetKeepAlive(7);
+        brokerInfo.SetSocketID(mqtt::socket_e::SOCKET_0);
+        brokerInfo.SetUsername("vitcon");
+        brokerInfo.SetPassword("tkfkdgo5!@#$");
 
         switch (jvs::config::operation.GetServerNIC().second)
         {
