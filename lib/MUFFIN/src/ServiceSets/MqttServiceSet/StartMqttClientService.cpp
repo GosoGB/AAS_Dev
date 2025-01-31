@@ -138,14 +138,16 @@ namespace muffin {
     Status subscribeTopics(const size_t mutex)
     {
         mqtt::Message jarvis(mqtt::topic_e::JARVIS_REQUEST, "");
+        mqtt::Message jarvisStatus(mqtt::topic_e::JARVIS_STATUS_REQUEST, "");
         mqtt::Message remoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
         mqtt::Message firmwareUpdate(mqtt::topic_e::FOTA_UPDATE, "");
 
         std::vector<mqtt::Message> topics;
         try
         {
-            topics.reserve(3);
+            topics.reserve(4);
             topics.emplace_back(std::move(jarvis));
+            topics.emplace_back(std::move(jarvisStatus));
             topics.emplace_back(std::move(remoteControl));
             topics.emplace_back(std::move(firmwareUpdate));
         }

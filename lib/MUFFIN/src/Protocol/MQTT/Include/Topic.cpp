@@ -48,6 +48,20 @@ namespace muffin { namespace mqtt {
         );
 
         snprintf(
+            mJarvisStatusRequest,
+            sizeof(mJarvisStatusRequest),
+            "mfm/if/%s",
+            macAddress.GetEthernet()
+        );
+
+        snprintf(
+            mJarvisStatusResponse,
+            sizeof(mJarvisStatusResponse),
+            "mfm/if/resp/%s",
+            macAddress.GetEthernet()
+        );
+
+        snprintf(
             mRemoteControlRequest,
             sizeof(mRemoteControlRequest),
             "scautr/req/%s",
@@ -74,6 +88,12 @@ namespace muffin { namespace mqtt {
             
         case topic_e::JARVIS_RESPONSE:
             return mJarvisResponse;
+
+        case topic_e::JARVIS_STATUS_REQUEST:
+            return mJarvisStatusRequest;
+            
+        case topic_e::JARVIS_STATUS_RESPONSE:
+            return mJarvisStatusResponse;
             
         case topic_e::REMOTE_CONTROL_REQUEST:
             return mRemoteControlRequest;
@@ -132,6 +152,14 @@ namespace muffin { namespace mqtt {
         else if (strcmp(topicString, mJarvisResponse) == 0)
         {
             return std::make_pair(true, topic_e::JARVIS_RESPONSE);
+        }
+        else if (strcmp(topicString, mJarvisStatusRequest) == 0)
+        {
+            return std::make_pair(true, topic_e::JARVIS_STATUS_REQUEST);
+        }
+        else if (strcmp(topicString, mJarvisStatusResponse) == 0)
+        {
+            return std::make_pair(true, topic_e::JARVIS_STATUS_RESPONSE);
         }
         else if (strcmp(topicString, mRemoteControlRequest) == 0)
         {

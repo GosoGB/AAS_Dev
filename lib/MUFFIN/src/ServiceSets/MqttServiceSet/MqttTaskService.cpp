@@ -259,6 +259,26 @@ namespace muffin {
         return PublishResponseJARVIS(response);
     }
 
+    Status processMessageJarvisStatus(const char* payload)
+    {
+        JSON json;
+        Status ret(Status::Code::UNCERTAIN);
+        const std::string payload = json.Serialize(response);
+        mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, std::move(payload));
+
+        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
+        {
+            ret = mqtt::cdo.Store(message);
+            if (ret == Status::Code::GOOD)
+            {
+                return ret;
+            }
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
+        LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE: %s", ret.c_str());
+        return ret;
+    }
+
     Status processMessageUpdate(init_cfg_t& params, const char* payload)
     {
         if (params.HasPendingUpdate == true)
@@ -359,6 +379,9 @@ namespace muffin {
             ret = processMessageJARVIS(params, message.second.GetPayload());
             LOG_ERROR(logger, "FAILED TO PROCESS JARVIS REQUEST MESSAGE: %s", ret.c_str());
             return ret;
+
+        case mqtt::topic_e::JARVIS_STATUS_REQUEST:
+            return processMessageRemoteControl(message.second.GetPayload());
 
         case mqtt::topic_e::FOTA_UPDATE:
             ret = processMessageUpdate(params, message.second.GetPayload());

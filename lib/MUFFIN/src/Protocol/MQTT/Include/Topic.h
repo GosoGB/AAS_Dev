@@ -49,6 +49,8 @@ namespace muffin { namespace mqtt {
         char mFotaUpdate[25] = {'\0'};
         char mJarvisRequest[17] = {'\0'};
         char mJarvisResponse[22] = {'\0'};
+        char mJarvisStatusRequest[20] = {'\0'};
+        char mJarvisStatusResponse[25] = {'\0'};
         char mRemoteControlRequest[24] = {'\0'};
         char mRemoteControlResponse[25] = {'\0'};
     };
