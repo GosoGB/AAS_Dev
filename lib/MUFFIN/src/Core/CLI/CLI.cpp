@@ -64,7 +64,7 @@ namespace muffin {
     {
         logger.SetLevel(muffin::log_level_e::LOG_LEVEL_ERROR);
         esp32FS.Begin(false);
-        Status ret = esp32FS.DoesExist("/jarvis/config.json");
+        Status ret = esp32FS.DoesExist(JARVIS_PATH);
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
             JsonDocument doc;
@@ -107,7 +107,7 @@ namespace muffin {
         else
         {
             JSON json;
-            File file = esp32FS.Open("/jarvis/config.json", "r", false);
+            File file = esp32FS.Open(JARVIS_PATH, "r", false);
             const size_t size = file.size();
             char buffer[size + 1] = {'\0'};
             for (size_t idx = 0; idx < size; ++idx)
@@ -415,7 +415,7 @@ namespace muffin {
 
         Serial.println(buffer);
 
-        File file = esp32FS.Open("/jarvis/config.json", "w", true);
+        File file = esp32FS.Open(JARVIS_PATH, "w", true);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN JARVIS DIRECTORY");

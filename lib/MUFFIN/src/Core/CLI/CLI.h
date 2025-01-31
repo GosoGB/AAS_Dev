@@ -36,6 +36,7 @@ namespace muffin {
         Status saveJarvisJson();
     private:
         void printNetworkInfo(const std::string& info);
+        static constexpr const char* JARVIS_PATH = "/jarvis/config.json";
 
     };
 }
