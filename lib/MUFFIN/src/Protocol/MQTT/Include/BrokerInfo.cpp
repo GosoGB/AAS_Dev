@@ -37,7 +37,6 @@ namespace muffin { namespace mqtt {
         ASSERT((0 < port), "INVALID PORT NUMBER");
         ASSERT((keepalive < 3601), "INVALID KEEP ALIVE");
     }
-
     
     BrokerInfo::BrokerInfo(const char* clientID, const char* host, const uint16_t port, const uint16_t keepalive, const socket_e socketID, const char* username, const char* password, const version_e version, const bool enableSSL)
         : mHost(host)
