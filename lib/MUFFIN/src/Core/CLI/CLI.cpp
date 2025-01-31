@@ -15,7 +15,6 @@
 
 #include "HardwareSerial.h"
 #include "CLI.h"
-#include "Core/Initializer/Initializer.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Common/Logger/Logger.h"
 #include "JARVIS/Include/TypeDefinitions.h"

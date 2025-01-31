@@ -459,6 +459,14 @@ namespace muffin {
         file.readBytes(readback, size);
         file.close();
 
+        Serial.println("buffer : ");
+        Serial.print(buffer);
+
+        Serial.println("\n\nreadback : ");
+        Serial.println(readback);
+
+        LOG_INFO(logger, "buffer : %d, readback : %d" , sizeof(buffer), sizeof(readback))
+
         if (strcmp(buffer, readback) != 0)
         {
             esp32FS.Remove(JARVIS_PATH);
@@ -489,24 +497,24 @@ namespace muffin {
             return ret;
         }
 
-    #if defined(DEBUG)
-        doc["cnt"].remove("catm1");
-        doc["cnt"]["catm1"].to<JsonArray>();
-        JsonObject eth = doc["cnt"]["eth"].add<JsonObject>();
-        eth["dhcp"]  = true;
-        eth["ip"]    = NULL;
-        eth["snm"]   = NULL;
-        eth["gtw"]   = NULL;
-        eth["dns1"]  = NULL;
-        eth["dns2"]  = NULL;
-        JsonObject op = doc["cnt"]["op"][0].as<JsonObject>();
-        op["snic"] = "eth";
-    #else
-    -------------------------------------------------------------------
-    |  @todo #1  이더넷 테스트를 위해 DEBUG 플래그 안의 코드를 만들었음   |
-    |  @todo #2  릴리즈fmf 할 때는 반드시 지우고 펌웨어를 출고시켜야 함   |
-    -------------------------------------------------------------------
-    #endif
+    // #if defined(DEBUG)
+    //     doc["cnt"].remove("catm1");
+    //     doc["cnt"]["catm1"].to<JsonArray>();
+    //     JsonObject eth = doc["cnt"]["eth"].add<JsonObject>();
+    //     eth["dhcp"]  = true;
+    //     eth["ip"]    = NULL;
+    //     eth["snm"]   = NULL;
+    //     eth["gtw"]   = NULL;
+    //     eth["dns1"]  = NULL;
+    //     eth["dns2"]  = NULL;
+    //     JsonObject op = doc["cnt"]["op"][0].as<JsonObject>();
+    //     op["snic"] = "eth";
+    // #else
+    // -------------------------------------------------------------------
+    // |  @todo #1  이더넷 테스트를 위해 DEBUG 플래그 안의 코드를 만들었음   |
+    // |  @todo #2  릴리즈fmf 할 때는 반드시 지우고 펌웨어를 출고시켜야 함   |
+    // -------------------------------------------------------------------
+    // #endif
         
         jarvis = new(std::nothrow) JARVIS();
         if (jarvis == nullptr)

@@ -73,7 +73,6 @@ namespace muffin {
     {
         if (LittleFS.begin(formatOnFail, basePath, maxOpenFiles, partitionLabel) == true)
         {
-            LOG_DEBUG(logger, "Succedded to begin ESP32 file system");
             return Status(Status::Code::GOOD);
         }
         else
