@@ -114,10 +114,11 @@ namespace muffin {
         {
             return mutex.first;
         }
-
         Status ret(Status::Code::UNCERTAIN);
         while (mqtt::cdo.Count() > 0)
         {
+            uint8_t trialCount = 0;
+
             const std::pair<Status, mqtt::Message> message = mqtt::cdo.Peek();
             if (message.first.ToCode() != Status::Code::GOOD)
             {
@@ -125,7 +126,6 @@ namespace muffin {
                 continue;
             }
 
-            uint8_t trialCount = 0;
             for (; trialCount < MAX_RETRY_COUNT; ++trialCount)
             {
                 ret = mqttClient->Publish(mutex.second, message.second);
@@ -357,6 +357,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO PEEK MESSAGE: %s ", message.first.c_str());
             return message.first;
         }
+        
 
         Status ret(Status::Code::UNCERTAIN);
         switch (message.second.GetTopicCode())
@@ -364,23 +365,27 @@ namespace muffin {
         case mqtt::topic_e::JARVIS_REQUEST:
             ret = processMessageJARVIS(params, message.second.GetPayload());
             LOG_ERROR(logger, "FAILED TO PROCESS JARVIS REQUEST MESSAGE: %s", ret.c_str());
-            return ret;
+            break;
 
         case mqtt::topic_e::JARVIS_STATUS_REQUEST:
-            return processMessageRemoteControl(message.second.GetPayload());
-
+            ret = processMessageRemoteControl(message.second.GetPayload());
+            break;
         case mqtt::topic_e::FOTA_UPDATE:
             ret = processMessageUpdate(params, message.second.GetPayload());
             LOG_ERROR(logger, "FAILED TO PROCESS OTA REQUEST MESSAGE: %s", ret.c_str());
-            return ret;
+            break;
 
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
-            return processMessageRemoteControl(message.second.GetPayload());
-
+            ret = processMessageRemoteControl(message.second.GetPayload());
+            break;
         default:
             ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(message.second.GetTopicCode()));
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            ret = Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
+
+        mqtt::cia.Retrieve();
+        return ret;
+
     }
 
     void implMqttTask(void* pvParameters)

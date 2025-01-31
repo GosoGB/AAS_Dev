@@ -136,6 +136,8 @@ namespace muffin {
             return Status(Status::Code::BAD_DATA_LOST);
         }
 
+        snic->ReleaseMutex();
+
         ret = Status::Code::GOOD;
         return ret;
     }

@@ -175,12 +175,6 @@ namespace muffin {
 
         mqtt::topic.Init();
         brokerInfo.SetClientID(macAddress.GetEthernet());
-        brokerInfo.SetHost("mqtt.vitcon.iotops.opsnow.com");
-        brokerInfo.SetPort(8883);
-        brokerInfo.SetKeepAlive(7);
-        brokerInfo.SetSocketID(mqtt::socket_e::SOCKET_0);
-        brokerInfo.SetUsername("vitcon");
-        brokerInfo.SetPassword("tkfkdgo5!@#$");
 
         switch (jvs::config::operation.GetServerNIC().second)
         {
@@ -240,6 +234,10 @@ namespace muffin {
             if (ret == Status::Code::GOOD)
             {
                 LOG_INFO(logger, "Subscribed topics successfully");
+                if (jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
+                {
+                    catM1->ReleaseMutex();
+                }
                 return ret;
             }
 

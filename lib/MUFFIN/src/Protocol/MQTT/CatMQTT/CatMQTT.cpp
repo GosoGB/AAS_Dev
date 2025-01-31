@@ -777,7 +777,7 @@ PATTERN_FOUND:
         }
         else
         {
-            LOG_ERROR(logger, "FAILED TO SET VERSION: %s", ret.c_str());
+            LOG_ERROR(logger, "FAILED TO SET VERSION: %s, %s", ret.c_str(), rxd.c_str());
             return ret;
         }
     }

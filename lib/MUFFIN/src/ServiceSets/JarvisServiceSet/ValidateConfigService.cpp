@@ -90,6 +90,7 @@ namespace muffin {
             return ret;
         }
         
+        jarvis->Clear();
         jvs::ValidationResult result = jarvis->Validate(doc);
         doc.clear();
 

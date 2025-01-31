@@ -229,6 +229,11 @@ namespace muffin {
             }
 
             PublishResponseJARVIS(response);
+        
+            while (mqtt::cdo.Count() != 0)
+            {
+                delay(1);
+            }
             
         #if defined(MODLINK_T2) || defined(MODLINK_B)
             spear.Reset();

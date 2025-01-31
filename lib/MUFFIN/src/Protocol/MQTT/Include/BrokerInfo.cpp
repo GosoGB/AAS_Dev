@@ -22,6 +22,22 @@
 
 
 namespace muffin { namespace mqtt {
+
+    BrokerInfo::BrokerInfo(const char* host, const uint16_t port, const uint16_t keepalive, const socket_e socketID, const char* username, const char* password, const version_e version, const bool enableSSL)
+        : mHost(host)
+        , mPort(port)
+        , mKeepAlive(keepalive)
+        , mSocketID(socketID)
+        , mUsername(username)
+        , mPassword(password)
+        , mVersion(version)
+        , mEnableSSL(enableSSL)
+    {
+        ASSERT((strlen(host) < 101), "HOST NAME CAN'T EXCEED 100 BYTES");
+        ASSERT((0 < port), "INVALID PORT NUMBER");
+        ASSERT((keepalive < 3601), "INVALID KEEP ALIVE");
+    }
+
     
     BrokerInfo::BrokerInfo(const char* clientID, const char* host, const uint16_t port, const uint16_t keepalive, const socket_e socketID, const char* username, const char* password, const version_e version, const bool enableSSL)
         : mHost(host)
