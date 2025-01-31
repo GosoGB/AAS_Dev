@@ -48,9 +48,9 @@ namespace muffin {
         output->HasPendingJARVIS  = Convert.ToInt8(buffer[1]);
         output->HasPendingUpdate  = Convert.ToInt8(buffer[2]);
 
-        if ((-1 < output->PanicResetCount   && output->PanicResetCount  < 6) ||
-            (-1 < output->HasPendingJARVIS  && output->HasPendingJARVIS < 2) ||
-            (-1 < output->HasPendingUpdate  && output->HasPendingUpdate < 2))
+        if ((output->PanicResetCount  < -1 && 6 < output->PanicResetCount ) ||
+            (output->HasPendingJARVIS < -1 && 2 < output->HasPendingJARVIS) ||
+            (output->HasPendingUpdate < -1 && 2 < output->HasPendingUpdate))
         {
             ret = Status::Code::BAD_DATA_LOST;
             LOG_ERROR(logger, ret.c_str());
@@ -70,7 +70,7 @@ namespace muffin {
             input.PanicResetCount,
             input.HasPendingJARVIS,
             input.HasPendingUpdate);
-
+        
         init_cfg_t readback;
         Status ret = Decode(output, &readback);
         if ((input.PanicResetCount   != readback.PanicResetCount)  ||

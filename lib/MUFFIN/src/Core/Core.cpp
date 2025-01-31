@@ -302,48 +302,19 @@ namespace muffin {
 
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
-            File file = esp32FS.Open(INIT_FILE_PATH, "w", true);
-            if (file == false)
-            {
-                LOG_ERROR(logger, "FATAL ERROR: FAILED TO OPEN INIT CONFIG FILE");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
-            
-            const init_cfg_t DEFAULT_INIT_CONFIG = {
-                .PanicResetCount  = 0,
-                .HasPendingJARVIS = 0,
-                .HasPendingUpdate = 0
-            };
+            output->PanicResetCount   = 0;
+            output->HasPendingJARVIS  = 0;
+            output->HasPendingUpdate  = 0;
 
-            char buffer[16] = {'\0'};
-            sprintf(buffer, "%u,%u,%u", DEFAULT_INIT_CONFIG.PanicResetCount, 
-                                        DEFAULT_INIT_CONFIG.HasPendingJARVIS, 
-                                        DEFAULT_INIT_CONFIG.HasPendingUpdate);
-            file.write(reinterpret_cast<uint8_t*>(buffer), strlen(buffer));
-            file.close();
-
-            file = esp32FS.Open(INIT_FILE_PATH, "r", false);
-            if (file == false)
+            ret = writeInitConfig(*output);
+            if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FATAL ERROR: FAILED TO OPEN INIT CONFIG FILE");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
+                LOG_ERROR(logger, "FAILED TO WRITE DEFAULT INIT CONFIG");
+                esp32FS.Remove(INIT_FILE_PATH);
+                return ret;
             }
 
-            char readback[16] = {'\0'};
-            file.readBytes(readback, sizeof(readback));
-            file.close();
-
-            if (strcmp(buffer, readback) != 0)
-            {
-                LOG_ERROR(logger, "FATAL ERROR: FAILED TO CREATE INIT CONFIG FILE");
-                if (esp32FS.Format() != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO FORMAT FILE SYSTEM");
-                }                
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
-            
-            LOG_INFO(logger, "Created init config file");
+            LOG_INFO(logger, "Created DEFAULT init config file");
             return Status(Status::Code::GOOD);
         }
         
@@ -354,10 +325,10 @@ namespace muffin {
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
-        const size_t size = file.size();
+        const size_t size = file.size() + 1;
         char buffer[size] = {'\0'};
         file.readBytes(buffer, size);
-
+        
         CSV csv;
         ret = csv.Decode(buffer, output);
         if (ret == Status::Code::BAD_NO_DATA)
@@ -397,7 +368,7 @@ namespace muffin {
             return ret;
         }
 
-        file.write(reinterpret_cast<uint8_t*>(buffer), strlen(buffer));
+        file.write(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
         file.flush();
         file.close();
         
@@ -410,6 +381,8 @@ namespace muffin {
         }
 
         file.readBytes(readback, size);
+        file.close();
+
         if (strcmp(buffer, readback) != 0)
         {
             ret = Status::Code::BAD_DEVICE_FAILURE;
@@ -463,7 +436,7 @@ namespace muffin {
         _op["intvSrv"]   = 60;
         _op["rst"]       = false;
 
-        const size_t size = measureJson(doc);
+        const size_t size = measureJson(doc) + 1;
         char buffer[size] = {'\0'};
         serializeJson(doc, buffer, size);
         doc.clear();
