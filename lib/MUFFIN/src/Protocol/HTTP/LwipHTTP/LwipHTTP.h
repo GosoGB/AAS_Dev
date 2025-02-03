@@ -60,6 +60,7 @@ namespace muffin { namespace http {
          * @return Status 
          */
         Status processResponseHeader(const uint16_t timeout);
+        Status saveResponseBody();
     private:
         WiFiClient mClient;
         WiFiClientSecure mClientSecure;

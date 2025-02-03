@@ -255,22 +255,14 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            File file = esp32FS.Open(mResponsePath, "w", true);
-            if (file == false)
+            ret = saveResponseBody();
+            if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                ret = Status::Code::BAD_DEVICE_FAILURE;
-                goto TEARDOWN;
+                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+                return ret;
             }
 
-            while (mClient.available() > 0)
-            {
-                file.write(mClient.read());
-            }
-            file.flush();
-            file.close();
-
-            file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(mResponsePath, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -348,22 +340,14 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            File file = esp32FS.Open(mResponsePath, "w", true);
-            if (file == false)
+            ret = saveResponseBody();
+            if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                ret = Status::Code::BAD_DEVICE_FAILURE;
-                goto TEARDOWN;
+                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+                return ret;
             }
 
-            while (mClientSecure.available() > 0)
-            {
-                file.write(mClientSecure.read());
-            }
-            file.flush();
-            file.close();
-
-            file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(mResponsePath, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -439,22 +423,14 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            File file = esp32FS.Open(mResponsePath, "w", true);
-            if (file == false)
+            ret = saveResponseBody();
+            if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                ret = Status::Code::BAD_DEVICE_FAILURE;
-                goto TEARDOWN;
+                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+                return ret;
             }
 
-            while (mClient.available() > 0)
-            {
-                file.write(mClient.read());
-            }
-            file.flush();
-            file.close();
-
-            file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(mResponsePath, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -529,22 +505,14 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            File file = esp32FS.Open(mResponsePath, "w", true);
-            if (file == false)
+            ret = saveResponseBody();
+            if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                ret = Status::Code::BAD_DEVICE_FAILURE;
-                goto TEARDOWN;
+                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+                return ret;
             }
 
-            while (mClient.available() > 0)
-            {
-                file.write(mClient.read());
-            }
-            file.flush();
-            file.close();
-
-            file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(mResponsePath, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -620,22 +588,14 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            File file = esp32FS.Open(mResponsePath, "w", true);
-            if (file == false)
+            ret = saveResponseBody();
+            if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                ret = Status::Code::BAD_DEVICE_FAILURE;
-                goto TEARDOWN;
+                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+                return ret;
             }
 
-            while (mClientSecure.available() > 0)
-            {
-                file.write(mClientSecure.read());
-            }
-            file.flush();
-            file.close();
-
-            file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(mResponsePath, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -710,22 +670,14 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            File file = esp32FS.Open(mResponsePath, "w", true);
-            if (file == false)
+            ret = saveResponseBody();
+            if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                ret = Status::Code::BAD_DEVICE_FAILURE;
-                goto TEARDOWN;
+                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+                return ret;
             }
 
-            while (mClientSecure.available() > 0)
-            {
-                file.write(mClientSecure.read());
-            }
-            file.flush();
-            file.close();
-
-            file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(mResponsePath, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -833,6 +785,47 @@ namespace muffin { namespace http {
         }
 
     END_OF_HEADER:
+        return Status(Status::Code::GOOD);
+    }
+
+    Status LwipHTTP::saveResponseBody()
+    {
+        WiFiClient* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? &mClient : &mClientSecure;
+        Status ret(Status::Code::UNCERTAIN);
+
+        File file = esp32FS.Open(mResponsePath, "w", true);
+        if (file == false)
+        {
+            LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        while (client->available() > 0)
+        {
+            if (client->read() == '\r')
+            {
+                break;
+            }
+        }
+
+        while (client->available() > 0)
+        {
+            if (client->read() == '\r')
+            {
+                if (client->read() == '\n')
+                {
+                    if (client->available() < 4)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            file.write(client->read());
+        }
+        file.flush();
+        file.close();
+
         return Status(Status::Code::GOOD);
     }
 
