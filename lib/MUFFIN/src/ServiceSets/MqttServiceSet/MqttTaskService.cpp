@@ -282,33 +282,27 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status setEthernet(std::vector<jvs::config::Base*>& vectorEthernet, jarvis_interface_struct_t* response)
+    Status setEthernet(jarvis_interface_struct_t* response)
     {
-        jvs::config::Ethernet* cin = static_cast<jvs::config::Ethernet*>(vectorEthernet[0]);
         response->Ethernet.IsEthernetSet = true;
-        response->Ethernet.EnableDHCP = cin->GetDHCP().second;
+        response->Ethernet.EnableDHCP = jvs::config::ethernet->GetDHCP().second;
         if (response->Ethernet.EnableDHCP == false)
         {
-            response->Ethernet.StaticIPv4   = cin->GetStaticIPv4().second;
-            response->Ethernet.Subnetmask   = cin->GetSubnetmask().second;
-            response->Ethernet.Gateway      = cin->GetGateway().second;
-            response->Ethernet.DNS1         = cin->GetDNS1().second;
-            response->Ethernet.DNS2         = cin->GetDNS2().second;
+            response->Ethernet.StaticIPv4   = jvs::config::ethernet->GetStaticIPv4().second;
+            response->Ethernet.Subnetmask   = jvs::config::ethernet->GetSubnetmask().second;
+            response->Ethernet.Gateway      = jvs::config::ethernet->GetGateway().second;
+            response->Ethernet.DNS1         = jvs::config::ethernet->GetDNS1().second;
+            response->Ethernet.DNS2         = jvs::config::ethernet->GetDNS2().second;
         }
     
         return Status(Status::Code::GOOD);
     }
 
-    Status setCatM1(std::vector<jvs::config::Base*>& vectorCatM1CIN, jarvis_interface_struct_t* response)
+    Status setCatM1(jarvis_interface_struct_t* response)
     {
-        LOG_INFO(logger,"설정 시작");
-        jvs::config::CatM1* cin = static_cast<jvs::config::CatM1*>(vectorCatM1CIN[0]);
-        LOG_INFO(logger,"설정 시작2");
         response->CatM1.IsCatM1Set = true;
-        LOG_INFO(logger,"설정 시작3");
-        response->CatM1.Model   = cin->GetModel().second;
-        LOG_INFO(logger,"설정 시작4");
-        response->CatM1.Country = cin->GetCountry().second;
+        response->CatM1.Model   = jvs::config::catM1->GetModel().second;
+        response->CatM1.Country = jvs::config::catM1->GetCountry().second;
 
         return Status(Status::Code::GOOD);
     }
@@ -322,42 +316,40 @@ namespace muffin {
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
-            LOG_INFO(logger,"크기 : %d",key);
-            // if (key == jvs::cfg_key_e::LTE_CatM1)
-            // {
-            //     LOG_INFO(logger,"크기 : %d",pair.second.size());
-            //     jvs::config::CatM1* cin = static_cast<jvs::config::CatM1*>(pair.second[0]);
-            //     LOG_INFO(logger,"설정 시작2");
-            //     response.CatM1.IsCatM1Set = true;
-            //     LOG_INFO(logger,"설정 시작3");
-            //     response.CatM1.Model   = cin->GetModel().second;
-            //     LOG_INFO(logger,"설정 시작4");
-            //     response.CatM1.Country = cin->GetCountry().second;
-            // }
-            
-            // switch (key)
-            // {
-            // case jvs::cfg_key_e::RS485:
-            //     setRS485(pair.second, &response);
-            //     break;
-            // case jvs::cfg_key_e::ETHERNET:
-            //     setEthernet(pair.second, &response);
-            //     break;
-            // case jvs::cfg_key_e::LTE_CatM1:
-            //     setCatM1(pair.second, &response);
-            //     break;
-            // default:
-            //     ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
-            //     break;
-            // }
+
+            switch (key)
+            {
+            case jvs::cfg_key_e::RS485:
+                setRS485(pair.second,&response);
+                break;
+            case jvs::cfg_key_e::ETHERNET:
+                setEthernet(&response);
+                break;
+            case jvs::cfg_key_e::LTE_CatM1:
+                setCatM1(&response);
+                break;
+            default:
+                break;
+            }
         }
 
-        JSON json;
-        const std::string ResponsePayload = json.Serialize(response);
-        
-        LOG_INFO(logger,"PAYLOAD : %s", ResponsePayload);
+        Status ret = Status(Status::Code::UNCERTAIN);
 
-        return Status(Status::Code::GOOD);
+        JSON json;
+        std::string ResponsePayload = json.Serialize(response);
+        mqtt::Message message(mqtt::topic_e::JARVIS_STATUS_RESPONSE, std::move(ResponsePayload));
+
+        for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
+        {
+            ret = mqtt::cdo.Store(message);
+            if (ret == Status::Code::GOOD)
+            {
+                return ret;
+            }
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
+
+        return ret;
     }
 
     

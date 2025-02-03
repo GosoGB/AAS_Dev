@@ -79,7 +79,10 @@ namespace muffin {
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
-            ESP.restart();
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            spear.Reset();
+        #endif 
+            esp_restart();
         }
         
 

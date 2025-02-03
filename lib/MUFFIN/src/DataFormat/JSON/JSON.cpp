@@ -203,7 +203,8 @@ namespace muffin {
         std::string payload;
 
         doc["ts"] =  _struct.SourceTimestamp;
-        JsonObject interface = doc["if"].to<JsonObject>();
+        JsonArray ifArray = doc["if"].to<JsonArray>();
+        JsonObject interface = ifArray.add<JsonObject>();
 
         switch (_struct.SNIC)
         {

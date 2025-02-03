@@ -412,8 +412,6 @@ namespace muffin {
         char buffer[size] = {'\0'};
         serializeJson(mJarvisJson, buffer, size);
 
-        Serial.println(buffer);
-
         File file = esp32FS.Open(JARVIS_PATH, "w", true);
         if (file == false)
         {
@@ -424,7 +422,8 @@ namespace muffin {
         file.flush();
         file.close();
 
-
+        Serial.print("\r\n설정이 모두 저장되었습니다. 디바이스 재부팅을 진행하겠습니다. \r\n\r\n\r\n");
+        delay(2000);
         return Status(Status::Code::GOOD);
     }
 
