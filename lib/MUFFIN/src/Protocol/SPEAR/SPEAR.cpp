@@ -458,7 +458,7 @@ namespace muffin {
         memset(payload, 0, size);
 
         serializeJson(JarvisJson, payload, size);
-        LOG_INFO(logger,"SEND MSG : %s",payload);
+        LOG_DEBUG(logger,"SEND MSG : %s",payload);
         
         writeJson(payload, "/spear/protocol/config.json");
         Send(payload);
@@ -529,7 +529,7 @@ namespace muffin {
         std::string path = port == jvs::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
         writeJson(payload, path);
 
-        LOG_INFO(logger,"payload : %s",payload);
+        LOG_DEBUG(logger,"payload : %s",payload);
         Send(payload);
         delay(100);
         return validateSetService();
@@ -885,7 +885,7 @@ namespace muffin {
             static_cast<uint8_t>(msg.Link), msg.SlaveID, static_cast<uint8_t>(msg.Area), msg.Address, msg.Value);
         Send(command);
 
-        LOG_INFO(logger,"REMOTE SEND MSG : %s",command);
+        LOG_DEBUG(logger,"REMOTE SEND MSG : %s",command);
         
         const uint16_t timeout = 2000;
         const uint8_t size = 64;
@@ -950,7 +950,7 @@ namespace muffin {
         }
         else
         {
-            LOG_INFO(logger, "Modbus State: %u", modbusState);
+            LOG_DEBUG(logger, "Modbus State: %u", modbusState);
             xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::GOOD);
         }

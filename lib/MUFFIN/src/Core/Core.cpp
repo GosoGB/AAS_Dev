@@ -90,31 +90,37 @@ namespace muffin {
             FW_VERSION_ESP32.GetSemanticVersion(),
             FW_VERSION_ESP32.GetVersionCode());
 
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-        const uint8_t MAX_TRIAL_COUNT = 3;
-        uint8_t trialCount = 0;
-
+#if !defined(DEBUG)
+    #if defined(MODLINK_T2)
+    {
+        uint8_t trialCount = 0;    
         while (spear.Init() != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART MEGA2560.");
-            spear.Reset();
-            if (trialCount == MAX_TRIAL_COUNT)
+            if (trialCount == MAX_RETRY_COUNT)
             {
-                break;
+                LOG_ERROR(logger, "FAILED TO GET SIGN-ON REQUEST FROM ATmega2560");
+                goto SPEAR_FAILED;
             }
-            trialCount++;
+            spear.Reset();
+            ++trialCount;
         }
-
+        
         if (spear.VersionEnquiryService() != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
+            LOG_ERROR(logger, "FAILED TO QUERY VERSION OF THE ATmega2560");
+            goto SPEAR_FAILED;
         }
-
-        LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
-                FW_VERSION_MEGA2560.GetSemanticVersion(),
-                FW_VERSION_MEGA2560.GetVersionCode());
+        goto SPEAR_SUCCEDED;
         
+    SPEAR_FAILED:
+        LOG_ERROR(logger, "FAILED TO INITIALIZE SPEAR");
+    SPEAR_SUCCEDED:
+        LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
+            FW_VERSION_MEGA2560.GetSemanticVersion(),
+            FW_VERSION_MEGA2560.GetVersionCode());
+    }
     #endif
+#endif
 
         Status ret = esp32FS.Begin(false);
         if (ret != Status::Code::GOOD)
@@ -137,12 +143,12 @@ namespace muffin {
             if (++initConfig.PanicResetCount == MAX_RETRY_COUNT)
             {
                 ret = esp32FS.Remove(JARVIS_PATH);
-            #if !defined(DEBUG)
-            ---------------------------------------------------------------------
-            |  @todo #1  JARVIS 설정 초기화 사유를 <INIT_FILE_PATH>에 저장해야 함  |
-            |  @todo #2  mfm/status 토픽에 설정값에 변화가 있었다고 알려줘야 함     |
-            ---------------------------------------------------------------------
-            #endif
+            // #if !defined(DEBUG)
+            // ---------------------------------------------------------------------
+            // |  @todo #1  JARVIS 설정 초기화 사유를 <INIT_FILE_PATH>에 저장해야 함  |
+            // |  @todo #2  mfm/status 토픽에 설정값에 변화가 있었다고 알려줘야 함     |
+            // ---------------------------------------------------------------------
+            // #endif
                 if (ret == Status::Code::BAD_DEVICE_FAILURE)
                 {
                     LOG_ERROR(logger, "FATAL ERROR: FAILED TO REMOVE JARVIS CONFIG");
@@ -308,40 +314,6 @@ namespace muffin {
         // call ApplyJarvisTask() function; a.k.a. start jarvis task
         // device status 발행해야 함
         PublishFirmwareStatusMessageService();
-
-
-
-#if !defined(DEBUG)
-    #if defined(MODLINK_T2)
-    {
-        uint8_t trialCount = 0;    
-        while (spear.Init() != Status::Code::GOOD)
-        {
-            if (trialCount == MAX_RETRY_COUNT)
-            {
-                LOG_ERROR(logger, "FAILED TO GET SIGN-ON REQUEST FROM ATmega2560");
-                goto SPEAR_FAILED;
-            }
-            spear.Reset();
-            ++trialCount;
-        }
-        
-        if (spear.VersionEnquiryService() != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO QUERY VERSION OF THE ATmega2560");
-            goto SPEAR_FAILED;
-        }
-        goto SPEAR_SUCCEDED;
-        
-    SPEAR_FAILED:
-        LOG_ERROR(logger, "FAILED TO INITIALIZE SPEAR");
-    SPEAR_SUCCEDED:
-        LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
-            FW_VERSION_MEGA2560.GetSemanticVersion(),
-            FW_VERSION_MEGA2560.GetVersionCode());
-    }
-    #endif
-#endif
     }
 
     Status Core::readInitConfig(init_cfg_t* output)
@@ -596,383 +568,6 @@ namespace muffin {
         
         return ret;
     }
-
-    void Core::startRemoteControll(const std::string& payload)
-    {
-        JSON json;
-        remote_controll_struct_t messageconfig;
-        std::string serializedPayload;
-        JsonDocument doc;
-        Status retJSON = json.Deserialize(payload, &doc);
-        std::string Description;
-
-        if (retJSON != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-
-            switch (retJSON.ToCode())
-            {
-            case Status::Code::BAD_END_OF_STREAM:
-                Description = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
-                break;
-            case Status::Code::BAD_NO_DATA:
-                Description ="PAYLOAD EMPTY";
-                break;
-            case Status::Code::BAD_DATA_ENCODING_INVALID:
-                Description = "PAYLOAD INVALID ENCODING";
-                break;
-            case Status::Code::BAD_OUT_OF_MEMORY:
-                Description = "PAYLOAD OUT OF MEMORY";
-                break;
-            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                Description = "PAYLOAD EXCEEDED NESTING LIMIT";
-                break;
-            case Status::Code::BAD_UNEXPECTED_ERROR:
-                Description = "UNDEFINED CONDITION";
-                break;
-            default:
-                Description = "UNDEFINED CONDITION";
-                break;
-            }
-            
-            messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-            messageconfig.ResponseCode    = "900 :" + Description;
-
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return;
-        }
-        
-        /**
-         * @todo JSON Message에 대해 Validator 구현해야함
-         */
-        JsonArray request = doc["req"].as<JsonArray>();
-        messageconfig.RequestData = request;
-        messageconfig.ID = doc["id"].as<std::string>();
-        std::vector<std::pair<std::string, std::string>> remoteData;
-        for (JsonObject obj : request)
-        {
-            std::string uid = obj["uid"].as<std::string>(); 
-            std::string value = obj["val"].as<std::string>(); 
-            
-            remoteData.emplace_back(uid, value); 
-        }
-
-
-        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-        std::pair<bool,std::vector<std::string>> retUCL;
-        std::pair<bool,std::vector<std::string>> retLCL;
-        retUCL = alarmMonitor.GetUclUid();
-        retLCL = alarmMonitor.GetLclUid();
-
-        if (retUCL.first == true)
-        {
-            for (auto& uclUid : retUCL.second )
-            {
-                if (uclUid == remoteData.at(0).first)
-                {
-                   bool result = alarmMonitor.ConvertUCL(uclUid,remoteData.at(0).second);
-                   if (result)
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "200";                
-                        
-                   }
-                   else
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "900";
-                   }
-
-                    serializedPayload = json.Serialize(messageconfig);
-                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    Status ret = mqtt::cdo.Store(message);
-                    if (ret != Status::Code::GOOD)
-                    {
-                        /**
-                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                         * 
-                         */
-                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-                    }
-                    return ;
-                }
-            }
-        }
-        
-        if (retLCL.first == true)
-        {
-            for (auto& lclUid : retLCL.second )
-            {
-                if (lclUid == remoteData.at(0).first)
-                {
-                   bool result = alarmMonitor.ConvertLCL(lclUid,remoteData.at(0).second);
-                   if (result)
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "200";
-                   }
-                   else
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "900";
-                   }
-
-                    serializedPayload = json.Serialize(messageconfig);
-                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    Status ret = mqtt::cdo.Store(message);
-                    if (ret != Status::Code::GOOD)
-                    {
-                        /**
-                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                         * 
-                         */
-                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-                    }
-                    return ;
-                }
-                
-            }
-            
-        }
-
-         /**
-         * @todo 스카우터,프로직스 기준으로 제어명령은 한개밖에 들어오지 않아 고정으로 설정해두었음 remoteData.at(0), 추후 변경시 수정해야함
-         */
-
-
-        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-        
-        std::pair<Status, im::Node*> ret = nodeStore.GetNodeReferenceUID(remoteData.at(0).first);
-        std::pair<Status, uint16_t> retConvertModbus = std::make_pair(Status(Status::Code::UNCERTAIN),0);
-        
-        if (ret.first != Status::Code::GOOD)
-        {
-            messageconfig.SourceTimestamp   = GetTimestampInMillis();
-            messageconfig.ResponseCode  = "900 : UNDEFINED UID : " + remoteData.at(0).first;
-
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return ;
-        }
-        retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
-        if (retConvertModbus.first != Status::Code::GOOD)
-        {
-            messageconfig.SourceTimestamp = GetTimestampInMillis();
-            messageconfig.ResponseCode    = "900 : " + retConvertModbus.first.ToString();
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return;
-        }
-        else
-        {
-            uint8_t writeResult = 0;
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-            if (mVectorModbusTCP.size() != 0)
-            {
-                for (auto& TCP : mVectorModbusTCP)
-                {
-                    for (auto& modbusTCP : ModbusTcpVector)
-                    {
-                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
-                        {
-                            continue;
-                        }
-                        
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {   
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-                        
-                                    if (retBit.first == true)
-                                    {
-                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto ERROR_RESPONSE;
-                                    }
-                                    modbusTCPClient.end();
-
-                                    modbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort());
-                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
-                                    switch (modbusArea)
-                                    {
-                                    case jvs::mb_area_e::COILS:
-                                        writeResult = modbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jvs::mb_area_e::HOLDING_REGISTER:
-                                        writeResult = modbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
-                                        break;
-                                    }
-
-                                    xSemaphoreGive(xSemaphoreModbusTCP);
-                                    break;
-                                }
-                                
-                            }
-                            
-                        }
-                    }
-                    
-                }
-            }
-    #endif
-
-            if (mVectorModbusRTU.size() != 0)
-            {
-                for (auto& RTU : mVectorModbusRTU)
-                {
-                    for (auto& modbusRTU : ModbusRtuVector)
-                    {
-                        if (RTU.GetPort().second != modbusRTU.mPort)
-                        {
-                            continue;
-                        }
-
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-
-                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-                        
-                                    if (retBit.first == true)
-                                    {
-                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                #if defined(MODLINK_L) || defined(MODLINK_ML10)
-                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto ERROR_RESPONSE;
-                                    }
-
-                                    switch (modbusArea)
-                                    {
-                                    case jvs::mb_area_e::COILS:
-                                        writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jvs::mb_area_e::HOLDING_REGISTER:
-                                        writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
-                                        break;
-                                    }
-
-                                    LOG_INFO(logger,"제어 결과 : %s",writeResult == 1 ? "성공" : "실패");
-                                    xSemaphoreGive(xSemaphoreModbusRTU);
-                                #else
-                                    spear_remote_control_msg_t msg;
-                                    msg.Link = modbusRTU.mPort;
-                                    msg.SlaveID = retSlaveID.second;
-                                    msg.Area = modbusArea;
-                                    msg.Address = modbusAddress.Numeric;
-                                    msg.Value = retConvertModbus.second;
-                                    
-                                    Status result = spear.ExecuteService(msg);
-                                    if (result == Status(Status::Code::GOOD))
-                                    {
-                                        writeResult = 1;
-                                    }
-                                #endif
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-ERROR_RESPONSE:
-            if (writeResult == 1)
-            {
-                messageconfig.ResponseCode = "200";
-            }
-            else
-            {
-                messageconfig.ResponseCode = "900 : UNEXPECTED ERROR";
-            }
-            messageconfig.SourceTimestamp  = GetTimestampInMillis();
-            serializedPayload = json.Serialize(messageconfig);
-
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return;
-        }
-    }
-
 
     Core core;
 }

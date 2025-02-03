@@ -96,11 +96,11 @@ namespace muffin {
 
             mJarvisJson = doc;
             Serial.print("+---------------------+------------+-------+\r\n");
-            Serial.print("|             현재 네트워크 정보             |\r\n");
+            Serial.print("|             현재 네트워크 정보           |\r\n");
             Serial.print("+---------------------+------------+-------+\r\n");
-            Serial.print("| 네트워크 인터페이스   | 사용 국가  |  모뎀  |\r\n");
+            Serial.print("| 네트워크 인터페이스 |  사용 국가 |  모뎀 |\r\n");
             Serial.print("+---------------------+------------+-------+\r\n");
-            Serial.print("| LTE                 | KR         | LM5   |\r\n");
+            Serial.print("|         LTE         |     KR     |  LM5  |\r\n");
             Serial.print("+---------------------+------------+-------+\r\n");
         }
         else
@@ -134,13 +134,13 @@ namespace muffin {
                 Serial.print("+---------------------+------------+-------+\r\n");
                 Serial.print("|             현재 네트워크 정보           |\r\n");
                 Serial.print("+---------------------+------------+-------+\r\n");
-                Serial.print("| 네트워크 인터페이스  | 사용 국가 |  모뎀 |\r\n");
+                Serial.print("| 네트워크 인터페이스 |  사용 국가 |  모뎀 |\r\n");
                 Serial.print("+---------------------+------------+-------+\r\n");
-                Serial.print("| LTE                 | ");
+                Serial.print("|         LTE         |     ");
                 Serial.print(ctry.c_str());
-                Serial.print("         | ");
+                Serial.print("     |  ");
                 Serial.print(model.c_str());
-                Serial.print("   |\r\n");
+                Serial.print("  |\r\n");
                 Serial.print("+---------------------+------------+-------+\r\n");
 
             }

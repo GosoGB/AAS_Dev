@@ -51,8 +51,6 @@ namespace muffin {
         bool isResetByPanic();
         Status createDefaultJARVIS();
         Status loadJarvisConfig();
-    private:
-        void startRemoteControll(const std::string& payload);
     };
 
 
