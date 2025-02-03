@@ -157,6 +157,7 @@ namespace muffin {
                 ++posPort;
                 break;
             }
+            
             esp32->Head.API.Host[posPort++ - posHost] = *ptr++;
         }
         
@@ -177,10 +178,11 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status parseFirmwareInfo(JsonObject json, ota::fw_info_t* output)
+    Status parseFirmwareInfo(JsonObject json, ota::mcu_e mcuType, ota::fw_info_t* output)
     {
         memset(output, 0, sizeof(ota::fw_info_t));
-
+        
+        output->Head.MCU = mcuType;
         output->Head.HasNewFirmware = true;
         output->Head.VersionCode = json["vc"].as<uint16_t>();
         strncpy(output->Head.SemanticVersion, json["version"].as<const char*>(), sizeof(ota::fw_head_t::SemanticVersion));
@@ -246,7 +248,7 @@ namespace muffin {
         }
 
         JsonObject obj = json["mcu1"].as<JsonObject>();
-        return parseFirmwareInfo(obj, output);
+        return parseFirmwareInfo(obj, ota::mcu_e::MCU1, output);
     }
 
     Status strategyMEGA2560(JsonDocument& json, ota::fw_info_t* output)
@@ -257,8 +259,8 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
 
-        JsonObject obj = json["mcu2"].as<JsonObject>();
-        return parseFirmwareInfo(obj, output);
+        JsonObject obj = json["mcu2"].as<JsonObject>();;
+        return parseFirmwareInfo(obj, ota::mcu_e::MCU2, output);
     }
 
     Status ParseUpdateInfoService(const char* payload, ota::fw_info_t* esp32, ota::fw_info_t* mega2560)

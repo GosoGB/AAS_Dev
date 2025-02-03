@@ -364,9 +364,10 @@ namespace muffin {
                 esp_restart();
         }
         
-        ota::fw_info_t esp32;
-        ota::fw_info_t mega2560;
-        Status ret = ParseUpdateInfoService(payload, &esp32, &mega2560);
+        ota::fw_info_t* esp32 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
+        ota::fw_info_t* mega2560 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
+
+        Status ret = ParseUpdateInfoService(payload, esp32, mega2560);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PARSE: %s", ret.c_str());
@@ -390,7 +391,7 @@ namespace muffin {
             return ret;
         }
         
-        file.write(reinterpret_cast<const uint8_t*>(payload), strlen(payload));
+        file.write(reinterpret_cast<const uint8_t*>(payload), strlen(payload) + 1);
         file.flush();
         file.close();
 

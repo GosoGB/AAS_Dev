@@ -33,7 +33,11 @@ namespace muffin { namespace http {
     
     Status LwipHTTP::Init()
     {
+    #if defined(DEBUG)
+        mClientSecure.setCACert(ROOT_CA_CRT_DEV);
+    #else
         mClientSecure.setCACert(ROOT_CA_CRT);
+    #endif
         mFlags.reset();
         return Status(Status::Code::GOOD);
     }
@@ -41,6 +45,7 @@ namespace muffin { namespace http {
     Status LwipHTTP::GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         mFlags.reset(static_cast<uint8_t>(flag_e::RSC_OK));
+        mFlags.reset(static_cast<uint8_t>(flag_e::OCTET));
         Status ret(Status::Code::UNCERTAIN);
         mFilePosition = 0;
 
@@ -74,6 +79,7 @@ namespace muffin { namespace http {
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
         mFlags.reset(static_cast<uint8_t>(flag_e::RSC_OK));
+        mFlags.reset(static_cast<uint8_t>(flag_e::OCTET));
         Status ret(Status::Code::UNCERTAIN);
         mFilePosition = 0;
 
@@ -107,6 +113,7 @@ namespace muffin { namespace http {
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
         mFlags.reset(static_cast<uint8_t>(flag_e::RSC_OK));
+        mFlags.reset(static_cast<uint8_t>(flag_e::OCTET));
         Status ret(Status::Code::UNCERTAIN);
         mFilePosition = 0;
 
@@ -195,9 +202,12 @@ namespace muffin { namespace http {
             LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
+        LOG_DEBUG(logger, "File Size: %u", file.size());
+        delay(10000);
 
         if (mFilePosition > 0)
         {
+            LOG_DEBUG(logger, "File position: %u", mFilePosition);
             const bool isSought = file.seek(++mFilePosition);
             if (isSought == false)
             {
@@ -781,6 +791,11 @@ namespace muffin { namespace http {
                 char* pos = strchr(line, ' ');
                 mContentLength = atoi(++pos);
             }
+            else if (strncmp(line, "Content-Type: application/octet-stream", 38) == 0)
+            {
+                mFlags.set(static_cast<uint8_t>(flag_e::OCTET));
+            }
+            
             idx = 0;
         }
 
@@ -800,29 +815,28 @@ namespace muffin { namespace http {
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
-        while (client->available() > 0)
-        {
-            if (client->read() == '\r')
+        if (mFlags.test(static_cast<uint8_t>(flag_e::OCTET)) == false)
+        {   
+            while (client->available() > 0)
             {
-                break;
+                LOG_DEBUG(logger, "Peek: %02X", client->peek());
+                if (client->peek() == '\n')
+                {
+                    client->read();
+                    break;
+                }
             }
         }
 
         while (client->available() > 0)
         {
-            if (client->peek() == '\r')
+            LOG_DEBUG(logger, "Peek: %02X", client->peek());
+
+            if ((client->available() == 1) && (client->peek() == '0'))
             {
                 client->read();
-
-                if (client->peek() == '\n')
-                {
-                    client->read();
-
-                    if (client->available() < 4)
-                    {
-                        break;
-                    }
-                }
+                file.write(0);
+                break;
             }
 
             file.write(client->read());

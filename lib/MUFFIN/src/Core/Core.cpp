@@ -76,16 +76,15 @@ namespace muffin {
     {
         logger.Init();
         
-        CommandLineInterface commandLineInterface;
-        if (commandLineInterface.Init() == Status(Status::Code::GOOD))
-        {
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
-            spear.Reset();
-        #endif 
-            esp_restart();
-        }
+        // CommandLineInterface commandLineInterface;
+        // if (commandLineInterface.Init() == Status(Status::Code::GOOD))
+        // {
+        // #if defined(MODLINK_T2) || defined(MODLINK_B)
+        //     spear.Reset();
+        // #endif 
+        //     esp_restart();
+        // }
         
-
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),

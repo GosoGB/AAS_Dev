@@ -50,12 +50,13 @@ namespace muffin {
             info.Head.API.Scheme,
             info.Head.API.Host,
             info.Head.API.Port,
-            "/firmware/file/version/release",
+            "/firmware/file/v1.1/version/manual",
             strcat(userAgent, FW_VERSION_ESP32.GetSemanticVersion())
         );
 
         http::RequestParameter parameters;
         parameters.Add("mac", macAddress.GetEthernet());
+        parameters.Add("otaId", std::to_string(info.Head.ID));
 
         Status ret = httpClient->GET(mutex.second, header, parameters);
         if (ret != Status::Code::GOOD)

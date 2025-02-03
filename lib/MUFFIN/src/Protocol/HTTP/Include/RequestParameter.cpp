@@ -60,4 +60,9 @@ namespace muffin { namespace http {
     {
         mMapParameters.emplace(key, value);
     }
+
+    void RequestParameter::Replace(const std::string& key, const std::string& value)
+    {
+        mMapParameters[key] = value;
+    }
 }}

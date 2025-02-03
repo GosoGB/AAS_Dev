@@ -70,7 +70,8 @@ namespace muffin { namespace http {
             HTTP    = 1,
             HTTPS   = 2,
             RSC_OK  = 3,
-            TOP     = 4
+            OCTET   = 4,
+            TOP     = 5
         } flag_e;
         bitset<static_cast<uint8_t>(flag_e::TOP)> mFlags;
     private:

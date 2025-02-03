@@ -27,6 +27,7 @@
 #include "Network/CatM1/CatM1.h"
 #include "OTA/StrategyESP32/StrategyESP32.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/DownloadFirmwareService.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/FetchFirmwareInfo.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/FirmwareUpdateService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
@@ -36,7 +37,7 @@ static QueueHandle_t sQueueHandle;
 static muffin::MemoryPool* sMemoryPool;
 static const uint16_t BLOCK_SIZE = 10*muffin::KILLOBYTE;
 static uint8_t sTrialCount = 0;
-static const uint8_t MAX_QUEUE_LENGTH = 5;
+static const uint8_t MAX_QUEUE_LENGTH = 2;
 static const size_t  QUEUE_ITEM_SIZE  = sizeof(uint8_t*);
     
 size_t muffin::ota::fw_head_t::ID = 0;
@@ -148,7 +149,7 @@ namespace muffin {
         {
             if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
             {
-                ret = DownloadFirmwareService(info, crc32, sQueueHandle, downloadTaskCallback);
+                ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
                 if (ret != Status::Code::GOOD)
                 {
                     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
@@ -182,6 +183,11 @@ namespace muffin {
             uint8_t* buffer;
             xQueueReceive(sQueueHandle, &buffer, UINT32_MAX);
             ret = strategy.Write(info.Size.Array[info.Chunk.FlashingIDX], buffer);
+            for (size_t i = 0; i < 100; i++)
+            {
+                Serial.print((char)buffer[i]);
+            }
+
             if (ret != Status::Code::GOOD)
             {
                 sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
@@ -189,7 +195,7 @@ namespace muffin {
                 return ret;
             }
             
-            sMemoryPool->Deallocate(buffer, 1);
+            sMemoryPool->Deallocate(buffer, info.Size.Array[info.Chunk.FlashingIDX]);
         }
 
         ret = strategy.TearDown();
@@ -320,7 +326,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO INITIALIZE: %s", ret.c_str());
             return ret;
         }
-        
+
         ota::fw_info_t* esp32 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         ota::fw_info_t* mega2560 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         if (esp32 == nullptr || mega2560 == nullptr)
@@ -330,24 +336,46 @@ namespace muffin {
             return ret;
         }
 
-        File file = esp32FS.Open(OTA_REQUEST_PATH, "r", false);
-        if (file == false)
         {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            File file = esp32FS.Open(OTA_REQUEST_PATH, "r", false);
+            if (file == false)
+            {
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+
+            const size_t size = file.size();
+            char buffer[size] = {'\0'};
+            file.readBytes(buffer, size);
+            file.close();
+            
+            ret = ParseUpdateInfoService(buffer, esp32, mega2560);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO PARSE FIRMWARE INFO");
+                return ret;
+            }
+            LOG_INFO(logger, "Parsed firmware info successfully");
         }
 
-        const size_t size = file.size();
-        char buffer[size] = {'\0'};
-        file.readBytes(buffer, size);
-        file.close();
-    
-        ret = ParseUpdateInfoService(buffer, esp32, mega2560);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO PARSE FIRMWARE INFO");
-            return ret;
+        {    
+            std::string payload;
+            ret = FetchFirmwareInfo(*esp32, &payload);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FETCH FIRMWARE INFO");
+                return ret;
+            }
+
+            ret = ParseUpdateInfoService(payload.c_str(), esp32, mega2560);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO PARSE FIRMWARE INFO");
+                return ret;
+            }
+            payload.clear();
+            payload.shrink_to_fit();
+            LOG_INFO(logger, "Parsed firmware info successfully");
         }
-        LOG_INFO(logger, "Parsed firmware info successfully");
 
         if ((esp32->Head.HasNewFirmware == false) && (mega2560->Head.HasNewFirmware == false))
         {
@@ -363,27 +391,27 @@ namespace muffin {
         CRC32 crc32;
         crc32.Init();
 
-        if (mega2560->Head.HasNewFirmware == true)
-        {
-            sServiceFlags.reset();
+        // if (mega2560->Head.HasNewFirmware == true)
+        // {
+        //     sServiceFlags.reset();
 
-            Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, downloadTaskCallback);
-            if (ret != Status::Code::GOOD)
-            {
-                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-                LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
-                return ret;
-            }
-            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
-            LOG_INFO(logger, "Start to download firmware for ATmega2560");
-            strategyMEGA2560(*mega2560, crc32);
-        }
+        //     Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+        //         LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+        //         return ret;
+        //     }
+        //     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
+        //     LOG_INFO(logger, "Start to download firmware for ATmega2560");
+        //     strategyMEGA2560(*mega2560, crc32);
+        // }
     
         if (esp32->Head.HasNewFirmware == true)
         {
             sServiceFlags.reset();
 
-            Status ret = DownloadFirmwareService(*esp32, crc32, sQueueHandle, downloadTaskCallback);
+            Status ret = DownloadFirmwareService(*esp32, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
             if (ret != Status::Code::GOOD)
             {
                 sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));

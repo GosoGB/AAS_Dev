@@ -26,5 +26,5 @@
 
 namespace muffin {
 
-    Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue, void (*callback)(Status status));
+    Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue, MemoryPool* memoryPool, void (*callback)(Status status));
 }

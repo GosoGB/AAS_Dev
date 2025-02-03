@@ -201,19 +201,19 @@ namespace muffin { namespace mqtt {
         {
             return std::make_pair(true, topic_e::UPTIME);
         }
-        else if (topicString == mFinishedGoods)
+        else if (strcmp(topicString, mFinishedGoods) == 0)
         {
             return std::make_pair(true, topic_e::FINISHEDGOODS);
         }
-        else if (topicString == mFotaConfig)
+        else if (strcmp(topicString, mFotaConfig) == 0)
         {
             return std::make_pair(true, topic_e::FOTA_CONFIG);
         }
-        else if (topicString == mFotaUpdate)
+        else if (strcmp(topicString, mFotaUpdate) == 0)
         {
             return std::make_pair(true, topic_e::FOTA_UPDATE);
         }
-        else if (topicString == mFotaStatus)
+        else if (strcmp(topicString, mFotaStatus) == 0)
         {
             return std::make_pair(true, topic_e::FOTA_STATUS);
         }

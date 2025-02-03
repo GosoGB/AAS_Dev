@@ -28,7 +28,7 @@ namespace muffin { namespace ota {
     Status StrategyESP32::Init(const fw_info_t& info)
     {
         ASSERT((info.Chunk.Count != 0), "CHUNK COUNT MUST BE GREATER THAN 0");
-
+        LOG_DEBUG(logger, "info.Size.Total: %u", info.Size.Total);
         if (Update.begin(info.Size.Total) == false)
         {
             LOG_ERROR(logger, "OUT OF MEMORY: TOO LARGE FOR THE APP PARTITION");
