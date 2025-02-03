@@ -102,6 +102,7 @@ namespace muffin {
         }
         
         std::string payload;
+        
         ret = httpClient->Retrieve(mutex.second, &payload);
         if (ret != Status::Code::GOOD)
         {
@@ -111,6 +112,8 @@ namespace muffin {
             PublishResponseJARVIS(response);
             return ret;
         }
+
+        LOG_INFO(logger,"payload : %s",payload.c_str());
 
         File file = esp32FS.Open(JARVIS_PATH_FETCHED, "w", true);
         if (file == false)
@@ -136,9 +139,16 @@ namespace muffin {
             return Status(Status::Code::BAD_DATA_LOST);
         }
 
+        File file2 = esp32FS.Open(JARVIS_PATH_FETCHED, "r", true);
+        while (file2.available())
+        {
+            Serial.print((char)file2.read());
+        }
+        file2.close();
+        
         snic->ReleaseMutex();
 
         ret = Status::Code::GOOD;
-        return ret;
+        return ret; 
     }
 }

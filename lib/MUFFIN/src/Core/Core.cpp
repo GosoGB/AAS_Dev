@@ -278,7 +278,7 @@ namespace muffin {
             esp_restart();
         }
 
-
+        ApplyJarvisTask();
         // call ApplyJarvisTask() function; a.k.a. start jarvis task
         // device status 발행해야 함
         PublishFirmwareStatusMessageService();

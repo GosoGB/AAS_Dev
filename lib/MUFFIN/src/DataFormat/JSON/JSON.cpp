@@ -211,9 +211,11 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             interface["snic"] = "lte";
             break;
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         case jvs::snic_e::Ethernet:
             interface["snic"] = "eth";
             break;
+    #endif 
         default:
             interface["snic"] = "undefined";
             break;

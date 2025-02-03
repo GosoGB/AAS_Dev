@@ -51,6 +51,8 @@
 #include "Storage/CatFS/CatFS.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 
+#include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
+
 muffin::mqtt::IMQTT* mqttClient = nullptr;
 muffin::http::IHTTP* httpClient = nullptr;
 
@@ -79,6 +81,15 @@ namespace muffin {
                     delete *it;
                 }
                 break;
+            }
+        }
+
+        for (auto& pair : *jarvis)
+        {
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::ETHERNET)
+            {
+                InitEthernetService();
             }
         }
 
@@ -151,6 +162,7 @@ namespace muffin {
             case jvs::cfg_key_e::WIFI4:
             case jvs::cfg_key_e::ETHERNET:
                 break;
+            
             default:
                 ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
                 break;

@@ -908,7 +908,7 @@ namespace muffin { namespace im {
         default:
             break;
         }
-        ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
+        // ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
         
         if (it == mMapMappingRules.second.end())
         {
