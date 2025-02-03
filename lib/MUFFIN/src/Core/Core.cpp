@@ -229,7 +229,10 @@ namespace muffin {
             }
 
             PublishResponseJARVIS(response);
-        
+            /**
+             * @todo 발행 실패 시 무한루프에 빠지게 되는 로직을 수정할 것
+             *       타임아웃을 걸어두면 좋을 거 같음
+             */
             while (mqtt::cdo.Count() != 0)
             {
                 delay(1);
