@@ -810,10 +810,14 @@ namespace muffin { namespace http {
 
         while (client->available() > 0)
         {
-            if (client->read() == '\r')
+            if (client->peek() == '\r')
             {
-                if (client->read() == '\n')
+                client->read();
+
+                if (client->peek() == '\n')
                 {
+                    client->read();
+
                     if (client->available() < 4)
                     {
                         break;
