@@ -34,223 +34,197 @@ namespace muffin { namespace http {
     Status LwipHTTP::Init()
     {
         mClientSecure.setCACert(ROOT_CA_CRT);
+        mFlags.reset();
         return Status(Status::Code::GOOD);
     }
     
     Status LwipHTTP::GET(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
+        mFlags.reset(static_cast<uint8_t>(flag_e::RSC_OK));
+        Status ret(Status::Code::UNCERTAIN);
+        mFilePosition = 0;
+
         switch (header.GetScheme())
         {
         case http_scheme_e::HTTP:
-            return getHTTP(header, parameter, timeout);
+            mFlags.set(static_cast<uint8_t>(flag_e::HTTP));
+            ret = getHTTP(header, parameter, timeout);
+            mFlags.reset(static_cast<uint8_t>(flag_e::HTTP));
+            break;
 
-        // case http_scheme_e::HTTPS:
-        //     return getHTTPS(header, parameter, timeout);
+        case http_scheme_e::HTTPS:
+            mFlags.set(static_cast<uint8_t>(flag_e::HTTPS));
+            ret = getHTTPS(header, parameter, timeout);
+            mFlags.reset(static_cast<uint8_t>(flag_e::HTTPS));
+            break;
 
         default:
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            ret = Status(Status::Code::BAD_INVALID_ARGUMENT);
+            break;
         }
+
+        if (ret == Status::Code::GOOD)
+        {
+            mFlags.set(static_cast<uint8_t>(flag_e::RSC_OK));
+        }
+
+        return ret;
     }
 
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
+        mFlags.reset(static_cast<uint8_t>(flag_e::RSC_OK));
+        Status ret(Status::Code::UNCERTAIN);
+        mFilePosition = 0;
+
         switch (header.GetScheme())
         {
-        // case http_scheme_e::HTTP:
-        //     return postHTTP(header, body, timeout);
+        case http_scheme_e::HTTP:
+            mFlags.set(static_cast<uint8_t>(flag_e::HTTP));
+            ret = postHTTP(header, body, timeout);
+            mFlags.reset(static_cast<uint8_t>(flag_e::HTTP));
+            break;
 
-        // case http_scheme_e::HTTPS:
-        //     return postHTTPS(header, body, timeout);
+        case http_scheme_e::HTTPS:
+            mFlags.set(static_cast<uint8_t>(flag_e::HTTPS));
+            ret = postHTTPS(header, body, timeout);
+            mFlags.reset(static_cast<uint8_t>(flag_e::HTTPS));
+            break;
 
         default:
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            ret = Status(Status::Code::BAD_INVALID_ARGUMENT);
+            break;
         }
+
+        if (ret == Status::Code::GOOD)
+        {
+            mFlags.set(static_cast<uint8_t>(flag_e::RSC_OK));
+        }
+
+        return ret;
     }
 
     Status LwipHTTP::POST(const size_t mutexHandle, RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
+        mFlags.reset(static_cast<uint8_t>(flag_e::RSC_OK));
+        Status ret(Status::Code::UNCERTAIN);
+        mFilePosition = 0;
+
         switch (header.GetScheme())
         {
-        // case http_scheme_e::HTTP:
-        //     return postHTTP(header, parameter, timeout);
-            
-        // case http_scheme_e::HTTPS:
-        //     return postHTTPS(header, parameter, timeout);
-            
+        case http_scheme_e::HTTP:
+            mFlags.set(static_cast<uint8_t>(flag_e::HTTP));
+            ret = postHTTP(header, parameter, timeout);
+            mFlags.reset(static_cast<uint8_t>(flag_e::HTTP));
+            break;
+
+        case http_scheme_e::HTTPS:
+            mFlags.set(static_cast<uint8_t>(flag_e::HTTPS));
+            ret = postHTTPS(header, parameter, timeout);
+            mFlags.reset(static_cast<uint8_t>(flag_e::HTTPS));
+            break;
+
         default:
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            ret = Status(Status::Code::BAD_INVALID_ARGUMENT);
+            break;
         }
+
+        if (ret == Status::Code::GOOD)
+        {
+            mFlags.set(static_cast<uint8_t>(flag_e::RSC_OK));
+        }
+
+        return ret;
     }
 
     Status LwipHTTP::Retrieve(const size_t mutexHandle, std::string* response)
     {
         ASSERT((response != nullptr), "INPUT PARAMETER <std::string* response> CANNOT BE NULL");
 
-        if (mFlags.test(static_cast<uint8_t>(flag_e::FLASH)) == true)
+        if (mFlags.test(static_cast<uint8_t>(flag_e::RSC_OK)) == false)
         {
-            File file = esp32FS.Open(mResponsePath);
-            if (file == false)
-            {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
-            
-            try
-            {
-                response->reserve(file.size());
-            }
-            catch(const std::bad_alloc& e)
-            {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE DUE TO MEMORY");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            }
-            catch(const std::exception& e)
-            {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE RESPONSE");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
-            
-            while (file.available() > 0)
-            {
-                *response += file.read();
-            }
-            file.close();
-            ASSERT((file == false), "FILE MUST BE CLOSED TO BE REMOVED");
+            return Status(Status::Code::BAD_INVALID_STATE);
+        }
 
-            for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
-            {
-                if (esp32FS.Remove(mResponsePath) == Status::Code::GOOD)
-                {
-                    return Status(Status::Code::GOOD);
-                }
-                vTaskDelay(100 / portTICK_PERIOD_MS);
-            }
-            LOG_ERROR(logger, "FAILED TO REMOVE RESPONSE FILE");
+        File file = esp32FS.Open(mResponsePath);
+        if (file == false)
+        {
+            LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
-        else
+        
+        try
         {
-            ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::CLIENT)) == true), "FLAG MUST BE SET TO CLIENT");
-
-            try
-            {
-                response->reserve(mContentLength);
-                if (mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) == true)
-                {
-                    while (mClient.available() > 0)
-                    {
-                        *response += mClient.read();
-                    }
-                }
-                else
-                {
-                    ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::HTTPS)) == true), "FLAG MUST BE SET TO HTTPS");
-
-                    while (mClientSecure.available() > 0)
-                    {
-                        *response += mClientSecure.read();
-                    }
-                }
-            }
-            catch(const std::bad_alloc& e)
-            {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE DUE TO MEMORY");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            }
-            catch(const std::exception& e)
-            {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE RESPONSE");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
-
-            return Status(Status::Code::GOOD);
+            response->reserve(file.size());
         }
+        catch(const std::bad_alloc& e)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE DUE TO MEMORY");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE RESPONSE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        while (file.available() > 0)
+        {
+            *response += file.read();
+        }
+        file.close();
+        ASSERT((file == false), "FILE MUST BE CLOSED TO BE REMOVED");
+        esp32FS.Remove(mResponsePath);
+
+        return Status(Status::Code::GOOD);
     }
 
     Status LwipHTTP::Retrieve(const size_t mutexHandle, const size_t length, uint8_t output[])
     {
+        ASSERT((length > 0), "INPUT PARAMETER <const size_t length> MUST BE GREATER THAN 0");
         ASSERT((output != nullptr), "INPUT PARAMETER <uint8_t output[]> CANNOT BE NULL");
 
-        if (mFlags.test(static_cast<uint8_t>(flag_e::FLASH)) == true)
+        if (mFlags.test(static_cast<uint8_t>(flag_e::RSC_OK)) == false)
         {
-            File file = esp32FS.Open(mResponsePath);
-            if (file == false)
-            {
-                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
-
-            size_t idx = 0;
-            while (file.available() > 0)
-            {
-                output[idx++] = file.read();
-                if ((idx + 1) == length)
-                {
-                    return Status(Status::Code::BAD_OUT_OF_MEMORY);
-                }
-            }
-            file.close();
-            ASSERT((file == false), "FILE MUST BE CLOSED TO BE REMOVED");
-
-            return Status(Status::Code::GOOD);
+            return Status(Status::Code::BAD_INVALID_STATE);
         }
-        else
+
+        File file = esp32FS.Open(mResponsePath);
+        if (file == false)
         {
-            ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::CLIENT)) == true), "FLAG MUST BE SET TO CLIENT");
-
-            if (mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) == true)
-            {
-                size_t idx = 0;
-                while (mClient.available() > 0)
-                {
-                    output[idx++] = mClient.read();
-                    if ((idx + 1) == length)
-                    {
-                        return Status(Status::Code::BAD_OUT_OF_MEMORY);
-                    }
-                }
-            }
-            else
-            {
-                ASSERT((mFlags.test(static_cast<uint8_t>(flag_e::HTTPS)) == true), "FLAG MUST BE SET TO HTTPS");
-
-                size_t idx = 0;
-                while (mClientSecure.available() > 0)
-                {
-                    output[idx++] = mClientSecure.read();
-                    if ((idx + 1) == length)
-                    {
-                        return Status(Status::Code::BAD_OUT_OF_MEMORY);
-                    }
-                }
-            }
-            
-            return Status(Status::Code::GOOD);
+            LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
+
+        if (mFilePosition > 0)
+        {
+            const bool isSought = file.seek(++mFilePosition);
+            if (isSought == false)
+            {
+                file.close();
+                return Status(Status::Code::BAD_OUT_OF_RANGE);
+            }
+        }
+        
+        memset(output, 0, length);
+        file.readBytes(reinterpret_cast<char*>(output), length);
+        mFilePosition = file.position();
+        file.close();
+        ASSERT((file == false), "FILE MUST BE CLOSED TO BE REMOVED");
+
+        return Status(Status::Code::GOOD);
     }
 
     int32_t LwipHTTP::RetrieveContentLength() const
     {
-        ASSERT(
-            (
-                (mFlags.test(static_cast<uint8_t>(flag_e::CLIENT)) == true) ||
-                (mFlags.test(static_cast<uint8_t>(flag_e::FLASH))  == true)
-            ), "INVALID RESPONSE STORAGE FLAG"
-        );
-
-        if (mFlags.test(static_cast<uint8_t>(flag_e::FLASH)) == true)
+        File file = esp32FS.Open(mResponsePath);
+        if (file == false)
         {
-            File file = esp32FS.Open(mResponsePath);
-            if (file == false)
-            {
-                return -1;
-            }
-            return file.size();
+            return -1;
         }
-        else
-        {
-            return mContentLength;
-        }
+        const int32_t size = file.size();
+        file.close();
+        return size;
     }
 
     Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
@@ -271,9 +245,8 @@ namespace muffin { namespace http {
         mClient.print(header.ToString().c_str());
 
         mRSC = 0;
-        mContentLength = 0;
-
         ret = processResponseHeader(timeout);
+        LOG_INFO(logger, "[GET] rsc: %u", mRSC);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "INVALID RESPONSE HEADER: %s", ret.c_str());
@@ -282,36 +255,32 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            LOG_INFO(logger, "[GET] rsc: %u, length: %d", mRSC, mContentLength);
-
-            if (mContentLength == -1)
+            File file = esp32FS.Open(mResponsePath, "w", true);
+            if (file == false)
             {
-                File file = esp32FS.Open(mResponsePath, "w");
-                if (file == false)
-                {
-                    LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                    ret = Status::Code::BAD_DEVICE_FAILURE;
-                    goto TEARDOWN;
-                }
-
-                while (mClient.available() > 0)
-                {
-                    file.write(mClient.read());
-                }
-                file.flush();
-                file.close();
-                file = esp32FS.Open(mResponsePath, "r");
-                if (file == false)
-                {
-                    LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
-                    ret = Status::Code::BAD_DEVICE_FAILURE;
-                    esp32FS.Remove(mResponsePath);
-                    goto TEARDOWN;
-                }
-
-                mContentLength = file.size();
-                file.close();
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                goto TEARDOWN;
             }
+
+            while (mClient.available() > 0)
+            {
+                file.write(mClient.read());
+            }
+            file.flush();
+            file.close();
+
+            file = esp32FS.Open(mResponsePath, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                esp32FS.Remove(mResponsePath);
+                goto TEARDOWN;
+            }
+
+            mContentLength = file.size();
+            file.close();
             
             ret = Status::Code::GOOD;
             goto TEARDOWN;
@@ -349,220 +318,460 @@ namespace muffin { namespace http {
         return ret;
     }
 
-/*
     Status LwipHTTP::getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::GOOD);
-        
-        if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
+        if (mClientSecure.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
-            header.UpdateParamter(parameter.ToString().c_str());
-            mClientSecure.print(header.ToString().c_str());
-
-            unsigned long timeout = millis();
-        
-            while (mClientSecure.available() == 0) 
-            {
-                if (millis() - timeout > 5000) 
-                {
-                    LOG_ERROR(logger,"Client Timeout !");
-                    return Status(Status::Code::BAD_TIMEOUT);
-                }
-            }
-
-            std::string result;
-            LOG_WARNING(logger,"mClientSecure.available() : %u",mClientSecure.available());
-            while (mClientSecure.available())
-            {
-                result += mClientSecure.read(); 
-            }
-            LOG_WARNING(logger,"[AFTER] mClientSecure.available() : %u",mClientSecure.available());
-            LOG_WARNING(logger,"[body] : %s",result.c_str());
-            // Status::Code::GOOD_MORE_DATA; -> 반환시 나머지 호출해서 합치는
-
-            mResponseData.clear();
-            mResponseData.shrink_to_fit();
-
-            mResponseData = getHttpBody((result.c_str()));
-            mClientSecure.stop();
-        }
-        else
-        {
-            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
 
-        return ret; 
+        Status ret = header.UpdateParamter(parameter.ToString().c_str());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE PARAMETER: %s", parameter.ToString().c_str());
+            return ret;
+        }
+
+        mClientSecure.print(header.ToString().c_str());
+
+        mRSC = 0;
+        mContentLength = 0;
+
+        ret = processResponseHeader(timeout);
+        LOG_INFO(logger, "[GET] rsc: %u", mRSC);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "INVALID RESPONSE HEADER: %s", ret.c_str());
+            return ret;
+        }
+
+        if ((mRSC % 200) < 100)
+        {
+            File file = esp32FS.Open(mResponsePath, "w", true);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                goto TEARDOWN;
+            }
+
+            while (mClientSecure.available() > 0)
+            {
+                file.write(mClientSecure.read());
+            }
+            file.flush();
+            file.close();
+
+            file = esp32FS.Open(mResponsePath, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                esp32FS.Remove(mResponsePath);
+                goto TEARDOWN;
+            }
+
+            mContentLength = file.size();
+            file.close();
+            
+            ret = Status::Code::GOOD;
+            goto TEARDOWN;
+        }
+        else
+        {
+            if ((mRSC % 100) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 300) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 400) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 500) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+        }
+
+    TEARDOWN:
+        mClientSecure.stop();
+        return ret;
     }
 
     Status LwipHTTP::postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::GOOD);
-        if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
+        if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
-            header.UpdateParamter(parameter.ToString().c_str());
-            mClient.print(header.ToString().c_str());
-
-            unsigned long timeout = millis();
-        
-            while (mClient.available() == 0) 
-            {
-                if (millis() - timeout > 5000) 
-                {
-                    LOG_ERROR(logger,"Client Timeout !");
-                    return Status(Status::Code::BAD_TIMEOUT);
-                }
-            }
-
-            std::string result;
-            while (mClient.available())
-            {
-                result += mClient.read();
-            }
-
-            mResponseData.clear();
-            mResponseData.shrink_to_fit();
-
-            mResponseData = getHttpBody((result.c_str()));
-            LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
-            mClient.stop();
-        }
-        else
-        {
-            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
 
-        return ret; 
+        Status ret = header.UpdateParamter(parameter.ToString().c_str());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE PARAMETER: %s", parameter.ToString().c_str());
+            return ret;
+        }
+        
+        mClient.print(header.ToString().c_str());
+
+        mRSC = 0;
+        ret = processResponseHeader(timeout);
+        LOG_INFO(logger, "[POST] rsc: %u", mRSC);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "INVALID RESPONSE HEADER: %s", ret.c_str());
+            return ret;
+        }
+
+        if ((mRSC % 200) < 100)
+        {
+            File file = esp32FS.Open(mResponsePath, "w", true);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                goto TEARDOWN;
+            }
+
+            while (mClient.available() > 0)
+            {
+                file.write(mClient.read());
+            }
+            file.flush();
+            file.close();
+
+            file = esp32FS.Open(mResponsePath, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                esp32FS.Remove(mResponsePath);
+                goto TEARDOWN;
+            }
+
+            mContentLength = file.size();
+            file.close();
+            
+            ret = Status::Code::GOOD;
+            goto TEARDOWN;
+        }
+        else
+        {
+            if ((mRSC % 100) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 300) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 400) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 500) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+        }
+
+    TEARDOWN:
+        mClient.stop();
+        return ret;
     }
 
     Status LwipHTTP::postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::GOOD);
-        if (mClient.connect(header.GetHost().c_str(),header.GetPort()))
+        if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
-            header.SetContentLength(strlen(body.ToString().c_str()));
-            header.SetContentType(body.GetContentType());
-            std::string headerStr = header.ToString();
-            std::string bodyStr = body.ToString();
-            mClient.print((headerStr + bodyStr).c_str());
-            unsigned long timeout = millis();
-        
-            while (mClient.available() == 0) 
-            {
-                if (millis() - timeout > 5000) 
-                {
-                    LOG_ERROR(logger,"Client Timeout !");
-                    return Status(Status::Code::BAD_TIMEOUT);
-                }
-            }
-
-            std::string result;
-            while (mClient.available())
-            {
-                result += mClient.read();
-            }
-
-            mResponseData.clear();
-            mResponseData.shrink_to_fit();
-
-            mResponseData = getHttpBody((result.c_str()));
-            LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
-            mClient.stop();
-        } 
-        else
-        {
-            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
 
+        Status ret = header.SetContentLength(strlen(body.ToString().c_str()));
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET CONTENT LENGTH: %s", body.ToString().c_str());
+            return ret;
+        }
+            
+        ret = header.SetContentType(body.GetContentType());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET CONTENT TYPE: %s", body.GetContentType());
+            return ret;
+        }
+        
+        mClient.print(header.ToString().c_str());
+        mClient.print(body.ToString().c_str());
+
+        if ((mRSC % 200) < 100)
+        {
+            File file = esp32FS.Open(mResponsePath, "w", true);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                goto TEARDOWN;
+            }
+
+            while (mClient.available() > 0)
+            {
+                file.write(mClient.read());
+            }
+            file.flush();
+            file.close();
+
+            file = esp32FS.Open(mResponsePath, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                esp32FS.Remove(mResponsePath);
+                goto TEARDOWN;
+            }
+
+            mContentLength = file.size();
+            file.close();
+            
+            ret = Status::Code::GOOD;
+            goto TEARDOWN;
+        }
+        else
+        {
+            if ((mRSC % 100) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 300) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 400) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 500) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+        }
+
+    TEARDOWN:
+        mClient.stop();
         return ret;
     }
 
     Status LwipHTTP::postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::GOOD);
-        if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
+        if (mClientSecure.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
-            header.UpdateParamter(parameter.ToString().c_str());
-            mClientSecure.print(header.ToString().c_str());
-
-            unsigned long timeout = millis();
-        
-            while (mClientSecure.available() == 0) 
-            {
-                if (millis() - timeout > 5000) 
-                {
-                    LOG_ERROR(logger,"Client Timeout !");
-                    return Status(Status::Code::BAD_TIMEOUT);
-                }
-            }
-
-            std::string result;
-            while (mClientSecure.available())
-            {
-                result += mClientSecure.read();
-            }
-
-            mResponseData.clear();
-            mResponseData.shrink_to_fit();
-
-            mResponseData = getHttpBody((result.c_str()));
-            LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
-            mClientSecure.stop();
-        }
-        else
-        {
-            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
+            LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
         }
 
+        Status ret = header.UpdateParamter(parameter.ToString().c_str());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE PARAMETER: %s", parameter.ToString().c_str());
+            return ret;
+        }
+        
+        mClientSecure.print(header.ToString().c_str());
+
+        mRSC = 0;
+        ret = processResponseHeader(timeout);
+        LOG_INFO(logger, "[POST] rsc: %u", mRSC);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "INVALID RESPONSE HEADER: %s", ret.c_str());
+            return ret;
+        }
+
+        if ((mRSC % 200) < 100)
+        {
+            File file = esp32FS.Open(mResponsePath, "w", true);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                goto TEARDOWN;
+            }
+
+            while (mClientSecure.available() > 0)
+            {
+                file.write(mClientSecure.read());
+            }
+            file.flush();
+            file.close();
+
+            file = esp32FS.Open(mResponsePath, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                esp32FS.Remove(mResponsePath);
+                goto TEARDOWN;
+            }
+
+            mContentLength = file.size();
+            file.close();
+            
+            ret = Status::Code::GOOD;
+            goto TEARDOWN;
+        }
+        else
+        {
+            if ((mRSC % 100) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 300) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 400) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 500) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+        }
+
+    TEARDOWN:
+        mClientSecure.stop();
         return ret;
     }
 
     Status LwipHTTP::postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
-        Status ret = Status(Status::Code::GOOD);
-        if (mClientSecure.connect(header.GetHost().c_str(),header.GetPort()))
+        if (mClientSecure.connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
-            header.SetContentLength(strlen(body.ToString().c_str()));
-            header.SetContentType(body.GetContentType());
-            std::string headerStr = header.ToString();
-            std::string bodyStr = body.ToString();
-            mClientSecure.print((headerStr + bodyStr).c_str());
-            unsigned long timeout = millis();
+            LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
+            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
+        }
+
+        Status ret = header.SetContentLength(strlen(body.ToString().c_str()));
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET CONTENT LENGTH: %s", body.ToString().c_str());
+            return ret;
+        }
+            
+        ret = header.SetContentType(body.GetContentType());
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET CONTENT TYPE: %s", body.GetContentType());
+            return ret;
+        }
         
-            while (mClientSecure.available() == 0) 
+        mClientSecure.print(header.ToString().c_str());
+        mClientSecure.print(body.ToString().c_str());
+
+        if ((mRSC % 200) < 100)
+        {
+            File file = esp32FS.Open(mResponsePath, "w", true);
+            if (file == false)
             {
-                if (millis() - timeout > 5000) 
-                {
-                    LOG_ERROR(logger,"Client Timeout !");
-                    return Status(Status::Code::BAD_TIMEOUT);
-                }
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                goto TEARDOWN;
             }
 
-            std::string result;
-            while (mClientSecure.available())
+            while (mClientSecure.available() > 0)
             {
-                result += mClientSecure.read();
+                file.write(mClientSecure.read());
+            }
+            file.flush();
+            file.close();
+
+            file = esp32FS.Open(mResponsePath, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
+                ret = Status::Code::BAD_DEVICE_FAILURE;
+                esp32FS.Remove(mResponsePath);
+                goto TEARDOWN;
             }
 
-            mResponseData.clear();
-            mResponseData.shrink_to_fit();
-
-            mResponseData = getHttpBody((result.c_str()));
-            LOG_WARNING(logger,"[body] : %s",mResponseData.c_str());
-            mClientSecure.stop();
+            mContentLength = file.size();
+            file.close();
+            
+            ret = Status::Code::GOOD;
+            goto TEARDOWN;
         }
         else
         {
-            LOG_ERROR(logger,"FAIL TO CONNECT SERVER");
-            return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
+            if ((mRSC % 100) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 300) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 400) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED CLIENT ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 500) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
+                goto TEARDOWN;
+            }
         }
-        
+
+    TEARDOWN:
+        mClientSecure.stop();
         return ret;
     }
-*/
 
     Status LwipHTTP::processResponseHeader(const uint16_t timeout)
     {
@@ -574,11 +783,13 @@ namespace muffin { namespace http {
         char line[size] = {0};
         uint8_t idx = 0;
 
+        WiFiClient* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? &mClient : &mClientSecure;
+
         while ((millis() - startedMillis) < (timeout * SECOND_IN_MILLIS))
         {
-            while (mClient.available() > 0)
+            while (client->available() > 0)
             {
-                const int value = mClient.read();
+                const int value = client->read();
                 if (value < 0)
                 {
                     LOG_ERROR(logger, "FAILED TO READ RxD");
@@ -624,86 +835,6 @@ namespace muffin { namespace http {
     END_OF_HEADER:
         return Status(Status::Code::GOOD);
     }
-
-/*
-    std::string LwipHTTP::getHttpBody(const std::string& payload) 
-    {
-        bool HeaderExist = false;
-        bool Chunked = false;
-        std::string header = "";
-        std::string body = "";
-
-        if (payload.find("HTTP") == 0) 
-        {
-            HeaderExist = true;
-        }
-
-        if (HeaderExist) 
-        {
-            size_t idx = payload.find("\r\n\r\n"); // header와 body를 나누는 부분
-            if (idx != std::string::npos) 
-            {
-                header = payload.substr(0, idx + 2);
-                body = payload.substr(idx + 4);
-
-                std::string key = "Transfer-Encoding";
-                size_t keyIndex = header.find(key);
-                if (keyIndex != std::string::npos) 
-                {
-                    size_t startIndex = header.find(": ", keyIndex);
-                    size_t stopIndex = header.find("\r\n", keyIndex);
-                    if (startIndex != std::string::npos && stopIndex != std::string::npos) 
-                    {
-                        if (header.substr(startIndex + 2, stopIndex - startIndex - 2).find("chunked") != std::string::npos) 
-                        {
-                            Chunked = true;
-                        }
-                    }
-                }
-            }
-        } 
-        else
-        {
-            body = payload;
-        }
-
-        if (Chunked || !HeaderExist) 
-        {
-            std::string decodedBody = "";
-            while (!body.empty()) 
-            {
-                // 청크 크기 추출
-                size_t chunkSizeEnd = body.find("\r\n");
-                if (chunkSizeEnd == std::string::npos) 
-                {
-                    break; // 잘못된 형식
-                }
-                std::string chunkSizeStr = body.substr(0, chunkSizeEnd);
-                int chunkSize = static_cast<int>(strtol(chunkSizeStr.c_str(), nullptr, 16));
-
-                if (chunkSize == 0) 
-                {
-                    break; // 마지막 청크
-                }
-
-                // 청크 데이터 추출
-                size_t chunkDataStart = chunkSizeEnd + 2; // "\r\n" 이후
-                size_t chunkDataEnd = chunkDataStart + chunkSize;
-                if (chunkDataEnd > body.size()) 
-                {
-                    break; // 잘못된 형식
-                }
-                decodedBody += body.substr(chunkDataStart, chunkSize);
-
-                // 다음 청크로 이동
-                body = body.substr(chunkDataEnd + 2); // "\r\n" 이후
-            }
-
-            body = decodedBody; // 디코딩된 바디로 대체
-        }
-        return body;
-    }
-*/
 
 
     LwipHTTP* lwipHTTP = nullptr;

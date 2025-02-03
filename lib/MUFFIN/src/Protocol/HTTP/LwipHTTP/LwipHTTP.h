@@ -45,11 +45,11 @@ namespace muffin { namespace http {
         int32_t RetrieveContentLength() const;
     private:
         Status getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        // Status getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        // Status postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
-        // Status postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
-        // Status postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
-        // Status postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        Status getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        Status postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
+        Status postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout = 60);
+        Status postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
+        Status postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout = 60);
     private:
         /**
          * @brief response header 정보를 추출합니다.
@@ -60,23 +60,22 @@ namespace muffin { namespace http {
          * @return Status 
          */
         Status processResponseHeader(const uint16_t timeout);
-        std::string getHttpBody(const std::string& payload);
     private:
         WiFiClient mClient;
         WiFiClientSecure mClientSecure;
     private:
         typedef enum class StatusFlagEnum : uint8_t
         {
-            HTTP    = 0,
-            HTTPS   = 1,
-            FLASH   = 2,
-            CLIENT  = 3,
+            HTTP    = 1,
+            HTTPS   = 2,
+            RSC_OK  = 3,
             TOP     = 4
         } flag_e;
         bitset<static_cast<uint8_t>(flag_e::TOP)> mFlags;
     private:
         const char* mResponsePath = "/http/response";
         uint16_t mRSC = 0;
+        size_t mFilePosition = 0;
         int32_t mContentLength = 0;
     };
 
