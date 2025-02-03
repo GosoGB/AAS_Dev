@@ -76,19 +76,45 @@ namespace muffin {
     {
         logger.Init();
         
-        // CommandLineInterface commandLineInterface;
-        // if (commandLineInterface.Init() == Status(Status::Code::GOOD))
-        // {
-        // #if defined(MODLINK_T2) || defined(MODLINK_B)
-        //     spear.Reset();
-        // #endif 
-        //     esp_restart();
-        // }
-        
+        CommandLineInterface commandLineInterface;
+        if (commandLineInterface.Init() == Status(Status::Code::GOOD))
+        {
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            spear.Reset();
+        #endif 
+            esp_restart();
+        }
+
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),
             FW_VERSION_ESP32.GetVersionCode());
+
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        const uint8_t MAX_TRIAL_COUNT = 3;
+        uint8_t trialCount = 0;
+
+        while (spear.Init() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART MEGA2560.");
+            spear.Reset();
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                break;
+            }
+            trialCount++;
+        }
+
+        if (spear.VersionEnquiryService() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
+        }
+
+        LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
+                FW_VERSION_MEGA2560.GetSemanticVersion(),
+                FW_VERSION_MEGA2560.GetVersionCode());
+        
+    #endif
 
         Status ret = esp32FS.Begin(false);
         if (ret != Status::Code::GOOD)

@@ -115,14 +115,6 @@ namespace muffin {
                 break;
             case jvs::cfg_key_e::RS485:
                 applyRS485CIN(pair.second);
-                /**
-                 * @todo 현재 MODLINK-L에서 해당 설정값을 제거하면 RTU 설정시 문제가 발생해서 주석처리 해주었음
-                 * 
-                 */
-                // for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                // {
-                //     delete *it;
-                // }
                 break;
             case jvs::cfg_key_e::PRODUCTION_INFO:
                 applyProductionInfoCIN(pair.second);
@@ -167,11 +159,6 @@ namespace muffin {
                 ASSERT(false, "UNIMPLEMENTED CONFIGURATION SERVICES");
                 break;
             }
-        }
-
-        for (auto& pair : *jarvis)
-        {
-            pair.second.clear();
         }
     }
 

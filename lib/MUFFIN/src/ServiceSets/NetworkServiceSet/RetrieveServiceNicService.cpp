@@ -26,17 +26,14 @@ namespace muffin {
     INetwork* RetrieveServiceNicService()
     {
         const jvs::snic_e snicType = jvs::config::operation.GetServerNIC().second;
-
         switch (snicType)
         {
         case jvs::snic_e::LTE_CatM1:
             return static_cast<INetwork*>(catM1);
-
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         case jvs::snic_e::Ethernet:
             return static_cast<INetwork*>(ethernet);
     #endif
-        
         default:
             ASSERT(false, "UNDEFINED SERVICE NETWORK TYPE: %u", static_cast<uint8_t>(snicType));
             return nullptr;

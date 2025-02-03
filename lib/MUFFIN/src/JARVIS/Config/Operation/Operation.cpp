@@ -64,6 +64,11 @@ namespace muffin { namespace jvs { namespace config {
 
     void Operation::SetServerNIC(const snic_e snic)
     {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::SERVICE_NIC)) == true)
+        {
+            return;
+        }
+        
         mServerNIC = snic;
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::SERVICE_NIC));
     }

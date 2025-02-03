@@ -847,6 +847,7 @@ namespace muffin { namespace http {
 
             file.write(client->read());
         }
+        file.write('\0');
         file.flush();
         file.close();
 

@@ -111,7 +111,6 @@ namespace muffin {
         {
             return Status(Status::Code::GOOD);
         }
-
         INetwork* snic = RetrieveServiceNicService();
         std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
