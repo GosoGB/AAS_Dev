@@ -271,8 +271,6 @@ namespace muffin { namespace mqtt {
         }
 
         std::string _payload(payload, payload + length);
-        // LOG_INFO(logger,"[Topic] %s\r\n[Payload] %s\r\n", topic, _payload.c_str());
-
         mqtt::Message message(retTopic.second, _payload);
         mqtt::cia.Store(message);
         return;

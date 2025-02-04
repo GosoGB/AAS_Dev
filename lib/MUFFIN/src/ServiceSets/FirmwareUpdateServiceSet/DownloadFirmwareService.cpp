@@ -27,6 +27,8 @@
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 
+TaskHandle_t sHandle = NULL;
+
 
 
 namespace muffin {
@@ -40,10 +42,24 @@ namespace muffin {
         void (*Callback)(Status status);
     } download_task_params;
 
+    download_task_params* sParams = nullptr;
+
    void implementService(void* pvParameters)
     {
         ASSERT((pvParameters != nullptr), "INPUT PARAMETERS CANNOT BE NULL");
-        download_task_params* params = static_cast<download_task_params*>(pvParameters);
+        download_task_params* sParams = static_cast<download_task_params*>(pvParameters);
+
+        Status ret(Status::Code::UNCERTAIN);
+        while (sParams->Info->Chunk.DownloadIDX < sParams->Info->Chunk.Count)
+        {
+            uint8_t* output = (uint8_t*)sParams->_MemoryPool->Allocate(sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
+            if (output == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FROM THE POOL. WILL TRY IN SHORTLY");
+                ret = Status::Code::BAD_OUT_OF_MEMORY;
+                goto TEARDOWN;
+            }
+            memset(output, 0, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
 
         #if defined(MODLINK_L)
             char userAgent[32] = "MODLINK-L/";
@@ -51,101 +67,96 @@ namespace muffin {
             char userAgent[32] = "MODLINK-T2/";
         #endif
 
-        Status ret(Status::Code::UNCERTAIN);
-        while (params->Info->Chunk.DownloadIDX < params->Info->Chunk.Count)
-        {
             http::RequestHeader header(
                 rest_method_e::GET,
-                params->Info->Head.API.Scheme,
-                params->Info->Head.API.Host,
-                params->Info->Head.API.Port,
+                sParams->Info->Head.API.Scheme,
+                sParams->Info->Head.API.Host,
+                sParams->Info->Head.API.Port,
                 "/firmware/file/download",
                 strcat(userAgent, FW_VERSION_ESP32.GetSemanticVersion())
             );
 
-            ASSERT((params->Info->Head.MCU == ota::mcu_e::MCU1 || params->Info->Head.MCU == ota::mcu_e::MCU2), "INVALID MCU TYPE");
-            const char* attributeVersionCode      = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.vc"        : "mcu2.vc";
-            const char* attributeSemanticVersion  = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.version"   : "mcu2.version";
-            const char* attributeFileNumber       = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.fileNo"    : "mcu2.fileNo";
-            const char* attributeFilePath         = params->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.filepath"  : "mcu2.filepath";
+            ASSERT((sParams->Info->Head.MCU == ota::mcu_e::MCU1 || sParams->Info->Head.MCU == ota::mcu_e::MCU2), "INVALID MCU TYPE");
+            const char* attributeVersionCode      = sParams->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.vc"        : "mcu2.vc";
+            const char* attributeSemanticVersion  = sParams->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.version"   : "mcu2.version";
+            const char* attributeFileNumber       = sParams->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.fileNo"    : "mcu2.fileNo";
+            const char* attributeFilePath         = sParams->Info->Head.MCU == ota::mcu_e::MCU1 ? "mcu1.filepath"  : "mcu2.filepath";
 
             http::RequestParameter parameters;
             parameters.Add("mac", macAddress.GetEthernet());
-            parameters.Add("otaId", std::to_string(params->Info->Head.ID));
-            parameters.Add(attributeVersionCode, std::to_string(params->Info->Head.VersionCode));
-            parameters.Add(attributeSemanticVersion, params->Info->Head.SemanticVersion);
-            parameters.Replace(attributeFileNumber, std::to_string(params->Info->Chunk.IndexArray[params->Info->Chunk.DownloadIDX]));
-            parameters.Replace(attributeFilePath, params->Info->Chunk.PathArray[params->Info->Chunk.DownloadIDX]);
+            parameters.Add("otaId", std::to_string(sParams->Info->Head.ID));
+            parameters.Add(attributeVersionCode, std::to_string(sParams->Info->Head.VersionCode));
+            parameters.Add(attributeSemanticVersion, sParams->Info->Head.SemanticVersion);
+            parameters.Replace(attributeFileNumber, std::to_string(sParams->Info->Chunk.IndexArray[sParams->Info->Chunk.DownloadIDX]));
+            parameters.Replace(attributeFilePath, sParams->Info->Chunk.PathArray[sParams->Info->Chunk.DownloadIDX]);
 
             INetwork* snic = RetrieveServiceNicService();
             const std::pair<Status, size_t> mutex = snic->TakeMutex();
             if (mutex.first.ToCode() != Status::Code::GOOD)
             {
+                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
                 LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
                 ret = mutex.first;
                 goto TEARDOWN;
             }
 
-            ret = httpClient->GET(mutex.second, header, parameters, 300);
+            ret = httpClient->GET(mutex.second, header, parameters, 60);
             if (ret != Status::Code::GOOD)
             {
+                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD: %s", ret.c_str());
                 snic->ReleaseMutex();
                 goto TEARDOWN;
             }
-
-            uint8_t* output = (uint8_t*)params->_MemoryPool->Allocate(params->Info->Size.Array[params->Info->Chunk.DownloadIDX]);
-            if (output == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
-                ret = Status::Code::BAD_OUT_OF_MEMORY;
-                goto TEARDOWN;                
-            }
             
-            ret = httpClient->Retrieve(mutex.second, params->Info->Size.Array[params->Info->Chunk.DownloadIDX], output);
+            ret = httpClient->Retrieve(mutex.second, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX], output);
             if (ret != Status::Code::GOOD)
             {
+                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
                 LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
                 snic->ReleaseMutex();
                 goto TEARDOWN;
             }
             snic->ReleaseMutex();
 
-            const uint32_t integerCRC32 = params->_CRC32->Calculate(params->Info->Size.Array[params->Info->Chunk.DownloadIDX], output);
+            const uint32_t integerCRC32 = sParams->_CRC32->Calculate(sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX], output);
             char calculatedCRC32[sizeof(ota::fw_cks_t::Array[0])] = {'\0'};
             snprintf(calculatedCRC32, sizeof(ota::fw_cks_t::Array[0]), "%08x", integerCRC32);
-            if (strcmp(calculatedCRC32, params->Info->Checksum.Array[params->Info->Chunk.DownloadIDX]) != 0)
+            if (strcmp(calculatedCRC32, sParams->Info->Checksum.Array[sParams->Info->Chunk.DownloadIDX]) != 0)
             {
-                LOG_ERROR(logger, "INVALID CRC32: %s != %s", calculatedCRC32, params->Info->Checksum.Array[params->Info->Chunk.DownloadIDX]);
-                LOG_ERROR(logger, "%s", reinterpret_cast<char*>(output));
+                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
+                LOG_ERROR(logger, "INVALID CRC32: %s != %s", calculatedCRC32, sParams->Info->Checksum.Array[sParams->Info->Chunk.DownloadIDX]);
                 ret = Status::Code::BAD_DATA_LOST;
                 goto TEARDOWN;
             }
             LOG_DEBUG(logger, "Downloaded: %s", calculatedCRC32);
             {
-                Status postResult = PostDownloadResult(*params->Info, "success");
-                if (postResult == Status::Code::GOOD)
-                {
-                    LOG_INFO(logger, "[POST] download result api: %s", postResult.c_str());
-                }
+                Status postResult = PostDownloadResult(*sParams->Info, "success");
+                LOG_INFO(logger, "[POST] download result api: %s", postResult.c_str());
             }
 
-            ASSERT((params->Queue != NULL), "INPUT PARAMETERS CANNOT BE NULL");
-            xQueueSend(params->Queue, output, UINT32_MAX);
-            ++params->Info->Chunk.DownloadIDX;
+            ASSERT((sParams->Queue != NULL), "INPUT PARAMETERS CANNOT BE NULL");
+            xQueueSend(sParams->Queue, (void*)&output, UINT32_MAX);
+            ++sParams->Info->Chunk.DownloadIDX;
         }
         LOG_INFO(logger, "Download finished");
         ret = Status::Code::GOOD;
     
     TEARDOWN:
-        params->Callback(ret);
-        vTaskDelete(NULL);
+        sParams->Callback(ret);
+        vTaskDelete(sHandle);
+        sHandle = NULL;
+        free(sParams);
     }
 
     Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue, MemoryPool* memoryPool, void (*callback)(Status status))
     {
+        if (sHandle != NULL)
+        {
+            return Status(Status::Code::GOOD);
+        }
+
         ASSERT((httpClient != nullptr), "HTTP CLIENT CANNOT BE NULL");
-        ASSERT((uxQueueMessagesWaiting(queue) == 0), "QUEUE MUST BE EMPTY");
 
         download_task_params* pvParameters = (download_task_params*)malloc(sizeof(download_task_params));
         if (pvParameters == nullptr)
@@ -166,7 +177,7 @@ namespace muffin {
             6*KILLOBYTE,          // Stack memory size to allocate
             pvParameters,	      // Task parameters to be passed to the function
             0,				      // Task Priority for scheduling
-            NULL,                 // The identifier of this task for machines
+            &sHandle,             // The identifier of this task for machines
             0				      // Index of MCU core where the function to run
         );
 
@@ -188,5 +199,12 @@ namespace muffin {
             LOG_ERROR(logger, "UNKNOWN ERROR: %u", taskCreationResult);
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
+    }
+
+    void StopDownloadFirmwareService()
+    {
+        vTaskDelete(sHandle);
+        sHandle = NULL;
+        free(sParams);
     }
 }

@@ -167,7 +167,7 @@ namespace muffin {
             }
 
             LOG_WARNING(logger, "[TRIAL: #%u] NTP SYNC WAS UNSUCCESSFUL: %s", trialCount, buffer);
-            vTaskDelay(10*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
         }
         
         LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER");

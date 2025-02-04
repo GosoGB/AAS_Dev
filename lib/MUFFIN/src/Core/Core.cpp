@@ -175,6 +175,11 @@ namespace muffin {
                 goto RETRY;
             }
 
+            if (initConfig.HasPendingUpdate == true)
+            {
+                break;
+            }
+
             ret = InitMqttClientService();
             if (ret != Status::Code::GOOD)
             {

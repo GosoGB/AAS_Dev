@@ -5,7 +5,7 @@
  * 
  * @brief 펌웨어를 업데이트하는 서비스를 선언합니다.
  * 
- * @date 2025-01-20
+ * @date 2025-02-04
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -25,6 +25,8 @@
 #include "IM/Custom/Constants.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "Network/CatM1/CatM1.h"
+#include "OTA/MEGA2560/HexParser.h"
+#include "OTA/MEGA2560/MEGA2560.h"
 #include "OTA/StrategyESP32/StrategyESP32.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/DownloadFirmwareService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/FetchFirmwareInfo.h"
@@ -34,12 +36,13 @@
 #include "Storage/ESP32FS/ESP32FS.h"
 
 static QueueHandle_t sQueueHandle;
+static TaskHandle_t sParsingTaskHandle;
 static muffin::MemoryPool* sMemoryPool;
 static const uint16_t BLOCK_SIZE = 10*muffin::KILLOBYTE;
 static uint8_t sTrialCount = 0;
 static const uint8_t MAX_QUEUE_LENGTH = 2;
 static const size_t  QUEUE_ITEM_SIZE  = sizeof(uint8_t*);
-    
+
 size_t muffin::ota::fw_head_t::ID = 0;
 muffin::ota::url_t muffin::ota::fw_head_t::API;
 
@@ -53,7 +56,8 @@ typedef enum class ServiceStatusEnum : uint8_t
     DOWNLOAD_FAILED     = 4,
     FLASHING_FAILED     = 5,
     TRY_DOWNLOAD_AGAIN  = 6,
-    TOP                 = 7
+    PARSING_CHUNK_FILE  = 7,
+    TOP                 = 8
 } srv_status_e;
 muffin::bitset<static_cast<uint8_t>(srv_status_e::TOP)> sServiceFlags;
 
@@ -63,6 +67,8 @@ namespace muffin {
 
     Status initializeService()
     {
+        memoryPool.~MemoryPool();
+
         if (jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
         {
             ASSERT((catM1 != nullptr), "CatM1 INSTANCE CANNOT BE NULL");
@@ -112,8 +118,11 @@ namespace muffin {
     {
         if (status != Status::Code::GOOD)
         {
+            LOG_INFO(logger, "Received download task callback: %s", status.c_str());
+
             if (sTrialCount == MAX_RETRY_COUNT)
             {
+                LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", status.c_str());
                 sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
                 sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
             }
@@ -121,6 +130,7 @@ namespace muffin {
             {
                 ++sTrialCount;
                 sServiceFlags.set(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
+                LOG_DEBUG(logger, "Set download task flag: \"TRY_DOWNLOAD_AGAIN\"");
             }
         }
         else
@@ -130,6 +140,7 @@ namespace muffin {
             sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
             sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
             sTrialCount = 0;
+            LOG_INFO(logger, "Download task has finished: %s", status.c_str());
         }
     }
 
@@ -149,6 +160,7 @@ namespace muffin {
         {
             if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
             {
+                LOG_INFO(logger, "Restart to download firmware");
                 ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
                 if (ret != Status::Code::GOOD)
                 {
@@ -160,7 +172,216 @@ namespace muffin {
             }
             else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
             {
-                ret = PostDownloadResult(info, "failure");
+                Status postResult = PostDownloadResult(info, "failure");
+                LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
+                ret = Status::Code::BAD_DATA_LOST;
+                return ret;
+            }
+            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
+            {
+                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
+                ret = validateTotalCRC32(info, crc32);
+                if (ret != Status::Code::GOOD)
+                {
+                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                    LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
+                    return ret;
+                }
+            }
+            else if (uxQueueMessagesWaiting(sQueueHandle) == 0 && sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false)
+            {
+                LOG_WARNING(logger, "NO CHUNK AVAILABLE: WILL WAIT FOR FEW SECONDS");
+                while (uxQueueMessagesWaiting(sQueueHandle) != (MAX_QUEUE_LENGTH - 1))
+                {
+                    vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                }
+            }
+            
+            uint8_t* buffer;
+            xQueueReceive(sQueueHandle, &buffer, static_cast<TickType_t>(SECOND_IN_MILLIS));
+            ret = strategy.Write(info.Size.Array[info.Chunk.FlashingIDX], buffer);
+            if (ret != Status::Code::GOOD)
+            {
+                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
+                LOG_ERROR(logger, "FAILED TO FLASH CHUNK");
+                return ret;
+            }
+
+            sMemoryPool->Deallocate(buffer, info.Size.Array[info.Chunk.FlashingIDX]);
+            ++info.Chunk.FlashingIDX;
+        }
+
+        const Status updateResult = strategy.TearDown();
+        if (updateResult.ToCode() != Status::Code::GOOD)
+        {
+            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
+            LOG_ERROR(logger, "FAILED TO UPDATE ESP32");
+            Status postResult = PostUpdateResult(info, "failure");
+            LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+            return updateResult;
+        }
+        
+        sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FINISHED));
+        LOG_INFO(logger, "Updated ESP32 successfully");
+        Status postResult = PostUpdateResult(info, "success");
+        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+        return ret;
+    }
+
+    Status waitTillPageParsed(const uint32_t delayMillis, const uint32_t address, ota::MEGA2560& mega2560)
+    {
+        const uint32_t startedMillis = millis();
+        const uint32_t pageSize = 256;
+
+    LOAD_FIRST_BYTE:
+        uint32_t currentAddress = 0;
+        Status ret = mega2560.LoadAddress(currentAddress);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO LOAD ADDRESS: %s", ret.c_str());
+            return ret;
+        }
+
+        while ((millis() - startedMillis) < delayMillis)
+        {
+            if (currentAddress == address)
+            {
+                goto LOAD_FIRST_BYTE;
+            }
+            
+            ota::page_t pageReadBack;
+            ret = mega2560.ReadFlashISP(pageSize, &pageReadBack);
+            currentAddress += pageSize;
+            vTaskDelay(200 / portTICK_PERIOD_MS);
+        }
+        
+        ret = mega2560.LoadAddress(address);
+        LOG_INFO(logger, "Loading address to %u: %s", address, ret.c_str());
+        return ret;
+    }
+
+    typedef struct ParsingTaskParameterType
+    {
+        ota::HexParser* Parser;
+        ota::fw_info_t* Info;
+    } parsing_task_params;
+
+    void parseChunkPage(void* pvParameters)
+    {
+        ASSERT((pvParameters != nullptr), "INPUT PARAMETERS CANNOT BE NULL");
+        parsing_task_params* params = static_cast<parsing_task_params*>(pvParameters);
+
+        while (uxQueueMessagesWaiting(sQueueHandle) > 0)
+        {
+            uint8_t* buffer;
+            xQueueReceive(sQueueHandle, &buffer, static_cast<TickType_t>(SECOND_IN_MILLIS));
+            std::string chunk(reinterpret_cast<char*>(buffer), params->Info->Size.Array[params->Info->Chunk.FlashingIDX]);
+            sMemoryPool->Deallocate(buffer, params->Info->Size.Array[params->Info->Chunk.FlashingIDX]);
+
+            Status ret = params->Parser->Parse(chunk);
+            if ((ret != Status::Code::GOOD) && (ret != Status::Code::GOOD_MORE_DATA))
+            {
+                LOG_ERROR(logger, "FAILED TO PARSE CHUNK: %s", ret.c_str());
+                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                break;
+            }
+            else
+            {
+                ++params->Info->Chunk.FlashingIDX;
+                vTaskDelay(5*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+            }
+        }
+        
+        free(params);
+        sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE));
+        vTaskDelete(sParsingTaskHandle);
+    }
+
+    Status startChunkPageParsing(ota::fw_info_t& info, ota::HexParser& parser)
+    {
+        if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE)) == true)
+        {
+            return Status(Status::Code::GOOD);
+        }
+        
+        sServiceFlags.set(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE));
+
+        parsing_task_params* pvParameters = (parsing_task_params*)malloc(sizeof(parsing_task_params));
+        if (pvParameters == nullptr)
+        {
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR TASK PARAMETERS");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+
+        pvParameters->Info    = &info;
+        pvParameters->Parser  = &parser;
+
+        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
+            parseChunkPage,       // Function to be run inside of the task
+            "parseChunkPage",     // The identifier of this task for men
+            3*KILLOBYTE,          // Stack memory size to allocate
+            pvParameters,	      // Task parameters to be passed to the function
+            0,				      // Task Priority for scheduling
+            &sParsingTaskHandle,  // The identifier of this task for machines
+            0				      // Index of MCU core where the function to run
+        );
+
+        switch (taskCreationResult)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "Parsing chunk task has been started");
+            return Status(Status::Code::GOOD);
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED WITHOUT SPECIFIC REASON");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %u", taskCreationResult);
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+    }
+
+    Status strategyMEGA2560(ota::fw_info_t& info, CRC32& crc32)
+    {
+        ota::MEGA2560 mega2560;
+        ota::HexParser hexParser;
+        size_t currentAddress = 0;
+        Status ret = mega2560.Init(info.Size.Total);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO UPDATE: FAILED TO INIT UPDATE FOR ATmega2560: %s", ret.c_str());
+            mega2560.TearDown();
+            Status postResult = PostUpdateResult(info, "failure");
+            LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+            return ret;
+        }
+
+        while (info.Chunk.FlashingIDX < info.Chunk.Count)
+        {
+            if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+            {
+                LOG_INFO(logger, "Restart to download firmware");
+                ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+                if (ret != Status::Code::GOOD)
+                {
+                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                    LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                    return ret;
+                }
+                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
+            }
+            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
+            {
+                Status postResult = PostDownloadResult(info, "failure");
+                LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
+                ret = Status::Code::BAD_DATA_LOST;
                 return ret;
             }
             else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
@@ -173,149 +394,106 @@ namespace muffin {
                     return ret;
                 }
             }
-            else if (sServiceFlags.test(static_cast<uint8_t>(uxQueueMessagesWaiting(sQueueHandle))) == 0 &&
-                     sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false)
+            else if (uxQueueMessagesWaiting(sQueueHandle) == 0 && sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false)
             {
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                continue;
+                LOG_WARNING(logger, "NO CHUNK AVAILABLE: WILL WAIT FOR FEW SECONDS");
+                while (uxQueueMessagesWaiting(sQueueHandle) == 0)
+                {
+                    ret = waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        LOG_ERROR(logger, "FAILED TO UPDATE: LOST CONNECTION TO THE FLASH ISP");
+                        mega2560.TearDown();
+                        Status postResult = PostUpdateResult(info, "failure");
+                        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                        return ret;
+                    }
+                }
             }
 
-            uint8_t* buffer;
-            xQueueReceive(sQueueHandle, &buffer, UINT32_MAX);
-            ret = strategy.Write(info.Size.Array[info.Chunk.FlashingIDX], buffer);
-            for (size_t i = 0; i < 100; i++)
-            {
-                Serial.print((char)buffer[i]);
-            }
-
+            ret = startChunkPageParsing(info, hexParser);
             if (ret != Status::Code::GOOD)
             {
-                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
-                LOG_ERROR(logger, "FAILED TO FLASH CHUNK");
+                LOG_ERROR(logger, "FAILED TO UPDATE: FAILED TO START PARSING HEX RECORDS: %s", ret.c_str());
+                mega2560.TearDown();
+                Status postResult = PostUpdateResult(info, "failure");
+                LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
                 return ret;
             }
-            
-            sMemoryPool->Deallocate(buffer, info.Size.Array[info.Chunk.FlashingIDX]);
-        }
+            vTaskDelay(100 / portTICK_PERIOD_MS);
 
-        ret = strategy.TearDown();
-        if (ret != Status::Code::GOOD)
-        {
-            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
-            LOG_ERROR(logger, "FAILED TO UPDATE ESP32");
-            PostUpdateResult(info, "failure");
-            return ret;
-        }
-        
-        sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FINISHED));
-        LOG_INFO(logger, "Updated ESP32 successfully");
-        PostUpdateResult(info, "success");
-        return ret;
-    }
-
-    Status strategyMEGA2560(ota::fw_info_t& info, CRC32& crc32)
-    {
-    /*
-        ota::HexParser hexParser;
-        size_t bytesRead = 0;
-        size_t maxBufferSize = 4 * 1024;
-        while (bytesRead < info.mcu2.FileTotalSize)
-        {
-            const size_t bytesRemained = info.mcu2.FileTotalSize - bytesRead;
-            const size_t bufferSize = bytesRemained > maxBufferSize ?  
-                maxBufferSize :
-                bytesRemained;
-            
-            uint8_t buffer[bufferSize] = { 0 };
-            Status ret = catFS->Read(bufferSize, buffer);
-            if (ret != Status::Code::GOOD)
+            if (hexParser.GetPageCount() > 0)
             {
-                LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
-                return false;
-            }
-            bytesRead += bufferSize;
+                ota::page_t page = hexParser.GetPage();
 
-            std::string chunk;
-            for (size_t i = 0; i < bufferSize; ++i)
-            {
-                chunk += buffer[i];
-            }
-            ret = hexParser.Parse(chunk);
-            if (ret != Status::Code::GOOD && ret != Status::Code::GOOD_MORE_DATA)
-            {
-                LOG_ERROR(logger, "FAILED TO PARSE HEX RECORDS FOR ATmega2560: %s", ret.c_str());
-                return false;
-            }
-            LOG_DEBUG(logger, "HEX Parser: %s", ret.c_str());
-        }
+                mega2560.LoadAddress(currentAddress);
+                mega2560.ProgramFlashISP(page);
 
-        ota::MEGA2560 mega2560;
-        size_t currentAddress = 0;
-        ret = mega2560.Init(info.mcu2.FileTotalSize);
-
-        while (hexParser.GetPageCount())
-        {
-            ota::page_t page = hexParser.GetPage();
-            LOG_DEBUG(muffin::logger, "Page Size: %u", page.Size);
-
-            mega2560.LoadAddress(currentAddress);
-            mega2560.ProgramFlashISP(page);
-
-            ota::page_t pageReadBack;
-            for (size_t i = 0; i < 5; i++)
-            {
-                Status ret = mega2560.LoadAddress(currentAddress);
-                if (ret != Status::Code::GOOD)
+                ota::page_t pageReadBack;
+                for (size_t i = 0; i < 5; ++i)
                 {
-                    continue;
+                    Status ret = mega2560.LoadAddress(currentAddress);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        continue;
+                    }
+                    
+                    ret = mega2560.ReadFlashISP(page.Size, &pageReadBack);
+                    if (ret == Status::Code::GOOD)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
                 
-                ret = mega2560.ReadFlashISP(page.Size, &pageReadBack);
-                if (ret == Status::Code::GOOD)
+                if (page.Size != pageReadBack.Size)
                 {
-                    break;
+                    LOG_ERROR(logger, "FAILED TO UPDATE: READ BACK PAGE SIZE DOES NOT MATCH: Target: %u, Actual: %u",
+                        page.Size, pageReadBack.Size);
+                        
+                    mega2560.TearDown();
+                    Status postResult = PostUpdateResult(info, "failure");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    return Status(Status::Code::BAD_DATA_LOST);
                 }
-                else
-                {
-                    continue;
-                }
-            }
-            
-            if (page.Size != pageReadBack.Size)
-            {
-                LOG_ERROR(logger, "READ BACK PAGE SIZE DOES NOT MATCH: Target: %u, Actual: %u",
-                    page.Size, pageReadBack.Size);
-                return false;
-            }
 
-            for (size_t i = 0; i < page.Size; ++i)
-            {
-                if (page.Data[i] != pageReadBack.Data[i])
+                for (size_t i = 0; i < page.Size; ++i)
                 {
-                    LOG_ERROR(logger, "WRITTEN DATA DOES NOT MATCH: Target: %u, Actual: %u",
-                        page.Data[i], pageReadBack.Data[i]);
-                    return false;
+                    if (page.Data[i] != pageReadBack.Data[i])
+                    {
+                        LOG_ERROR(logger, "FAILED TO UPDATE: WRITTEN DATA DOES NOT MATCH: Target: %u, Actual: %u",
+                            page.Data[i], pageReadBack.Data[i]);
+                        
+                        mega2560.TearDown();
+                        Status postResult = PostUpdateResult(info, "failure");
+                        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                        return Status(Status::Code::BAD_DATA_LOST);
+                    }
                 }
-            }
 
-            hexParser.RemovePage();
-            // @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.
-            currentAddress += page.Size / 2;
-            LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
+                hexParser.RemovePage();
+                /**
+                 * @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.
+                 * @details MODLINK-T2 내부의 ATmega2560 칩셋은 부트로더 내부에 
+                 *          AVRISP_2 프로그래머를 가지고 있습니다. AVRISP_2 워드
+                 *         주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가
+                 *         하나의 주소로 표현됩니다.
+                 */
+                currentAddress += page.Size / 2;
+                LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
+            }
         }
 
+        sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FINISHED));
         mega2560.LeaveProgrammingMode();
         mega2560.TearDown();
-        LOG_INFO(logger, "ATmega2560 firmware has been updated");
-        ret = catFS->Close();
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAIL TO CLOSE FILE FROM CATFS");
-            return false;
-        }
-        return true;
-    */
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        LOG_INFO(logger, "Updated ATmega2560 successfully");
+        Status postResult = PostUpdateResult(info, "success");
+        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+        return Status(Status::Code::GOOD);
     }
 
     Status FirmwareUpdateService()
@@ -327,6 +505,7 @@ namespace muffin {
             return ret;
         }
 
+        LOG_DEBUG(logger, "sizeof(ota::fw_info_t): %u", sizeof(ota::fw_info_t));
         ota::fw_info_t* esp32 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         ota::fw_info_t* mega2560 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         if (esp32 == nullptr || mega2560 == nullptr)
@@ -383,29 +562,31 @@ namespace muffin {
             ret = Status::Code::GOOD;
             return ret;
         }
-/**
- * @todo 호출자 내부에서 다른 모든 태스크를 죽여놓은 상태여야 함
- * @example StopAllTask();
- */
 
         CRC32 crc32;
         crc32.Init();
 
-        // if (mega2560->Head.HasNewFirmware == true)
-        // {
-        //     sServiceFlags.reset();
+        if (mega2560->Head.HasNewFirmware == true)
+        {
+            sServiceFlags.reset();
 
-        //     Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
-        //     if (ret != Status::Code::GOOD)
-        //     {
-        //         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-        //         LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
-        //         return ret;
-        //     }
-        //     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
-        //     LOG_INFO(logger, "Start to download firmware for ATmega2560");
-        //     strategyMEGA2560(*mega2560, crc32);
-        // }
+            Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+            if (ret != Status::Code::GOOD)
+            {
+                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                return ret;
+            }
+            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
+            LOG_INFO(logger, "Start to download firmware for ATmega2560");
+            ret = strategyMEGA2560(*mega2560, crc32);
+            LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
+            if (ret != Status::Code::GOOD)
+            {
+                StopDownloadFirmwareService();
+                sMemoryPool->Reset();
+            }
+        }
     
         if (esp32->Head.HasNewFirmware == true)
         {
@@ -420,19 +601,15 @@ namespace muffin {
             }
             sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
             LOG_INFO(logger, "Start to download firmware for ESP32");
-            strategyESP32(*esp32, crc32);
+            ret = strategyESP32(*esp32, crc32);
+            LOG_INFO(logger, "Update Result for ESP32: %s", ret.c_str());
+            if (ret != Status::Code::GOOD)
+            {
+                StopDownloadFirmwareService();
+                sMemoryPool->Reset();
+            }
         }
 
-/**
- * @todo 호출자 내부에서 아래 함수 호출 필요함
- * @code {.cxx}
- * #if defined(MODLINK_T2) || defined(MODLINK_B)
- *     spear.Reset();
- * #endif
- *     ESP.restart();
- * @endcode
- */
-        ret = Status::Code::GOOD;
         return ret;
     }
 }

@@ -47,8 +47,8 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
 
-        const float progress = static_cast<float>(Update.progress()) / static_cast<float>(Update.progress());
-        LOG_INFO(logger, "Progress: %.2f%", progress);
+        const float progress = static_cast<float>(Update.progress()) / static_cast<float>(Update.size());
+        LOG_INFO(logger, "Progress: %.2f%%", 100.0f * progress);
 
         const uint8_t errorCode = Update.getError();
         return processErrorCode(errorCode);

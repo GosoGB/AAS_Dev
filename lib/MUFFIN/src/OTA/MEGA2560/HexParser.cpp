@@ -32,7 +32,7 @@ namespace muffin { namespace ota {
     Status HexParser::Parse(const std::string& chunk)
     {
         mReceivedData.append(chunk);
-        LOG_DEBUG(logger, "mReceivedData: %s", mReceivedData.c_str());
+        // LOG_DEBUG(logger, "mReceivedData: %s", mReceivedData.c_str());
 
         try
         {
@@ -43,20 +43,20 @@ namespace muffin { namespace ota {
                 {
                     if ((mReceivedData.length() < 12) && (mReceivedData == ":00000001FF"))
                     {
-                        LOG_DEBUG(logger, "Received the EOF record: %s", mReceivedData.c_str());
+                        // LOG_DEBUG(logger, "Received the EOF record: %s", mReceivedData.c_str());
                         mHexRecords.emplace_back(mReceivedData);
                         mReceivedData.clear();
                         break;
                     }
                     else
                     {
-                        LOG_DEBUG(logger, "Insufficient Line: %s", mReceivedData.c_str());
+                        // LOG_DEBUG(logger, "Insufficient Line: %s", mReceivedData.c_str());
                         break;
                     }
                 }
                 
                 const std::string line = mReceivedData.substr(0, pos);
-                LOG_DEBUG(logger, "Line: %s", line.c_str());
+                // LOG_DEBUG(logger, "Line: %s", line.c_str());
                 mHexRecords.emplace_back(line);
                 mReceivedData.erase(0, pos + CR_LF_LENGTH);
             }
@@ -82,7 +82,7 @@ namespace muffin { namespace ota {
         {
             if ((it->length() < 12) && (it->find(":00000001FF") != std::string::npos))
             {
-                LOG_DEBUG(logger, "Received the EOF record");
+                // LOG_DEBUG(logger, "Received the EOF record");
                 if (page.Size % PAGE_SIZE != 0)
                 {
                     for (uint16_t i = page.Size; i < PAGE_SIZE; ++i)
@@ -90,22 +90,22 @@ namespace muffin { namespace ota {
                         page.Data[i] = 0xFF;
                         ++page.Size;
                     }
-                    LOG_DEBUG(logger, "Paddings embedded to the page");
+                    // LOG_DEBUG(logger, "Paddings embedded to the page");
                 }
                 mPages.emplace_back(page);
-                LOG_DEBUG(logger, "Record Size: %u", mHexRecords.size());
-                LOG_DEBUG(logger, "EOF Record: %s", mHexRecords.front().c_str());
+                // LOG_DEBUG(logger, "Record Size: %u", mHexRecords.size());
+                // LOG_DEBUG(logger, "EOF Record: %s", mHexRecords.front().c_str());
                 
                 page.Size = 0;
                 mHexRecords.erase(mHexRecords.begin(), it);
                 break;
             }
 
-            LOG_DEBUG(logger, "HEX Record: %s", it->c_str());
+            // LOG_DEBUG(logger, "HEX Record: %s", it->c_str());
             const uint8_t endIndex = it->length() - CHECKSUM_CHAR_LENGTH;
             const uint8_t length = endIndex - START_INDEX;
             std::string parsedData = it->substr(START_INDEX, length);
-            LOG_DEBUG(logger, "Parsed Data: %s", parsedData.c_str());
+            // LOG_DEBUG(logger, "Parsed Data: %s", parsedData.c_str());
 
             for (uint16_t i = 0; i < length; i += 2)
             {
@@ -113,9 +113,9 @@ namespace muffin { namespace ota {
                 if (page.Size % PAGE_SIZE == 0)
                 {
                     mPages.emplace_back(page);
-                    LOG_DEBUG(logger, "Emplaced a new page: %u pages", mPages.size());
-                    LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
-                    LOG_DEBUG(logger, "remained: %u", ESP.getFreeHeap());
+                    // LOG_DEBUG(logger, "Emplaced a new page: %u pages", mPages.size());
+                    // LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
+                    // LOG_DEBUG(logger, "remained: %u", ESP.getFreeHeap());
 
                     if (std::next(it) == mHexRecords.end())
                     {
@@ -126,7 +126,7 @@ namespace muffin { namespace ota {
                         it = mHexRecords.erase(mHexRecords.begin(), std::next(it));
                         it = std::prev(it);
                     }
-                    LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
+                    // LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
                     page.Size = 0;
                 }
             }
@@ -136,12 +136,12 @@ namespace muffin { namespace ota {
                 return Status(Status::Code::GOOD_MORE_DATA);
             }
         }
-        LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
-        LOG_DEBUG(logger, "mPages: %u", mPages.size());
+        // LOG_DEBUG(logger, "mHexRecords: %u", mHexRecords.size());
+        // LOG_DEBUG(logger, "mPages: %u", mPages.size());
 
         if (page.Size != 0)
         {
-            LOG_DEBUG(logger, "Insufficient records to make a new page");
+            // LOG_DEBUG(logger, "Insufficient records to make a new page");
             return Status(Status::Code::GOOD_MORE_DATA);
         }
         else
@@ -158,7 +158,7 @@ namespace muffin { namespace ota {
     page_t HexParser::GetPage()
     {
         page_t page = mPages.front();
-        LOG_DEBUG(logger, "Size: %u", page.Size)
+        // LOG_DEBUG(logger, "Size: %u", page.Size)
         return page;
     }
 

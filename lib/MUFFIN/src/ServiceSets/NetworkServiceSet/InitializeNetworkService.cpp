@@ -207,9 +207,15 @@ namespace muffin {
         }
         LOG_INFO(logger,"Ethernet has connected");
         
+        const uint32_t startedMillis = millis();
         do
         {
             ret = ethernet->SyncNTP();
+            if ((millis() - startedMillis) > 10*SECOND_IN_MILLIS)
+            {
+                LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER. DEVICE WILL BE RESTARTED");
+                esp_restart();
+            }
         } while (ret != Status::Code::GOOD);
         LOG_INFO(logger, "Synchronized with NTP server");
 

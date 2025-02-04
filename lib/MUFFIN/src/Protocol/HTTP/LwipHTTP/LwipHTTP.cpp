@@ -202,8 +202,6 @@ namespace muffin { namespace http {
             LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
-        LOG_DEBUG(logger, "File Size: %u", file.size());
-        delay(10000);
 
         if (mFilePosition > 0)
         {
@@ -336,6 +334,7 @@ namespace muffin { namespace http {
         }
 
         mClientSecure.print(header.ToString().c_str());
+        mClientSecure.flush();
 
         mRSC = 0;
         mContentLength = 0;
@@ -799,6 +798,11 @@ namespace muffin { namespace http {
             idx = 0;
         }
 
+        if (mRSC == 0)
+        {
+            return Status(Status::Code::BAD_NO_DATA);
+        }
+
     END_OF_HEADER:
         return Status(Status::Code::GOOD);
     }
@@ -816,27 +820,29 @@ namespace muffin { namespace http {
         }
         
         if (mFlags.test(static_cast<uint8_t>(flag_e::OCTET)) == false)
-        {   
+        {
             while (client->available() > 0)
             {
-                LOG_DEBUG(logger, "Peek: %02X", client->peek());
                 if (client->peek() == '\n')
                 {
                     client->read();
                     break;
                 }
+                
+                client->read();
             }
         }
 
         while (client->available() > 0)
         {
-            LOG_DEBUG(logger, "Peek: %02X", client->peek());
-
-            if ((client->available() == 1) && (client->peek() == '0'))
+            if (mFlags.test(static_cast<uint8_t>(flag_e::OCTET)) == false)
             {
-                client->read();
-                file.write(0);
-                break;
+                if ((client->available() == 1) && (client->peek() == '0'))
+                {
+                    client->read();
+                    file.write(0);
+                    break;
+                }
             }
 
             file.write(client->read());

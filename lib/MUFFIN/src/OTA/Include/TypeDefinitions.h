@@ -53,20 +53,20 @@ namespace muffin { namespace ota {
         uint8_t Count;
         uint8_t FlashingIDX;
         uint8_t DownloadIDX;
-        uint8_t IndexArray[28];
-        char PathArray[28][36];
+        uint8_t IndexArray[192];
+        char PathArray[192][64];
     } chk_head_t;
     
     typedef struct FirmwareChecksumInfoType
     {
         char Total[9];
-        char Array[28][9];
+        char Array[192][9];
     } fw_cks_t;
 
     typedef struct FirmwareSizeInfoType
     {
         size_t Total;
-        size_t Array[28];
+        size_t Array[192];
     } fw_size_t;
 
     typedef struct FirmwareInfoType
