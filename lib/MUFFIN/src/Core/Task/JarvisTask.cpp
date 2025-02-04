@@ -83,7 +83,7 @@ namespace muffin {
                 break;
             }
         }
-
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
@@ -92,6 +92,7 @@ namespace muffin {
                 InitEthernetService();
             }
         }
+    #endif
 
         for (auto& pair : *jarvis)
         {

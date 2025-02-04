@@ -75,52 +75,49 @@ namespace muffin {
     void Core::Init()
     {
         logger.Init();
-        
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        
             spear.Reset();
-        #endif 
             esp_restart();
         }
-
+    #endif 
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),
             FW_VERSION_ESP32.GetVersionCode());
 
-#if !defined(DEBUG)
-    #if defined(MODLINK_T2)
-    {
-        uint8_t trialCount = 0;    
-        while (spear.Init() != Status::Code::GOOD)
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
         {
-            if (trialCount == MAX_RETRY_COUNT)
+            uint8_t trialCount = 0;    
+            while (spear.Init() != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO GET SIGN-ON REQUEST FROM ATmega2560");
+                if (trialCount == MAX_RETRY_COUNT)
+                {
+                    LOG_ERROR(logger, "FAILED TO GET SIGN-ON REQUEST FROM ATmega2560");
+                    goto SPEAR_FAILED;
+                }
+                spear.Reset();
+                ++trialCount;
+            }
+            
+            if (spear.VersionEnquiryService() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO QUERY VERSION OF THE ATmega2560");
                 goto SPEAR_FAILED;
             }
-            spear.Reset();
-            ++trialCount;
+            goto SPEAR_SUCCEDED;
+            
+        SPEAR_FAILED:
+            LOG_ERROR(logger, "FAILED TO INITIALIZE SPEAR");
+        SPEAR_SUCCEDED:
+            LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
+                FW_VERSION_MEGA2560.GetSemanticVersion(),
+                FW_VERSION_MEGA2560.GetVersionCode());
         }
-        
-        if (spear.VersionEnquiryService() != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO QUERY VERSION OF THE ATmega2560");
-            goto SPEAR_FAILED;
-        }
-        goto SPEAR_SUCCEDED;
-        
-    SPEAR_FAILED:
-        LOG_ERROR(logger, "FAILED TO INITIALIZE SPEAR");
-    SPEAR_SUCCEDED:
-        LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
-            FW_VERSION_MEGA2560.GetSemanticVersion(),
-            FW_VERSION_MEGA2560.GetVersionCode());
-    }
     #endif
-#endif
 
         Status ret = esp32FS.Begin(false);
         if (ret != Status::Code::GOOD)
@@ -494,14 +491,6 @@ namespace muffin {
         file.readBytes(readback, size);
         file.close();
 
-        Serial.println("buffer : ");
-        Serial.print(buffer);
-
-        Serial.println("\n\nreadback : ");
-        Serial.println(readback);
-
-        LOG_INFO(logger, "buffer : %d, readback : %d" , sizeof(buffer), sizeof(readback))
-
         if (strcmp(buffer, readback) != 0)
         {
             esp32FS.Remove(JARVIS_PATH);
@@ -531,25 +520,6 @@ namespace muffin {
             esp32FS.Remove(JARVIS_PATH);
             return ret;
         }
-
-    // #if defined(DEBUG)
-    //     doc["cnt"].remove("catm1");
-    //     doc["cnt"]["catm1"].to<JsonArray>();
-    //     JsonObject eth = doc["cnt"]["eth"].add<JsonObject>();
-    //     eth["dhcp"]  = true;
-    //     eth["ip"]    = NULL;
-    //     eth["snm"]   = NULL;
-    //     eth["gtw"]   = NULL;
-    //     eth["dns1"]  = NULL;
-    //     eth["dns2"]  = NULL;
-    //     JsonObject op = doc["cnt"]["op"][0].as<JsonObject>();
-    //     op["snic"] = "eth";
-    // #else
-    // -------------------------------------------------------------------
-    // |  @todo #1  이더넷 테스트를 위해 DEBUG 플래그 안의 코드를 만들었음   |
-    // |  @todo #2  릴리즈fmf 할 때는 반드시 지우고 펌웨어를 출고시켜야 함   |
-    // -------------------------------------------------------------------
-    // #endif
         
         jarvis = new(std::nothrow) JARVIS();
         if (jarvis == nullptr)

@@ -47,6 +47,22 @@ namespace muffin {
 
         if (pf.isKey(key) == false)
         {
+            if (LittleFS.begin(false) == true)
+            {
+                if (LittleFS.exists(JARVIS_PATH) == true)
+                {
+                    std::cout << "\033[34mFirst System Boot Detected. but JARVIS File already exists." << std::endl;
+                    pf.putBool(key, false);
+                    if (pf.getBool(key, true) == true)
+                    {
+                        std::cerr << "\n\n\033[31mFAILED TO UPDATE FIRST SYSTEM BOOT INFO" << std::endl;
+                        pf.clear();
+                        std::abort();
+                    }
+                    return;
+                }
+            }
+
             std::cout << "\033[34mFirst System Boot Detected. Formatting flash memory" << std::endl;
 
             const char* partitionLabel = "spiffs";
@@ -67,6 +83,7 @@ namespace muffin {
             std::cout << "\033[34mESP32 FS has been formatted \n\n \033[0m" << std::endl;
             vTaskDelay(100);
         }
+
     }
 
     Status ESP32FS::Begin(const bool formatOnFail, const char* basePath, const uint8_t maxOpenFiles, const char* partitionLabel)
@@ -131,10 +148,12 @@ namespace muffin {
     {
         if (LittleFS.exists(path) == true)
         {
+            LOG_INFO(logger,"exists!, %s",path);
             return Status(Status::Code::GOOD);
         }
         else
         {
+            LOG_INFO(logger,"not exists!, %s",path);
             return Status(Status::Code::BAD_NOT_FOUND);
         }
     }

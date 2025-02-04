@@ -27,7 +27,7 @@
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
-
+#include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 
 #include "JARVIS/JARVIS.h"
 #include "JARVIS/Config/Interfaces/Rs485.h"
