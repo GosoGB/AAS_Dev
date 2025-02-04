@@ -757,6 +757,65 @@ namespace muffin {
         }
     }
 
+    Status CatM1::GetSignalQuality(catm1_report_t* _struct)
+    {
+        const std::string command = "AT+QCSQ";
+        const std::string expected = "OK";
+        const uint32_t timeoutMillis = 300;
+        const uint32_t startMillis = millis();
+        std::string rxd;
+
+        Status ret = mProcessor.Write(command);
+        if (ret == Status::Code::BAD_TOO_MANY_OPERATIONS)
+        {
+            LOG_WARNING(logger, "THE MODEM IS BUSY. TRY LATER");
+            return ret;
+        }
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (mProcessor.GetAvailableBytes() > 0)
+            {
+                rxd += mProcessor.Read();
+            }
+            
+            if (rxd.find(expected) != std::string::npos)
+            {
+                goto FOUND_EXPECTED_RESPONSE;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        return Status(Status::Code::BAD_NO_COMMUNICATION);
+
+    FOUND_EXPECTED_RESPONSE:
+        LOG_INFO(logger,"RXD : %s",rxd.c_str());
+
+        size_t idxRSSI = rxd.find(",") + 1;
+        size_t idxRSRP = rxd.find(",", idxRSSI) + 1;
+        size_t idxSINR = rxd.find(",", idxRSRP) + 1;
+        size_t idxRSRQ = rxd.find(",", idxSINR) + 1;
+
+        if ( idxRSSI == 0 || idxRSRP == 0 || idxSINR == 0 || idxRSRQ == 0 )
+        {
+            LOG_ERROR(logger,"Failed to get signal quality report due to invalid response \n");
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        _struct->RSSI = std::stoi(rxd.substr(idxRSSI, idxRSRP - idxRSSI - 1));
+        _struct->RSRP = std::stoi(rxd.substr(idxRSRP, idxSINR - idxRSRP - 1));
+        _struct->SINR = std::stoi(rxd.substr(idxSINR, idxRSRQ - idxSINR - 1));
+        _struct->SINR = 0.2 * _struct->SINR - 20;
+        _struct->RSRQ = std::stoi(rxd.substr(idxRSRQ));
+        LOG_ERROR(logger,"RSSI:%d dBm   RSRP:%d dBm   SINR:%d dB   RSRQ:%d dB  \n", 
+        _struct->RSSI, _struct->RSRP, _struct->SINR, _struct->RSRQ);
+
+        return Status(Status::Code::GOOD);
+    }
+
 
     CatM1* catM1 = nullptr;
 }

@@ -64,6 +64,7 @@
 #include "ServiceSets/MqttServiceSet/MqttTaskService.h"
 
 #include "CLI/CLI.h"
+#include "Network/CatM1/CatM1.h"
 
 
 namespace muffin {
@@ -304,6 +305,13 @@ namespace muffin {
             spear.Reset();
         #endif 
             esp_restart();
+        }
+
+        while (true)
+        {
+            catm1_report_t sig;
+            catM1->GetSignalQuality(&sig);
+            delay(5000);
         }
 
         ApplyJarvisTask();

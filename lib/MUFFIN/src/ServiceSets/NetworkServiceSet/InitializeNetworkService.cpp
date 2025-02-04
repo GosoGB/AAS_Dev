@@ -157,6 +157,7 @@ namespace muffin {
         LOG_INFO(logger, "Synchronized with NTP server");
         
         LOG_INFO(logger,"Initialized CatM1 interface");
+        
         return ret;
     }
 

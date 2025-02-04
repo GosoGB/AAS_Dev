@@ -28,6 +28,7 @@
 #include "JARVIS/Config/Network/CatM1.h"
 #include "Network/CatM1/Processor.h"
 #include "Network/INetwork.h"
+#include "IM/Custom/Device/DeviceStatus.h"
 
 
 
@@ -94,6 +95,7 @@ namespace muffin {
         size_t GetAvailableBytes();
         int16_t Read();
         std::string ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd);
+        Status GetSignalQuality(catm1_report_t* _struct);
     private:
         Status isModemAvailable();
         Status checkOperator();
