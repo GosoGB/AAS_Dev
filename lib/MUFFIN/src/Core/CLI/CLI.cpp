@@ -105,17 +105,12 @@ namespace muffin {
         }
         else
         {
+            mJarvisJson.clear();
+            mJarvisJson.shrinkToFit();
+            
             JSON json;
             File file = esp32FS.Open(JARVIS_PATH, "r", false);
-            const size_t size = file.size();
-            char buffer[size + 1] = {'\0'};
-            for (size_t idx = 0; idx < size; ++idx)
-            {
-                buffer[idx] = file.read();
-            }
-            file.close();
-
-            ret = json.Deserialize(buffer, &mJarvisJson);
+            ret = json.Deserialize(file, &mJarvisJson);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DESERIALIZE: %s", ret.c_str());
@@ -288,6 +283,8 @@ namespace muffin {
 
         JsonObject op = cnt["op"][0].as<JsonObject>();
         op["snic"] = "eth";
+
+        cnt.remove("eth");
         JsonArray ethObj = cnt["eth"].to<JsonArray>();
         JsonObject _eth = ethObj.add<JsonObject>();
 
@@ -408,18 +405,8 @@ namespace muffin {
 
     Status CommandLineInterface::saveJarvisJson()
     {
-        const size_t size = measureJson(mJarvisJson) + 1;
-        char buffer[size] = {'\0'};
-        serializeJson(mJarvisJson, buffer, size);
-
         File file = esp32FS.Open(JARVIS_PATH, "w", true);
-        if (file == false)
-        {
-            LOG_ERROR(logger, "FAILED TO OPEN JARVIS DIRECTORY");
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
-        file.write(reinterpret_cast<uint8_t*>(buffer), size);
-        file.flush();
+        serializeJson(mJarvisJson, file);
         file.close();
 
         Serial.print("\r\n설정이 모두 저장되었습니다. 디바이스 재부팅을 진행하겠습니다. \r\n\r\n\r\n");

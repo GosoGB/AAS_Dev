@@ -19,6 +19,7 @@
 #include "Common/Time/TimeUtils.h"
 #include "DeprecableAlarm.h"
 #include "Protocol/MQTT/CDO.h"
+#include "IM/Custom/Constants.h"
 
 #include "Common/Convert/ConvertClass.h"
 
@@ -808,31 +809,24 @@ namespace muffin {
 
     void AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)
     {
-        fs::File file = esp32FS.Open("/jarvis/config.json");
-        std::string payload;
-        std::string resultPayload;
-        while (file.available() > 0)
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
         {
-            payload += file.read();
+            return;
         }
-
-        file.close();
-
+        
         JSON json;
         JsonDocument doc;
-        json.Deserialize(payload, &doc);
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
         JsonArray alarms = doc["cnt"]["alarm"];
         for (JsonObject alarm : alarms)
         {
             if (alarm["nodeId"].as<std::string>() == nodeid)
             {
                 alarm["ucl"] = ucl;
-                serializeJson(doc, resultPayload);
-                file = esp32FS.Open("/jarvis/config.json", "w", true);
-                for (size_t i = 0; i < resultPayload.length(); ++i)
-                {
-                    file.write(resultPayload[i]);
-                }
+                file = esp32FS.Open(JARVIS_PATH, "w", true);
+                serializeJson(doc, file);
                 file.close();
             }
         }
@@ -840,32 +834,28 @@ namespace muffin {
 
     void AlarmMonitor::updateFlashLclValue(std::string nodeid, float lcl)
     {
-        fs::File file = esp32FS.Open("/jarvis/config.json");
-        std::string payload;
-        std::string resultPayload;
-        while (file.available() > 0)
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
         {
-            payload += file.read();
+            return;
         }
-        file.close();
-
+        
         JSON json;
         JsonDocument doc;
-        json.Deserialize(payload, &doc);
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
+        LOG_WARNING(logger, "[BEFORE] Remained Heap: %u Bytes", ESP.getFreeHeap());
         JsonArray alarms = doc["cnt"]["alarm"];
         for (JsonObject alarm : alarms)
         {
             if (alarm["nodeId"].as<std::string>() == nodeid)
             {
                 alarm["lcl"] = lcl;
-                serializeJson(doc, resultPayload);
-
-                file = esp32FS.Open("/jarvis/config.json", "w", true);
-                for (size_t i = 0; i < resultPayload.length(); ++i)
-                {
-                    file.write(resultPayload[i]);
-                }
+      
+                file = esp32FS.Open(JARVIS_PATH, "w", true);
+                serializeJson(doc, file);
                 file.close();
+                LOG_WARNING(logger, "[AFTER] Remained Heap: %u Bytes", ESP.getFreeHeap());
             }
         }
     }

@@ -95,7 +95,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    const std::regex pattern("^P\\d{3}$");
+                    const std::regex pattern("^P[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
                     return std::regex_match(lclUID, pattern);
                 }()
             ), "INVALID LCL UID: %s", lclUID.c_str()
@@ -111,7 +111,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    const std::regex pattern("^A\\d{3}$");
+                    const std::regex pattern("^A[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
                     return std::regex_match(lclAlarmUID, pattern);
                 }()
             ), "INVALID LCL UID: %s", lclAlarmUID.c_str()
@@ -133,7 +133,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    const std::regex pattern("^P\\d{3}$");
+                    const std::regex pattern("^P[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
                     return std::regex_match(uclUID, pattern);
                 }()
             ), "INVALID UCL UID: %s", uclUID.c_str()
@@ -149,7 +149,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    const std::regex pattern("^A\\d{3}$");
+                    const std::regex pattern("^A[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
                     return std::regex_match(uclAlarmUID, pattern);
                 }()
             ), "INVALID LCL ALARM UID: %s", uclAlarmUID.c_str()

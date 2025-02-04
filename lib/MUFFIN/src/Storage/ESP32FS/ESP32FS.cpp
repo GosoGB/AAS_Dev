@@ -148,12 +148,10 @@ namespace muffin {
     {
         if (LittleFS.exists(path) == true)
         {
-            LOG_INFO(logger,"exists!, %s",path);
             return Status(Status::Code::GOOD);
         }
         else
         {
-            LOG_INFO(logger,"not exists!, %s",path);
             return Status(Status::Code::BAD_NOT_FOUND);
         }
     }

@@ -79,7 +79,6 @@ namespace muffin {
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
-        
             spear.Reset();
             esp_restart();
         }
