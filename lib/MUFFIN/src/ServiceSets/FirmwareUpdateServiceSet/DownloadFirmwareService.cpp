@@ -19,6 +19,7 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Core/MemoryPool/MemoryPool.h"
+#include "DataFormat/CSV/CSV.h"
 #include "DownloadFirmwareService.h"
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
@@ -44,14 +45,14 @@ namespace muffin {
 
     download_task_params* sParams = nullptr;
 
-   void implementService(void* pvParameters)
+    void implementService(void* pvParameters)
     {
         ASSERT((pvParameters != nullptr), "INPUT PARAMETERS CANNOT BE NULL");
         download_task_params* sParams = static_cast<download_task_params*>(pvParameters);
 
         Status ret(Status::Code::UNCERTAIN);
         while (sParams->Info->Chunk.DownloadIDX < sParams->Info->Chunk.Count)
-        {
+        {   
             uint8_t* output = (uint8_t*)sParams->_MemoryPool->Allocate(sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
             if (output == nullptr)
             {

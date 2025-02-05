@@ -20,8 +20,11 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Common/Logger/Logger.h"
 #include "DataFormat/JSON/JSON.h"
+#include "DataFormat/CSV/CSV.h"
+#include "IM/Custom/Constants.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
+#include "Storage/ESP32FS/ESP32FS.h"
 
 
 
@@ -185,14 +188,16 @@ namespace muffin {
         output->Head.MCU = mcuType;
         output->Head.HasNewFirmware = true;
         output->Head.VersionCode = json["vc"].as<uint16_t>();
+        output->TotalSize = json["fileTotalSize"].as<uint64_t>();
         strncpy(output->Head.SemanticVersion, json["version"].as<const char*>(), sizeof(ota::fw_head_t::SemanticVersion));
-        output->Size.Total = json["fileTotalSize"].as<uint64_t>();
-        strncpy(output->Checksum.Total, json["checksum"].as<const char*>(), sizeof(ota::fw_cks_t::Total));
+        strncpy(output->TotalChecksum, json["checksum"].as<const char*>(), sizeof(ota::fw_info_t::TotalChecksum));
 
+    #if defined(DEBUG)
         LOG_INFO(logger, "Semantic Version: %s", output->Head.SemanticVersion);
         LOG_INFO(logger, "Version Code: %u", output->Head.VersionCode);
-        LOG_INFO(logger, "Total File Size: %u", output->Size.Total);
-        LOG_INFO(logger, "CRC32 Checksum: %s", output->Checksum.Total);
+        LOG_INFO(logger, "Total File Size: %u", output->TotalSize);
+        LOG_INFO(logger, "CRC32 Checksum: %s \n", output->TotalChecksum);
+    #endif
 
         JsonArray arrayFileNumber     = json["fileNo"].as<JsonArray>();
         JsonArray arrayFilePath       = json["filePath"].as<JsonArray>();
@@ -207,35 +212,63 @@ namespace muffin {
         }
         output->Chunk.Count = arrayFileNumber.size();
 
-        for (uint8_t idx = 0; idx < output->Chunk.Count; ++idx)
+        CSV csv;
+        ota_chunk_info_t chunk;
+        const uint8_t bufferSize = 128;
+        Status ret(Status::Code::UNCERTAIN);
+        File file = esp32FS.Open(OTA_CHUNK_INFO_PATH, "w", true);
+        if (file == false)
         {
-            output->Chunk.IndexArray[idx] = arrayFileNumber[idx].as<uint8_t>();
-        }
-
-        for (uint8_t idx = 0; idx < output->Chunk.Count; ++idx)
-        {
-            strncpy(
-                output->Chunk.PathArray[idx],
-                arrayFilePath[idx].as<const char*>(),
-                sizeof(ota::chk_head_t::PathArray[0])
-            );
+            LOG_ERROR(logger, "FAILED TO OPEN OTA CHUNK INFO PATH");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
         for (uint8_t idx = 0; idx < output->Chunk.Count; ++idx)
         {
-            output->Size.Array[idx] = arrayFileSize[idx].as<uint32_t>();
-        }
+            bool isValid = true;
+            isValid &= arrayFileNumber[idx].is<uint8_t>();
+            isValid &= arrayFilePath[idx].is<const char*>();
+            isValid &= arrayFilePath[idx].as<const char*>() != nullptr;
+            isValid &= arrayFileChecksum[idx].is<const char*>();
+            isValid &= arrayFileChecksum[idx].as<const char*>() != nullptr;
+            isValid &= arrayFileSize[idx].is<uint32_t>();
 
-        for (uint8_t idx = 0; idx < output->Chunk.Count; ++idx)
+            memset(&chunk, 0, sizeof(ota_chunk_info_t));
+
+            chunk.Index = arrayFileNumber[idx].as<uint8_t>();
+            strncpy(chunk.Path, arrayFilePath[idx].as<const char*>(), sizeof(chunk.Path));
+            strncpy(chunk.CRC32, arrayFileChecksum[idx].as<const char*>(), sizeof(chunk.CRC32));
+            chunk.Size = arrayFileSize[idx].as<uint32_t>();
+
+            char buffer[bufferSize] = {'\0'};
+            ret = csv.Encode(chunk, bufferSize, buffer);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO ENCODING TO CSV FORMAT");
+                file.flush();
+                file.close();
+                esp32FS.Remove(OTA_CHUNK_INFO_PATH);
+                return ret;
+            }
+            
+            /**
+             * @todo 체크섬과 같은 방식을 이용한 integrity 검사가 필요합니다.
+             */
+            file.println(buffer);
+        }
+        file.flush();
+        file.close();
+    
+    #if defined(DEBUG)
+        file = esp32FS.Open(OTA_CHUNK_INFO_PATH, "r", false);
+        while (file.available())
         {
-            strncpy(
-                output->Checksum.Array[idx],
-                arrayFileChecksum[idx].as<const char*>(),
-                sizeof(ota::fw_cks_t::Array[0])
-            );
+            Serial.print(file.read());
         }
-
-        return Status(Status::Code::GOOD);
+        vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
+        // @todo 여기 테스트 해봐야 함
+    #endif
+        return ret;
     }
 
     Status strategyESP32(JsonDocument& json, ota::fw_info_t* output)

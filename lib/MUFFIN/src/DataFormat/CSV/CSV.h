@@ -4,7 +4,7 @@
  * 
  * @brief CSV 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 선언합니다.
  * 
- * @date 2025-01-25
+ * @date 2025-02-05
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -36,8 +36,10 @@ namespace muffin {
     {
     public:
         Status Decode(const char* input, init_cfg_t* output);
+        Status Decode(const char* input, ota_chunk_info_t* output);
     public:
-        Status Encode(const init_cfg_t input, const size_t length, char output[]);
+        Status Encode(const init_cfg_t& input, const size_t length, char output[]);
+        Status Encode(const ota_chunk_info_t& input, const size_t length, char output[]);
     private:
         Status parse(const char* input, const uint8_t columnCount, const uint8_t columnWidth, char** output);
     };

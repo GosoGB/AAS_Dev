@@ -99,14 +99,16 @@ namespace muffin {
 
     Status validateTotalCRC32(ota::fw_info_t& info, CRC32& crc32)
     {
+        const size_t length = sizeof(ota::fw_info_t::TotalChecksum);
+        char calculatedCRC32[length] = {'\0'};
+
         crc32.Teardown();
         const uint32_t integerCRC32 = crc32.RetrieveTotalChecksum();
 
-        char calculatedCRC32[sizeof(ota::fw_cks_t::Array[0])] = {'\0'};
-        snprintf(calculatedCRC32, sizeof(ota::fw_cks_t::Array[0]), "%08x", integerCRC32);
-        if (strcmp(calculatedCRC32, info.Checksum.Total) != 0)
+        snprintf(calculatedCRC32, , "%08x", integerCRC32);
+        if (strcmp(calculatedCRC32, info.TotalChecksum) != 0)
         {
-            LOG_ERROR(logger, "INVALID TOTAL CRC32: %s != %s", calculatedCRC32, info.Checksum.Total);
+            LOG_ERROR(logger, "INVALID TOTAL CRC32: %s != %s", calculatedCRC32, info.TotalChecksum);
             return Status(Status::Code::BAD_DATA_LOST);
         }
 

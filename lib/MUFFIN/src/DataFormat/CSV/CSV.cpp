@@ -4,7 +4,7 @@
  * 
  * @brief CSV 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 정의합니다.
  * 
- * @date 2025-01-25
+ * @date 2025-02-05
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -27,6 +27,7 @@ namespace muffin {
 
     Status CSV::Decode(const char* input, init_cfg_t* output)
     {
+        ASSERT((input != nullptr), "INPUT PARAMETER CANNOT BE NULL");
         ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
         const uint8_t COLUMN_COUNT = 3;
@@ -60,7 +61,38 @@ namespace muffin {
         return ret;
     }
 
-    Status CSV::Encode(const init_cfg_t input, const size_t length, char output[])
+    Status CSV::Decode(const char* input, ota_chunk_info_t* output)
+    {
+        ASSERT((input != nullptr), "INPUT PARAMETER CANNOT BE NULL");
+        ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
+
+        // idx, path, crc32, size
+        const uint8_t COLUMN_COUNT = 4;
+        const uint8_t COLUMN_WIDTH = sizeof(ota_chunk_info_t::Path);
+        char buffer[COLUMN_COUNT][COLUMN_WIDTH];
+        
+        Status ret = parse(input, COLUMN_COUNT, COLUMN_WIDTH, reinterpret_cast<char**>(buffer));
+        if (ret == Status::Code::BAD_NO_DATA)
+        {
+            LOG_ERROR(logger, ret.c_str());
+            return ret;
+        }
+        else if (ret == Status::Code::UNCERTAIN_DATA_SUBNORMAL)
+        {
+            LOG_WARNING(logger, ret.c_str());
+        }
+
+        memset(output, 0, sizeof(ota_chunk_info_t));
+
+        output->Index  = Convert.ToInt8(buffer[0]);
+        output->Size   = Convert.ToInt8(buffer[3]);
+        strncpy(output->Path, buffer[1], sizeof(ota_chunk_info_t::Path));
+        strncpy(output->CRC32, buffer[2], sizeof(ota_chunk_info_t::CRC32));
+
+        return ret;
+    }
+
+    Status CSV::Encode(const init_cfg_t& input, const size_t length, char output[])
     {
         ASSERT((length > 6), "BUFFER LENGTH TOO SMALL");
         ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
@@ -76,6 +108,31 @@ namespace muffin {
         if ((input.PanicResetCount   != readback.PanicResetCount)  ||
             (input.HasPendingJARVIS  != readback.HasPendingJARVIS) ||
             (input.HasPendingUpdate  != readback.HasPendingUpdate) ||
+            (ret != Status::Code::GOOD))
+        {
+            return Status(Status::Code::BAD_ENCODING_ERROR);
+        }
+        
+        return Status(Status::Code::GOOD);
+    }
+
+    Status CSV::Encode(const ota_chunk_info_t& input, const size_t length, char output[])
+    {
+        ASSERT((length > 99), "BUFFER LENGTH TOO SMALL");
+        ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
+
+        memset(output, '\0', length);
+        snprintf(output, length, "%u,%s,%s,%u", input.Index,
+                                                input.Path,
+                                                input.CRC32,
+                                                input.Size);
+        
+        ota_chunk_info_t readback;
+        Status ret = Decode(output, &readback);
+        if ((input.Index   != readback.Index)  ||
+            (input.Path  != readback.Path)     ||
+            (input.CRC32  != readback.CRC32)   ||
+            (input.Size  != readback.Size)     ||
             (ret != Status::Code::GOOD))
         {
             return Status(Status::Code::BAD_ENCODING_ERROR);

@@ -39,5 +39,13 @@ namespace muffin {
         int8_t HasPendingUpdate;
     } init_cfg_t;
 
+    typedef struct FirmwareChunkInfoFileType
+    {
+        uint8_t Index;
+        char Path[64];
+        char CRC32[9];
+        size_t Size;
+    } ota_chunk_info_t;
+
     typedef muffin::Status (*CallbackUpdateInitConfig)(const muffin::init_cfg_t&);
 }

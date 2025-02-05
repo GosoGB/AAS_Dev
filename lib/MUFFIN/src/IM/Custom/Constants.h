@@ -4,10 +4,10 @@
  * 
  * @brief MUFFIN 프레임워크에서 사용하는 상수를 정의합니다.
  * 
- * @date 2025-01-13
+ * @date 2025-02-05
  * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -40,4 +40,5 @@ namespace muffin {
     constexpr const char* JARVIS_PATH            = "/jarvis/config.json";
     constexpr const char* JARVIS_PATH_FETCHED    = "/jarvis/fetched.json";
     constexpr const char* OTA_REQUEST_PATH       = "/ota/request.json";
+    constexpr const char* OTA_CHUNK_INFO_PATH    = "/ota/chunk_info.csv";
 }

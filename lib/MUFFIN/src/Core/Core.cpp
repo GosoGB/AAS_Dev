@@ -233,6 +233,7 @@ namespace muffin {
             else
             {
                 LOG_INFO(logger, "Fetched JARVIS config is invalid");
+                esp32FS.Remove(JARVIS_PATH_FETCHED);
             }
 
             PublishResponseJARVIS(response);
