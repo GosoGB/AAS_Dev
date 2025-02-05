@@ -15,6 +15,7 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Convert/ConvertClass.h"
 #include "DataFormat/CSV/CSV.h"
 #include "IM/Custom/Constants.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/FindChunkInfoService.h"
@@ -28,67 +29,72 @@ namespace muffin {
     {
         ASSERT((info != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
+        CSV csv;
+        Status ret(Status::Code::BAD_NOT_FOUND);
+
         File file = esp32FS.Open(OTA_CHUNK_INFO_PATH, "r", false);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN OTA CHUNK INFO FILE");
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
-
-        const size_t filePointer = 0; 여기 로직 맹글어야 함
-        const bool isSought = file.seek(filePointer);
-        if (isSought == false)
-        {
-            LOG_ERROR(logger, "FAILED TO MOVE FILE POINTER TO '%u'", filePointer);
-            return Status(Status::Code::BAD_END_OF_STREAM);
-        }
-        
-        Status ret(Status::Code::UNCERTAIN);
-        const uint8_t length = 128;
-        char line[length] = {'\0'};
-
-        for (uint8_t idx = 0; idx < length; ++idx)
-        {
-            const int value = file.read();
-
-            switch (value)
-            {
-            case -1:
-                LOG_ERROR(logger, "FAILED TO READ DATA FROM FLASH MEMORY");
-                ret = Status::Code::BAD_DEVICE_FAILURE;
-                goto END_OF_READ;
-
-            case '\r':
-                line[idx] = '\0';
-                break;
-
-            case '\n':
-                LOG_DEBUG(logger, "Line: %s", line);
-                ret = Status::Code::GOOD;
-                goto END_OF_READ;
-
-            default:
-                line[idx] = value;
-                break;
-            }
-        }
-
-    END_OF_READ:
-        file.close();
-        if (ret != Status::Code::GOOD)
-        {
+            ret = Status::Code::BAD_DEVICE_FAILURE;
             return ret;
         }
 
-        memset(info, 0, sizeof(ota_chunk_info_t));
+        int left = 0;
+        int right = file.size() - 1;
+        int middle = (left + right) / 2;
 
-        CSV csv;
-        ret = csv.Decode(line, info);
-        if (ret != Status::Code::GOOD)
+        while (left <= right)
         {
-            LOG_ERROR(logger, "FAILED TO DECODE LINE: %s", line);
+            middle = (left + right) / 2;
+            const bool doesExist = file.seek(middle);
+            if (doesExist == false)
+            {
+                LOG_ERROR(logger, "FAILED TO MOVE FILE POINTER TO '%u'", middle);
+                ret = Status::Code::BAD_END_OF_STREAM;
+                goto ON_EXIT;
+            }
+
+            while ((file.position() > 0) && (file.peek() != '\n'))
+            {
+                file.seek(file.position() - 1);
+            }
+            
+            if (file.position() == 0)
+            {
+                break;
+            }
+            else
+            {
+                file.read();
+            }
+
+            const char* line = file.readStringUntil('\n').c_str();
+            ret = csv.Decode(line, info);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO DECODE LINE: %s", line);
+                ret = Status::Code::BAD_END_OF_STREAM;
+                goto ON_EXIT;
+            }
+
+            if (info->Index == idx)
+            {
+                ret = Status::Code::GOOD;
+                goto ON_EXIT;
+            }
+            else if (info->Index < idx)
+            {
+                left = (left + middle) / 2;
+            }
+            else
+            {
+                right = (right + middle) / 2;
+            }
         }
-        
+    
+    ON_EXIT:
+        file.close();
         return ret;
     }
 }

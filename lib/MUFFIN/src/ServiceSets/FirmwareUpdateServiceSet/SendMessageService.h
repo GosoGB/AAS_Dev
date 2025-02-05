@@ -24,6 +24,6 @@
 namespace muffin {
 
     Status PublishFirmwareStatusMessageService();
-    Status PostDownloadResult(const ota::fw_info_t& info, const char* result);
+    Status PostDownloadResult(const ota::fw_info_t& info, const size_t size, const char* path, const char* result);
     Status PostUpdateResult(const ota::fw_info_t& info, const char* result);
 }

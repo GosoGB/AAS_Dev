@@ -31,6 +31,7 @@
 #include "ServiceSets/FirmwareUpdateServiceSet/DownloadFirmwareService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/FetchFirmwareInfo.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/FirmwareUpdateService.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/FindChunkInfoService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
 #include "Storage/ESP32FS/ESP32FS.h"
@@ -105,7 +106,7 @@ namespace muffin {
         crc32.Teardown();
         const uint32_t integerCRC32 = crc32.RetrieveTotalChecksum();
 
-        snprintf(calculatedCRC32, , "%08x", integerCRC32);
+        snprintf(calculatedCRC32, sizeof(ota::fw_info_t::TotalChecksum), "%08x", integerCRC32);
         if (strcmp(calculatedCRC32, info.TotalChecksum) != 0)
         {
             LOG_ERROR(logger, "INVALID TOTAL CRC32: %s != %s", calculatedCRC32, info.TotalChecksum);
@@ -160,6 +161,14 @@ namespace muffin {
         
         while (info.Chunk.FlashingIDX < info.Chunk.Count)
         {
+            ota_chunk_info_t chunk;
+            ret = FindChunkInfoService(info.Chunk.DownloadIDX, &chunk);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.DownloadIDX);
+                return ret;
+            }
+            
             if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
             {
                 LOG_INFO(logger, "Restart to download firmware");
@@ -174,7 +183,7 @@ namespace muffin {
             }
             else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
             {
-                Status postResult = PostDownloadResult(info, "failure");
+                Status postResult = PostDownloadResult(info, chunk.Size, chunk.Path, "failure");
                 LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
                 ret = Status::Code::BAD_DATA_LOST;
@@ -199,10 +208,10 @@ namespace muffin {
                     vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
                 }
             }
-            
+
             uint8_t* buffer;
             xQueueReceive(sQueueHandle, &buffer, static_cast<TickType_t>(SECOND_IN_MILLIS));
-            ret = strategy.Write(info.Size.Array[info.Chunk.FlashingIDX], buffer);
+            ret = strategy.Write(chunk.Size, buffer);
             if (ret != Status::Code::GOOD)
             {
                 sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
@@ -210,7 +219,7 @@ namespace muffin {
                 return ret;
             }
 
-            sMemoryPool->Deallocate(buffer, info.Size.Array[info.Chunk.FlashingIDX]);
+            sMemoryPool->Deallocate(buffer, chunk.Size);
             ++info.Chunk.FlashingIDX;
         }
 
@@ -275,13 +284,21 @@ namespace muffin {
         parsing_task_params* params = static_cast<parsing_task_params*>(pvParameters);
 
         while (uxQueueMessagesWaiting(sQueueHandle) > 0)
-        {
+        {            
+            ota_chunk_info_t chunkInfo;
+            Status ret = FindChunkInfoService(params->Info->Chunk.FlashingIDX, &chunkInfo);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", params->Info->Chunk.FlashingIDX);
+                break;
+            }
+
             uint8_t* buffer;
             xQueueReceive(sQueueHandle, &buffer, static_cast<TickType_t>(SECOND_IN_MILLIS));
-            std::string chunk(reinterpret_cast<char*>(buffer), params->Info->Size.Array[params->Info->Chunk.FlashingIDX]);
-            sMemoryPool->Deallocate(buffer, params->Info->Size.Array[params->Info->Chunk.FlashingIDX]);
+            std::string chunk(reinterpret_cast<char*>(buffer), chunkInfo.Size);
+            sMemoryPool->Deallocate(buffer, chunkInfo.Size);
 
-            Status ret = params->Parser->Parse(chunk);
+            ret = params->Parser->Parse(chunk);
             if ((ret != Status::Code::GOOD) && (ret != Status::Code::GOOD_MORE_DATA))
             {
                 LOG_ERROR(logger, "FAILED TO PARSE CHUNK: %s", ret.c_str());
@@ -354,7 +371,7 @@ namespace muffin {
         ota::MEGA2560 mega2560;
         ota::HexParser hexParser;
         size_t currentAddress = 0;
-        Status ret = mega2560.Init(info.Size.Total);
+        Status ret = mega2560.Init(info.TotalSize);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO UPDATE: FAILED TO INIT UPDATE FOR ATmega2560: %s", ret.c_str());
@@ -366,6 +383,14 @@ namespace muffin {
 
         while (info.Chunk.FlashingIDX < info.Chunk.Count)
         {
+            ota_chunk_info_t chunk;
+            ret = FindChunkInfoService(info.Chunk.DownloadIDX, &chunk);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.DownloadIDX);
+                return ret;
+            }
+            
             if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
             {
                 LOG_INFO(logger, "Restart to download firmware");
@@ -380,7 +405,7 @@ namespace muffin {
             }
             else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
             {
-                Status postResult = PostDownloadResult(info, "failure");
+                Status postResult = PostDownloadResult(info, chunk.Size, chunk.Path, "failure");
                 LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
                 ret = Status::Code::BAD_DATA_LOST;

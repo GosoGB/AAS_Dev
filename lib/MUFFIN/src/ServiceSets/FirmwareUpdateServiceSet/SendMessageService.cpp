@@ -25,6 +25,7 @@
 #include "Protocol/HTTP/IHTTP.h"
 #include "SendMessageService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/FindChunkInfoService.h"
 
 
 
@@ -64,7 +65,7 @@ namespace muffin {
         return ret;
     }
     
-    Status implementPostDownloadResult(const ota::fw_info_t& info, const char* result)
+    Status implementPostDownloadResult(const ota::fw_info_t& info, const size_t size, const char* path, const char* result)
     {
         INetwork* snic = RetrieveServiceNicService();
         const std::pair<Status, size_t> mutex = snic->TakeMutex();
@@ -88,7 +89,7 @@ namespace muffin {
             "/firmware/file/download",
             strcat(userAgent, FW_VERSION_ESP32.GetSemanticVersion())
         );
-        
+
         http::RequestBody body("application/x-www-form-urlencoded");
         body.AddProperty("mac", macAddress.GetEthernet());
         body.AddProperty("otaId", std::to_string(info.Head.ID));
@@ -97,16 +98,16 @@ namespace muffin {
         {
             body.AddProperty("mcu1.vc",        std::to_string(info.Head.VersionCode));
             body.AddProperty("mcu1.version",   info.Head.SemanticVersion);
-            body.AddProperty("mcu1.fileNo",    std::to_string(info.Chunk.IndexArray[info.Chunk.DownloadIDX]));
-            body.AddProperty("mcu1.filepath",  info.Chunk.PathArray[info.Chunk.DownloadIDX]);
+            body.AddProperty("mcu1.fileNo",    std::to_string(size));
+            body.AddProperty("mcu1.filepath",  path);
             body.AddProperty("mcu1.result",    result);
         }
         else
         {
             body.AddProperty("mcu2.vc",        std::to_string(info.Head.VersionCode));
             body.AddProperty("mcu2.version",   info.Head.SemanticVersion);
-            body.AddProperty("mcu2.fileNo",    std::to_string(info.Chunk.IndexArray[info.Chunk.DownloadIDX]));
-            body.AddProperty("mcu2.filepath",  info.Chunk.PathArray[info.Chunk.DownloadIDX]);
+            body.AddProperty("mcu2.fileNo",    std::to_string(size));
+            body.AddProperty("mcu2.filepath",  path);
             body.AddProperty("mcu2.result",    result);
         }
 
@@ -180,14 +181,14 @@ namespace muffin {
         return ret;
     }
 
-    Status PostDownloadResult(const ota::fw_info_t& info, const char* result)
+    Status PostDownloadResult(const ota::fw_info_t& info, const size_t size, const char* path, const char* result)
     {
         Status ret(Status::Code::UNCERTAIN);
         uint8_t trialCount = 0;
 
         for (trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
-            ret = implementPostDownloadResult(info, result);
+            ret = implementPostDownloadResult(info, size, path, result);
             if (ret == Status::Code::GOOD)
             {
                 return Status(Status::Code::GOOD);

@@ -26,6 +26,7 @@
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/FindChunkInfoService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 
 TaskHandle_t sHandle = NULL;
@@ -52,15 +53,23 @@ namespace muffin {
 
         Status ret(Status::Code::UNCERTAIN);
         while (sParams->Info->Chunk.DownloadIDX < sParams->Info->Chunk.Count)
-        {   
-            uint8_t* output = (uint8_t*)sParams->_MemoryPool->Allocate(sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
+        {
+            ota_chunk_info_t chunk;
+            ret = FindChunkInfoService(sParams->Info->Chunk.DownloadIDX, &chunk);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", sParams->Info->Chunk.DownloadIDX);
+                goto TEARDOWN;
+            }
+
+            uint8_t* output = (uint8_t*)sParams->_MemoryPool->Allocate(chunk.Size);
             if (output == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FROM THE POOL. WILL TRY IN SHORTLY");
                 ret = Status::Code::BAD_OUT_OF_MEMORY;
                 goto TEARDOWN;
             }
-            memset(output, 0, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
+            memset(output, 0, chunk.Size);
 
         #if defined(MODLINK_L)
             char userAgent[32] = "MODLINK-L/";
@@ -88,14 +97,14 @@ namespace muffin {
             parameters.Add("otaId", std::to_string(sParams->Info->Head.ID));
             parameters.Add(attributeVersionCode, std::to_string(sParams->Info->Head.VersionCode));
             parameters.Add(attributeSemanticVersion, sParams->Info->Head.SemanticVersion);
-            parameters.Replace(attributeFileNumber, std::to_string(sParams->Info->Chunk.IndexArray[sParams->Info->Chunk.DownloadIDX]));
-            parameters.Replace(attributeFilePath, sParams->Info->Chunk.PathArray[sParams->Info->Chunk.DownloadIDX]);
+            parameters.Replace(attributeFileNumber, std::to_string(chunk.Index));
+            parameters.Replace(attributeFilePath, chunk.Path);
 
             INetwork* snic = RetrieveServiceNicService();
             const std::pair<Status, size_t> mutex = snic->TakeMutex();
             if (mutex.first.ToCode() != Status::Code::GOOD)
             {
-                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
+                sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
                 LOG_ERROR(logger, "FAILED TO TAKE MUTEX");
                 ret = mutex.first;
                 goto TEARDOWN;
@@ -104,35 +113,35 @@ namespace muffin {
             ret = httpClient->GET(mutex.second, header, parameters, 60);
             if (ret != Status::Code::GOOD)
             {
-                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
+                sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD: %s", ret.c_str());
                 snic->ReleaseMutex();
                 goto TEARDOWN;
             }
             
-            ret = httpClient->Retrieve(mutex.second, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX], output);
+            ret = httpClient->Retrieve(mutex.second, chunk.Size, output);
             if (ret != Status::Code::GOOD)
             {
-                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
+                sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
                 LOG_ERROR(logger, "FAILED TO RETRIEVE: %s", ret.c_str());
                 snic->ReleaseMutex();
                 goto TEARDOWN;
             }
             snic->ReleaseMutex();
 
-            const uint32_t integerCRC32 = sParams->_CRC32->Calculate(sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX], output);
-            char calculatedCRC32[sizeof(ota::fw_cks_t::Array[0])] = {'\0'};
-            snprintf(calculatedCRC32, sizeof(ota::fw_cks_t::Array[0]), "%08x", integerCRC32);
-            if (strcmp(calculatedCRC32, sParams->Info->Checksum.Array[sParams->Info->Chunk.DownloadIDX]) != 0)
+            const uint32_t integerCRC32 = sParams->_CRC32->Calculate(chunk.Size, output);
+            char calculatedCRC32[sizeof(ota::fw_info_t::TotalChecksum)] = {'\0'};
+            snprintf(calculatedCRC32, sizeof(ota::fw_info_t::TotalChecksum), "%08x", integerCRC32);
+            if (strcmp(calculatedCRC32, chunk.CRC32) != 0)
             {
-                sParams->_MemoryPool->Deallocate((void*)output, sParams->Info->Size.Array[sParams->Info->Chunk.DownloadIDX]);
-                LOG_ERROR(logger, "INVALID CRC32: %s != %s", calculatedCRC32, sParams->Info->Checksum.Array[sParams->Info->Chunk.DownloadIDX]);
+                sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
+                LOG_ERROR(logger, "INVALID CRC32: %s != %s", calculatedCRC32, chunk.CRC32);
                 ret = Status::Code::BAD_DATA_LOST;
                 goto TEARDOWN;
             }
             LOG_DEBUG(logger, "Downloaded: %s", calculatedCRC32);
             {
-                Status postResult = PostDownloadResult(*sParams->Info, "success");
+                Status postResult = PostDownloadResult(*sParams->Info, chunk.Size, chunk.Path, "success");
                 LOG_INFO(logger, "[POST] download result api: %s", postResult.c_str());
             }
 
