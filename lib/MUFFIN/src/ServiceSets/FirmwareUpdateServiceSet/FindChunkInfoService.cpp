@@ -73,9 +73,9 @@ namespace muffin {
                 file.read();
             }
 
-            char line[UINT8_MAX] = {'\0'};
-            file.readBytesUntil('\n', line, UINT8_MAX);
-            // const char* line = file.readStringUntil('\n').c_str();
+            const uint8_t length = 128;
+            char line[length] = {'\0'};
+            file.readBytesUntil('\n', line, length);
             ret = csv.Decode(line, info);
             if (ret != Status::Code::GOOD)
             {
