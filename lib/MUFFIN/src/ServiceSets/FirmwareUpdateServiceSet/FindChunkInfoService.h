@@ -17,10 +17,11 @@
 
 #include "Common/Status.h"
 #include "IM/Custom/TypeDefinitions.h"
+#include "OTA/Include/TypeDefinitions.h"
 
 
 
 namespace muffin {
 
-    Status FindChunkInfoService(const uint8_t idx, ota_chunk_info_t* info);
+    Status FindChunkInfoService(const ota::mcu_e mcuType, const uint8_t idx, ota_chunk_info_t* info);
 }

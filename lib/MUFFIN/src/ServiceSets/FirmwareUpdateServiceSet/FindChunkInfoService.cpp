@@ -25,14 +25,16 @@
 
 namespace muffin {
 
-    Status FindChunkInfoService(const uint8_t idx, ota_chunk_info_t* info)
+    Status FindChunkInfoService(const ota::mcu_e mcuType, const uint8_t idx, ota_chunk_info_t* info)
     {
         ASSERT((info != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
         CSV csv;
         Status ret(Status::Code::BAD_NOT_FOUND);
 
-        File file = esp32FS.Open(OTA_CHUNK_INFO_PATH, "r", false);
+        File file = mcuType == ota::mcu_e::MCU1 ?
+            esp32FS.Open(OTA_CHUNK_PATH_ESP32, "r", false) :
+            esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "r", false);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN OTA CHUNK INFO FILE");
@@ -47,6 +49,8 @@ namespace muffin {
         while (left <= right)
         {
             middle = (left + right) / 2;
+            LOG_DEBUG(logger, "left: %d, middle: %d, right: %d", left, middle, right);
+
             const bool doesExist = file.seek(middle);
             if (doesExist == false)
             {
@@ -69,7 +73,9 @@ namespace muffin {
                 file.read();
             }
 
-            const char* line = file.readStringUntil('\n').c_str();
+            char line[UINT8_MAX] = {'\0'};
+            file.readBytesUntil('\n', line, UINT8_MAX);
+            // const char* line = file.readStringUntil('\n').c_str();
             ret = csv.Decode(line, info);
             if (ret != Status::Code::GOOD)
             {
@@ -77,10 +83,12 @@ namespace muffin {
                 ret = Status::Code::BAD_END_OF_STREAM;
                 goto ON_EXIT;
             }
+            LOG_DEBUG(logger, "Decoded: %s", line);
 
             if (info->Index == idx)
             {
                 ret = Status::Code::GOOD;
+                LOG_DEBUG(logger, "Found index matched: %u", idx);
                 goto ON_EXIT;
             }
             else if (info->Index < idx)

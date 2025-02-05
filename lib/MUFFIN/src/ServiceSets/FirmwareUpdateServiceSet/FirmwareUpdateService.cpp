@@ -162,7 +162,7 @@ namespace muffin {
         while (info.Chunk.FlashingIDX < info.Chunk.Count)
         {
             ota_chunk_info_t chunk;
-            ret = FindChunkInfoService(info.Chunk.DownloadIDX, &chunk);
+            ret = FindChunkInfoService(info.Head.MCU, info.Chunk.DownloadIDX, &chunk);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.DownloadIDX);
@@ -286,7 +286,7 @@ namespace muffin {
         while (uxQueueMessagesWaiting(sQueueHandle) > 0)
         {            
             ota_chunk_info_t chunkInfo;
-            Status ret = FindChunkInfoService(params->Info->Chunk.FlashingIDX, &chunkInfo);
+            Status ret = FindChunkInfoService(params->Info->Head.MCU, params->Info->Chunk.FlashingIDX, &chunkInfo);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", params->Info->Chunk.FlashingIDX);
@@ -384,7 +384,7 @@ namespace muffin {
         while (info.Chunk.FlashingIDX < info.Chunk.Count)
         {
             ota_chunk_info_t chunk;
-            ret = FindChunkInfoService(info.Chunk.DownloadIDX, &chunk);
+            ret = FindChunkInfoService(info.Head.MCU, info.Chunk.DownloadIDX, &chunk);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.DownloadIDX);

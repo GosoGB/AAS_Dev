@@ -216,7 +216,10 @@ namespace muffin {
         ota_chunk_info_t chunk;
         const uint8_t bufferSize = 128;
         Status ret(Status::Code::UNCERTAIN);
-        File file = esp32FS.Open(OTA_CHUNK_INFO_PATH, "w", true);
+        File file = output->Head.MCU == ota::mcu_e::MCU1 ?
+            esp32FS.Open(OTA_CHUNK_PATH_ESP32, "w", true) :
+            esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "w", true);
+
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN OTA CHUNK INFO PATH");
@@ -247,7 +250,16 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO ENCODING TO CSV FORMAT");
                 file.flush();
                 file.close();
-                esp32FS.Remove(OTA_CHUNK_INFO_PATH);
+
+                if (output->Head.MCU == ota::mcu_e::MCU1)
+                {
+                    esp32FS.Remove(OTA_CHUNK_PATH_ESP32);
+                }
+                else
+                {
+                    esp32FS.Remove(OTA_CHUNK_PATH_MEGA);
+                }
+                
                 return ret;
             }
             
@@ -260,13 +272,20 @@ namespace muffin {
         file.close();
     
     #if defined(DEBUG)
-        file = esp32FS.Open(OTA_CHUNK_INFO_PATH, "r", false);
+        Serial.println("\n");
+        Serial.println("\n");
+        
+        file = output->Head.MCU == ota::mcu_e::MCU1 ?
+            esp32FS.Open(OTA_CHUNK_PATH_ESP32, "r", false) :
+            esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "r", false);
+
         while (file.available())
         {
-            Serial.print(file.read());
+            Serial.print((char)file.read());
         }
-        vTaskDelay(UINT32_MAX / portTICK_PERIOD_MS);
-        // @todo 여기 테스트 해봐야 함
+        
+        Serial.println("\n");
+        Serial.println("\n");
     #endif
         return ret;
     }

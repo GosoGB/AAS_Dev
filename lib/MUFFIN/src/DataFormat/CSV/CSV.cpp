@@ -74,21 +74,21 @@ namespace muffin {
         Status ret = parse(input, COLUMN_COUNT, COLUMN_WIDTH, reinterpret_cast<char**>(buffer));
         if (ret == Status::Code::BAD_NO_DATA)
         {
-            LOG_ERROR(logger, ret.c_str());
+            LOG_ERROR(logger, "FAILED TO PARSE: %s", ret.c_str());
             return ret;
         }
         else if (ret == Status::Code::UNCERTAIN_DATA_SUBNORMAL)
         {
-            LOG_WARNING(logger, ret.c_str());
+            LOG_WARNING(logger, "PARSED PARTIALLY: %s", ret.c_str());
         }
 
         memset(output, 0, sizeof(ota_chunk_info_t));
 
-        output->Index  = Convert.ToInt8(buffer[0]);
-        output->Size   = Convert.ToInt8(buffer[3]);
+        output->Index  = Convert.ToUInt8(buffer[0]);
+        output->Size   = Convert.ToUInt32(buffer[3]);
         strncpy(output->Path, buffer[1], sizeof(ota_chunk_info_t::Path));
         strncpy(output->CRC32, buffer[2], sizeof(ota_chunk_info_t::CRC32));
-
+        
         return ret;
     }
 
@@ -129,10 +129,10 @@ namespace muffin {
         
         ota_chunk_info_t readback;
         Status ret = Decode(output, &readback);
-        if ((input.Index   != readback.Index)  ||
-            (input.Path  != readback.Path)     ||
-            (input.CRC32  != readback.CRC32)   ||
-            (input.Size  != readback.Size)     ||
+        if ((input.Index  != readback.Index)  ||
+            (input.Size   != readback.Size)   ||
+            (strcmp(input.Path,  readback.Path)  != 0)  ||
+            (strcmp(input.CRC32, readback.CRC32) != 0)  ||
             (ret != Status::Code::GOOD))
         {
             return Status(Status::Code::BAD_ENCODING_ERROR);
@@ -144,7 +144,6 @@ namespace muffin {
     Status CSV::parse(const char* input, const uint8_t columnCount, const uint8_t columnWidth, char** output)
     {
         Status ret(Status::Code::GOOD);
-
         if ((input != nullptr) && (strlen(input) == 0))
         {
             ret = Status::Code::BAD_NO_DATA;

@@ -55,7 +55,7 @@ namespace muffin {
         while (sParams->Info->Chunk.DownloadIDX < sParams->Info->Chunk.Count)
         {
             ota_chunk_info_t chunk;
-            ret = FindChunkInfoService(sParams->Info->Chunk.DownloadIDX, &chunk);
+            ret = FindChunkInfoService(sParams->Info->Head.MCU, sParams->Info->Chunk.DownloadIDX, &chunk);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", sParams->Info->Chunk.DownloadIDX);
@@ -184,7 +184,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implementService,     // Function to be run inside of the task
             "DownloadFirmware",   // The identifier of this task for men
-            6*KILLOBYTE,          // Stack memory size to allocate
+            10*KILLOBYTE,          // Stack memory size to allocate
             pvParameters,	      // Task parameters to be passed to the function
             0,				      // Task Priority for scheduling
             &sHandle,             // The identifier of this task for machines

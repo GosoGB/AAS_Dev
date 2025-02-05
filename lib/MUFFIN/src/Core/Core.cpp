@@ -370,7 +370,28 @@ namespace muffin {
         {
             LOG_WARNING(logger, "INIT CONFIG: BUFFER OVERFLOW");
         }
+
+        if (output->HasPendingJARVIS == false)
+        {
+            if (esp32FS.DoesExist(JARVIS_PATH_FETCHED) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(JARVIS_PATH_FETCHED);
+            }
+        }
         
+        if (output->HasPendingUpdate == false)
+        {
+            if (esp32FS.DoesExist(OTA_CHUNK_PATH_ESP32) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(OTA_CHUNK_PATH_ESP32);
+            }
+
+            if (esp32FS.DoesExist(OTA_CHUNK_PATH_MEGA) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(OTA_CHUNK_PATH_MEGA);
+            }
+        }
+
         return ret;
     }
 
