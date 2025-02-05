@@ -37,6 +37,7 @@ namespace muffin {
         int8_t PanicResetCount;
         int8_t HasPendingJARVIS;
         int8_t HasPendingUpdate;
+        int8_t ReconfigCode;
     } init_cfg_t;
 
     typedef struct FirmwareChunkInfoFileType

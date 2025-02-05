@@ -29,7 +29,7 @@ namespace muffin {
         ASSERT((input != nullptr), "INPUT PARAMETER CANNOT BE NULL");
         ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
-        const uint8_t COLUMN_COUNT = 3;
+        const uint8_t COLUMN_COUNT = 4;
         const uint8_t COLUMN_WIDTH = 2;
         char buffer[COLUMN_COUNT][COLUMN_WIDTH];
         
@@ -47,10 +47,12 @@ namespace muffin {
         output->PanicResetCount   = Convert.ToInt8(buffer[0]);
         output->HasPendingJARVIS  = Convert.ToInt8(buffer[1]);
         output->HasPendingUpdate  = Convert.ToInt8(buffer[2]);
+        output->ReconfigCode     = Convert.ToInt8(buffer[3]);
 
         if ((output->PanicResetCount  < -1 && 6 < output->PanicResetCount ) ||
             (output->HasPendingJARVIS < -1 && 2 < output->HasPendingJARVIS) ||
-            (output->HasPendingUpdate < -1 && 2 < output->HasPendingUpdate))
+            (output->HasPendingUpdate < -1 && 2 < output->HasPendingUpdate) ||
+            (output->ReconfigCode    < -1 && 5 < output->ReconfigCode))
         {
             ret = Status::Code::BAD_DATA_LOST;
             LOG_ERROR(logger, ret.c_str());
@@ -97,16 +99,18 @@ namespace muffin {
         ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
         memset(output, '\0', length);
-        snprintf(output, length, "%u,%u,%u",
+        snprintf(output, length, "%u,%u,%u,%u",
             input.PanicResetCount,
             input.HasPendingJARVIS,
-            input.HasPendingUpdate);
+            input.HasPendingUpdate,
+            input.ReconfigCode);
         
         init_cfg_t readback;
         Status ret = Decode(output, &readback);
         if ((input.PanicResetCount   != readback.PanicResetCount)  ||
             (input.HasPendingJARVIS  != readback.HasPendingJARVIS) ||
             (input.HasPendingUpdate  != readback.HasPendingUpdate) ||
+            (input.ReconfigCode     != readback.ReconfigCode)    ||
             (ret != Status::Code::GOOD))
         {
             return Status(Status::Code::BAD_ENCODING_ERROR);

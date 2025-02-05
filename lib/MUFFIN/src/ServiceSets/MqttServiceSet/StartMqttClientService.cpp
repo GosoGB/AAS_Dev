@@ -138,7 +138,7 @@ namespace muffin {
     Status subscribeTopics(const size_t mutex)
     {
         mqtt::Message jarvis(mqtt::topic_e::JARVIS_REQUEST, "");
-        mqtt::Message jarvisStatus(mqtt::topic_e::JARVIS_STATUS_REQUEST, "");
+        mqtt::Message jarvisStatus(mqtt::topic_e::JARVIS_INTERFACE_REQUEST, "");
         mqtt::Message remoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
         mqtt::Message firmwareUpdate(mqtt::topic_e::FOTA_UPDATE, "");
 

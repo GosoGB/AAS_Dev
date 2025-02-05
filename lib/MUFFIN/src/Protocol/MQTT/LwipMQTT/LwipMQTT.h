@@ -55,7 +55,7 @@ namespace muffin { namespace mqtt {
     private:
         const BrokerInfo mBrokerInfo;
         const Message mMessageLWT;
-        const uint16_t BUFFER_SIZE = 512;
+        const uint16_t BUFFER_SIZE = 1024;
         const uint8_t KEEP_ALIVE  =  10;
     };
 }}

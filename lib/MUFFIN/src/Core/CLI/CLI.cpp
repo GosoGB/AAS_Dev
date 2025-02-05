@@ -410,7 +410,7 @@ namespace muffin {
         file.close();
 
         Serial.print("\r\n설정이 모두 저장되었습니다. 디바이스 재부팅을 진행하겠습니다. \r\n\r\n\r\n");
-        delay(2000);
+
         return Status(Status::Code::GOOD);
     }
 

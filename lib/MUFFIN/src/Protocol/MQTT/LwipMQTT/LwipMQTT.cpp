@@ -72,6 +72,7 @@ namespace muffin { namespace mqtt {
         mClient.setClient(mNIC);
         mClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
         mClient.setKeepAlive(KEEP_ALIVE);
+     
         const bool isBufferSizeSet = mClient.setBufferSize(BUFFER_SIZE);
         if (isBufferSizeSet == false)
         {
@@ -193,7 +194,7 @@ namespace muffin { namespace mqtt {
     Status LwipMQTT::Publish(const size_t mutexHandle, const Message& message)
     {
         uint8_t trialCount = 0;
-
+        LOG_DEBUG(logger,"paylaod : %s",message.GetPayload());
         for (; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
             if (mClient.publish(message.GetTopicString(), message.GetPayload()) == true)

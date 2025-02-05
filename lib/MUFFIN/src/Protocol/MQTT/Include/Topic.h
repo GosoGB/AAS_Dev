@@ -45,12 +45,13 @@ namespace muffin { namespace mqtt {
         const char* mFinishedGoods   = "progix/dashboard/fg";
         const char* mFotaConfig      = "fota/config";
         const char* mFotaStatus      = "fota/status";
+        const char* mJarvisStatus    = "mfm/status";
     private:
         char mFotaUpdate[25] = {'\0'};
         char mJarvisRequest[17] = {'\0'};
         char mJarvisResponse[22] = {'\0'};
-        char mJarvisStatusRequest[20] = {'\0'};
-        char mJarvisStatusResponse[25] = {'\0'};
+        char mJarvisInterfaceRequest[20] = {'\0'};
+        char mJarvisInterfaceResponse[25] = {'\0'};
         char mRemoteControlRequest[24] = {'\0'};
         char mRemoteControlResponse[25] = {'\0'};
     };

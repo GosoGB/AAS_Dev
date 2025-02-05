@@ -20,7 +20,8 @@
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/Include/Message.h"
 #include "Protocol/MQTT/Include/Topic.h"
-
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "IM/Custom/Constants.h"
 
 
 namespace muffin {
@@ -226,7 +227,7 @@ namespace muffin {
 
     int16_t Processor::Read()
     {
-        if (xSemaphoreTake(xSemaphore, 10)  != pdTRUE)
+        if (xSemaphoreTake(xSemaphore, 100)  != pdTRUE)
         {
             LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER.");
             return -1;
@@ -280,13 +281,24 @@ namespace muffin {
     
     void Processor::implementUrcHandleTask()
     {
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 6 * 1000;
-    #endif
+        uint32_t statusReportMillis = millis(); 
 
         while (true)
         {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+        #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[CatM1ProcessorTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::CATM1_PROCESSOR_TASK, RemainedStackSize);
+            }
+
             if (mHasOTA == true)
             {
                 while (mSerial.available() > 0)
@@ -320,13 +332,7 @@ namespace muffin {
                 vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
             }
 
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                LOG_DEBUG(logger, "[TASK: CatM1::Processor] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                checkRemainedStackMillis = millis();
-            }
-        #endif
+        
         }
     }
 

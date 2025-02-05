@@ -109,6 +109,9 @@ namespace muffin {
         {
             LOG_ERROR(logger, "FAILED TO RECONNECT TO THE BROKER");
             LOG_INFO(logger, "Restart the device");
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            spear.Reset();
+        #endif 
             esp_restart();
         }
 
@@ -153,6 +156,7 @@ namespace muffin {
             if (trialCount == MAX_RETRY_COUNT)
             {
                 LOG_WARNING(logger, "FAILED TO PUBLISH MESSAGE: %s", ret.c_str());
+                mqtt::cdo.Retrieve();
                 break;
             }
         }
@@ -364,7 +368,7 @@ namespace muffin {
 
         JSON json;
         std::string ResponsePayload = json.Serialize(response);
-        mqtt::Message message(mqtt::topic_e::JARVIS_STATUS_RESPONSE, std::move(ResponsePayload));
+        mqtt::Message message(mqtt::topic_e::JARVIS_INTERFACE_RESPONSE, std::move(ResponsePayload));
 
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
@@ -869,7 +873,7 @@ ERROR_RESPONSE:
             }
             return ret;
 
-        case mqtt::topic_e::JARVIS_STATUS_REQUEST:
+        case mqtt::topic_e::JARVIS_INTERFACE_REQUEST:
             return processMessageJarvisStatus(message.second.GetPayload());
             
         case mqtt::topic_e::FOTA_UPDATE:
@@ -895,15 +899,55 @@ ERROR_RESPONSE:
 
     void implMqttTask(void* pvParameters)
     {
-        uint32_t reconnectMillis  = millis();
+        uint32_t statusReportMillis = millis(); 
+        uint32_t reconnectMillis    = millis();
+        
         init_cfg_t params = {
             .PanicResetCount   = reinterpret_cast<init_cfg_t*>(pvParameters)->PanicResetCount,
             .HasPendingJARVIS  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingJARVIS,
-            .HasPendingUpdate  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingUpdate
+            .HasPendingUpdate  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingUpdate,
+            .ReconfigCode      = reinterpret_cast<init_cfg_t*>(pvParameters)->ReconfigCode
         };
 
         while (true)
         {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (30 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+        #endif
+            {
+                /**
+                 * @todo 현재 DeviceStatus에 필요한 정보를 mqttTask에서 생성하고, COD로 넘겨주고 있음 추후에는 이 기능을 별도의 task로 빼서 구현해야함
+                 * @김주성
+                 * 
+                 */
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+                size_t RemainedHeapSize = ESP.getFreeHeap();
+                size_t RemainedFlashMemorySize = esp32FS.GetTotalBytes();
+                LOG_DEBUG(logger, "[MqttTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                LOG_DEBUG(logger, "Heap Remained: %u Bytes", RemainedHeapSize);
+                LOG_DEBUG(logger, "Flash Memory Remained: %u Bytes", RemainedFlashMemorySize);
+
+                deviceStatus.SetTaskRemainedStack(task_name_e::MQTT_TASK, RemainedStackSize);
+                deviceStatus.SetRemainedHeap(RemainedHeapSize);
+                deviceStatus.SetRemainedFlash(RemainedFlashMemorySize);
+
+                if(jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
+                {
+                    catm1_report_t signal;
+                    if(catM1->GetSignalQuality(&signal) == Status(Status::Code::GOOD))
+                    {
+                        deviceStatus.SetReportCatM1(signal);
+                    }
+                }
+
+                const std::string payload =  deviceStatus.ToStringCyclical();
+                mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
+                mqtt::cdo.Store(message);
+            }
+
             if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
             {
                 if (manageConnection() == Status::Code::BAD_NOT_EXECUTABLE)

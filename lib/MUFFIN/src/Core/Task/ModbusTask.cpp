@@ -26,6 +26,9 @@
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "IM/Custom/Constants.h"
+
 
 namespace muffin {
 
@@ -34,14 +37,7 @@ namespace muffin {
 
     TaskHandle_t xTaskModbusRtuHandle = NULL;
     TaskHandle_t xTaskModbusTcpHandle = NULL;
-    constexpr uint16_t KILLOBYTE = 1024;
-    constexpr uint16_t SECOND_IN_MILLIS = 1000;
-
     static uint32_t s_PollingIntervalInMillis = 1000;
-#ifdef DEBUG
-    uint32_t checkRemainedStackMillis = millis();
-    const uint16_t remainedStackCheckInterval = 5 * 1000;
-#endif
 
     void SetPollingInterval(const uint16_t pollingInterval)
     {
@@ -50,9 +46,24 @@ namespace muffin {
 
     void implModbusRtuTask(void* pvParameters)
     {
-        
+        uint32_t statusReportMillis = millis(); 
+
         while (true)
         {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+        #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+        
+                LOG_DEBUG(logger, "[ModbusRtuTask} Stack Remaind: %u Bytes", RemainedStackSize);
+
+                deviceStatus.SetTaskRemainedStack(task_name_e::MODBUS_RTU_TASK, RemainedStackSize);
+            }
+
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
             
             for(auto& modbusRTU : ModbusRtuVector)
@@ -72,13 +83,6 @@ namespace muffin {
                 }
             #endif
 
-            #ifdef DEBUG
-                if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-                {
-                    LOG_DEBUG(logger, "[TASK: Modbus RTU] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                    checkRemainedStackMillis = millis();
-                }
-            #endif
             }
         }
     }
@@ -160,8 +164,24 @@ namespace muffin {
 
     void implModbusTcpTask(void* pvParameters)
     {
+        uint32_t statusReportMillis = millis(); 
+
         while (true)
         {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+        #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[ModbusTcpTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::MODBUS_TCP_TASK, RemainedStackSize);
+            }
+
             for(auto& modbusTCP : ModbusTcpVector)
             {
                 if (!modbusTCPClient.connected()) 
@@ -184,13 +204,6 @@ namespace muffin {
                 }
 
                 modbusTCPClient.end();
-            #ifdef DEBUG
-                if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-                {
-                    LOG_DEBUG(logger, "[TASK: Modbus TCP] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                    checkRemainedStackMillis = millis();
-                }
-            #endif
             }
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);   
         }

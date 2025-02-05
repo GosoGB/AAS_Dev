@@ -562,7 +562,7 @@ HAS_RTS_SIGNAL:
         }
 
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
-        //LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PUBLISH: %s: %s", ret.c_str(),

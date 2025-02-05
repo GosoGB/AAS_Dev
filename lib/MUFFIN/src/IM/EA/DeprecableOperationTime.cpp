@@ -19,6 +19,8 @@
 #include "Common/Time/TimeUtils.h"
 #include "DeprecableOperationTime.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "IM/Custom/Constants.h"
 #include "Protocol/MQTT/CDO.h"
 
 
@@ -99,7 +101,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             wrapImplTask,    // Function to be run inside of the task
             "OpTimeTask",    // The identifier of this task for men
-            4 * 1024,	     // Stack memory size to allocate
+            4 * KILLOBYTE,	     // Stack memory size to allocate
             this,	         // Task parameters to be passed to the function
             0,		         // Task Priority for scheduling
             &xHandle,        // The identifier of this task for machines
@@ -146,10 +148,7 @@ namespace muffin {
 
     void OperationTime::implTask()
     {
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 6 * 1000;
-    #endif
+        uint32_t statusReportMillis = millis(); 
 
         mPublishTimer.LastTime = GetTimestamp();
         mPublishTimer.NextTime = CalculateTimestampNextMinuteStarts(mPublishTimer.LastTime);
@@ -159,12 +158,20 @@ namespace muffin {
  
         while (true)
         {
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                checkRemainedStackMillis = millis();
-            }
+
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
         #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+      
+                LOG_DEBUG(logger, "[OpTimeTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::OPERATION_TIME_TASK, RemainedStackSize);
+            }
 
             for (auto& nodeReference : mVectorNodeReference)
             {

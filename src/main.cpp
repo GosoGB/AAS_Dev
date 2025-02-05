@@ -30,13 +30,14 @@ void setup()
 void loop()
 {
 #if defined(DEBUG)
-    LOG_DEBUG(muffin::logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // LOG_DEBUG(muffin::logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
+    // vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelete(NULL);
 #else
     /**
+    vTaskDelete(NULL);
      * @brief Arduino ESP32 Core 프레임워크의 "main.cpp" 파일에 정의된 "loopTask"를 정지합니다.
      */
-    vTaskDelete(NULL);
 #endif
 
 

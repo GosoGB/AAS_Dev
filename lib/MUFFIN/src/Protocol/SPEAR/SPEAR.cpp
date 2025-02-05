@@ -140,7 +140,7 @@ namespace muffin {
         {
             return Status(Status::Code::BAD_DATA_LOST);
         }
-        LOG_DEBUG(logger, "buffer : %s", payload);
+        // LOG_DEBUG(logger, "buffer : %s", payload);
         return Status(Status::Code::GOOD);
     }
 
@@ -781,7 +781,7 @@ namespace muffin {
         memset(payload, 0, payloadSize);
 
         serializeJson(JarvisJson, payload, payloadSize);
-        LOG_DEBUG(logger,"SEND MSG : %s",payload);
+        // LOG_DEBUG(logger,"SEND MSG : %s",payload);
 
         Send(payload);
 

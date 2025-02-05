@@ -21,6 +21,7 @@
 #include <map>
 
 #include "Common/Status.h"
+#include "IM/Custom/Constants.h"
 
 
 namespace muffin {
@@ -56,7 +57,12 @@ namespace muffin {
       } catm1_report_t;
 #endif
 
-
+   typedef struct TaskInfoType
+   {
+      std::string TaskName;
+      size_t TotalStackSize;
+      int32_t RemainedStackSize;
+   } task_info_t;
 
 	class DeviceStatus
 	{
@@ -64,10 +70,10 @@ namespace muffin {
 		DeviceStatus();
 		virtual ~DeviceStatus() {}
    public:
+      void SetTaskRemainedStack(task_name_e task, size_t remainedStack);
       void SetResetReason(const esp_reset_reason_t code);
       void SetStatusCode(const Status::Code statusCode);
-      void SetReconfigurationCode(const uint8_t reconfigurationCode);
-      void SetTask(const std::string name, size_t remainedStack);
+      void SetReconfigurationCode(const reconfiguration_code_e reconfigurationCode);
       void SetRemainedHeap(const size_t memory);
       void SetRemainedFlash(const size_t memory);
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
@@ -82,14 +88,15 @@ namespace muffin {
 
 
    public:
-      std::string ToString();
+      std::string ToStringEvent();
+      std::string ToStringCyclical();
 	private:
       esp_reset_reason_t mResetReason;
-      uint8_t mReconfigurationCode = 0;
+      reconfiguration_code_e mReconfigurationCode;
       Status mStatus;
-      std::map<std::string, size_t> mMapTaskResources;
       size_t mRemainedHeapMemory = 0;
       size_t mRemainedFlashMemory = 0;
+      task_info_t mTaskResources[8];
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
    #if defined(MODLINK_T2) || defined(MODLINK_B)

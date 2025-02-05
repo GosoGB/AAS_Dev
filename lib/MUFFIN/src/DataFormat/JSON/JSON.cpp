@@ -57,7 +57,7 @@ namespace muffin {
         switch (errorCode.code())
         {
         case DeserializationError::Code::Ok:
-            LOG_DEBUG(logger, "Deserialized the payload");
+            // LOG_DEBUG(logger, "Deserialized the payload");
             return Status(Status::Code::GOOD);
 
         case DeserializationError::Code::EmptyInput:

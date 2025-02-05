@@ -792,7 +792,6 @@ namespace muffin {
         return Status(Status::Code::BAD_NO_COMMUNICATION);
 
     FOUND_EXPECTED_RESPONSE:
-        LOG_INFO(logger,"RXD : %s",rxd.c_str());
 
         size_t idxRSSI = rxd.find(",") + 1;
         size_t idxRSRP = rxd.find(",", idxRSSI) + 1;
@@ -805,13 +804,12 @@ namespace muffin {
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
 
+        _struct->Enabled = true;
         _struct->RSSI = std::stoi(rxd.substr(idxRSSI, idxRSRP - idxRSSI - 1));
         _struct->RSRP = std::stoi(rxd.substr(idxRSRP, idxSINR - idxRSRP - 1));
         _struct->SINR = std::stoi(rxd.substr(idxSINR, idxRSRQ - idxSINR - 1));
         _struct->SINR = 0.2 * _struct->SINR - 20;
         _struct->RSRQ = std::stoi(rxd.substr(idxRSRQ));
-        LOG_ERROR(logger,"RSSI:%d dBm   RSRP:%d dBm   SINR:%d dB   RSRQ:%d dB  \n", 
-        _struct->RSSI, _struct->RSRP, _struct->SINR, _struct->RSRQ);
 
         return Status(Status::Code::GOOD);
     }

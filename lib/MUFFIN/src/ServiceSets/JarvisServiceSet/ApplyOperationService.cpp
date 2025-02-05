@@ -16,10 +16,13 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "IM/Custom/Constants.h"
+#include "IM/Custom/TypeDefinitions.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
 #include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
 #include "Storage/ESP32FS/ESP32FS.h"
+#include "DataFormat/CSV/CSV.h"
+#include "Protocol/SPEAR/SPEAR.h"
 
 
 
@@ -32,6 +35,51 @@ namespace muffin {
         Status ret = esp32FS.Format();
         if (ret == Status::Code::GOOD)
         {
+            init_cfg_t initConfig;
+
+            initConfig.PanicResetCount   = 0;
+            initConfig.HasPendingJARVIS  = 0;
+            initConfig.HasPendingUpdate  = 0;
+            initConfig.ReconfigCode      = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_FACTORY_RESET);;
+            const uint8_t size = 20;
+            char buffer[size] = {'\0'};
+
+            CSV csv;
+            Status ret = csv.Encode(initConfig, size, buffer);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FACTORY RESET HAS FAILED, ENCODING ERROR");
+                goto TEARDOWN;
+            }
+            
+            File file = esp32FS.Open(INIT_FILE_PATH, "w", true);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FACTORY RESET HAS FAILED, FILE OPEN ERROR");
+                goto TEARDOWN;
+            }
+
+            file.write(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
+            file.flush();
+            file.close();
+            
+            char readback[size] = {'\0'};
+            file = esp32FS.Open(INIT_FILE_PATH, "r", false);
+            if (file == false)
+            {
+                LOG_ERROR(logger, "FACTORY RESET HAS FAILED, FILE OPEN ERROR");
+                goto TEARDOWN;
+            }
+
+            file.readBytes(readback, size);
+            file.close();
+
+            if (strcmp(buffer, readback) != 0)
+            {
+                LOG_ERROR(logger, "FACTORY RESET HAS FAILED, FILE READ ERROR");
+                goto TEARDOWN;
+            }
+
             LOG_INFO(logger, "Factory reset has finished. Will be reset");
             goto TEARDOWN;
         }
@@ -39,6 +87,9 @@ namespace muffin {
         
     TEARDOWN:
         vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
+    #if defined(MODLINK_T2) || defined(MODLINK_B)
+        spear.Reset();
+    #endif 
         esp_restart();
     }
 

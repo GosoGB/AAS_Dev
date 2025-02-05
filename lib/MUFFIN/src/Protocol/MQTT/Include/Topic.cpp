@@ -48,15 +48,15 @@ namespace muffin { namespace mqtt {
         );
 
         snprintf(
-            mJarvisStatusRequest,
-            sizeof(mJarvisStatusRequest),
+            mJarvisInterfaceRequest,
+            sizeof(mJarvisInterfaceRequest),
             "mfm/if/%s",
             macAddress.GetEthernet()
         );
 
         snprintf(
-            mJarvisStatusResponse,
-            sizeof(mJarvisStatusResponse),
+            mJarvisInterfaceResponse,
+            sizeof(mJarvisInterfaceResponse),
             "mfm/if/resp/%s",
             macAddress.GetEthernet()
         );
@@ -89,11 +89,14 @@ namespace muffin { namespace mqtt {
         case topic_e::JARVIS_RESPONSE:
             return mJarvisResponse;
 
-        case topic_e::JARVIS_STATUS_REQUEST:
-            return mJarvisStatusRequest;
+        case topic_e::JARVIS_INTERFACE_REQUEST:
+            return mJarvisInterfaceRequest;
             
-        case topic_e::JARVIS_STATUS_RESPONSE:
-            return mJarvisStatusResponse;
+        case topic_e::JARVIS_INTERFACE_RESPONSE:
+            return mJarvisInterfaceResponse;
+
+        case topic_e::JARVIS_STATUS:
+            return mJarvisStatus;
             
         case topic_e::REMOTE_CONTROL_REQUEST:
             return mRemoteControlRequest;
@@ -153,13 +156,17 @@ namespace muffin { namespace mqtt {
         {
             return std::make_pair(true, topic_e::JARVIS_RESPONSE);
         }
-        else if (strcmp(topicString, mJarvisStatusRequest) == 0)
+        else if (strcmp(topicString, mJarvisInterfaceRequest) == 0)
         {
-            return std::make_pair(true, topic_e::JARVIS_STATUS_REQUEST);
+            return std::make_pair(true, topic_e::JARVIS_INTERFACE_REQUEST);
         }
-        else if (strcmp(topicString, mJarvisStatusResponse) == 0)
+        else if (strcmp(topicString, mJarvisInterfaceResponse) == 0)
         {
-            return std::make_pair(true, topic_e::JARVIS_STATUS_RESPONSE);
+            return std::make_pair(true, topic_e::JARVIS_INTERFACE_RESPONSE);
+        }
+        else if (strcmp(topicString, mJarvisStatus) == 0)
+        {
+            return std::make_pair(true, topic_e::JARVIS_STATUS);
         }
         else if (strcmp(topicString, mRemoteControlRequest) == 0)
         {

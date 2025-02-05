@@ -47,6 +47,7 @@
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Config/Operation/Operation.h"
 #include "IM/Node/Include/TypeDefinitions.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
@@ -80,6 +81,22 @@ namespace muffin {
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
+            init_cfg_t initConfig;
+            Status ret = readInitConfig(&initConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO LOAD INIT CONFIG FILE");
+                std::abort();
+            }
+            initConfig.ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::CLI_USER_CONFIG_CHANGE);
+            ret = writeInitConfig(initConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+            
+            delay(2000);
             spear.Reset();
             esp_restart();
         }
@@ -135,17 +152,22 @@ namespace muffin {
             std::abort();
         }
 
+        deviceStatus.SetReconfigurationCode(static_cast<reconfiguration_code_e>(initConfig.ReconfigCode));
+
         if (isResetByPanic() == true)
         {
             if (++initConfig.PanicResetCount == MAX_RETRY_COUNT)
             {
                 ret = esp32FS.Remove(JARVIS_PATH);
+                deviceStatus.SetReconfigurationCode(reconfiguration_code_e::FIRMWARE_DEFAULT_RECOVERY);
+                initConfig.ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::FIRMWARE_DEFAULT_RECOVERY);
             // #if !defined(DEBUG)
             // ---------------------------------------------------------------------
             // |  @todo #1  JARVIS 설정 초기화 사유를 <INIT_FILE_PATH>에 저장해야 함  |
             // |  @todo #2  mfm/status 토픽에 설정값에 변화가 있었다고 알려줘야 함     |
             // ---------------------------------------------------------------------
             // #endif
+                
                 if (ret == Status::Code::BAD_DEVICE_FAILURE)
                 {
                     LOG_ERROR(logger, "FATAL ERROR: FAILED TO REMOVE JARVIS CONFIG");
@@ -236,6 +258,7 @@ namespace muffin {
         if (initConfig.HasPendingJARVIS == true)
         {
             initConfig.HasPendingJARVIS = false;
+            initConfig.ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_CONFIG_CHANGE);
             ret = writeInitConfig(initConfig);
             if (ret != Status::Code::GOOD)
             {
@@ -307,17 +330,10 @@ namespace muffin {
             esp_restart();
         }
 
-        while (true)
-        {
-            catm1_report_t sig;
-            catM1->GetSignalQuality(&sig);
-            delay(5000);
-        }
-
         ApplyJarvisTask();
-        // call ApplyJarvisTask() function; a.k.a. start jarvis task
-        // device status 발행해야 함
         PublishFirmwareStatusMessageService();
+        PublishStatusEventMessageService(&initConfig);
+        
     }
 
     Status Core::readInitConfig(init_cfg_t* output)
@@ -332,6 +348,7 @@ namespace muffin {
             output->PanicResetCount   = 0;
             output->HasPendingJARVIS  = 0;
             output->HasPendingUpdate  = 0;
+            output->ReconfigCode      = 0;
 
             ret = writeInitConfig(*output);
             if (ret != Status::Code::GOOD)
@@ -399,7 +416,7 @@ namespace muffin {
 
     Status Core::writeInitConfig(const init_cfg_t& config)
     {
-        const uint8_t size = 16;
+        const uint8_t size = 20;
         char buffer[size] = {'\0'};
 
         CSV csv;
@@ -544,6 +561,27 @@ namespace muffin {
         }
         
         return ret;
+    }
+
+    void Core::PublishStatusEventMessageService(init_cfg_t* output)
+    {
+        const std::string payload =  deviceStatus.ToStringEvent();
+        mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
+        mqtt::cdo.Store(message);
+
+        if (output->ReconfigCode != static_cast<uint8_t>(reconfiguration_code_e::NONE))
+        {
+            output->HasPendingJARVIS = false;
+            output->HasPendingUpdate = false;
+            output->ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::NONE);
+            deviceStatus.SetReconfigurationCode(reconfiguration_code_e::NONE);
+            Status ret = writeInitConfig(*output);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+        }
     }
 
     Core core;

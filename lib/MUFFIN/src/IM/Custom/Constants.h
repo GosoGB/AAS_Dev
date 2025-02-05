@@ -42,4 +42,27 @@ namespace muffin {
     constexpr const char* OTA_REQUEST_PATH       = "/ota/request.json";
     constexpr const char* OTA_CHUNK_PATH_ESP32   = "/ota/chunk_esp32.csv";
     constexpr const char* OTA_CHUNK_PATH_MEGA    = "/ota/chunk_mega2560.csv";
+
+    typedef enum class TaskName
+        : uint8_t
+    {
+        MQTT_TASK            = 0,
+        CYCLICALS_MSG_TASK   = 1,
+        MODBUS_RTU_TASK      = 2,
+        MODBUS_TCP_TASK      = 3,
+        MORNITOR_ALARM_TASK  = 4,
+        OPERATION_TIME_TASK  = 5,
+        PRODUCTION_INFO_TASK = 6,
+        CATM1_PROCESSOR_TASK = 7
+    } task_name_e;
+
+    typedef enum class ReconfigurationCode
+        : uint8_t
+    {
+        NONE                        = 0, // 설정 변경 없음
+        JARVIS_USER_CONFIG_CHANGE   = 1, // MFM 사용자에 의한 설정 변경
+        JARVIS_USER_FACTORY_RESET   = 2, // MFM 사용자에 의한 공장 초기화
+        FIRMWARE_DEFAULT_RECOVERY   = 3, // 설정 값 예외/실패로 인해 반복 리셋 시 펌웨어 기본값 복원
+        CLI_USER_CONFIG_CHANGE      = 4  // CLI를 통해 사용자가 직접 설정 변경
+    } reconfiguration_code_e;
 }

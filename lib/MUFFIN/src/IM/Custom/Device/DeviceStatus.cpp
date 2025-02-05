@@ -25,6 +25,7 @@
 
 
 
+
 namespace muffin {
 
     DeviceStatus::DeviceStatus()
@@ -51,6 +52,39 @@ namespace muffin {
       mWiFiStatusReport.Status   = "UNKNOWN";
       mWiFiStatusReport.RSSI     = INT16_MIN;
    #endif
+
+        mTaskResources[0].TaskName          = "MqttTask";
+        mTaskResources[0].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[0].RemainedStackSize = -1;
+
+        mTaskResources[1].TaskName          = "cyclicalsMSGTask";
+        mTaskResources[1].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[1].RemainedStackSize = -1;
+
+        mTaskResources[2].TaskName          = "ModbusRtuTask";
+        mTaskResources[2].TotalStackSize    = 5 * KILLOBYTE;
+        mTaskResources[2].RemainedStackSize = -1;
+
+        mTaskResources[3].TaskName          = "ModbusTcpTask";
+        mTaskResources[3].TotalStackSize    = 5 * KILLOBYTE;
+        mTaskResources[3].RemainedStackSize = -1;
+
+        mTaskResources[4].TaskName          = "MornitorAlarmTask";
+        mTaskResources[4].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[4].RemainedStackSize = -1;
+
+        mTaskResources[5].TaskName          = "OpTimeTask";
+        mTaskResources[5].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[5].RemainedStackSize = -1;
+
+        mTaskResources[6].TaskName          = "ProductionInfoTask";
+        mTaskResources[6].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[6].RemainedStackSize = -1;
+
+        mTaskResources[7].TaskName          = "CatM1ProcessorTask";
+        mTaskResources[7].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[7].RemainedStackSize = -1;
+
     }
 
     void DeviceStatus::SetResetReason(const esp_reset_reason_t code)
@@ -103,14 +137,43 @@ namespace muffin {
         mStatus = statusCode;
     }
     
-    void DeviceStatus::SetReconfigurationCode(const uint8_t reconfigurationCode)
+    void DeviceStatus::SetReconfigurationCode(const reconfiguration_code_e reconfigurationCode)
     {
         mReconfigurationCode = reconfigurationCode;
     }
-    
-    void DeviceStatus::SetTask(const std::string name, size_t remainedStack)
+
+    void DeviceStatus::SetTaskRemainedStack(task_name_e task, size_t remainedStack)
     {
-        mMapTaskResources[name] = remainedStack;
+        switch (task)
+        {
+        case task_name_e::MQTT_TASK:
+            mTaskResources[0].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::CYCLICALS_MSG_TASK:
+            mTaskResources[1].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::MODBUS_RTU_TASK:
+            mTaskResources[2].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::MODBUS_TCP_TASK:
+            mTaskResources[3].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::MORNITOR_ALARM_TASK:
+            mTaskResources[4].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::OPERATION_TIME_TASK:
+            mTaskResources[5].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::PRODUCTION_INFO_TASK:
+            mTaskResources[6].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::CATM1_PROCESSOR_TASK:
+            mTaskResources[7].RemainedStackSize = remainedStack;
+            break;
+        default:
+            LOG_ERROR(logger,"NOT DEFINED TAKSNAME : %d",task);
+            break;
+        }
     }
     
     void DeviceStatus::SetRemainedHeap(const size_t memory)
@@ -134,6 +197,7 @@ namespace muffin {
     void DeviceStatus::SetReportCatM1(const catm1_report_t report)
     {
         mCatM1StatusReport = report;
+        
     }
 #endif
 
@@ -144,7 +208,7 @@ namespace muffin {
     }
 #endif
 
-    std::string DeviceStatus::ToString()
+    std::string DeviceStatus::ToStringEvent()
     {
         JsonDocument doc;
         doc["mac"] = macAddress.GetEthernet();
@@ -163,17 +227,45 @@ namespace muffin {
         JsonObject event = doc["event"].to<JsonObject>();
         event["deviceReset"]   =  mResetReason;
         event["statusCode"]    =  mStatus.c_str();
-        event["reconfigured"]  =  mReconfigurationCode;
+        event["reconfigured"]  =  static_cast<uint8_t>(mReconfigurationCode);
+
+        std::string payload;
+        serializeJson(doc, payload);
+
+        return payload;
+    }
+
+    std::string DeviceStatus::ToStringCyclical()
+    {
+        JsonDocument doc;
+        doc["mac"] = macAddress.GetEthernet();
+        doc["ts"]  = GetTimestampInMillis();
+
+        JsonObject firmware               = doc["firmware"].to<JsonObject>();
+        JsonObject firmwareESP32          = firmware["esp32"].to<JsonObject>();
+        firmwareESP32["semanticVersion"]  = FW_VERSION_ESP32.GetSemanticVersion();
+        firmwareESP32["versionCode"]      = FW_VERSION_ESP32.GetVersionCode();
+	#if defined(MODLINK_T2)
+        JsonObject firmwareATmega2560          = firmware["atmega2560"].to<JsonObject>();
+        firmwareATmega2560["semanticVersion"]  = FW_VERSION_MEGA2560.GetSemanticVersion();
+        firmwareATmega2560["versionCode"]      = FW_VERSION_MEGA2560.GetVersionCode();
+	#endif
 
         JsonObject cyclical  = doc["cyclical"].to<JsonObject>();
         JsonObject resources = cyclical["resources"].to<JsonObject>();
         JsonArray tasks      = resources["tasks"].to<JsonArray>();
-        for (const auto& pair : mMapTaskResources)
+
+        for (auto& array : mTaskResources)
         {
-            JsonObject obj = tasks.add<JsonObject>();
-            obj["name"] = pair.first;
-            obj["stackRemained"] = pair.second;
+            if (array.RemainedStackSize != -1)
+            {
+                JsonObject obj = tasks.add<JsonObject>();
+                obj["name"] = array.TaskName;
+                obj["totalStackSize"] = array.TotalStackSize;
+                obj["RemainedstackSize"] = array.RemainedStackSize;
+            }
         }
+        
         resources["heapRemained"]   = mRemainedHeapMemory;
         resources["flashRemained"]  = mRemainedFlashMemory;
 
@@ -191,7 +283,11 @@ namespace muffin {
             if (mCatM1StatusReport.Enabled == true)
             {
                 JsonObject catM1 = network["catM1"].to<JsonObject>();
-                catM1["ip"]    = mCatM1StatusReport.PublicIP;
+                /**
+                 * @todo IPv6 추후에 개발 예정
+                 * 
+                 */
+                // catM1["ip"]    = mCatM1StatusReport.PublicIP;
                 catM1["rssi"]  = mCatM1StatusReport.RSSI;
                 catM1["rsrp"]  = mCatM1StatusReport.RSRP;
                 catM1["sinr"]  = mCatM1StatusReport.SINR;
@@ -212,6 +308,7 @@ namespace muffin {
 
         std::string payload;
         serializeJson(doc, payload);
+
         return payload;
     }
 

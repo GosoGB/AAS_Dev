@@ -19,7 +19,8 @@
 #include "Common/Time/TimeUtils.h"
 #include "DeprecableProductionInfo.h"
 #include "Protocol/MQTT/CDO.h"
-
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "IM/Custom/Constants.h"
 
 
 namespace muffin {
@@ -64,7 +65,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             wrapImplTask,      // Function to be run inside of the task
             "ProdInfoTask",    // The identifier of this task for men
-            4 * 1024,	       // Stack memory size to allocate
+            4 * KILLOBYTE,	       // Stack memory size to allocate
             this,	           // Task parameters to be passed to the function
             0,		           // Task Priority for scheduling
             &xHandle,          // The identifier of this task for machines
@@ -111,23 +112,26 @@ namespace muffin {
 
     void ProductionInfo::implTask()
     {
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 6 * 1000;
-    #endif
+        uint32_t statusReportMillis = millis();
 
         time_t LastTime;
         time_t NextTime = CalculateTimestampNextMinuteStarts(GetTimestamp());
   
         while (true)
         {
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                //LOG_DEBUG(logger, "[TASK: ProductionInfo] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(xHandle));
-                checkRemainedStackMillis = millis();
-            }
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
         #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[ProductionInfoTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::PRODUCTION_INFO_TASK, RemainedStackSize);
+            }
 
             for (auto& nodeReference : mVectorNodeReference)
             {
