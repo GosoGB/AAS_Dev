@@ -47,7 +47,7 @@ namespace muffin {
             rest_method_e::GET, 
             http_scheme_e::HTTPS, 
         #if defined(DEBUG)
-            "api.mfm.edgecross.ai", 
+            "api.mfm.edgecross.dev", 
         #else
             "api.mfm.edgecross.ai",
         #endif
