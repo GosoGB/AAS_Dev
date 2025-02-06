@@ -264,7 +264,7 @@ namespace muffin {
             ota::page_t pageReadBack;
             ret = mega2560.ReadFlashISP(pageSize, &pageReadBack);
             currentAddress += pageSize;
-            vTaskDelay(200 / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
         
         ret = mega2560.LoadAddress(address);
@@ -283,8 +283,19 @@ namespace muffin {
         ASSERT((pvParameters != nullptr), "INPUT PARAMETERS CANNOT BE NULL");
         parsing_task_params* params = static_cast<parsing_task_params*>(pvParameters);
 
-        while (uxQueueMessagesWaiting(sQueueHandle) > 0)
-        {            
+        while (true)
+        {
+            if (uxQueueMessagesWaiting(sQueueHandle) == 0)
+            {
+                if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
+                {
+                    goto ON_EXIT;
+                }
+                
+                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                continue;
+            }
+            
             ota_chunk_info_t chunkInfo;
             Status ret = FindChunkInfoService(params->Info->Head.MCU, params->Info->Chunk.FlashingIDX, &chunkInfo);
             if (ret != Status::Code::GOOD)
@@ -311,7 +322,8 @@ namespace muffin {
                 vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
             }
         }
-        
+    
+    ON_EXIT:
         free(params);
         sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE));
         vTaskDelete(sParsingTaskHandle);
@@ -384,9 +396,13 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO UPDATE: FAILED TO INIT UPDATE FOR ATmega2560: %s", ret.c_str());
-            mega2560.TearDown();
+            vTaskDelete(sParsingTaskHandle);
+            sParsingTaskHandle = NULL;
+
             Status postResult = PostUpdateResult(info, "failure");
             LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+
+            mega2560.TearDown();
             return ret;
         }
 
@@ -397,6 +413,10 @@ namespace muffin {
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.DownloadIDX);
+                mega2560.TearDown();
+
+                vTaskDelete(sParsingTaskHandle);
+                sParsingTaskHandle = NULL;
                 return ret;
             }
             
@@ -408,15 +428,25 @@ namespace muffin {
                 {
                     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
                     LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                    mega2560.TearDown();
+
+                    vTaskDelete(sParsingTaskHandle);
+                    sParsingTaskHandle = NULL;
                     return ret;
                 }
                 sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
             }
             else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
             {
+                LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
+                mega2560.TearDown();
+                
                 Status postResult = PostDownloadResult(info, chunk.Size, chunk.Path, "failure");
                 LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
-                LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", ret.c_str());
+
+                vTaskDelete(sParsingTaskHandle);
+                sParsingTaskHandle = NULL;
+
                 ret = Status::Code::BAD_DATA_LOST;
                 return ret;
             }
@@ -427,6 +457,10 @@ namespace muffin {
                 {
                     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
                     LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
+                    mega2560.TearDown();
+
+                    vTaskDelete(sParsingTaskHandle);
+                    sParsingTaskHandle = NULL;
                     return ret;
                 }
             }
@@ -438,22 +472,15 @@ namespace muffin {
                 {
                     LOG_ERROR(logger, "FAILED TO UPDATE: LOST CONNECTION TO THE FLASH ISP");
                     mega2560.TearDown();
+
                     Status postResult = PostUpdateResult(info, "failure");
                     LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    
+                    vTaskDelete(sParsingTaskHandle);
+                    sParsingTaskHandle = NULL;
                     return ret;
                 }
             }
-
-            ret = startChunkPageParsing(info, hexParser);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO UPDATE: FAILED TO START PARSING HEX RECORDS: %s", ret.c_str());
-                mega2560.TearDown();
-                Status postResult = PostUpdateResult(info, "failure");
-                LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
-                return ret;
-            }
-            vTaskDelay(100 / portTICK_PERIOD_MS);
 
             if (hexParser.GetPageCount() > 0)
             {
@@ -508,23 +535,25 @@ namespace muffin {
                 }
 
                 hexParser.RemovePage();
+                LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+
                 /**
                  * @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.
-                 * @details MODLINK-T2 내부의 ATmega2560 칩셋은 부트로더 내부에 
-                 *          AVRISP_2 프로그래머를 가지고 있습니다. AVRISP_2 워드
-                 *         주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가
-                 *         하나의 주소로 표현됩니다.
+                 * @details MODLINK-T2 내부의 ATmega2560 칩셋은 부트로더 내부에 AVRISP_2 프로그래머를 가지고 있습니다.
+                 *          AVRISP_2 워드 주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가 하나의 주소로 표현됩니다.
                  */
                 currentAddress += page.Size / 2;
-                LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
             }
         }
 
         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FINISHED));
         mega2560.LeaveProgrammingMode();
         mega2560.TearDown();
+        
         LOG_INFO(logger, "Updated ATmega2560 successfully");
         Status postResult = PostUpdateResult(info, "success");
+
         LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
         return Status(Status::Code::GOOD);
     }
