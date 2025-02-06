@@ -32,6 +32,7 @@ namespace muffin { namespace ota {
     Status HexParser::Parse(const std::string& chunk)
     {
         mReceivedData.append(chunk);
+        mReceivedData.shrink_to_fit();
         // LOG_DEBUG(logger, "mReceivedData: %s", mReceivedData.c_str());
 
         try

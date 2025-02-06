@@ -311,7 +311,7 @@ namespace muffin {
             else
             {
                 ++params->Info->Chunk.FlashingIDX;
-                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                vTaskDelay(50 / portTICK_PERIOD_MS);
             }
         }
     
@@ -512,7 +512,6 @@ namespace muffin {
 
                 hexParser.RemovePage();
                 LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
-                vTaskDelay(50 / portTICK_PERIOD_MS);
 
                 /**
                  * @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.
