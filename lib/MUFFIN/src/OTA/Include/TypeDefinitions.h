@@ -51,6 +51,8 @@ namespace muffin { namespace ota {
     typedef struct FirmwareChunkInfoHeadType
     {
         uint8_t Count;
+        uint8_t StartIDX;
+        uint8_t FinishIDX;
         uint8_t FlashingIDX;
         uint8_t DownloadIDX;
     } chk_head_t;

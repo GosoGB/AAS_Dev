@@ -541,7 +541,7 @@ namespace muffin {
 
         BaseType_t ret = xTaskCreatePinnedToCore(implMqttTask,     // Function to be run inside of the task
                                                  "implMqttTask",   // The identifier of this task for men
-                                                 5*KILLOBYTE,	   // Stack memory size to allocate
+                                                 6*KILLOBYTE,	   // Stack memory size to allocate
                                                  &config,		   // Task parameters to be passed to the function
                                                  0,				   // Task Priority for scheduling
                                                  &xHandle,         // The identifier of this task for machines

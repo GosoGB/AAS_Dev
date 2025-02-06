@@ -52,8 +52,10 @@ namespace muffin {
         download_task_params* sParams = static_cast<download_task_params*>(pvParameters);
 
         Status ret(Status::Code::UNCERTAIN);
-        while (sParams->Info->Chunk.DownloadIDX < sParams->Info->Chunk.Count)
+        while (sParams->Info->Chunk.DownloadIDX < sParams->Info->Chunk.FinishIDX)
         {
+            LOG_DEBUG(logger, "Download IDX: %u", sParams->Info->Chunk.DownloadIDX);
+
             ota_chunk_info_t chunk;
             ret = FindChunkInfoService(sParams->Info->Head.MCU, sParams->Info->Chunk.DownloadIDX, &chunk);
             if (ret != Status::Code::GOOD)
@@ -149,6 +151,7 @@ namespace muffin {
             xQueueSend(sParams->Queue, (void*)&output, UINT32_MAX);
             ++sParams->Info->Chunk.DownloadIDX;
         }
+
         LOG_INFO(logger, "Download finished");
         ret = Status::Code::GOOD;
     

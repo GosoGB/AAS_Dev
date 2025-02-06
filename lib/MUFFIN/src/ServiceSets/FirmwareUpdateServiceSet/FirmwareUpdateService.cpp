@@ -159,7 +159,7 @@ namespace muffin {
         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_STARTED));
         LOG_INFO(logger, "Flashing started successfully");
         
-        while (info.Chunk.FlashingIDX < info.Chunk.Count)
+        while (info.Chunk.FlashingIDX < info.Chunk.FinishIDX)
         {
             ota_chunk_info_t chunk;
             ret = FindChunkInfoService(info.Head.MCU, info.Chunk.DownloadIDX, &chunk);
@@ -198,14 +198,6 @@ namespace muffin {
                     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
                     LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
                     return ret;
-                }
-            }
-            else if (uxQueueMessagesWaiting(sQueueHandle) == 0 && sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false)
-            {
-                LOG_WARNING(logger, "NO CHUNK AVAILABLE: WILL WAIT FOR FEW SECONDS");
-                while (uxQueueMessagesWaiting(sQueueHandle) != (MAX_QUEUE_LENGTH - 1))
-                {
-                    vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
                 }
             }
 
@@ -384,13 +376,13 @@ namespace muffin {
         ota::HexParser hexParser;
         size_t currentAddress = 0;
 
-        while (uxQueueMessagesWaiting(sQueueHandle) < MAX_QUEUE_LENGTH - 1)
+        while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 1))
         {
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
         startChunkPageParsing(info, hexParser);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
 
         Status ret = mega2560.Init(info.TotalSize);
         if (ret != Status::Code::GOOD)
@@ -406,13 +398,13 @@ namespace muffin {
             return ret;
         }
 
-        while (info.Chunk.FlashingIDX < info.Chunk.Count)
+        while (info.Chunk.FlashingIDX < info.Chunk.FinishIDX)
         {
             ota_chunk_info_t chunk;
-            ret = FindChunkInfoService(info.Head.MCU, info.Chunk.DownloadIDX, &chunk);
+            ret = FindChunkInfoService(info.Head.MCU, info.Chunk.FlashingIDX, &chunk);
             if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.DownloadIDX);
+                LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.FlashingIDX);
                 mega2560.TearDown();
 
                 vTaskDelete(sParsingTaskHandle);
@@ -452,6 +444,7 @@ namespace muffin {
             }
             else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
             {
+                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
                 ret = validateTotalCRC32(info, crc32);
                 if (ret != Status::Code::GOOD)
                 {
@@ -459,23 +452,6 @@ namespace muffin {
                     LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
                     mega2560.TearDown();
 
-                    vTaskDelete(sParsingTaskHandle);
-                    sParsingTaskHandle = NULL;
-                    return ret;
-                }
-            }
-            else if (hexParser.GetPageCount() == 0 && sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false)
-            {
-                LOG_WARNING(logger, "NO CHUNK AVAILABLE: WILL WAIT FOR FEW SECONDS");
-                ret = waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
-                if (ret != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FAILED TO UPDATE: LOST CONNECTION TO THE FLASH ISP");
-                    mega2560.TearDown();
-
-                    Status postResult = PostUpdateResult(info, "failure");
-                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
-                    
                     vTaskDelete(sParsingTaskHandle);
                     sParsingTaskHandle = NULL;
                     return ret;
@@ -536,7 +512,7 @@ namespace muffin {
 
                 hexParser.RemovePage();
                 LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
-                vTaskDelay(100 / portTICK_PERIOD_MS);
+                vTaskDelay(50 / portTICK_PERIOD_MS);
 
                 /**
                  * @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.

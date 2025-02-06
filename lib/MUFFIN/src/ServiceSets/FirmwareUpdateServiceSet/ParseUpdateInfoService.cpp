@@ -212,6 +212,10 @@ namespace muffin {
             return Status(Status::Code::BAD_SEQUENCE_NUMBER_INVALID);
         }
         output->Chunk.Count = arrayFileNumber.size();
+        output->Chunk.StartIDX = arrayFileNumber[0].as<uint8_t>();
+        output->Chunk.DownloadIDX = output->Chunk.StartIDX;
+        output->Chunk.FlashingIDX = output->Chunk.StartIDX;
+        output->Chunk.FinishIDX = output->Chunk.StartIDX + output->Chunk.Count;
 
         CSV csv;
         ota_chunk_info_t chunk;
@@ -321,38 +325,12 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO PARSE INFO FOR ESP32");
             return ret;
         }
-        else
-        {
-            if (esp32->Head.HasNewFirmware == true)
-            {
-                ret = ReadIndexFromFirstLine(ota::mcu_e::MCU1, &esp32->Chunk.DownloadIDX);
-                if ((ret != Status::Code::BAD_NOT_FOUND) && (ret != Status::Code::GOOD))
-                {
-                    LOG_ERROR(logger, "FAILED TO READ STARTING INDEX FROM THE CHUNK INFO");
-                    return ret;
-                }
-                esp32->Chunk.FlashingIDX = esp32->Chunk.DownloadIDX;
-            }
-        }
         
         ret = strategyMEGA2560(doc, mega2560);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PARSE INFO FOR ATmega2560");
             return ret;
-        }
-        else
-        {
-            if (mega2560->Head.HasNewFirmware == true)
-            {
-                ret = ReadIndexFromFirstLine(ota::mcu_e::MCU2, &mega2560->Chunk.DownloadIDX);
-                if ((ret != Status::Code::BAD_NOT_FOUND) && (ret != Status::Code::GOOD))
-                {
-                    LOG_ERROR(logger, "FAILED TO READ STARTING INDEX FROM THE CHUNK INFO");
-                    return ret;
-                }
-                mega2560->Chunk.FlashingIDX = mega2560->Chunk.DownloadIDX;
-            }
         }
 
         LOG_INFO(logger, "Parsed update message successfully");
