@@ -942,6 +942,7 @@ ERROR_RESPONSE:
                         deviceStatus.SetReportCatM1(signal);
                     }
                 }
+                
 
                 const std::string payload =  deviceStatus.ToStringCyclical();
                 mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
@@ -991,7 +992,7 @@ ERROR_RESPONSE:
 
         BaseType_t ret = xTaskCreatePinnedToCore(implMqttTask,     // Function to be run inside of the task
                                                  "implMqttTask",   // The identifier of this task for men
-                                                 6*KILLOBYTE,	   // Stack memory size to allocate
+                                                 8*KILLOBYTE,	   // Stack memory size to allocate
                                                  &config,		   // Task parameters to be passed to the function
                                                  0,				   // Task Priority for scheduling
                                                  &xHandle,         // The identifier of this task for machines
