@@ -23,6 +23,7 @@
 #include "DataFormat/CSV/CSV.h"
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/FindChunkInfoService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 
@@ -215,17 +216,15 @@ namespace muffin {
         CSV csv;
         ota_chunk_info_t chunk;
         const uint8_t bufferSize = 128;
-        Status ret(Status::Code::UNCERTAIN);
-        File file = output->Head.MCU == ota::mcu_e::MCU1 ?
-            esp32FS.Open(OTA_CHUNK_PATH_ESP32, "w", true) :
-            esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "w", true);
-
+        File file = output->Head.MCU == ota::mcu_e::MCU1 ? esp32FS.Open(OTA_CHUNK_PATH_ESP32, "w", true)
+                                                         : esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "w", true);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN OTA CHUNK INFO PATH");
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
         
+        Status ret(Status::Code::UNCERTAIN);
         for (uint8_t idx = 0; idx < output->Chunk.Count; ++idx)
         {
             bool isValid = true;
@@ -270,23 +269,6 @@ namespace muffin {
         }
         file.flush();
         file.close();
-    
-    #if defined(DEBUG)
-        Serial.println("\n");
-        Serial.println("\n");
-        
-        file = output->Head.MCU == ota::mcu_e::MCU1 ?
-            esp32FS.Open(OTA_CHUNK_PATH_ESP32, "r", false) :
-            esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "r", false);
-
-        while (file.available())
-        {
-            Serial.print((char)file.read());
-        }
-        
-        Serial.println("\n");
-        Serial.println("\n");
-    #endif
         return ret;
     }
 
@@ -339,12 +321,38 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO PARSE INFO FOR ESP32");
             return ret;
         }
-
+        else
+        {
+            if (esp32->Head.HasNewFirmware == true)
+            {
+                ret = ReadIndexFromFirstLine(ota::mcu_e::MCU1, &esp32->Chunk.DownloadIDX);
+                if ((ret != Status::Code::BAD_NOT_FOUND) && (ret != Status::Code::GOOD))
+                {
+                    LOG_ERROR(logger, "FAILED TO READ STARTING INDEX FROM THE CHUNK INFO");
+                    return ret;
+                }
+                esp32->Chunk.FlashingIDX = esp32->Chunk.DownloadIDX;
+            }
+        }
+        
         ret = strategyMEGA2560(doc, mega2560);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO PARSE INFO FOR ATmega2560");
             return ret;
+        }
+        else
+        {
+            if (mega2560->Head.HasNewFirmware == true)
+            {
+                ret = ReadIndexFromFirstLine(ota::mcu_e::MCU2, &mega2560->Chunk.DownloadIDX);
+                if ((ret != Status::Code::BAD_NOT_FOUND) && (ret != Status::Code::GOOD))
+                {
+                    LOG_ERROR(logger, "FAILED TO READ STARTING INDEX FROM THE CHUNK INFO");
+                    return ret;
+                }
+                mega2560->Chunk.FlashingIDX = mega2560->Chunk.DownloadIDX;
+            }
         }
 
         LOG_INFO(logger, "Parsed update message successfully");

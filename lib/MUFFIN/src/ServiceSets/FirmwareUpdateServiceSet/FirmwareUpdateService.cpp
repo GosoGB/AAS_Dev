@@ -41,7 +41,7 @@ static TaskHandle_t sParsingTaskHandle;
 static muffin::MemoryPool* sMemoryPool;
 static const uint16_t BLOCK_SIZE = 10*muffin::KILLOBYTE;
 static uint8_t sTrialCount = 0;
-static const uint8_t MAX_QUEUE_LENGTH = 2;
+static const uint8_t MAX_QUEUE_LENGTH = 3;
 static const size_t  QUEUE_ITEM_SIZE  = sizeof(uint8_t*);
 
 size_t muffin::ota::fw_head_t::ID = 0;
@@ -308,13 +308,14 @@ namespace muffin {
             else
             {
                 ++params->Info->Chunk.FlashingIDX;
-                vTaskDelay(5*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
             }
         }
         
         free(params);
         sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE));
         vTaskDelete(sParsingTaskHandle);
+        LOG_WARNING(logger, "PAGE PARSING TASK HAS BEEN TERMINATED");
     }
 
     Status startChunkPageParsing(ota::fw_info_t& info, ota::HexParser& parser)
@@ -324,8 +325,6 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
         
-        sServiceFlags.set(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE));
-
         parsing_task_params* pvParameters = (parsing_task_params*)malloc(sizeof(parsing_task_params));
         if (pvParameters == nullptr)
         {
@@ -350,6 +349,7 @@ namespace muffin {
         {
         case pdPASS:
             LOG_INFO(logger, "Parsing chunk task has been started");
+            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE));
             return Status(Status::Code::GOOD);
 
         case pdFAIL:
@@ -371,6 +371,15 @@ namespace muffin {
         ota::MEGA2560 mega2560;
         ota::HexParser hexParser;
         size_t currentAddress = 0;
+
+        while (uxQueueMessagesWaiting(sQueueHandle) < MAX_QUEUE_LENGTH - 1)
+        {
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
+
+        startChunkPageParsing(info, hexParser);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+
         Status ret = mega2560.Init(info.TotalSize);
         if (ret != Status::Code::GOOD)
         {
@@ -421,20 +430,17 @@ namespace muffin {
                     return ret;
                 }
             }
-            else if (uxQueueMessagesWaiting(sQueueHandle) == 0 && sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false)
+            else if (hexParser.GetPageCount() == 0 && sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false)
             {
                 LOG_WARNING(logger, "NO CHUNK AVAILABLE: WILL WAIT FOR FEW SECONDS");
-                while (uxQueueMessagesWaiting(sQueueHandle) == 0)
+                ret = waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
+                if (ret != Status::Code::GOOD)
                 {
-                    ret = waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
-                    if (ret != Status::Code::GOOD)
-                    {
-                        LOG_ERROR(logger, "FAILED TO UPDATE: LOST CONNECTION TO THE FLASH ISP");
-                        mega2560.TearDown();
-                        Status postResult = PostUpdateResult(info, "failure");
-                        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
-                        return ret;
-                    }
+                    LOG_ERROR(logger, "FAILED TO UPDATE: LOST CONNECTION TO THE FLASH ISP");
+                    mega2560.TearDown();
+                    Status postResult = PostUpdateResult(info, "failure");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    return ret;
                 }
             }
 

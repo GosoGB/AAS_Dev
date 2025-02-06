@@ -352,8 +352,6 @@ namespace muffin {
         return ret;
     }
 
-    
-
     Status processMessageUpdate(init_cfg_t& params, const char* payload)
     {
         if (params.HasPendingUpdate == true)

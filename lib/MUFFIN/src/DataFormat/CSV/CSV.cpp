@@ -22,7 +22,6 @@
 
 
 
-#include <HardwareSerial.h>
 namespace muffin {
 
     Status CSV::Decode(const char* input, init_cfg_t* output)
@@ -190,24 +189,6 @@ namespace muffin {
 
             strncpy(buffer[idx], start, length);
             buffer[idx][length] = '\0';
-            LOG_DEBUG(logger, "buffer[idx][length]: %s", buffer[idx][length]);
-            
-            Serial.println('\n');
-            for (uint8_t i = 0; i < length + 1; ++i)
-            {
-                Serial.printf("%02X, ", buffer[idx][i]);
-            }
-            Serial.println('\n');
-            
-            Serial.println('\n');
-            for (uint8_t i = 0; i < length; ++i)
-            {
-                Serial.printf("%02X, ", buffer[idx][i]);
-            }
-            Serial.println('\n');
-            
-            위의 로그가 찍히는지 확인해봐야 함 지금 Convert 문제 생기는게 마지막 컬럼에 있는 
-            값이 올바르게 들어오지 않아서 그러는 게 아닌가 의심되고 있음
         }
 
         return ret;

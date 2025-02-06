@@ -4,7 +4,7 @@
  * 
  * @brief SPIFFS 파티션으로부터 특정 OTA 청크 파일에 대한 정보를 찾아 반환하는 서비스를 정의합니다.
  * 
- * @date 2025-02-05
+ * @date 2025-02-06
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -25,16 +25,52 @@
 
 namespace muffin {
 
+    Status ReadIndexFromFirstLine(const ota::mcu_e mcuType, uint8_t* index)
+    {
+        ASSERT((index != nullptr), "INPUT PARAMETER CANNOT BE NULL");
+
+        Status ret = mcuType == ota::mcu_e::MCU1 ? esp32FS.DoesExist(OTA_CHUNK_PATH_ESP32)
+                                                 : esp32FS.DoesExist(OTA_CHUNK_PATH_MEGA);
+        if (ret == Status::Code::BAD_NOT_FOUND)
+        {
+            return ret;
+        }
+
+        File file = mcuType == ota::mcu_e::MCU1 ? esp32FS.Open(OTA_CHUNK_PATH_ESP32, "r", false)
+                                                : esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "r", false);
+        if (file == false)
+        {
+            LOG_ERROR(logger, "FAILED TO OPEN OTA CHUNK INFO FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        const uint8_t length = 128;
+        char line[length] = {'\0'};
+        file.readBytesUntil('\r', line, length);
+        file.close();
+
+        CSV csv;
+        ota_chunk_info_t info;
+        ret = csv.Decode(line, &info);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO READ INDEX FROM THE FIRST LINE: %s", line);
+        }
+        else
+        {
+            *index = info.Index;
+        }
+        return ret;
+    }
+
     Status FindChunkInfoService(const ota::mcu_e mcuType, const uint8_t idx, ota_chunk_info_t* info)
     {
         ASSERT((info != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
         CSV csv;
         Status ret(Status::Code::BAD_NOT_FOUND);
-
-        File file = mcuType == ota::mcu_e::MCU1 ?
-            esp32FS.Open(OTA_CHUNK_PATH_ESP32, "r", false) :
-            esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "r", false);
+        File file = mcuType == ota::mcu_e::MCU1 ? esp32FS.Open(OTA_CHUNK_PATH_ESP32, "r", false)
+                                                : esp32FS.Open(OTA_CHUNK_PATH_MEGA,  "r", false);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN OTA CHUNK INFO FILE");
@@ -46,18 +82,19 @@ namespace muffin {
         int right = file.size() - 1;
         int middle = (left + right) / 2;
 
+        bool isPositionZero = false;
+        bool hasFoundIndex = false;
+
         while (left <= right)
         {
-            middle = (left + right) / 2;
-            LOG_DEBUG(logger, "left: %d, middle: %d, right: %d", left, middle, right);
-
-            const bool doesExist = file.seek(middle);
-            if (doesExist == false)
+            if (isPositionZero == true)
             {
-                LOG_ERROR(logger, "FAILED TO MOVE FILE POINTER TO '%u'", middle);
-                ret = Status::Code::BAD_END_OF_STREAM;
+                LOG_ERROR(logger, "FAILED TO FIND GIVEN INDEX: %u", idx);
                 goto ON_EXIT;
             }
+            
+            middle = (left + right) / 2;
+            file.seek(middle);
 
             while ((file.position() > 0) && (file.peek() != '\n'))
             {
@@ -66,7 +103,7 @@ namespace muffin {
             
             if (file.position() == 0)
             {
-                break;
+                isPositionZero = true;
             }
             else
             {
@@ -76,6 +113,13 @@ namespace muffin {
             const uint8_t length = 128;
             char line[length] = {'\0'};
             file.readBytesUntil('\n', line, length);
+            
+            char* carriageReturn = strrchr(line, '\r');
+            if (carriageReturn != NULL)
+            {
+                *carriageReturn = '\0';
+            }
+            
             ret = csv.Decode(line, info);
             if (ret != Status::Code::GOOD)
             {
@@ -83,12 +127,10 @@ namespace muffin {
                 ret = Status::Code::BAD_END_OF_STREAM;
                 goto ON_EXIT;
             }
-            LOG_DEBUG(logger, "Decoded: %s", line);
-
+            
             if (info->Index == idx)
             {
-                ret = Status::Code::GOOD;
-                LOG_DEBUG(logger, "Found index matched: %u", idx);
+                hasFoundIndex = true;
                 goto ON_EXIT;
             }
             else if (info->Index < idx)
@@ -103,6 +145,11 @@ namespace muffin {
     
     ON_EXIT:
         file.close();
+        if (hasFoundIndex == false)
+        {
+            ret = Status::Code::BAD_NOT_FOUND;
+        }
+        
         return ret;
     }
 }
