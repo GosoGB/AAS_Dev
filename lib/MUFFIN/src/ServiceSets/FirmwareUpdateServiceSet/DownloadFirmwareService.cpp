@@ -227,10 +227,6 @@ namespace muffin {
             sHandle = NULL;
 
             free(sParams);
-
-            INetwork* snic = RetrieveServiceNicService();
-            snic->ReleaseMutex();
-
             vTaskDelete(tmp);
         }
     }

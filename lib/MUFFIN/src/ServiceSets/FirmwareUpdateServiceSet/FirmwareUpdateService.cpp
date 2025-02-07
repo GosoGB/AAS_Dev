@@ -202,18 +202,18 @@ namespace muffin {
                 }
                 sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
             }
-            
-            if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
             {
-                LOG_INFO(logger, "Restart to download firmware");
-                ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
+                ret = validateTotalCRC32(info, crc32);
                 if (ret != Status::Code::GOOD)
                 {
                     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-                    LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                    LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
+                    Status postResult = PostUpdateResult(info, "success");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
                     return ret;
                 }
-                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
             }
             else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
             {
@@ -223,32 +223,24 @@ namespace muffin {
                 ret = Status::Code::BAD_DATA_LOST;
                 return ret;
             }
-            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
-            {
-                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
-                ret = validateTotalCRC32(info, crc32);
-                if (ret != Status::Code::GOOD)
-                {
-                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-                    LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
-                    return ret;
-                }
-            }
 
-            while (uxQueueMessagesWaiting(sQueueHandle) > 0)
+            if ((uxQueueMessagesWaiting(sQueueHandle) > 0))
             {
                 uint8_t* buffer;
                 xQueueReceive(sQueueHandle, &buffer, static_cast<TickType_t>(SECOND_IN_MILLIS));
                 ret = strategy.Write(chunk.Size, buffer);
+                sMemoryPool->Deallocate(buffer, chunk.Size);
                 if (ret != Status::Code::GOOD)
                 {
                     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
                     LOG_ERROR(logger, "FAILED TO FLASH CHUNK");
                     return ret;
                 }
-
-                sMemoryPool->Deallocate(buffer, chunk.Size);
                 ++info.Chunk.FlashingIDX;
+            }
+            else
+            {
+                vTaskDelay(10*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
             }
         }
 
@@ -587,7 +579,6 @@ namespace muffin {
                 }
 
                 hexParser.RemovePage();
-                vTaskDelay(10 / portTICK_PERIOD_MS);
                 LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
 
                 /**
@@ -596,6 +587,7 @@ namespace muffin {
                  *          AVRISP_2 워드 주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가 하나의 주소로 표현됩니다.
                  */
                 currentAddress += page.Size / 2;
+                vTaskDelay(100 / portTICK_PERIOD_MS);
 
                 if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
                 {
@@ -609,6 +601,9 @@ namespace muffin {
 
                         vTaskDelete(sParsingTaskHandle);
                         sParsingTaskHandle = NULL;
+                        
+                        Status postResult = PostUpdateResult(info, "success");
+                        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
                         return ret;
                     }
                 }
@@ -703,26 +698,26 @@ namespace muffin {
         CRC32 crc32;
         crc32.Init();
 
-        if (mega2560->Head.HasNewFirmware == true)
-        {
-            sServiceFlags.reset();
+        // if (mega2560->Head.HasNewFirmware == true)
+        // {
+        //     sServiceFlags.reset();
 
-            Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
-            if (ret != Status::Code::GOOD)
-            {
-                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-                LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
-                return ret;
-            }
-            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
-            LOG_INFO(logger, "Start to download firmware for ATmega2560");
-            ret = strategyMEGA2560(*mega2560, crc32);
-            LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
-            if (ret != Status::Code::GOOD)
-            {
-                StopDownloadFirmwareService();
-            }
-        }
+        //     Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+        //         LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+        //         return ret;
+        //     }
+        //     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
+        //     LOG_INFO(logger, "Start to download firmware for ATmega2560");
+        //     ret = strategyMEGA2560(*mega2560, crc32);
+        //     LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         StopDownloadFirmwareService();
+        //     }
+        // }
 
         sMemoryPool->Reset();
     
