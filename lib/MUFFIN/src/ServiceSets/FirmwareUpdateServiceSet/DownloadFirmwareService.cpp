@@ -225,7 +225,12 @@ namespace muffin {
         {
             TaskHandle_t tmp = sHandle;
             sHandle = NULL;
+
             free(sParams);
+
+            INetwork* snic = RetrieveServiceNicService();
+            snic->ReleaseMutex();
+
             vTaskDelete(tmp);
         }
     }

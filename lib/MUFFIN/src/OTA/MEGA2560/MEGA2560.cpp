@@ -680,9 +680,17 @@ namespace muffin { namespace ota {
         }
         outputResponse->Checksum = rxd.back();
         ++idx;
-        ASSERT((idx <= MAX_MESSAGE_SIZE), "RESPONSE LENGTH CANNOT EXCEED THE MAXIMUM MESSAGE SIZE");
-        outputResponse->Size = idx;
-        return Status(Status::Code::GOOD);
+        ASSERT((idx <= MAX_MESSAGE_SIZE), "RESPONSE LENGTH CANNOT EXCEED THE MAXIMUM MESSAGE SIZE: %u <= %u", idx, MAX_MESSAGE_SIZE);
+
+        if ((idx <= MAX_MESSAGE_SIZE))
+        {
+            outputResponse->Size = idx;
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+        }
     }
 }}
 

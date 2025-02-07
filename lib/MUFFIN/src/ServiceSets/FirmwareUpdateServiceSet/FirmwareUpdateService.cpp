@@ -107,9 +107,6 @@ namespace muffin {
         const uint32_t integerCRC32 = crc32.RetrieveTotalChecksum();
 
         snprintf(calculatedCRC32, sizeof(ota::fw_info_t::TotalChecksum), "%08x", integerCRC32);
-        LOG_DEBUG(logger, "Total CRC32: %s", calculatedCRC32);
-        LOG_DEBUG(logger, "Total CRC32: %s", calculatedCRC32);
-        LOG_DEBUG(logger, "Total CRC32: %s", calculatedCRC32);
         if (strcmp(calculatedCRC32, info.TotalChecksum) != 0)
         {
             LOG_ERROR(logger, "INVALID TOTAL CRC32: %s != %s", calculatedCRC32, info.TotalChecksum);
@@ -117,6 +114,7 @@ namespace muffin {
         }
 
         crc32.Reset();
+        LOG_DEBUG(logger, "Total CRC32: %s", calculatedCRC32);
         return Status(Status::Code::GOOD);
     }
 
@@ -350,6 +348,7 @@ namespace muffin {
             else
             {
                 ++params->Info->Chunk.FlashingIDX;
+                LOG_DEBUG(logger, "FlashingIDX: %u", params->Info->Chunk.FlashingIDX);
                 vTaskDelay(50 / portTICK_PERIOD_MS);
             }
         }
@@ -443,13 +442,15 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO UPDATE: FAILED TO INIT UPDATE FOR ATmega2560: %s", ret.c_str());
-            vTaskDelete(sParsingTaskHandle);
-            sParsingTaskHandle = NULL;
 
             Status postResult = PostUpdateResult(info, "failure");
             LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
 
             mega2560.TearDown();
+
+            StopDownloadFirmwareService();
+            vTaskDelete(sParsingTaskHandle);
+            sParsingTaskHandle = NULL;
             return ret;
         }
 
@@ -499,28 +500,46 @@ namespace muffin {
                 ret = Status::Code::BAD_DATA_LOST;
                 return ret;
             }
-            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
-            {
-                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
-                ret = validateTotalCRC32(info, crc32);
-                if (ret != Status::Code::GOOD)
-                {
-                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-                    LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
-                    mega2560.TearDown();
-
-                    vTaskDelete(sParsingTaskHandle);
-                    sParsingTaskHandle = NULL;
-                    return ret;
-                }
-            }
 
             while (hexParser.GetPageCount() > 0)
             {
                 ota::page_t page = hexParser.GetPage();
 
-                mega2560.LoadAddress(currentAddress);
-                mega2560.ProgramFlashISP(page);
+                for (uint8_t trial = 0; trial < MAX_RETRY_COUNT; ++trial)
+                {
+                    ret = mega2560.LoadAddress(currentAddress);
+                    if (ret == Status::Code::GOOD)
+                    {
+                        break;
+                    }
+                }
+
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO LOAD ADDRESS: %u", currentAddress);
+                    Status postResult = PostUpdateResult(info, "failure");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    mega2560.TearDown();
+                    return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+                }
+                
+                for (uint8_t trial = 0; trial < MAX_RETRY_COUNT; ++trial)
+                {
+                    ret = mega2560.ProgramFlashISP(page);
+                    if (ret == Status::Code::GOOD)
+                    {
+                        break;
+                    }
+                }
+                            
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO FLASH DATA: %u", currentAddress);
+                    Status postResult = PostUpdateResult(info, "failure");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    mega2560.TearDown();
+                    return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+                }
 
                 ota::page_t pageReadBack;
                 for (size_t i = 0; i < 5; ++i)
@@ -577,12 +596,31 @@ namespace muffin {
                  *          AVRISP_2 워드 주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가 하나의 주소로 표현됩니다.
                  */
                 currentAddress += page.Size / 2;
-            }
 
-            if (hexParser.GetPageCount() == 0)
-            {
-                waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
+                if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
+                {
+                    sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
+                    ret = validateTotalCRC32(info, crc32);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                        LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
+                        mega2560.TearDown();
+
+                        vTaskDelete(sParsingTaskHandle);
+                        sParsingTaskHandle = NULL;
+                        return ret;
+                    }
+                }
+
+                if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false) &&
+                    (hexParser.GetPageCount() == 0))
+                {
+                    waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
+                    break;
+                }
             }
+            waitTillPageParsed(SECOND_IN_MILLIS, currentAddress, mega2560);
         }
 
         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FINISHED));
@@ -683,9 +721,10 @@ namespace muffin {
             if (ret != Status::Code::GOOD)
             {
                 StopDownloadFirmwareService();
-                sMemoryPool->Reset();
             }
         }
+
+        sMemoryPool->Reset();
     
         if (esp32->Head.HasNewFirmware == true)
         {
