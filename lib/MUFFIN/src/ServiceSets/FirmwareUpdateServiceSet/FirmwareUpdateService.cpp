@@ -107,6 +107,9 @@ namespace muffin {
         const uint32_t integerCRC32 = crc32.RetrieveTotalChecksum();
 
         snprintf(calculatedCRC32, sizeof(ota::fw_info_t::TotalChecksum), "%08x", integerCRC32);
+        LOG_DEBUG(logger, "Total CRC32: %s", calculatedCRC32);
+        LOG_DEBUG(logger, "Total CRC32: %s", calculatedCRC32);
+        LOG_DEBUG(logger, "Total CRC32: %s", calculatedCRC32);
         if (strcmp(calculatedCRC32, info.TotalChecksum) != 0)
         {
             LOG_ERROR(logger, "INVALID TOTAL CRC32: %s != %s", calculatedCRC32, info.TotalChecksum);
@@ -151,10 +154,21 @@ namespace muffin {
     {
         while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 1))
         {
-            if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)  ||
-                (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true))
+            if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true))
             {
                 return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+            }
+            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+            {
+                LOG_INFO(logger, "Restart to download firmware");
+                Status ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+                if (ret != Status::Code::GOOD)
+                {
+                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                    LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                    return ret;
+                }
+                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
             }
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
@@ -172,11 +186,23 @@ namespace muffin {
         while (info.Chunk.FlashingIDX < info.Chunk.FinishIDX)
         {
             ota_chunk_info_t chunk;
-            ret = FindChunkInfoService(info.Head.MCU, info.Chunk.DownloadIDX, &chunk);
+            ret = FindChunkInfoService(info.Head.MCU, info.Chunk.FlashingIDX, &chunk);
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO FIND CHUNK WITH GIVEN INDEX: %u", info.Chunk.DownloadIDX);
                 return ret;
+            }
+            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+            {
+                LOG_INFO(logger, "Restart to download firmware");
+                Status ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+                if (ret != Status::Code::GOOD)
+                {
+                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                    LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                    return ret;
+                }
+                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
             }
             
             if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
@@ -211,18 +237,21 @@ namespace muffin {
                 }
             }
 
-            uint8_t* buffer;
-            xQueueReceive(sQueueHandle, &buffer, static_cast<TickType_t>(SECOND_IN_MILLIS));
-            ret = strategy.Write(chunk.Size, buffer);
-            if (ret != Status::Code::GOOD)
+            while (uxQueueMessagesWaiting(sQueueHandle) > 0)
             {
-                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
-                LOG_ERROR(logger, "FAILED TO FLASH CHUNK");
-                return ret;
-            }
+                uint8_t* buffer;
+                xQueueReceive(sQueueHandle, &buffer, static_cast<TickType_t>(SECOND_IN_MILLIS));
+                ret = strategy.Write(chunk.Size, buffer);
+                if (ret != Status::Code::GOOD)
+                {
+                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FAILED));
+                    LOG_ERROR(logger, "FAILED TO FLASH CHUNK");
+                    return ret;
+                }
 
-            sMemoryPool->Deallocate(buffer, chunk.Size);
-            ++info.Chunk.FlashingIDX;
+                sMemoryPool->Deallocate(buffer, chunk.Size);
+                ++info.Chunk.FlashingIDX;
+            }
         }
 
         const Status updateResult = strategy.TearDown();
@@ -392,6 +421,18 @@ namespace muffin {
             {
                 return Status(Status::Code::BAD_COMMUNICATION_ERROR);
             }
+            else if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+            {
+                LOG_INFO(logger, "Restart to download firmware");
+                Status ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+                if (ret != Status::Code::GOOD)
+                {
+                    sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                    LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                    return ret;
+                }
+                sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
+            }
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
@@ -536,6 +577,11 @@ namespace muffin {
                  *          AVRISP_2 워드 주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가 하나의 주소로 표현됩니다.
                  */
                 currentAddress += page.Size / 2;
+            }
+
+            if (hexParser.GetPageCount() == 0)
+            {
+                waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
             }
         }
 

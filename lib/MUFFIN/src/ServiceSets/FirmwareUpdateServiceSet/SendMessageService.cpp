@@ -98,7 +98,7 @@ namespace muffin {
         {
             body.AddProperty("mcu1.vc",        std::to_string(info.Head.VersionCode));
             body.AddProperty("mcu1.version",   info.Head.SemanticVersion);
-            body.AddProperty("mcu1.fileNo",    std::to_string(size));
+            body.AddProperty("mcu1.fileNo",    std::to_string(info.Chunk.DownloadIDX));
             body.AddProperty("mcu1.filepath",  path);
             body.AddProperty("mcu1.result",    result);
         }
@@ -106,7 +106,7 @@ namespace muffin {
         {
             body.AddProperty("mcu2.vc",        std::to_string(info.Head.VersionCode));
             body.AddProperty("mcu2.version",   info.Head.SemanticVersion);
-            body.AddProperty("mcu2.fileNo",    std::to_string(size));
+            body.AddProperty("mcu2.fileNo",    std::to_string(info.Chunk.DownloadIDX));
             body.AddProperty("mcu2.filepath",  path);
             body.AddProperty("mcu2.result",    result);
         }

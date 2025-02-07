@@ -607,11 +607,11 @@ namespace muffin { namespace http {
     Status CatHTTP::Retrieve(const size_t mutex, const size_t length, uint8_t output[])
     {
         ASSERT((output != nullptr), "OUTPUT PARAMETER <uint8_t output[]> CANNOT BE NULL");
-        ASSERT((length == 0), "OUTPUT PARAMETER <const size_t length> MUST BE GREATER THAN 0");
+        ASSERT((length > 0), "OUTPUT PARAMETER <const size_t length> CANNOT BE GREATER THAN 0");
         ASSERT((mSetSinkToCatFS == false), "RESPONSE IS SET TO BE SAVED IN THE CatFS");
 
         constexpr uint8_t BUFFER_SIZE = 32;
-        constexpr uint8_t TIMEOUT_IN_SECOND = 60;
+        constexpr uint8_t TIMEOUT_IN_SECOND = 5;
 
         char command[BUFFER_SIZE];
         memset(command, '\0', sizeof(command));
@@ -664,15 +664,9 @@ namespace muffin { namespace http {
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
 
-        response->erase(response->find("OK"));
-        while (*--response->end() == '\r' || *--response->end() == '\n')
-        {
-            response->erase(--response->end());
-        }
         return convertErrorCode(errorCode);
 
     CME_ERROR:
-        response->clear();
         Status cmeErrorCode = processCmeErrorCode(rxd);
         LOG_ERROR(logger, "FAILED TO SEND RESPONSE TO ESP32: %s: %s", 
             ret.c_str(), processCmeErrorCode(rxd).c_str());
@@ -1030,7 +1024,7 @@ namespace muffin { namespace http {
     Status CatHTTP::readUntilOKorERROR(const uint32_t timeoutMillis, const size_t length, uint8_t response[])
     {
         ASSERT((response != nullptr), "OUTPUT PARAMETER <uint8_t response[]> CANNOT BE NULL");
-        ASSERT((length == 0), "OUTPUT PARAMETER <const size_t length> MUST BE GREATER THAN 0");
+        ASSERT((length > 0), "OUTPUT PARAMETER <const size_t length> MUST BE GREATER THAN 0");
 
         const uint32_t startMillis = millis();
         size_t idx = 0;
@@ -1046,25 +1040,39 @@ namespace muffin { namespace http {
                     continue;
                 }
                 response[idx++] = value;
+                
+                if (idx == length)
+                {
+                    goto ON_DOWNLOADED;
+                }
             }
+        }
 
-            if (idx < 4)
+    ON_DOWNLOADED:
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        while (catM1->GetAvailableBytes() > 0)
+        {
+            int16_t value = catM1->Read();
+            Serial.printf("catM1->Read(): %c \n",(char)value);
+            if (value == -1)
             {
+                LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
                 continue;
             }
-            여기 수정 필요
-            char buffer[8] = {'\0'};
-            size_t offset = idx - 7;
-            memcpy(buffer, response + offset, 7);
-            LOG_DEBUG(logger, "buffer: %s", buffer);
             
-            if (strcmp(buffer, "OK\r\n") == 0)
+            if (value == 'O')
             {
-                return Status(Status::Code::GOOD);
+                if (catM1->Read() == 'K')
+                {
+                    return Status(Status::Code::GOOD);
+                }
             }
-            else if (strcmp(buffer, "ERROR\r\n") == 0)
+            else if (value == 'E')
             {
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
+                if ((catM1->Read() == 'R') && (catM1->Read() == 'R') && (catM1->Read() == 'O') && (catM1->Read() == 'R'))
+                {
+                    return Status(Status::Code::BAD);
+                }
             }
             else
             {
@@ -1072,6 +1080,7 @@ namespace muffin { namespace http {
             }
         }
 
+        LOG_DEBUG(logger, "DOwnload IDX: %u, Target IDX: %u", idx, length);
         return Status(Status::Code::BAD_TIMEOUT);
     }
 
@@ -1083,6 +1092,8 @@ namespace muffin { namespace http {
 
         while (uint32_t(millis() - startMillis) < timeoutMillis)
         {
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+
             while (catM1->GetAvailableBytes() > 0)
             {
                 int16_t value = catM1->Read();
@@ -1115,6 +1126,7 @@ namespace muffin { namespace http {
             }
         }
 
+        LOG_DEBUG(logger, "------- 2222 -------");
         return Status(Status::Code::BAD_TIMEOUT);
     }
 

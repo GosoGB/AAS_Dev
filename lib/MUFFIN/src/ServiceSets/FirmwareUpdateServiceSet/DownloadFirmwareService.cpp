@@ -112,7 +112,10 @@ namespace muffin {
                 goto TEARDOWN;
             }
 
+            LOG_DEBUG(logger, "------- 1 -------");
+            vTaskDelay(50 / portTICK_PERIOD_MS);
             ret = httpClient->GET(mutex.second, header, parameters, 60);
+            LOG_DEBUG(logger, "------- 2 -------");
             if (ret != Status::Code::GOOD)
             {
                 sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
@@ -120,8 +123,11 @@ namespace muffin {
                 snic->ReleaseMutex();
                 goto TEARDOWN;
             }
-            
+
+            LOG_DEBUG(logger, "------- 3 -------");
+            vTaskDelay(50 / portTICK_PERIOD_MS);
             ret = httpClient->Retrieve(mutex.second, chunk.Size, output);
+            LOG_DEBUG(logger, "------- 4 -------");
             if (ret != Status::Code::GOOD)
             {
                 sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
@@ -150,6 +156,7 @@ namespace muffin {
             ASSERT((sParams->Queue != NULL), "INPUT PARAMETERS CANNOT BE NULL");
             xQueueSend(sParams->Queue, (void*)&output, UINT32_MAX);
             ++sParams->Info->Chunk.DownloadIDX;
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
         LOG_INFO(logger, "Download finished");
@@ -157,9 +164,7 @@ namespace muffin {
     
     TEARDOWN:
         sParams->Callback(ret);
-        vTaskDelete(sHandle);
-        sHandle = NULL;
-        free(sParams);
+        StopDownloadFirmwareService();
     }
 
     Status DownloadFirmwareService(ota::fw_info_t& info, CRC32& crc32, QueueHandle_t queue, MemoryPool* memoryPool, void (*callback)(Status status))
@@ -191,7 +196,7 @@ namespace muffin {
             pvParameters,	      // Task parameters to be passed to the function
             0,				      // Task Priority for scheduling
             &sHandle,             // The identifier of this task for machines
-            0				      // Index of MCU core where the function to run
+            1				      // Index of MCU core where the function to run
         );
 
         switch (taskCreationResult)
@@ -216,8 +221,12 @@ namespace muffin {
 
     void StopDownloadFirmwareService()
     {
-        vTaskDelete(sHandle);
-        sHandle = NULL;
-        free(sParams);
+        if (sHandle != NULL)
+        {
+            TaskHandle_t tmp = sHandle;
+            sHandle = NULL;
+            free(sParams);
+            vTaskDelete(tmp);
+        }
     }
 }

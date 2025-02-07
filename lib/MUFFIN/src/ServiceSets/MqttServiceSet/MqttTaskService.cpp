@@ -244,9 +244,26 @@ namespace muffin {
 
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {
+            INetwork* snic = RetrieveServiceNicService();
+            std::pair<Status, size_t> mutex = snic->TakeMutex();
+            if (mutex.first != Status::Code::GOOD)
+            {
+                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                continue;
+            }
+            
+            Status ret = mqttClient->Disconnect(mutex.second);
+            if (ret != Status::Code::GOOD)
+            {
+                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                snic->ReleaseMutex();
+                continue;
+            }
+
             params.HasPendingJARVIS = true;
             ASSERT((cbUpdateInitConfig != nullptr), "INIT CONFIG UPDATE CALLBACK MUST NOT BE NULL");
             ret = cbUpdateInitConfig(params);
+
             if (ret == Status::Code::GOOD)
             {
                 LOG_INFO(logger,"Device will be reset due to JARVIS request");

@@ -15,6 +15,7 @@
 
 #include "Common/Logger/Logger.h"
 #include "Common/Assert.h"
+#include "IM/Custom/Constants.h"
 #include "Processor.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/Include/Message.h"
@@ -98,7 +99,7 @@ namespace muffin {
      */
     Processor::Processor()
         : mSerial(HardwareSerial(1))
-        , mRxBufferSize(1042*8)
+        , mRxBufferSize(KILLOBYTE)
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)
         , mBaudRate(baudrate_e::BDR_115200)
@@ -151,7 +152,7 @@ namespace muffin {
             BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
                 wrapUrcHandleTask, 
                 "UrcHandleTask", 
-                3 * 1024, 
+                4*KILLOBYTE, 
                 this, 
                 0, 
                 &xHandle, 
@@ -416,7 +417,6 @@ namespace muffin {
         }
         
         std::vector<uint8_t> vectorRxD = mRxBuffer.ReadBetweenPatterns(urcQMTRECV, "}\"\r\n");
-        LOG_DEBUG(logger, "vectorRxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
         std::vector<std::string> vectorToken;
         std::string currentToken;
         bool isFirstToken = true;
@@ -488,7 +488,6 @@ namespace muffin {
         if (vectorToken.size() != 4 || vectorToken[2].length() < 2 || vectorToken[3].length() < 2)
         {
             LOG_ERROR(logger, "RxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
-            ASSERT(false, "RxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
             return;
         }
     
