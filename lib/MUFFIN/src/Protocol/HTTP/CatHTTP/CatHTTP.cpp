@@ -1036,32 +1036,31 @@ namespace muffin { namespace http {
                 int16_t value = catM1->Read();
                 if (value == -1)
                 {
-                    LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
                     continue;
                 }
                 response[idx++] = value;
                 
                 if (idx == length)
                 {
+                    vTaskDelay(50 / portTICK_PERIOD_MS);
                     goto ON_DOWNLOADED;
                 }
             }
         }
 
     ON_DOWNLOADED:
-        vTaskDelay(100 / portTICK_PERIOD_MS);
         while (catM1->GetAvailableBytes() > 0)
         {
             int16_t value = catM1->Read();
-            Serial.printf("catM1->Read(): %c \n",(char)value);
             if (value == -1)
             {
                 LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
                 continue;
             }
+            Serial.printf("catM1->Read(): %c \n", (char)value);
             
             if (value == 'O')
-            {
+            {   
                 if (catM1->Read() == 'K')
                 {
                     return Status(Status::Code::GOOD);
@@ -1071,6 +1070,10 @@ namespace muffin { namespace http {
             {
                 if ((catM1->Read() == 'R') && (catM1->Read() == 'R') && (catM1->Read() == 'O') && (catM1->Read() == 'R'))
                 {
+                    while (catM1->GetAvailableBytes() > 0)
+                    {
+                        catM1->Read();
+                    }
                     return Status(Status::Code::BAD);
                 }
             }
@@ -1080,7 +1083,7 @@ namespace muffin { namespace http {
             }
         }
 
-        LOG_DEBUG(logger, "DOwnload IDX: %u, Target IDX: %u", idx, length);
+        LOG_DEBUG(logger, "Download IDX: %u, Target IDX: %u", idx, length);
         return Status(Status::Code::BAD_TIMEOUT);
     }
 

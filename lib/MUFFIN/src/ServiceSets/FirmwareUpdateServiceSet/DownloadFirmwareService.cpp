@@ -112,10 +112,7 @@ namespace muffin {
                 goto TEARDOWN;
             }
 
-            LOG_DEBUG(logger, "------- 1 -------");
-            vTaskDelay(50 / portTICK_PERIOD_MS);
             ret = httpClient->GET(mutex.second, header, parameters, 60);
-            LOG_DEBUG(logger, "------- 2 -------");
             if (ret != Status::Code::GOOD)
             {
                 sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
@@ -124,10 +121,7 @@ namespace muffin {
                 goto TEARDOWN;
             }
 
-            LOG_DEBUG(logger, "------- 3 -------");
-            vTaskDelay(50 / portTICK_PERIOD_MS);
             ret = httpClient->Retrieve(mutex.second, chunk.Size, output);
-            LOG_DEBUG(logger, "------- 4 -------");
             if (ret != Status::Code::GOOD)
             {
                 sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);

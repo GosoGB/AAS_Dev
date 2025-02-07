@@ -34,6 +34,7 @@
 #include "ServiceSets/FirmwareUpdateServiceSet/FindChunkInfoService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/ParseUpdateInfoService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
+#include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 
 static QueueHandle_t sQueueHandle;
@@ -240,7 +241,27 @@ namespace muffin {
             }
             else
             {
-                vTaskDelay(10*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 1))
+                {
+                    if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+                    {
+                        LOG_INFO(logger, "Restart to download firmware");
+                        Status ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+                        if (ret != Status::Code::GOOD)
+                        {
+                            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                            LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                            return ret;
+                        }
+                        sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
+                    }
+
+                    if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
+                    {
+                        break;
+                    }
+                    vTaskDelay(2*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                }
             }
         }
 
@@ -341,7 +362,6 @@ namespace muffin {
             {
                 ++params->Info->Chunk.FlashingIDX;
                 LOG_DEBUG(logger, "FlashingIDX: %u", params->Info->Chunk.FlashingIDX);
-                vTaskDelay(50 / portTICK_PERIOD_MS);
             }
         }
     
@@ -591,27 +611,31 @@ namespace muffin {
 
                 if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
                 {
-                    sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
-                    ret = validateTotalCRC32(info, crc32);
+                    continue;
+                }
+
+                if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false) &&
+                    sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+                {
+                    LOG_INFO(logger, "Restart to download firmware");
+                    ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
                     if (ret != Status::Code::GOOD)
                     {
                         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-                        LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
+                        LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
                         mega2560.TearDown();
 
                         vTaskDelete(sParsingTaskHandle);
                         sParsingTaskHandle = NULL;
-                        
-                        Status postResult = PostUpdateResult(info, "success");
-                        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
                         return ret;
                     }
+                    sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
                 }
 
                 if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false) &&
                     (hexParser.GetPageCount() == 0))
                 {
-                    waitTillPageParsed(5*SECOND_IN_MILLIS, currentAddress, mega2560);
+                    waitTillPageParsed(10*SECOND_IN_MILLIS, currentAddress, mega2560);
                     break;
                 }
             }
@@ -698,26 +722,26 @@ namespace muffin {
         CRC32 crc32;
         crc32.Init();
 
-        // if (mega2560->Head.HasNewFirmware == true)
-        // {
-        //     sServiceFlags.reset();
+        if (mega2560->Head.HasNewFirmware == true)
+        {
+            sServiceFlags.reset();
 
-        //     Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
-        //     if (ret != Status::Code::GOOD)
-        //     {
-        //         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-        //         LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
-        //         return ret;
-        //     }
-        //     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
-        //     LOG_INFO(logger, "Start to download firmware for ATmega2560");
-        //     ret = strategyMEGA2560(*mega2560, crc32);
-        //     LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
-        //     if (ret != Status::Code::GOOD)
-        //     {
-        //         StopDownloadFirmwareService();
-        //     }
-        // }
+            Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+            if (ret != Status::Code::GOOD)
+            {
+                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                return ret;
+            }
+            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
+            LOG_INFO(logger, "Start to download firmware for ATmega2560");
+            ret = strategyMEGA2560(*mega2560, crc32);
+            LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
+            if (ret != Status::Code::GOOD)
+            {
+                StopDownloadFirmwareService();
+            }
+        }
 
         sMemoryPool->Reset();
     
