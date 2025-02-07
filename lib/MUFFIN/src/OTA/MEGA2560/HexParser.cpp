@@ -4,10 +4,10 @@
  * 
  * @brief Intel Hex 형식의 데이터를 파싱 하는 클래스를 정의합니다.
  * 
- * @date 2024-11-28
- * @version 1.0.0
+ * @date 2025-02-06
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright Edgecross Inc. (c) 2024-2025
  */
 
 
@@ -23,22 +23,50 @@
 #include <Common/Assert.h>
 #include <Common/Convert/ConvertClass.h>
 #include <Common/Logger/Logger.h>
+#include <IM/Custom/Constants.h>
 #include "HexParser.h"
 
 
 
 namespace muffin { namespace ota {
 
-    Status HexParser::Parse(const std::string& chunk)
+    Status HexParser::Parse(std::string& chunk)
     {
-        mReceivedData.append(chunk);
-        mReceivedData.shrink_to_fit();
+        // mReceivedData.append(chunk);
         // LOG_DEBUG(logger, "mReceivedData: %s", mReceivedData.c_str());
+        if (mReceivedData.capacity() != KILLOBYTE)
+        {
+            mReceivedData.reserve(KILLOBYTE);
+        }
 
         try
         {
             while (true)
             {
+                while (mReceivedData.length() < 0.5*KILLOBYTE)
+                {
+                    if (chunk.length() == 0)
+                    {
+                        break;
+                    }
+                    
+                    const size_t remained = mReceivedData.capacity() - mReceivedData.length() - 1;
+                    if (remained > chunk.length())
+                    {
+                        mReceivedData.append(chunk);
+                        chunk.clear();
+                        chunk.shrink_to_fit();
+                    }
+                    else
+                    {
+                        mReceivedData.append(chunk, 0, remained);
+                        chunk.erase(0, remained);
+                    }
+                    // char value = chunk.at(0);
+                    // mReceivedData += value;
+                    // chunk.erase(0, 1);
+                }
+                
                 const size_t pos = mReceivedData.find_first_of("\r\n");
                 if (pos == std::string::npos)
                 {

@@ -17,6 +17,7 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
+#include "IM/Custom/Constants.h"
 #include "Network/CatM1/CatM1.h"
 #include "Protocol/HTTP/Include/Helper.h"
 
@@ -603,10 +604,79 @@ namespace muffin { namespace http {
         return cmeErrorCode;
     }
 
-    Status CatHTTP::Retrieve(const size_t mutexHandle, const size_t length, uint8_t output[])
+    Status CatHTTP::Retrieve(const size_t mutex, const size_t length, uint8_t output[])
     {
-        ;
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        ASSERT((output != nullptr), "OUTPUT PARAMETER <uint8_t output[]> CANNOT BE NULL");
+        ASSERT((length == 0), "OUTPUT PARAMETER <const size_t length> MUST BE GREATER THAN 0");
+        ASSERT((mSetSinkToCatFS == false), "RESPONSE IS SET TO BE SAVED IN THE CatFS");
+
+        constexpr uint8_t BUFFER_SIZE = 32;
+        constexpr uint8_t TIMEOUT_IN_SECOND = 60;
+
+        char command[BUFFER_SIZE];
+        memset(command, '\0', sizeof(command));
+        sprintf(command, "AT+QHTTPREAD=%u", TIMEOUT_IN_SECOND);
+        ASSERT((strlen(command) < (BUFFER_SIZE - 1)), "BUFFER OVERFLOW ERROR");
+        
+        const uint32_t timeoutMillis = TIMEOUT_IN_SECOND * SECOND_IN_MILLIS;
+        uint32_t errorCode;
+        std::string rxd;
+        size_t pos;
+        size_t posCR;
+
+        Status ret = catM1->Execute(command, mutex);
+        if (ret != Status::Code::GOOD)
+        {
+            goto CME_ERROR;
+        }
+
+        ret = readUntilCONNECT(timeoutMillis, &rxd);
+        if (ret != Status::Code::GOOD)
+        {
+            goto CME_ERROR;
+        }
+        rxd.clear();
+
+        ret = readUntilOKorERROR(timeoutMillis, length, output);
+        if (ret != Status::Code::GOOD)
+        {
+            goto CME_ERROR;
+        }
+
+        ret = readUntilRSC(timeoutMillis, &rxd);
+        if (ret != Status::Code::GOOD)
+        {
+            goto CME_ERROR;
+        }
+
+        pos = rxd.find(" ");
+        if (pos == std::string::npos)
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+        
+        posCR = rxd.find("\r", pos) - pos - 1;
+        errorCode = Convert.ToUInt32(rxd.substr(pos + 1, posCR).c_str());
+        if (errorCode == UINT32_MAX)
+        {
+            LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
+        }
+
+        response->erase(response->find("OK"));
+        while (*--response->end() == '\r' || *--response->end() == '\n')
+        {
+            response->erase(--response->end());
+        }
+        return convertErrorCode(errorCode);
+
+    CME_ERROR:
+        response->clear();
+        Status cmeErrorCode = processCmeErrorCode(rxd);
+        LOG_ERROR(logger, "FAILED TO SEND RESPONSE TO ESP32: %s: %s", 
+            ret.c_str(), processCmeErrorCode(rxd).c_str());
+        return cmeErrorCode;
     }
 
     void CatHTTP::SetSinkToCatFS(const bool save2CatFS, const std::string catFsPath)
@@ -951,6 +1021,54 @@ namespace muffin { namespace http {
                 {
                     continue;
                 }
+            }
+        }
+
+        return Status(Status::Code::BAD_TIMEOUT);
+    }
+
+    Status CatHTTP::readUntilOKorERROR(const uint32_t timeoutMillis, const size_t length, uint8_t response[])
+    {
+        ASSERT((response != nullptr), "OUTPUT PARAMETER <uint8_t response[]> CANNOT BE NULL");
+        ASSERT((length == 0), "OUTPUT PARAMETER <const size_t length> MUST BE GREATER THAN 0");
+
+        const uint32_t startMillis = millis();
+        size_t idx = 0;
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (catM1->GetAvailableBytes() > 0)
+            {
+                int16_t value = catM1->Read();
+                if (value == -1)
+                {
+                    LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
+                    continue;
+                }
+                response[idx++] = value;
+            }
+
+            if (idx < 4)
+            {
+                continue;
+            }
+            여기 수정 필요
+            char buffer[8] = {'\0'};
+            size_t offset = idx - 7;
+            memcpy(buffer, response + offset, 7);
+            LOG_DEBUG(logger, "buffer: %s", buffer);
+            
+            if (strcmp(buffer, "OK\r\n") == 0)
+            {
+                return Status(Status::Code::GOOD);
+            }
+            else if (strcmp(buffer, "ERROR\r\n") == 0)
+            {
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
+            else
+            {
+                continue;
             }
         }
 

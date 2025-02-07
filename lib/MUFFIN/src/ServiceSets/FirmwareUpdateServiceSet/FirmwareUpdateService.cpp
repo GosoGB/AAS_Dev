@@ -41,7 +41,7 @@ static TaskHandle_t sParsingTaskHandle;
 static muffin::MemoryPool* sMemoryPool;
 static const uint16_t BLOCK_SIZE = 10*muffin::KILLOBYTE;
 static uint8_t sTrialCount = 0;
-static const uint8_t MAX_QUEUE_LENGTH = 3;
+static const uint8_t MAX_QUEUE_LENGTH = 5;
 static const size_t  QUEUE_ITEM_SIZE  = sizeof(uint8_t*);
 
 size_t muffin::ota::fw_head_t::ID = 0;
@@ -149,6 +149,16 @@ namespace muffin {
 
     Status strategyESP32(ota::fw_info_t& info, CRC32& crc32)
     {
+        while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 1))
+        {
+            if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)  ||
+                (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true))
+            {
+                return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+            }
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
+
         ota::StrategyESP32 strategy;
         Status ret = strategy.Init(info);
         if (ret != Status::Code::GOOD)
@@ -378,11 +388,15 @@ namespace muffin {
 
         while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 1))
         {
+            if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
+            {
+                return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+            }
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
         startChunkPageParsing(info, hexParser);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
 
         Status ret = mega2560.Init(info.TotalSize);
         if (ret != Status::Code::GOOD)
@@ -400,6 +414,8 @@ namespace muffin {
 
         while (info.Chunk.FlashingIDX < info.Chunk.FinishIDX)
         {
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
+
             ota_chunk_info_t chunk;
             ret = FindChunkInfoService(info.Head.MCU, info.Chunk.FlashingIDX, &chunk);
             if (ret != Status::Code::GOOD)
@@ -458,7 +474,7 @@ namespace muffin {
                 }
             }
 
-            if (hexParser.GetPageCount() > 0)
+            while (hexParser.GetPageCount() > 0)
             {
                 ota::page_t page = hexParser.GetPage();
 
@@ -511,6 +527,7 @@ namespace muffin {
                 }
 
                 hexParser.RemovePage();
+                vTaskDelay(10 / portTICK_PERIOD_MS);
                 LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
 
                 /**
@@ -542,7 +559,6 @@ namespace muffin {
             return ret;
         }
 
-        LOG_DEBUG(logger, "sizeof(ota::fw_info_t): %u", sizeof(ota::fw_info_t));
         ota::fw_info_t* esp32 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         ota::fw_info_t* mega2560 = (ota::fw_info_t*)malloc(sizeof(ota::fw_info_t));
         if (esp32 == nullptr || mega2560 == nullptr)

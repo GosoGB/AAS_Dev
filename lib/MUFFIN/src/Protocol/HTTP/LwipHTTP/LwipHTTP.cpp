@@ -373,16 +373,10 @@ namespace muffin { namespace http {
         }
         else
         {
-            if ((mRSC % 100) < 100)
+            if ((mRSC % 500) < 100)
             {
-                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
-                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
-                goto TEARDOWN;
-            }
-            else if ((mRSC % 300) < 100)
-            {
-                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
-                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD;
                 goto TEARDOWN;
             }
             else if ((mRSC % 400) < 100)
@@ -391,10 +385,16 @@ namespace muffin { namespace http {
                 ret = Status::Code::BAD;
                 goto TEARDOWN;
             }
-            else if ((mRSC % 500) < 100)
+            else if ((mRSC % 300) < 100)
             {
-                LOG_ERROR(logger, "RECEIVED SERVER ERROR RESPONSE: %u", mRSC);
-                ret = Status::Code::BAD;
+                LOG_ERROR(logger, "RECEIVED REDIRECTION RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
+                goto TEARDOWN;
+            }
+            else if ((mRSC % 100) < 100)
+            {
+                LOG_ERROR(logger, "RECEIVED INFORMATIONAL RESPONSE: %u", mRSC);
+                ret = Status::Code::BAD_UNKNOWN_RESPONSE;
                 goto TEARDOWN;
             }
         }

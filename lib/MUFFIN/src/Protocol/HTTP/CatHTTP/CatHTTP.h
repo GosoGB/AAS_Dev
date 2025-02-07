@@ -60,6 +60,7 @@ namespace muffin { namespace http {
     private:
         Status readUntilCONNECT(const uint32_t timeoutMillis, std::string* rxd);
         Status readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd);
+        Status readUntilOKorERROR(const uint32_t timeoutMillis, const size_t length, uint8_t response[]);
         Status readUntilRSC(const uint32_t timeoutMillis, std::string* rxd);
         Status processCmeErrorCode(const std::string& rxd);
         Status convertErrorCode(const uint16_t errorCode);
