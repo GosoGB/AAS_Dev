@@ -430,7 +430,23 @@ namespace muffin {
             esp32FS.Remove(OTA_REQUEST_PATH);
             return ret;
         }
+
+        uint8_t trialCount = 0;
+        for (; trialCount < MAX_RETRY_COUNT; trialCount++)
+        {
+            ret = StopMqttTaskService();
+            if (ret == Status::Code::GOOD)
+            {
+                break;
+            }
+        }
         
+        if (trialCount == MAX_RETRY_COUNT)
+        {
+            LOG_ERROR(logger, "FAILED TO STOP MQTT TASK");
+        }
+        LOG_INFO(logger, "MQTT service has been")
+
         LOG_INFO(logger,"Device will be reset due to OTA request");
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         spear.Reset();
@@ -586,12 +602,20 @@ namespace muffin {
 
     Status StopMqttTaskService()
     {
+        INetwork* snic = RetrieveServiceNicService();
+        std::pair<Status, size_t> mutex = snic->TakeMutex();
+        if (mutex.first != Status::Code::GOOD)
+        {
+            return mutex.first;
+        }
+        mqttClient->Disconnect(mutex.second);
+        
         TimerHandle_t xTimer = xTimerCreate("implStopMqttTask",  // pcTimerName
                                             SECOND_IN_MILLIS,   // xTimerPeriod,
                                             pdFALSE,            // uxAutoReload,
                                             (void *)0,          // pvTimerID,
                                             implStopMqttTask);  // pxCallbackFunction
-
+        
         if (xTimer == NULL)
         {
             LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR STOPPING MQTT SERVICE");

@@ -112,7 +112,7 @@ namespace muffin {
                 goto TEARDOWN;
             }
 
-            ret = httpClient->GET(mutex.second, header, parameters, 60);
+            ret = httpClient->GET(mutex.second, header, parameters, 5);
             if (ret != Status::Code::GOOD)
             {
                 sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
@@ -165,6 +165,7 @@ namespace muffin {
     {
         if (sHandle != NULL)
         {
+            LOG_WARNING(logger, "ALREADY STARTED");
             return Status(Status::Code::GOOD);
         }
 

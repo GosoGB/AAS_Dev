@@ -1095,7 +1095,7 @@ namespace muffin { namespace http {
 
         while (uint32_t(millis() - startMillis) < timeoutMillis)
         {
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
 
             while (catM1->GetAvailableBytes() > 0)
             {

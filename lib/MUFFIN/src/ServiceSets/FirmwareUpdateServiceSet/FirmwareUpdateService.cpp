@@ -237,7 +237,12 @@ namespace muffin {
                     LOG_ERROR(logger, "FAILED TO FLASH CHUNK");
                     return ret;
                 }
+                
                 ++info.Chunk.FlashingIDX;
+                if (info.Chunk.FlashingIDX == info.Chunk.FinishIDX)
+                {
+                    goto ON_FLASHED;
+                }
             }
             else
             {
@@ -258,13 +263,28 @@ namespace muffin {
 
                     if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
                     {
+                        sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED));
+                        ret = validateTotalCRC32(info, crc32);
+                        if (ret != Status::Code::GOOD)
+                        {
+                            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                            LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE");
+                            Status postResult = PostUpdateResult(info, "success");
+                            LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                            return ret;
+                        }
+                    }
+
+                    vTaskDelay(2*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                    if (info.Chunk.DownloadIDX == info.Chunk.FinishIDX)
+                    {
                         break;
                     }
-                    vTaskDelay(2*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
                 }
             }
         }
-
+    
+    ON_FLASHED:
         const Status updateResult = strategy.TearDown();
         if (updateResult.ToCode() != Status::Code::GOOD)
         {
@@ -334,7 +354,7 @@ namespace muffin {
                     goto ON_EXIT;
                 }
                 
-                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                vTaskDelay(10*SECOND_IN_MILLIS / portTICK_PERIOD_MS);
                 continue;
             }
             
@@ -362,6 +382,15 @@ namespace muffin {
             {
                 ++params->Info->Chunk.FlashingIDX;
                 LOG_DEBUG(logger, "FlashingIDX: %u", params->Info->Chunk.FlashingIDX);
+            }
+
+            if (params->Info->Chunk.FlashingIDX == params->Info->Chunk.FinishIDX)
+            {
+                while (params->Parser->GetPageCount() != 0)
+                {
+                    vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+                }
+                break;
             }
         }
     
@@ -642,6 +671,137 @@ namespace muffin {
             waitTillPageParsed(SECOND_IN_MILLIS, currentAddress, mega2560);
         }
 
+        if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::PARSING_CHUNK_FILE)))
+        {
+            while (hexParser.GetPageCount() > 0)
+            {
+                ota::page_t page = hexParser.GetPage();
+
+                for (uint8_t trial = 0; trial < MAX_RETRY_COUNT; ++trial)
+                {
+                    ret = mega2560.LoadAddress(currentAddress);
+                    if (ret == Status::Code::GOOD)
+                    {
+                        break;
+                    }
+                }
+
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO LOAD ADDRESS: %u", currentAddress);
+                    Status postResult = PostUpdateResult(info, "failure");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    mega2560.TearDown();
+                    return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+                }
+                
+                for (uint8_t trial = 0; trial < MAX_RETRY_COUNT; ++trial)
+                {
+                    ret = mega2560.ProgramFlashISP(page);
+                    if (ret == Status::Code::GOOD)
+                    {
+                        break;
+                    }
+                }
+                            
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO FLASH DATA: %u", currentAddress);
+                    Status postResult = PostUpdateResult(info, "failure");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    mega2560.TearDown();
+                    return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+                }
+
+                ota::page_t pageReadBack;
+                for (size_t i = 0; i < 5; ++i)
+                {
+                    Status ret = mega2560.LoadAddress(currentAddress);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        continue;
+                    }
+                    
+                    ret = mega2560.ReadFlashISP(page.Size, &pageReadBack);
+                    if (ret == Status::Code::GOOD)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                
+                if (page.Size != pageReadBack.Size)
+                {
+                    LOG_ERROR(logger, "FAILED TO UPDATE: READ BACK PAGE SIZE DOES NOT MATCH: Target: %u, Actual: %u",
+                        page.Size, pageReadBack.Size);
+                        
+                    mega2560.TearDown();
+                    Status postResult = PostUpdateResult(info, "failure");
+                    LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                    return Status(Status::Code::BAD_DATA_LOST);
+                }
+
+                for (size_t i = 0; i < page.Size; ++i)
+                {
+                    if (page.Data[i] != pageReadBack.Data[i])
+                    {
+                        LOG_ERROR(logger, "FAILED TO UPDATE: WRITTEN DATA DOES NOT MATCH: Target: %u, Actual: %u",
+                            page.Data[i], pageReadBack.Data[i]);
+                        
+                        mega2560.TearDown();
+                        Status postResult = PostUpdateResult(info, "failure");
+                        LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
+                        return Status(Status::Code::BAD_DATA_LOST);
+                    }
+                }
+
+                hexParser.RemovePage();
+                LOG_DEBUG(muffin::logger, "Page Remained: %u", hexParser.GetPageCount());
+
+                /**
+                 * @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.
+                 * @details MODLINK-T2 내부의 ATmega2560 칩셋은 부트로더 내부에 AVRISP_2 프로그래머를 가지고 있습니다.
+                 *          AVRISP_2 워드 주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가 하나의 주소로 표현됩니다.
+                 */
+                currentAddress += page.Size / 2;
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+
+                if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == true)
+                {
+                    continue;
+                }
+
+                if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false) &&
+                    sServiceFlags.test(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN)) == true)
+                {
+                    LOG_INFO(logger, "Restart to download firmware");
+                    ret = DownloadFirmwareService(info, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                        LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                        mega2560.TearDown();
+
+                        vTaskDelete(sParsingTaskHandle);
+                        sParsingTaskHandle = NULL;
+                        return ret;
+                    }
+                    sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::TRY_DOWNLOAD_AGAIN));
+                }
+
+                if ((sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FINISHED)) == false) &&
+                    (hexParser.GetPageCount() == 0))
+                {
+                    waitTillPageParsed(10*SECOND_IN_MILLIS, currentAddress, mega2560);
+                    break;
+                }
+            }
+            waitTillPageParsed(SECOND_IN_MILLIS, currentAddress, mega2560);
+        }
+
         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::FLASHING_FINISHED));
         mega2560.LeaveProgrammingMode();
         mega2560.TearDown();
@@ -718,35 +878,36 @@ namespace muffin {
             ret = Status::Code::GOOD;
             return ret;
         }
+        
+        // if (mega2560->Head.HasNewFirmware == true)
+        // {
+        //     CRC32 crc32;
+        //     crc32.Init();
+        //     sServiceFlags.reset();
 
-        CRC32 crc32;
-        crc32.Init();
-
-        if (mega2560->Head.HasNewFirmware == true)
-        {
-            sServiceFlags.reset();
-
-            Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
-            if (ret != Status::Code::GOOD)
-            {
-                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-                LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
-                return ret;
-            }
-            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
-            LOG_INFO(logger, "Start to download firmware for ATmega2560");
-            ret = strategyMEGA2560(*mega2560, crc32);
-            LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
-            if (ret != Status::Code::GOOD)
-            {
-                StopDownloadFirmwareService();
-            }
-        }
+        //     Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+        //         LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+        //         return ret;
+        //     }
+        //     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
+        //     LOG_INFO(logger, "Start to download firmware for ATmega2560");
+        //     ret = strategyMEGA2560(*mega2560, crc32);
+        //     LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         StopDownloadFirmwareService();
+        //     }
+        // }
 
         sMemoryPool->Reset();
     
         if (esp32->Head.HasNewFirmware == true)
         {
+            CRC32 crc32;
+            crc32.Init();
             sServiceFlags.reset();
 
             Status ret = DownloadFirmwareService(*esp32, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
