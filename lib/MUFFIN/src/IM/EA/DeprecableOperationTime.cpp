@@ -197,9 +197,9 @@ namespace muffin {
                 {
                     if (currentErrorStatus == false)
                     {
-                        if (mStauts != jvs::op_status_e::PROCESSING)
+                        if (mStatus != jvs::op_status_e::PROCESSING)
                         {
-                            mStauts = jvs::op_status_e::PROCESSING;
+                            mStatus = jvs::op_status_e::PROCESSING;
                             publishOperationStauts();
                         }
                         
@@ -208,9 +208,9 @@ namespace muffin {
                 }
                 else
                 {
-                    if (mStauts != jvs::op_status_e::IDLE)
+                    if (mStatus != jvs::op_status_e::IDLE)
                     {
-                        mStauts = jvs::op_status_e::IDLE;
+                        mStatus = jvs::op_status_e::IDLE;
                         publishOperationStauts();
                     }
                 }
@@ -554,7 +554,7 @@ namespace muffin {
         operation_struct_t status;
 
         status.SourceTimestamp = GetTimestampInMillis();
-        status.Status = mStauts == jvs::op_status_e::PROCESSING ? "processing" : "idle";
+        status.Status = mStatus == jvs::op_status_e::PROCESSING ? "processing" : "idle";
         status.Topic = mqtt::topic_e::OPERATION;
 
         JSON json;

@@ -266,13 +266,14 @@ namespace muffin {
                 continue;
             }
             
-            Status ret = mqttClient->Disconnect(mutex.second);
-            if (ret != Status::Code::GOOD)
-            {
-                vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-                snic->ReleaseMutex();
-                continue;
-            }
+            // Status ret = mqttClient->Disconnect(mutex.second);
+            // if (ret != Status::Code::GOOD)
+            // {
+            //     vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+            //     snic->ReleaseMutex();
+            //     continue;
+            // }
+            mqttClient->Disconnect(mutex.second);
 
             params.HasPendingJARVIS = true;
             ASSERT((cbUpdateInitConfig != nullptr), "INIT CONFIG UPDATE CALLBACK MUST NOT BE NULL");
@@ -996,7 +997,7 @@ ERROR_RESPONSE:
                                                  &config,		   // Task parameters to be passed to the function
                                                  0,				   // Task Priority for scheduling
                                                  &xHandle,         // The identifier of this task for machines
-                                                 0);			   // Index of MCU core where the function to run
+                                                 1);			   // Index of MCU core where the function to run
 
         switch (ret)
         {

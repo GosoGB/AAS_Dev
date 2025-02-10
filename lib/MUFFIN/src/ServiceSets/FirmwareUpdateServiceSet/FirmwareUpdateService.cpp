@@ -302,6 +302,7 @@ namespace muffin {
         return ret;
     }
 
+#if defined(MODLINK_T2)
     Status waitTillPageParsed(const uint32_t delayMillis, const uint32_t address, ota::MEGA2560& mega2560)
     {
         const uint32_t startedMillis = millis();
@@ -812,6 +813,7 @@ namespace muffin {
         LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
         return Status(Status::Code::GOOD);
     }
+#endif
 
     Status FirmwareUpdateService()
     {
@@ -861,6 +863,18 @@ namespace muffin {
                 return ret;
             }
 
+            size_t pos1 = payload.find("\r\n");
+            if (pos1 != std::string::npos)
+            {
+                size_t pos2 = payload.find("\r\n", pos1+1);
+                if (pos2 != std::string::npos)
+                {
+                    payload.erase(pos1, (pos2 + 4) - pos1);
+                }
+            }
+            LOG_INFO(logger,"payload : %s",payload.c_str());
+
+
             ret = ParseUpdateInfoService(payload.c_str(), esp32, mega2560);
             if (ret != Status::Code::GOOD)
             {
@@ -879,30 +893,31 @@ namespace muffin {
             return ret;
         }
         
-        // if (mega2560->Head.HasNewFirmware == true)
-        // {
-        //     CRC32 crc32;
-        //     crc32.Init();
-        //     sServiceFlags.reset();
+    #if defined(MODLINK_T2)
+        if (mega2560->Head.HasNewFirmware == true)
+        {
+            CRC32 crc32;
+            crc32.Init();
+            sServiceFlags.reset();
 
-        //     Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
-        //     if (ret != Status::Code::GOOD)
-        //     {
-        //         sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
-        //         LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
-        //         return ret;
-        //     }
-        //     sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
-        //     LOG_INFO(logger, "Start to download firmware for ATmega2560");
-        //     ret = strategyMEGA2560(*mega2560, crc32);
-        //     LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
-        //     if (ret != Status::Code::GOOD)
-        //     {
-        //         StopDownloadFirmwareService();
-        //     }
-        // }
-
+            Status ret = DownloadFirmwareService(*mega2560, crc32, sQueueHandle, sMemoryPool, downloadTaskCallback);
+            if (ret != Status::Code::GOOD)
+            {
+                sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+                LOG_ERROR(logger, "FAILED TO START DOWNLOAD TASK");
+                return ret;
+            }
+            sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
+            LOG_INFO(logger, "Start to download firmware for ATmega2560");
+            ret = strategyMEGA2560(*mega2560, crc32);
+            LOG_INFO(logger, "Update Result for ATmega2560: %s", ret.c_str());
+            if (ret != Status::Code::GOOD)
+            {
+                StopDownloadFirmwareService();
+            }
+        }
         sMemoryPool->Reset();
+    #endif
     
         if (esp32->Head.HasNewFirmware == true)
         {

@@ -162,7 +162,7 @@ namespace muffin {
 
         doc["mac"]  =  macAddress.GetEthernet();
         doc["ts"]   =  _struct.SourceTimestamp;
-        doc["stauts"]   =  _struct.Status;
+        doc["status"]   =  _struct.Status;
 
         serializeJson(doc,payload);
 
