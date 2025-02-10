@@ -136,12 +136,13 @@ namespace muffin {
                 if (ret.first == true)
                 {
                     JSON json;
-                    const std::string payload = json.Serialize(ret.second);
+                    const size_t size = UINT8_MAX;
+                    char payload[size] = {'\0'};
+                    json.Serialize(ret.second, size, payload);
                     mqtt::Message message(ret.second.Topic, payload);
                     mqtt::cdo.Store(message);
                 }
             }
-            
             
             vTaskDelay(100 / portTICK_PERIOD_MS); 
         }

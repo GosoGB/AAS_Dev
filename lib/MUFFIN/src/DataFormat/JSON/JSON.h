@@ -4,7 +4,7 @@
  * 
  * @brief JSON 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 선언합니다.
  * 
- * @date 2025-01-23
+ * @date 2025-02-10
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -143,17 +143,16 @@ namespace muffin {
     public:
         std::string Serialize(const jarvis_struct_t& _struct);
         std::string Serialize(const remote_controll_struct_t& _struct);
-        std::string Serialize(const daq_struct_t& _struct);
-        std::string Serialize(const alarm_struct_t& _struct);
-        std::string Serialize(const operation_struct_t& _struct);
-        std::string Serialize(const push_struct_t& _struct);
-        std::string Serialize(const progix_struct_t& _struct);
         std::string Serialize(const jarvis_interface_struct_t& _struct);
         size_t Serialize(const fota_status_t& _struct, const size_t size, char output[]);
 
     public:
+        void Serialize(const daq_struct_t& msg, const uint16_t size, char output[]);
+        void Serialize(const alarm_struct_t& msg, const uint16_t size, char output[]);
+        void Serialize(const operation_struct_t& msg, const uint16_t size, char output[]);
+        void Serialize(const progix_struct_t& msg, const uint16_t size, char output[]);
+        void Serialize(const push_struct_t& msg, const uint16_t size, char output[]);
         void Serialize(const req_head_t& msg, const uint8_t size, char output[]);
-        void Serialize(const req_start_head_t& msg, const uint8_t size, char output[]);
         void Serialize(const resp_head_t& msg, const uint8_t size, char output[]);
         void Serialize(const resp_vsn_t& msg, const uint8_t size, char output[]);
         void Serialize(const resp_mem_t& msg, const uint16_t size, char output[]);

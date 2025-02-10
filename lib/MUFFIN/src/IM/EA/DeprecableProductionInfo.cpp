@@ -299,7 +299,10 @@ namespace muffin {
         production.Topic = mqtt::topic_e::FINISHEDGOODS;
 
         JSON json;
-        const std::string payload = json.Serialize(production);
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(production, size, payload);
+
         mqtt::Message message(mqtt::topic_e::FINISHEDGOODS, payload);
         mqtt::cdo.Store(message);
     }

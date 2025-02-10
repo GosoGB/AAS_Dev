@@ -544,7 +544,10 @@ namespace muffin {
         production.SourceTimestamp = TimestampToExactHourKST();
 
         JSON json;
-        const std::string payload = json.Serialize(production);
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(production, size, payload);
+
         mqtt::Message message(mqtt::topic_e::UPTIME, payload);
         mqtt::cdo.Store(message);
     }
@@ -558,7 +561,10 @@ namespace muffin {
         status.Topic = mqtt::topic_e::OPERATION;
 
         JSON json;
-        const std::string payload = json.Serialize(status);
+        const size_t size = 128;
+        char payload[size] = {'\0'};
+        json.Serialize(status, size, payload);
+
         mqtt::Message message(mqtt::topic_e::OPERATION, payload);
         mqtt::cdo.Store(message);
     }

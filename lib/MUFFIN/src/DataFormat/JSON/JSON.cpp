@@ -4,7 +4,7 @@
  * 
  * @brief JSON 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 정의합니다.
  * 
- * @date 2025-01-23
+ * @date 2025-02-10
  * @version 1.2.2
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -120,85 +120,80 @@ namespace muffin {
         return payload;
     }
 
-    std::string JSON::Serialize(const daq_struct_t& _struct)
+    void JSON::Serialize(const daq_struct_t& msg, const uint16_t size, char output[])
     {
+        ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
+
         JsonDocument doc;
-        std::string payload;
 
-        doc["mac"]   =  macAddress.GetEthernet();
-        doc["ts"]    =  _struct.SourceTimestamp;
-        doc["name"]  =  _struct.Name;
-        doc["uid"]   =  _struct.Uid;
-        doc["unit"]  =  _struct.Unit;
-        doc["value"] =  _struct.Value;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["ts"]     = msg.SourceTimestamp;
+        doc["name"]   = msg.Name;
+        doc["uid"]    = msg.Uid;
+        doc["unit"]   = msg.Unit;
+        doc["value"]  = msg.Value;
 
-        serializeJson(doc,payload);
-
-        return payload;
+        serializeJson(doc, output, size);
     }
 
-    std::string JSON::Serialize(const alarm_struct_t& _struct)
+    void JSON::Serialize(const alarm_struct_t& msg, const uint16_t size, char output[])
     {
+        ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
+        
         JsonDocument doc;
-        std::string payload;
 
-        doc["mac"]  =  macAddress.GetEthernet();
-        doc["tp"]   =  _struct.AlarmType;
-        doc["ts"]   =  _struct.AlarmStartTime;
-        doc["tf"]   =  _struct.AlarmFinishTime;
-        doc["name"] =  _struct.Name;
-        doc["uid"]  =  _struct.Uid;
-        doc["id"]   =  _struct.UUID;
+        doc["mac"]   = macAddress.GetEthernet();
+        doc["tp"]    = msg.AlarmType;
+        doc["ts"]    = msg.AlarmStartTime;
+        doc["tf"]    = msg.AlarmFinishTime;
+        doc["name"]  = msg.Name;
+        doc["uid"]   = msg.Uid;
+        doc["id"]    = msg.UUID;
 
-        serializeJson(doc,payload);
-
-        return payload;
+        serializeJson(doc, output, size);
     }
 
-    std::string JSON::Serialize(const operation_struct_t& _struct)
+    void JSON::Serialize(const operation_struct_t& msg, const uint16_t size, char output[])
     {
+        ASSERT((size >= 128), "OUTPUT BUFFER MUST BE GREATER THAN 128");
+        
         JsonDocument doc;
-        std::string payload;
 
-        doc["mac"]  =  macAddress.GetEthernet();
-        doc["ts"]   =  _struct.SourceTimestamp;
-        doc["status"]   =  _struct.Status;
+        doc["mac"]     = macAddress.GetEthernet();
+        doc["ts"]      = msg.SourceTimestamp;
+        doc["status"]  = msg.Status;
 
-        serializeJson(doc,payload);
-
-        return payload;
+        serializeJson(doc, output, size);
     }
 
-    std::string JSON::Serialize(const progix_struct_t& _struct)
+    void JSON::Serialize(const progix_struct_t& msg, const uint16_t size, char output[])
     {
+        ASSERT((size >= 128), "OUTPUT BUFFER MUST BE GREATER THAN 128");
+        
         JsonDocument doc;
-        std::string payload;
 
-        doc["mac"]  =  macAddress.GetEthernet();
-        doc["ts"]   =  _struct.SourceTimestamp;
-        doc["value"]   =  _struct.Value;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["ts"]     = msg.SourceTimestamp;
+        doc["value"]  = msg.Value;
 
-        serializeJson(doc,payload);
-
-        return payload;
+        serializeJson(doc, output, size);
     }
 
-    std::string JSON::Serialize(const push_struct_t& _struct)
+    void JSON::Serialize(const push_struct_t& msg, const uint16_t size, char output[])
     {
+        ASSERT((size >= 128), "OUTPUT BUFFER MUST BE GREATER THAN 128");
+        
         JsonDocument doc;
-        std::string payload;
 
-        doc["mac"]  =  macAddress.GetEthernet();
-        doc["name"]   =  _struct.Name;
-        doc["ts"]   =  _struct.SourceTimestamp;
+        doc["mac"]   = macAddress.GetEthernet();
+        doc["name"]  = msg.Name;
+        doc["ts"]    = msg.SourceTimestamp;
 
-        serializeJson(doc,payload);
-
-        return payload;
+        serializeJson(doc, output, size);
     }
 
     std::string JSON::Serialize(const jarvis_interface_struct_t& _struct)
-    {
+    {// 512 bytes
         JsonDocument doc;
         std::string payload;
 

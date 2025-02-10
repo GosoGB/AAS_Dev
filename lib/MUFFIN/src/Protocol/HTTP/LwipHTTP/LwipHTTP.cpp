@@ -34,7 +34,7 @@ namespace muffin { namespace http {
     Status LwipHTTP::Init()
     {
     #if defined(DEBUG)
-        mClientSecure.setCACert(ROOT_CA_CRT_DEV);
+        mClientSecure.setInsecure();
     #else
         mClientSecure.setCACert(ROOT_CA_CRT);
     #endif
@@ -823,13 +823,14 @@ namespace muffin { namespace http {
         {
             while (client->available() > 0)
             {
-                if (client->peek() == '\n')
+                if (client->peek() == '{')
                 {
-                    client->read();
                     break;
                 }
-                
-                client->read();
+                else
+                {
+                    client->read();
+                }
             }
         }
 

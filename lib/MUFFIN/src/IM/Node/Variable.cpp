@@ -570,10 +570,12 @@ namespace muffin { namespace im {
                 default:
                     break;
                 }
-            
-            
+                
                 JSON json;
-                const std::string payload = json.Serialize(daq);
+                const size_t size = UINT8_MAX;
+                char payload[size] = {'\0'};
+                json.Serialize(daq, size, payload);
+                
                 mqtt::Message message(daq.Topic, payload);
                 mqtt::cdo.Store(message);
             }

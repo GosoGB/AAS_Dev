@@ -624,13 +624,16 @@ namespace muffin {
         
 
         JSON json;
-        const std::string payload = json.Serialize(alarm);
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(alarm, size, payload);
         const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
         mqtt::Message AlarmMessage(topic, payload);
         
-        const std::string pushPayload = json.Serialize(push);
+        memset(payload, '\0', size);
+        json.Serialize(push, size, payload);
         const mqtt::topic_e pushTopic = push.Topic;
-        mqtt::Message pushMessage(pushTopic, pushPayload);
+        mqtt::Message pushMessage(pushTopic, payload);
 
         mqtt::cdo.Store(AlarmMessage);
         mqtt::cdo.Store(pushMessage);
@@ -673,7 +676,9 @@ namespace muffin {
         alarm.AlarmType = "finish";
 
         JSON json;
-        const std::string payload = json.Serialize(alarm);
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(alarm, size, payload);
         const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
         mqtt::Message message(topic, payload);
         mqtt::cdo.Store(message);
@@ -879,7 +884,10 @@ namespace muffin {
             param.Value = node.FloatConvertToStringForLimitValue(lcl);
 
             JSON json;
-            const std::string payload = json.Serialize(param);
+            const size_t size = UINT8_MAX;
+            char payload[size] = {'\0'};
+            json.Serialize(param, size, payload);
+            
             const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
             mqtt::Message message(topic, payload);
             mqtt::cdo.Store(message);
@@ -903,7 +911,10 @@ namespace muffin {
             param.Value = node.FloatConvertToStringForLimitValue(ucl);
 
             JSON json;
-            const std::string payload = json.Serialize(param);
+            const size_t size = UINT8_MAX;
+            char payload[size] = {'\0'};
+            json.Serialize(param, size, payload);
+
             const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
             mqtt::Message message(topic, payload);
             mqtt::cdo.Store(message);
