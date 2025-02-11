@@ -20,6 +20,7 @@
 #include "Network/CatM1/CatM1.h"
 #include "Network/Ethernet/Ethernet.h"
 #include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
+#include "Protocol/SPEAR/SPEAR.h"
 
 static TimerHandle_t xTimer = NULL;
 
@@ -215,6 +216,7 @@ namespace muffin {
             if ((millis() - startedMillis) > 10*SECOND_IN_MILLIS)
             {
                 LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER. DEVICE WILL BE RESTARTED");
+                spear.Reset();
                 esp_restart();
             }
         } while (ret != Status::Code::GOOD);
