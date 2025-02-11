@@ -56,8 +56,7 @@ namespace muffin {
         CATM1_PROCESSOR_TASK = 7
     } task_name_e;
 
-    typedef enum class ReconfigurationCode
-        : uint8_t
+    typedef enum class ReconfigurationCode : uint8_t
     {
         NONE                        = 0, // 설정 변경 없음
         JARVIS_USER_CONFIG_CHANGE   = 1, // MFM 사용자에 의한 설정 변경

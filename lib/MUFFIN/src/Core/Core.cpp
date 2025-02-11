@@ -225,10 +225,14 @@ namespace muffin {
         }
         
         ret = loadJarvisConfig();
-        if (ret != Status::Code::GOOD)
+        if (ret == Status::Code::BAD_DATA_LOST)
         {
             LOG_ERROR(logger, "FAILED TO LOAD JARVIS CONFIG: %s", ret.c_str());
             std::abort();
+        }
+        else if (ret == Status::Code::UNCERTAIN)
+        {
+            LOG_WARNING(logger, "JARVIS CONFIG MIGHT NOT WORK");
         }
         
         do
@@ -352,7 +356,6 @@ namespace muffin {
         ApplyJarvisTask();
         PublishFirmwareStatusMessageService();
         PublishStatusEventMessageService(&initConfig);
-        
     }
 
     Status Core::readInitConfig(init_cfg_t* output)
@@ -563,8 +566,6 @@ namespace muffin {
             esp32FS.Remove(JARVIS_PATH);
             return ret;
         }
-
-        serializeJson(doc,Serial);
         
         jarvis = new(std::nothrow) JARVIS();
         if (jarvis == nullptr)
@@ -576,11 +577,15 @@ namespace muffin {
         jvs::ValidationResult result = jarvis->Validate(doc);
         doc.clear();
 
-        if (result.GetRSC() != jvs::rsc_e::GOOD)
+        if (result.GetRSC() >= jvs::rsc_e::BAD)
         {
             ret = Status::Code::BAD_DATA_LOST;
         }
-        
+        if (result.GetRSC() >= jvs::rsc_e::UNCERTAIN)
+        {
+            ret = Status::Code::UNCERTAIN;
+        }
+
         return ret;
     }
 

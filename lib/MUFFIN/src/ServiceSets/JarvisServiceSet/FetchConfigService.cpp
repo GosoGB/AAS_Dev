@@ -138,14 +138,6 @@ namespace muffin {
             PublishResponseJARVIS(response);
             return Status(Status::Code::BAD_DATA_LOST);
         }
-
-        File file2 = esp32FS.Open(JARVIS_PATH_FETCHED, "r", true);
-        while (file2.available())
-        {
-            Serial.print((char)file2.read());
-        }
-        file2.close();
-        
         snic->ReleaseMutex();
 
         ret = Status::Code::GOOD;

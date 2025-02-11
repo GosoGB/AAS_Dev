@@ -1030,8 +1030,8 @@ namespace muffin { namespace jvs {
                     /**
                      * @todo 오류는 아니지만 경고 메시지를 만들어야함
                      */
-                    const std::string message = "";
-                    return std::make_pair(rsc_e::UNCERTAIN_CONFIG_INSTANCE, message);
+                    const std::string message = "TOTAL REGISTER SIZE DOES NOT MATCH DATA TYPE SIZE";
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 else
                 {

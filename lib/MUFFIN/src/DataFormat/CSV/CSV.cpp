@@ -110,7 +110,7 @@ namespace muffin {
         if ((input.PanicResetCount   != readback.PanicResetCount)  ||
             (input.HasPendingJARVIS  != readback.HasPendingJARVIS) ||
             (input.HasPendingUpdate  != readback.HasPendingUpdate) ||
-            (input.ReconfigCode     != readback.ReconfigCode)    ||
+            (input.ReconfigCode      != readback.ReconfigCode)     ||
             (ret != Status::Code::GOOD))
         {
             return Status(Status::Code::BAD_ENCODING_ERROR);
