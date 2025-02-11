@@ -156,6 +156,7 @@ namespace muffin {
 
         if (isResetByPanic() == true)
         {
+            LOG_INFO(logger,"PanicResetCount : %d ",initConfig.PanicResetCount);
             if (++initConfig.PanicResetCount == MAX_RETRY_COUNT)
             {
                 ret = esp32FS.Remove(JARVIS_PATH);
@@ -167,15 +168,13 @@ namespace muffin {
             // |  @todo #2  mfm/status 토픽에 설정값에 변화가 있었다고 알려줘야 함     |
             // ---------------------------------------------------------------------
             // #endif
-                
                 if (ret == Status::Code::BAD_DEVICE_FAILURE)
                 {
                     LOG_ERROR(logger, "FATAL ERROR: FAILED TO REMOVE JARVIS CONFIG");
                     std::abort();
                 }
             }
-            
-            initConfig.PanicResetCount = 0;
+
             ret = writeInitConfig(initConfig);
             if (ret == Status::Code::BAD_ENCODING_ERROR)
             {
@@ -189,6 +188,26 @@ namespace muffin {
             }
 
             LOG_INFO(logger, "JARVIS config has been reset due to panic reset");
+        }
+        else
+        {
+            if(initConfig.PanicResetCount != 0)
+            {
+                initConfig.PanicResetCount = 0;
+                ret = writeInitConfig(initConfig);
+                if (ret == Status::Code::BAD_ENCODING_ERROR)
+                {
+                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO ENCODE INIT CONFIG");
+                    std::abort();
+                }
+                else if (ret == Status::Code::BAD_DEVICE_FAILURE)
+                {
+                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO WRITE INIT CONFIG");
+                    std::abort();
+                }
+
+                LOG_INFO(logger, "JARVIS config has been reset due to panic reset");
+            }   
         }
 
         if (esp32FS.DoesExist(JARVIS_PATH) == Status::Code::BAD_NOT_FOUND)
@@ -544,6 +563,8 @@ namespace muffin {
             esp32FS.Remove(JARVIS_PATH);
             return ret;
         }
+
+        serializeJson(doc,Serial);
         
         jarvis = new(std::nothrow) JARVIS();
         if (jarvis == nullptr)
