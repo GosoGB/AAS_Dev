@@ -707,17 +707,15 @@ namespace muffin {
                                         LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
                                         goto ERROR_RESPONSE;
                                     }
-                                    modbusTCPClient.end();
 
-                                    modbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort());
                                     LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
                                     switch (modbusArea)
                                     {
                                     case jvs::mb_area_e::COILS:
-                                        writeResult = modbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        writeResult = modbusTCP.mModbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     case jvs::mb_area_e::HOLDING_REGISTER:
-                                        writeResult = modbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        writeResult = modbusTCP.mModbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:
                                         LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);

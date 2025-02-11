@@ -783,6 +783,12 @@ namespace muffin {
         serializeJson(JarvisJson, payload, payloadSize);
         // LOG_DEBUG(logger,"SEND MSG : %s",payload);
 
+        while (Serial2.available())
+        {
+            Serial2.read();
+            delay(1);
+        }
+        
         Send(payload);
 
         const uint16_t timeout = 3000;
