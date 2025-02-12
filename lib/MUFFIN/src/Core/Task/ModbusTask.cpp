@@ -184,9 +184,9 @@ namespace muffin {
 
             for(auto& modbusTCP : ModbusTcpVector)
             {
-                if (!modbusTCPClient.connected()) 
+                if (!modbusTCP.mModbusTCPClient.connected()) 
                 {
-                    if (modbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
+                    if (modbusTCP.mModbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
                     {
                         LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
                         continue;
@@ -195,15 +195,13 @@ namespace muffin {
                     {
                         LOG_DEBUG(logger,"Modbus TCP Client connected");
                     }
-
+                    
                 }
                 Status ret = modbusTCP.Poll();
                 if (ret != Status::Code::GOOD)
                 {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
-
-                modbusTCPClient.end();
             }
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);   
         }

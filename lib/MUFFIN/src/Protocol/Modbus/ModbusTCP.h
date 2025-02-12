@@ -35,7 +35,7 @@
 
 namespace muffin {
 
-    extern ModbusTCPClient modbusTCPClient;
+    // extern ModbusTCPClient modbusTCPClient;
 
     class ModbusTCP
     {
@@ -75,5 +75,8 @@ namespace muffin {
     private:
         IPAddress mServerIP;
         uint16_t mServerPort;
+    public:
+        WiFiClient mWifiClient;
+        ModbusTCPClient mModbusTCPClient;
     };
 }

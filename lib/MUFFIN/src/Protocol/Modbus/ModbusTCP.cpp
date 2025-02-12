@@ -28,10 +28,11 @@
 
 namespace muffin {
 
-    WiFiClient wifiClient;
-    ModbusTCPClient modbusTCPClient(wifiClient);
+    // WiFiClient wifiClient;
+    // ModbusTCPClient modbusTCPClient(wifiClient);
 
     ModbusTCP::ModbusTCP()
+    : mModbusTCPClient(mWifiClient)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -317,10 +318,10 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            modbusTCPClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -337,7 +338,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = modbusTCPClient.read();
+                const int8_t value = mModbusTCPClient.read();
                 
                 switch (value)
                 {
@@ -364,10 +365,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            modbusTCPClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -385,7 +386,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = modbusTCPClient.read();
+                const int8_t value = mModbusTCPClient.read();
                 switch (value)
                 {
                 case 1:
@@ -412,10 +413,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            modbusTCPClient.requestFrom(1, INPUT_REGISTERS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(1, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -433,7 +434,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = modbusTCPClient.read();
+                const int32_t value = mModbusTCPClient.read();
                 
                 if (value == -1)
                 {
@@ -461,10 +462,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            modbusTCPClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -482,7 +483,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = modbusTCPClient.read();
+                const int32_t value = mModbusTCPClient.read();
                 
                 // LOG_WARNING(logger, "[HOLDING REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
