@@ -70,7 +70,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
-            mAddressType = convertToAdressType(json["adtp"].as<uint8_t>());
+            convertToAdressType(json["adtp"].as<uint8_t>());
             if (mAddressType.first != rsc_e::GOOD)
             {
                 char message[64] = {'\0'};
@@ -1436,47 +1436,51 @@ namespace muffin { namespace jvs {
         return std::make_pair(rsc_e::GOOD, vectorDataUnitOrder);
     }
     
-    std::pair<rsc_e, adtp_e> NodeValidator::convertToAdressType(const uint8_t type)
+    void NodeValidator::convertToAdressType(const uint8_t type)
     {
         switch (type)
         {
         case 0:
-            return std::make_pair(rsc_e::GOOD, adtp_e::NUMERIC);
+            mAddressType.first   = rsc_e::GOOD;
+            mAddressType.second  = adtp_e::NUMERIC;
+            return;
         case 1:
         case 2:
         case 3:
-            return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, adtp_e::NUMERIC);
+            mAddressType.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
+            return;
         default:
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, adtp_e::NUMERIC);
+            mAddressType.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
     }
 
-    std::pair<rsc_e, addr_u> NodeValidator::convertToAddress(JsonVariant address)
+    void NodeValidator::convertToAddress(JsonVariant address)
     {
         ASSERT((mAddressType.first == rsc_e::GOOD), "ADDRESS TYPE MUST BE CONFIGURED IN ADVANCE");
-
-        addr_u addressUnion;
-        addressUnion.Numeric = 0;
-
+        
         switch (mAddressType.second)
         {
         case adtp_e::NUMERIC:
             if (address.is<uint32_t>() == false)
             {
-                LOG_ERROR(logger, "INVALID NUMERIC ADDRESS: VALUE MUST BE 32-BIT UNSIGNED INTEGER");
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, addressUnion);
+                mAddress.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+                return;
             }
             else
             {
-                addressUnion.Numeric = address.as<uint32_t>();
-                return std::make_pair(rsc_e::GOOD, addressUnion);
+                mAddress.first = rsc_e::GOOD;
+                mAddress.second.Numeric = address.as<uint32_t>();
+                return;
             }
         case adtp_e::STRING:
         case adtp_e::BYTE_STRING:
         case adtp_e::GUID:
-            return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, addressUnion);
+            mAddress.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
+            return;
         default:
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, addressUnion);
+            mAddress.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
     }
 
@@ -1486,32 +1490,40 @@ namespace muffin { namespace jvs {
      *     @li rsc_e::GOOD_NO_DATA 설정 값이 NULL 입니다.
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
      */
-    std::pair<rsc_e, mb_area_e> NodeValidator::convertToModbusArea(JsonVariant modbusArea)
+    void NodeValidator::convertToModbusArea(JsonVariant modbusArea)
     {
         if (modbusArea.isNull() == true)
         {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, mb_area_e::COILS);
+            mModbusArea.first = rsc_e::GOOD_NO_DATA;
+            return;
         }
 
         if (modbusArea.is<uint8_t>() == false)
         {
-            LOG_ERROR(logger, "MODBUS AREA MUST BE A 8-BIT UNSIGNED INTEGER");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, mb_area_e::COILS);
+            mModbusArea.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
         
         switch (modbusArea.as<uint8_t>())
         {
         case 1:
-            return std::make_pair(rsc_e::GOOD, mb_area_e::COILS);
+            mModbusArea.second = mb_area_e::COILS;
+            break;
         case 2:
-            return std::make_pair(rsc_e::GOOD, mb_area_e::DISCRETE_INPUT);
+            mModbusArea.second = mb_area_e::DISCRETE_INPUT;
+            break;
         case 3:
-            return std::make_pair(rsc_e::GOOD, mb_area_e::INPUT_REGISTER);
+            mModbusArea.second = mb_area_e::INPUT_REGISTER;
+            break;
         case 4:
-            return std::make_pair(rsc_e::GOOD, mb_area_e::HOLDING_REGISTER);
+            mModbusArea.second = mb_area_e::HOLDING_REGISTER;
+            break;
         default:
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, mb_area_e::COILS);
+            mModbusArea.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
+
+        mModbusArea.first = rsc_e::GOOD;
     }
 
     /**
@@ -1520,20 +1532,22 @@ namespace muffin { namespace jvs {
      *     @li rsc_e::GOOD_NO_DATA 설정 값이 NULL 입니다.
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
      */
-    std::pair<rsc_e, uint8_t> NodeValidator::convertToBitIndex(JsonVariant bitIndex)
+    void NodeValidator::convertToBitIndex(JsonVariant bitIndex)
     {
         if (bitIndex.isNull() == true)
         {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, UINT8_MAX);
+            mBitIndex.first = rsc_e::GOOD_NO_DATA;
+            return;
         }
 
         if (bitIndex.is<uint8_t>() == false)
         {
-            LOG_ERROR(logger, "BIT INDEX MUST BE A 8-BIT UNSIGNED INTEGER");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, UINT8_MAX);
+            mBitIndex.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
         
-        return std::make_pair(rsc_e::GOOD, bitIndex.as<uint8_t>());
+        mBitIndex.first   = rsc_e::GOOD;
+        mBitIndex.second  = bitIndex.as<uint8_t>();
     }
 
     /**
@@ -1542,27 +1556,31 @@ namespace muffin { namespace jvs {
      *     @li rsc_e::GOOD_NO_DATA 설정 값이 NULL 입니다.
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
      */
-    std::pair<rsc_e, uint8_t> NodeValidator::convertToAddressQuantity(JsonVariant addressQuantity)
+    void NodeValidator::convertToAddressQuantity(JsonVariant addressQuantity)
     {
         if (addressQuantity.isNull() == true)
         {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, UINT8_MAX);
+            mAddressQuantity.first = rsc_e::GOOD_NO_DATA;
+            return;
         }
 
         if (addressQuantity.is<uint8_t>() == false)
         {
-            LOG_ERROR(logger, "ADDRESS QUANTITY MUST BE A 8-BIT UNSIGNED INTEGER");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, UINT8_MAX);
+            mAddressQuantity.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
         
         if (addressQuantity.as<uint8_t>() == 0)
         {
-            LOG_ERROR(logger, "ADDRESS QUANTITY MUST BE GREATER THAN 0");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, UINT8_MAX);
+            mAddressQuantity.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
 
-        return std::make_pair(rsc_e::GOOD, addressQuantity.as<uint8_t>());
+        mAddressQuantity.first   = rsc_e::GOOD;
+        mAddressQuantity.second  = addressQuantity.as<uint8_t>();
     }
+
+    여기서부터 이어서 작업해야 해유
 
     /**
      * @return std::pair<Status, scl_e> 
@@ -1570,7 +1588,7 @@ namespace muffin { namespace jvs {
      *     @li rsc_e::GOOD_NO_DATA 설정 값이 NULL 입니다.
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
      */
-    std::pair<rsc_e, scl_e> NodeValidator::convertToNumericScale(JsonVariant numericScale)
+    void NodeValidator::convertToNumericScale(JsonVariant numericScale)
     {
         if (numericScale.isNull() == true)
         {
@@ -1608,7 +1626,7 @@ namespace muffin { namespace jvs {
      *     @li rsc_e::GOOD_NO_DATA 설정 값이 NULL 입니다.
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
      */
-    std::pair<rsc_e, float> NodeValidator::convertToNumericOffset(JsonVariant numericOffset)
+    void NodeValidator::convertToNumericOffset(JsonVariant numericOffset)
     {
         if (numericOffset.isNull() == true)
         {
@@ -1634,7 +1652,7 @@ namespace muffin { namespace jvs {
      *     @li Status::Code::BAD_OUT_OF_MEMORY 설정 값을 저장에 할당 가능한 메모리가 부족합니다.
      *     @li Status::Code::BAD_UNEXPECTED_ERROR 알 수 없는 예외가 발생했습니다.
      */
-    std::pair<rsc_e, std::map<uint16_t, std::string>> NodeValidator::convertToMappingRules(JsonObject mappingRules)
+    void NodeValidator::convertToMappingRules(JsonObject mappingRules)
     {
         std::map<uint16_t, std::string> mapMappingRules;
 
@@ -1703,7 +1721,6 @@ namespace muffin { namespace jvs {
             }
         }
 
-
         /**
          * @todo Map 내부의 키 값이 중복되서 들어올 시, 에러를 반환해야 함
          */
@@ -1716,7 +1733,7 @@ namespace muffin { namespace jvs {
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
      *     @li Status::Code::BAD_OUT_OF_RANGE 키(key) 값이 int32_t 타입으로 변환 가능한 범위를 벗어났습니다.
      */
-    std::pair<rsc_e, ord_t> NodeValidator::convertToDataUnitOrderType(const std::string& value)
+    void NodeValidator::convertToDataUnitOrderType(const std::string& value)
     {
         std::string stringIndex;
         ord_t dataUnitOrder;
@@ -1791,7 +1808,7 @@ namespace muffin { namespace jvs {
         return std::make_pair(rsc_e::GOOD, dataUnitOrder);
     }
 
-    std::pair<rsc_e, dt_e> NodeValidator::convertToDataType(const uint8_t dataType)
+    void NodeValidator::convertToDataType(const uint8_t dataType)
     {
         switch (dataType)
         {
@@ -1824,7 +1841,7 @@ namespace muffin { namespace jvs {
         }
     }
 
-    std::pair<rsc_e, std::string> NodeValidator::convertToFormatString(const JsonVariant formatString)
+    void NodeValidator::convertToFormatString(const JsonVariant formatString)
     {
         if (formatString.isNull() == true)
         {

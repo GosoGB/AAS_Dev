@@ -56,17 +56,17 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::vector<DataUnitOrder>> processDataUnitOrders(JsonVariant dataUnitOrders);
         // Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
-        std::pair<rsc_e, adtp_e> convertToAdressType(const uint8_t type);
-        std::pair<rsc_e, addr_u> convertToAddress(JsonVariant address);
-        std::pair<rsc_e, mb_area_e> convertToModbusArea(JsonVariant modbusArea);
-        std::pair<rsc_e, uint8_t> convertToBitIndex(JsonVariant bitIndex);
-        std::pair<rsc_e, uint8_t> convertToAddressQuantity(JsonVariant addressQuantity);
-        std::pair<rsc_e, scl_e> convertToNumericScale(JsonVariant numericScale);
-        std::pair<rsc_e, float> convertToNumericOffset(JsonVariant numericOffset);
-        std::pair<rsc_e, std::map<uint16_t, std::string>> convertToMappingRules(JsonObject mappingRules);
-        std::pair<rsc_e, ord_t> convertToDataUnitOrderType(const std::string& value);
-        std::pair<rsc_e, dt_e> convertToDataType(const uint8_t dataType);
-        std::pair<rsc_e, std::string> convertToFormatString(const JsonVariant formatString);
+        void convertToAdressType(const uint8_t type);
+        void convertToAddress(JsonVariant address);
+        void convertToModbusArea(JsonVariant modbusArea);
+        void convertToBitIndex(JsonVariant bitIndex);
+        void convertToAddressQuantity(JsonVariant addressQuantity);
+        void convertToNumericScale(JsonVariant numericScale);
+        void convertToNumericOffset(JsonVariant numericOffset);
+        void convertToMappingRules(JsonObject mappingRules);
+        void convertToDataUnitOrderType(const std::string& value);
+        void convertToDataType(const uint8_t dataType);
+        void convertToFormatString(const JsonVariant formatString);
     private:
         char mNodeID[5];
         std::pair<rsc_e, adtp_e> mAddressType;
