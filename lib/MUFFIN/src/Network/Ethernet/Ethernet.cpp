@@ -20,8 +20,30 @@
 #include "Network/Ethernet/Ethernet.h"
 #include "Protocol/SPEAR/SPEAR.h"
 
+static uint32_t sNonassignedIPv4Millis = 0;
+static TimerHandle_t xTimer = NULL;
+
+
 
 namespace muffin {
+
+    void vMonitorNonassignedIPv4(TimerHandle_t xTimer)
+    {
+        configASSERT(xTimer);
+        
+        if (ethernet->IsConnected() == false)
+        {
+            if ((millis() - sNonassignedIPv4Millis) > 10*SECOND_IN_MILLIS)
+            {
+                spear.Reset();
+                esp_restart();
+            }
+        }
+        else
+        {
+            xTimerStop(xTimer, 0);
+        }
+    }
 
     Ethernet::Ethernet()
     {
@@ -106,6 +128,18 @@ namespace muffin {
         return Status(Status::Code::BAD_DEVICE_FAILURE);
         
     ON_SUCCESS:
+        if (xTimer == NULL)
+        {
+            xTimer = xTimerCreate(
+                "nonassigned_ipv4",      // pcTimerName
+                SECOND_IN_MILLIS,        // xTimerPeriod,
+                pdTRUE,                  // uxAutoReload,
+                (void *)0,               // pvTimerID,
+                vMonitorNonassignedIPv4  // pxCallbackFunction
+            );
+        }
+        xTimerStart(xTimer, 0);
+
         mFlogs.set(static_cast<uint8_t>(flag_e::HAS_STARTED));
         return Status(Status::Code::GOOD);
     }
@@ -196,6 +230,7 @@ namespace muffin {
         case ARDUINO_EVENT_ETH_START:
             LOG_INFO(logger, "Ethernet PHY has started");
             mFlogs.set(static_cast<uint8_t>(flag_e::HAS_STARTED));
+            sNonassignedIPv4Millis = millis();
             return;
 
         case ARDUINO_EVENT_ETH_STOP:
@@ -207,6 +242,7 @@ namespace muffin {
         case ARDUINO_EVENT_ETH_CONNECTED:
             LOG_INFO(logger, "Ethernet is connected");
             mFlogs.set(static_cast<uint8_t>(flag_e::HAS_STARTED));
+            sNonassignedIPv4Millis = millis();
             return;
 
         case ARDUINO_EVENT_ETH_DISCONNECTED:
