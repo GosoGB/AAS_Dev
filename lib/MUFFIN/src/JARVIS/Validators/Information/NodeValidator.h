@@ -68,7 +68,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, dt_e> convertToDataType(const uint8_t dataType);
         std::pair<rsc_e, std::string> convertToFormatString(const JsonVariant formatString);
     private:
-        std::string mNodeID;
+        char mNodeID[5];
         std::pair<rsc_e, adtp_e> mAddressType;
         std::pair<rsc_e, addr_u> mAddress;
         std::pair<rsc_e, mb_area_e> mModbusArea;
@@ -80,11 +80,11 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::vector<DataUnitOrder>> mDataUnitOrders;
         std::pair<rsc_e, std::vector<dt_e>> mDataTypes;
         std::pair<rsc_e, std::string> mFormatString;
-        std::string mUID;
-        std::string mDisplayName;
-        std::string mDisplayUnit;
+        char mUID[5];
+        char mDisplayName[121];
+        char mDisplayUnit[41];
         bool mIsEventType = false;
-    private:        
+    private:
         std::vector<fmt_spec_e> mVectorFormatSpecifier;
         const std::regex mPatternUID;
     };

@@ -14,6 +14,8 @@
 
 
 
+#include <string.h>
+
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Node.h"
@@ -25,17 +27,16 @@ namespace muffin { namespace jvs { namespace config {
     Node::Node()
         : Base(cfg_key_e::NODE)
     {
-    }
-
-    Node::~Node()
-    {
+        memset(mNodeID, '\0', sizeof(mNodeID));
     }
 
     Node& Node::operator=(const Node& obj)
     {
         if (this != &obj)
         {
-            mNodeID                 = obj.mNodeID;
+            strncpy(mNodeID, obj.mNodeID, sizeof(mNodeID));
+
+            
             mAddressType            = obj.mAddressType;
             mAddress                = obj.mAddress;
             mModbusArea             = obj.mModbusArea;
@@ -83,11 +84,11 @@ namespace muffin { namespace jvs { namespace config {
         return !(*this == obj);
     }
 
-    void Node::SetNodeID(const std::string& nodeID)
+    void Node::SetNodeID(const char* nodeID)
     {
-        ASSERT((nodeID.size() == 4), "NODE ID MUST BE A STRING WITH LEGNTH OF 4");
+        ASSERT((strlen(nodeID) == 4), "NODE ID MUST BE A STRING WITH LEGNTH OF 4");
 
-        mNodeID = nodeID;
+        strncpy(mNodeID, nodeID, sizeof(mNodeID));
         mIsNodeIdSet = true;
     }
 

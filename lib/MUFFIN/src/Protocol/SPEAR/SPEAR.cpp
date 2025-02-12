@@ -213,7 +213,6 @@ namespace muffin {
         char buffer[size] = {'\0'};
 
         Status ret = Receive(timeout, size, buffer);
-        LOG_DEBUG(logger, "Version: %s, %s", ret.c_str(), buffer);
         if (ret != Status::Code::GOOD)
         {
             xSemaphoreGive(xSemaphoreSPEAR);
@@ -266,9 +265,6 @@ namespace muffin {
 
         const char* semanticVersion = obj["1"].as<const char*>();
         const uint32_t versionCode = obj["2"].as<uint32_t>();
-        
-        LOG_INFO(logger, "Semantic Version: %s", semanticVersion);
-        LOG_INFO(logger, "vc: %U", versionCode);
 
         FW_VERSION_MEGA2560.SetSemanticVersion(semanticVersion);
         FW_VERSION_MEGA2560.SetVersionCode(versionCode);
@@ -589,7 +585,7 @@ namespace muffin {
         }
         
         Send("{\"c\":1,\"s\":0}");
-        LOG_INFO(logger, "Initialized successfully");
+        LOG_VERBOSE(logger, "Initialized successfully");
         xSemaphoreGive(xSemaphoreSPEAR);
         return Status(Status::Code::GOOD);
     }

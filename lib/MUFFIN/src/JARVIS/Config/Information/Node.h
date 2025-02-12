@@ -31,13 +31,13 @@ namespace muffin { namespace jvs { namespace config {
     {
     public:
         Node();
-        virtual ~Node() override;
+        virtual ~Node() override {}
     public:
         Node& operator=(const Node& obj);
         bool operator==(const Node& obj) const;
         bool operator!=(const Node& obj) const;
     public:
-        void SetNodeID(const std::string& nodeID);
+        void SetNodeID(const char* nodeID);
         void SetAddressType(const adtp_e type);
         void SetAddrress(const addr_u address);
         void SetModbusArea(const mb_area_e area);
@@ -88,7 +88,7 @@ namespace muffin { namespace jvs { namespace config {
         bool mIsDeprecableDisplayUnitSet    = false;
         bool mIsAttributeEventSet           = false;
     private:
-        std::string mNodeID;
+        char mNodeID[5];
         adtp_e mAddressType;
         addr_u mAddress;
         mb_area_e mModbusArea;

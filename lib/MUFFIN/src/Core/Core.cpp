@@ -227,6 +227,7 @@ namespace muffin {
             spear.Reset();
             esp_restart();
         }
+        Serial.println("\n\n\n\n");
     #endif 
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
@@ -501,8 +502,7 @@ namespace muffin {
         ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
         Status ret = esp32FS.DoesExist(INIT_FILE_PATH);
-        LOG_INFO(logger, "Init config file: %s", ret.c_str());
-
+        LOG_INFO(logger, "Init file: %s", ret.c_str());
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
             output->PanicResetCount   = 0;

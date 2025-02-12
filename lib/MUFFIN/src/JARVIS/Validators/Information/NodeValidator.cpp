@@ -36,6 +36,10 @@ namespace muffin { namespace jvs {
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mPatternUID(std::regex(R"(^(?:[PAE][A-Za-z0-9!@#$%^&*()_+=-]{3}|(?:DI|DO|MD)[A-Za-z0-9!@#$%^&*()_+=-]{2})$)"))
     {
+        memset(mNodeID,       '\0',    sizeof(mNodeID));
+        memset(mUID,          '\0',    sizeof(mUID));
+        memset(mDisplayName,  '\0',    sizeof(mDisplayName));
+        memset(mDisplayUnit,  '\0',    sizeof(mDisplayUnit));
     }
     
     NodeValidator::~NodeValidator()
@@ -62,37 +66,46 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, "INVALID NODE: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
 
-            mNodeID = json["id"].as<std::string>();
-            if (mNodeID.length() != 4)
+            memset(mNodeID, '\0', sizeof(mNodeID));
+            strncpy(mNodeID, json["id"].as<char*>(), sizeof(mNodeID));
+            if (strlen(mNodeID) != 4)
             {
-                const std::string message = "INVALID NODE ID: " + mNodeID;
+                char message[32] = "INVALID NODE ID: ";
+                strncat(message, mNodeID, strlen(mNodeID));
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
             mAddressType = convertToAdressType(json["adtp"].as<uint8_t>());
             if (mAddressType.first != rsc_e::GOOD)
             {
-                const std::string message = "UNDEFINED OR UNSUPPORTED ADDRESS TYPE: " + std::to_string(json["adtp"].as<uint8_t>());
+                char message[64] = {'\0'};
+                snprintf(message, 64, "UNDEFINED OR UNSUPPORTED ADDRESS TYPE: %u", json["adtp"].as<uint8_t>());
                 return std::make_pair(mAddressType.first, message);
             }
             
             mAddress = convertToAddress(json["addr"].as<JsonVariant>());
             if (mAddress.first != rsc_e::GOOD)
             {
-                const std::string message = "INVALID NODE ADDRESS, NODE ID :  "+ mNodeID;
+                char message[64] = {'\0'};
+                snprintf(message, 64, "INVALID NODE ADDRESS: %u, NODE ID: %s", json["adtp"].as<uint8_t>(),
+                                                                               mNodeID);
                 return std::make_pair(mAddress.first, message);
             }
             
             mDataTypes = processDataTypes(json["dt"].as<JsonArray>());
             if (mDataTypes.first != rsc_e::GOOD)
             {
-                const std::string message = "INVALID DATA TYPES, NODE ID :  "+ mNodeID;
+                char message[64] = {'\0'};
+                snprintf(message, 64, "INVALID DATA TYPES FOR NODE ID: %s", mNodeID);
                 return std::make_pair(mDataTypes.first, message);
             }
 
             mUID = json["uid"].as<std::string>();
             if (std::regex_match(mUID, mPatternUID) == false)
             {
+                char message[64] = {'\0'};
+                snprintf(message, 64, "INVALID DATA TYPES FOR NODE ID: %s", mNodeID);
+
                 const std::string message = "INVALID UID: " + mUID;
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
