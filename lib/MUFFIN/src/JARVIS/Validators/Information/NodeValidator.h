@@ -4,12 +4,12 @@
  * 
  * @brief Node 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2024-10-14
- * @version 1.0.0
+ * @date 2025-02-12
+ * @version 1.2.3
+ * 
+ * @copyright Copyright Edgecross Inc. (c) 2024-2025
  * 
  * @todo Node 설정 유형별로 테스트 케이스를 설계한 다음 다음 유닛 테스트를 작성할 것
- * 
- * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -34,7 +34,7 @@ namespace muffin { namespace jvs {
     {
     public:
         NodeValidator();
-        virtual ~NodeValidator();
+        virtual ~NodeValidator() {}
     private:
         using cin_vector = std::vector<config::Base*>;
     public:

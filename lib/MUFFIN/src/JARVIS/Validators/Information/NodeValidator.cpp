@@ -4,10 +4,10 @@
  * 
  * @brief Node 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2024-10-14
- * @version 1.0.0
+ * @date 2025-02-12
+ * @version 1.2.3
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright Edgecross Inc. (c) 2024-2025
  */
 
 
@@ -41,10 +41,6 @@ namespace muffin { namespace jvs {
         memset(mDisplayName,  '\0',    sizeof(mDisplayName));
         memset(mDisplayUnit,  '\0',    sizeof(mDisplayUnit));
     }
-    
-    NodeValidator::~NodeValidator()
-    {
-    }
 
     std::pair<rsc_e, std::string> NodeValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
     {
@@ -66,12 +62,11 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, "INVALID NODE: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
 
-            memset(mNodeID, '\0', sizeof(mNodeID));
-            strncpy(mNodeID, json["id"].as<char*>(), sizeof(mNodeID));
+            strncpy(mNodeID, json["id"].as<const char*>(), sizeof(mNodeID));
             if (strlen(mNodeID) != 4)
             {
-                char message[32] = "INVALID NODE ID: ";
-                strncat(message, mNodeID, strlen(mNodeID));
+                char message[64] = {'\0'};
+                snprintf(message, 64, "INVALID NODE ID: %s", json["id"].as<const char*>());
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
@@ -79,7 +74,7 @@ namespace muffin { namespace jvs {
             if (mAddressType.first != rsc_e::GOOD)
             {
                 char message[64] = {'\0'};
-                snprintf(message, 64, "UNDEFINED OR UNSUPPORTED ADDRESS TYPE: %u", json["adtp"].as<uint8_t>());
+                snprintf(message, 64, "UNDEFINED OR UNSUPPORTED ADDRESS TYPE: %s", json["adtp"].as<const char*>());
                 return std::make_pair(mAddressType.first, message);
             }
             
@@ -87,7 +82,7 @@ namespace muffin { namespace jvs {
             if (mAddress.first != rsc_e::GOOD)
             {
                 char message[64] = {'\0'};
-                snprintf(message, 64, "INVALID NODE ADDRESS: %u, NODE ID: %s", json["adtp"].as<uint8_t>(),
+                snprintf(message, 64, "INVALID NODE ADDRESS: %s, NODE ID: %s", json["adtp"].as<const char*>(),
                                                                                mNodeID);
                 return std::make_pair(mAddress.first, message);
             }
@@ -100,18 +95,20 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mDataTypes.first, message);
             }
 
-            mUID = json["uid"].as<std::string>();
+            strncpy(mUID, json["uid"].as<const char*>(), sizeof(mUID));
             if (std::regex_match(mUID, mPatternUID) == false)
             {
                 char message[64] = {'\0'};
-                snprintf(message, 64, "INVALID DATA TYPES FOR NODE ID: %s", mNodeID);
-
-                const std::string message = "INVALID UID: " + mUID;
+                snprintf(message, 64, "INVALID UID: %s", json["uid"].as<const char*>());
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
-            mDisplayName = json["name"].as<std::string>();
-            mDisplayUnit = json["unit"].as<std::string>();
+            /**
+             * @todo 잘리는 경우에는 uncertain 또는 bad을 반환하도록 해야 함
+             */
+            strncpy(mDisplayName, json["name"].as<const char*>(), sizeof(mDisplayName));
+            strncpy(mDisplayUnit, json["unit"].as<const char*>(), sizeof(mDisplayUnit));
+
             mIsEventType = json["event"].as<bool>();
             /*Node 설정 형식에서 필수로 입력해야 하는 속성은 모두 유효합니다.*/
 
@@ -119,7 +116,8 @@ namespace muffin { namespace jvs {
             if (mModbusArea.first != rsc_e::GOOD && 
                 mModbusArea.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO MODBUS AREA, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FAILED TO CONVERT TO MODBUS AREA: %s, NODE ID: %s", json["area"].as<const char*>(), mNodeID);
                 return std::make_pair(mModbusArea.first, message);
             }
 
@@ -127,7 +125,8 @@ namespace muffin { namespace jvs {
             if (mBitIndex.first != rsc_e::GOOD && 
                 mBitIndex.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO BIT INDEX, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FAILED TO CONVERT TO BIT INDEX: %s, NODE ID: %s", json["bit"].as<const char*>(), mNodeID);
                 return std::make_pair(mBitIndex.first, message);
             }
 
@@ -135,7 +134,8 @@ namespace muffin { namespace jvs {
             if (mAddressQuantity.first != rsc_e::GOOD && 
                 mAddressQuantity.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO ADDRESS QUANTITY, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FAILED TO CONVERT TO ADDRESS QUANTITY: %s, NODE ID: %s", json["qty"].as<const char*>(), mNodeID);
                 return std::make_pair(mAddressQuantity.first, message);
             }
 
@@ -143,7 +143,8 @@ namespace muffin { namespace jvs {
             if (mNumericScale.first != rsc_e::GOOD && 
                 mNumericScale.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO NUMERIC SCALE, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FAILED TO CONVERT TO NUMERIC SCALE: %s, NODE ID: %s", json["scl"].as<const char*>(), mNodeID);
                 return std::make_pair(mNumericScale.first, message);
             }
 
@@ -151,7 +152,8 @@ namespace muffin { namespace jvs {
             if (mNumericOffset.first != rsc_e::GOOD && 
                 mNumericOffset.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO NUMERIC OFFSET, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FAILED TO CONVERT TO NUMERIC OFFSET: %s, NODE ID: %s", json["ofst"].as<const char*>(), mNodeID);
                 return std::make_pair(mNumericOffset.first, message);
             }
 
@@ -159,23 +161,24 @@ namespace muffin { namespace jvs {
             if (mMappingRules.first != rsc_e::GOOD && 
                 mMappingRules.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO MAPPING RULES, NODE ID :  "+ mNodeID;
+                char message[512] = {'\0'};
+                snprintf(message, 512, "FAILED TO CONVERT TO MAPPING RULES: %s, NODE ID: %s", json["map"].as<const char*>(), mNodeID);
                 return std::make_pair(mMappingRules.first, message);
             }
 
             mDataUnitOrders = processDataUnitOrders(json["ord"].as<JsonVariant>());
-            if (mDataUnitOrders.first != rsc_e::GOOD &&
-                mDataUnitOrders.first != rsc_e::GOOD_NO_DATA)
+            if (mDataUnitOrders.first != rsc_e::GOOD && mDataUnitOrders.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FAILED TO CONVERT TO DATA UNIT ORDERS: %s, NODE ID: %s", json["ord"].as<const char*>(), mNodeID);
                 return std::make_pair(mDataUnitOrders.first, message);
             }
 
             mFormatString = convertToFormatString(json["fmt"].as<JsonVariant>());
-            if (mFormatString.first != rsc_e::GOOD &&
-                mFormatString.first != rsc_e::GOOD_NO_DATA)
+            if (mFormatString.first != rsc_e::GOOD && mFormatString.first != rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "FAILED TO CONVERT TO FORMAT STRING, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FAILED TO CONVERT TO FORMAT STRING: %s, NODE ID: %s", json["fmt"].as<const char*>(), mNodeID);
                 return std::make_pair(mFormatString.first, message);
             }
 
@@ -319,7 +322,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, "FAILED TO EMPLACE NODE CIN");
             }
 
-            mNodeID.clear();
+            memset(mNodeID, '\0', sizeof(mNodeID));
             mAddressType      = std::make_pair(rsc_e::UNCERTAIN, adtp_e::NUMERIC);
             mAddress          = std::make_pair(rsc_e::UNCERTAIN, addr_u());
             mModbusArea       = std::make_pair(rsc_e::UNCERTAIN, mb_area_e::COILS);
@@ -331,9 +334,9 @@ namespace muffin { namespace jvs {
             mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
             mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>());
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
-            mUID.clear();
-            mDisplayName.clear();
-            mDisplayUnit.clear();
+            memset(mUID, '\0', sizeof(mUID));
+            memset(mDisplayName, '\0', sizeof(mDisplayName));
+            memset(mDisplayUnit, '\0', sizeof(mDisplayUnit));
             mIsEventType = false;
             mVectorFormatSpecifier.clear();
         }
@@ -392,13 +395,13 @@ namespace muffin { namespace jvs {
         isValid &= json["name"].isNull()   == false;
         isValid &= json["unit"].isNull()   == false;
         isValid &= json["event"].isNull()  == false;
-        isValid &= json["id"].is<std::string>();
+        isValid &= json["id"].is<const char*>();
         isValid &= json["adtp"].is<uint8_t>();
         isValid &= json["addr"].is<JsonVariant>();
         isValid &= json["dt"].is<JsonArray>();
-        isValid &= json["uid"].is<std::string>();
-        isValid &= json["name"].is<std::string>();
-        isValid &= json["unit"].is<std::string>();
+        isValid &= json["uid"].is<const char*>();
+        isValid &= json["name"].is<const char*>();
+        isValid &= json["unit"].is<const char*>();
         isValid &= json["event"].is<bool>();
 
         if (isValid == true)
@@ -421,19 +424,21 @@ namespace muffin { namespace jvs {
     {
         if (mModbusArea.first == rsc_e::GOOD_NO_DATA)
         {
-            const std::string message = "Modbus memory area is not enabled, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "Modbus memory area is not enabled, Node ID: %s", mNodeID);
             return std::make_pair(rsc_e::GOOD, message);
         }
         
         if (mAddressType.second != adtp_e::NUMERIC)
         {
-            const std::string message = "ADDRESS TYPE MUST BE NUMERIC TO ENABLE MODBUS PROTOCOL, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "ADDRESS TYPE MUST BE NUMERIC TO ENABLE MODBUS PROTOCOL, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
         // if (mAddress.second.Numeric > 0x270F)
         // {
-        //     const std::string message = "EXTENDED REGISTER ADDRESS FOR MODBUS PROTOCOL IS NOT SUPPORTED, NODE ID :  "+ mNodeID;
+        //     const std::string message = "EXTENDED REGISTER ADDRESS FOR MODBUS PROTOCOL IS NOT SUPPORTED, NODE ID:  "+ mNodeID;
         //     return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
         // }
 
@@ -441,49 +446,57 @@ namespace muffin { namespace jvs {
         {
             if (mBitIndex.first == rsc_e::GOOD)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH BIT INDEX, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH BIT INDEX, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
             if (mAddressQuantity.first == rsc_e::GOOD)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH ADDRESS QUANTITY, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH ADDRESS QUANTITY, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
             if (mNumericScale.first == rsc_e::GOOD)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH NUMERIC SCALE, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH NUMERIC SCALE, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
             if (mNumericOffset.first == rsc_e::GOOD)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH NUMERIC OFFSET, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH NUMERIC OFFSET, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
             if (mDataUnitOrders.first == rsc_e::GOOD)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH DATA UNIT ORDERS, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
             if (mDataTypes.second.size() != 1)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" IF MORE THAN ONE DATA TYPE IS PROVIDED, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" IF MORE THAN ONE DATA TYPE IS PROVIDED, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
             if (mDataTypes.second.front() != dt_e::BOOLEAN)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" IF DATA TYPE IS NOT BOOLEAN, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" IF DATA TYPE IS NOT BOOLEAN, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
             if (mFormatString.first == rsc_e::GOOD)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH FORMAT STRING, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Coils\" OR \"Discrete Inputs\" WITH FORMAT STRING, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
@@ -495,13 +508,15 @@ namespace muffin { namespace jvs {
             {
                 if (mAddressQuantity.first == rsc_e::GOOD)
                 {
-                    const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITH BOTH BIT INDEX AND ADDRESS QUANTITY, NODE ID :  "+ mNodeID;
+                    char message[256] = {'\0'};
+                    snprintf(message, 256, "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITH BOTH BIT INDEX AND ADDRESS QUANTITY, NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
             }
             else if (mAddressQuantity.first == rsc_e::GOOD_NO_DATA)
             {
-                const std::string message = "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITHOUT ADDRESS QUANTITY, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MODBUS AREA CANNOT BE CONFIGURED AS \"Input Registers\" OR \"Holding Registers\" WITHOUT ADDRESS QUANTITY, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
@@ -518,37 +533,43 @@ namespace muffin { namespace jvs {
     {
         if (mBitIndex.first == rsc_e::GOOD_NO_DATA)
         {
-            const std::string message = "Bit index is not enabled, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "Bit index is not enabled, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::GOOD, message);
         }
 
         if (mAddressQuantity.first == rsc_e::GOOD)
         {
-            const std::string message = "BIT INDEX CANNOT BE CONFIGURED WITH ADDRESS QUANTITY, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH ADDRESS QUANTITY, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
         if (mNumericScale.first == rsc_e::GOOD)
         {
-            const std::string message = "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC SCALE, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC SCALE, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
         if (mNumericOffset.first == rsc_e::GOOD)
         {
-            const std::string message = "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC OFFSET, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH NUMERIC OFFSET, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         if (mFormatString.first == rsc_e::GOOD)
         {
-            const std::string message = "BIT INDEX CANNOT BE CONFIGURED WITH FORMAT STRING, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH FORMAT STRING, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         if (mDataTypes.second.size() != 1)
         {
-            const std::string message = "BIT INDEX CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPE, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPE, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -556,7 +577,8 @@ namespace muffin { namespace jvs {
         {
             if (mDataUnitOrders.second.size() != 1)
             {
-                const std::string message = "BIT INDEX CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDER, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDER, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
@@ -565,7 +587,8 @@ namespace muffin { namespace jvs {
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
-                const std::string message = "BIT INDEX CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
@@ -576,7 +599,8 @@ namespace muffin { namespace jvs {
             case dt_e::UINT8:
                 if (mBitIndex.second > 7)
                 {
-                    const std::string message = "[NODE ID] :  "+ mNodeID + " BIT INDEX OUT OF RANGE FOR 8-BIT INTEGER: " + std::to_string(mBitIndex.second);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "[NODE ID] %s, BIT INDEX OUT OF RANGE FOR 8-BIT INTEGER: %u", mNodeID, mBitIndex.second);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
@@ -584,7 +608,8 @@ namespace muffin { namespace jvs {
             case dt_e::UINT16:
                 if (mBitIndex.second > 15)
                 {
-                    const std::string message = "[NODE ID] :  "+ mNodeID + " BIT INDEX OUT OF RANGE FOR 16-BIT INTEGER: " + std::to_string(mBitIndex.second);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "[NODE ID] %s, BIT INDEX OUT OF RANGE FOR 16-BIT INTEGER: %u", mNodeID, mBitIndex.second);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
@@ -592,7 +617,8 @@ namespace muffin { namespace jvs {
             case dt_e::UINT32:
                 if (mBitIndex.second > 31)
                 {
-                    const std::string message = "[NODE ID] :  "+ mNodeID + " BIT INDEX OUT OF RANGE FOR 32-BIT INTEGER: " + std::to_string(mBitIndex.second);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "[NODE ID] %s, BIT INDEX OUT OF RANGE FOR 32-BIT INTEGER: %u", mNodeID, mBitIndex.second);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
@@ -600,12 +626,14 @@ namespace muffin { namespace jvs {
             case dt_e::UINT64:
                 if (mBitIndex.second > 63)
                 {
-                    const std::string message = "[NODE ID] :  "+ mNodeID + " BIT INDEX OUT OF RANGE FOR 64-BIT INTEGER: " + std::to_string(mBitIndex.second);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "[NODE ID] %s, BIT INDEX OUT OF RANGE FOR 64-BIT INTEGER: %u", mNodeID, mBitIndex.second);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             default:
-                const std::string message = "[NODE ID] :  "+ mNodeID + " INVALID DATA TYPE FOR BIT INDEX: " + std::to_string(static_cast<uint8_t>(mDataTypes.second.front()));
+                char message[128] = {'\0'};
+                snprintf(message, 128, "[NODE ID] %s, INVALID DATA TYPE FOR BIT INDEX: %u", mNodeID, static_cast<uint8_t>(mDataTypes.second.front()));
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -623,12 +651,14 @@ namespace muffin { namespace jvs {
         {
             if (mAddressQuantity.first == rsc_e::GOOD)
             {
-                const std::string message = "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF ADDRESS TYPE IS NOT NUMERIC, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF ADDRESS TYPE IS NOT NUMERIC, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             else
             {
-                const std::string message = "Numeric address quantity is not enabled, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "Numeric address quantity is not enabled, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::GOOD, message);
             }
         }
@@ -637,30 +667,37 @@ namespace muffin { namespace jvs {
         {
             if (mBitIndex.first == rsc_e::GOOD)
             {
-                return std::make_pair(rsc_e::GOOD_NO_DATA, "Address quantity is null by bit index config, NODE ID :  "+ mNodeID);
+                char message[128] = {'\0'};
+                snprintf(message, 128, "Address quantity is null by bit index config, NODE ID: %s", mNodeID);
+                return std::make_pair(rsc_e::GOOD_NO_DATA, message);
             }
 
             if (mModbusArea.first == rsc_e::GOOD)
             {
                 if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
                 {
-                    return std::make_pair(rsc_e::GOOD_NO_DATA, "Address quantity is null by Modbus area config, NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "Address quantity is null by Modbus area config, NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::GOOD_NO_DATA, message);
                 }
                 else
                 {
-                    const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF MODBUS AREA \"INPUT REGISTERS\" OR \"HOLDING REGISTERS\", NODE ID :  "+ mNodeID;
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF MODBUS AREA \"INPUT REGISTERS\" OR \"HOLDING REGISTERS\", NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
             }
 
             // qty , bit , modbus area도 없는 애들은 여기로 빠진다.
-            const std::string message = "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF ADDRESS TYPE IS NUMERIC, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC ADDRESS QUANTITY MUST BE CONFIGURED IF ADDRESS TYPE IS NUMERIC, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
         if (mBitIndex.first == rsc_e::GOOD)
         {
-            const std::string message = "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -668,7 +705,8 @@ namespace muffin { namespace jvs {
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
-                const std::string message = "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
@@ -679,7 +717,8 @@ namespace muffin { namespace jvs {
             {
                 if (dataType == dt_e::BOOLEAN)
                 {
-                    const std::string message = "NUMERIC ADDRESS QUANTITY LENGTH MUST BE 1 IF THERE'S A BOOLEAN DATA TYPE, NODE ID :  "+ mNodeID;
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "NUMERIC ADDRESS QUANTITY LENGTH MUST BE 1 IF THERE'S A BOOLEAN DATA TYPE, NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
             }
@@ -697,13 +736,13 @@ namespace muffin { namespace jvs {
     {
         if (mNumericScale.first == rsc_e::GOOD_NO_DATA)
         {
-            const std::string message = "Numeric scale is not enabled";
-            return std::make_pair(rsc_e::GOOD, message);
+            return std::make_pair(rsc_e::GOOD, "Numeric scale is not enabled");
         }
         
         if (mDataTypes.second.size() != 1)
         {
-            const std::string message = "NUMERIC SCALE CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -711,14 +750,16 @@ namespace muffin { namespace jvs {
         {
             if (mDataUnitOrders.second.size() != 1)
             {
-                const std::string message = "NUMERIC SCALE CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
 
         if (mMappingRules.first == rsc_e::GOOD)
         {
-            const std::string message = "NUMERIC SCALE CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
@@ -733,7 +774,8 @@ namespace muffin { namespace jvs {
         
         if (mBitIndex.first == rsc_e::GOOD)
         {
-            const std::string message = "NUMERIC SCALE CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -741,7 +783,8 @@ namespace muffin { namespace jvs {
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
-                const std::string message = "NUMERIC SCALE CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
@@ -758,13 +801,13 @@ namespace muffin { namespace jvs {
     {
         if (mNumericOffset.first == rsc_e::GOOD_NO_DATA)
         {
-            const std::string message = "Numeric offset is not enabled";
-            return std::make_pair(rsc_e::GOOD, message);
+            return std::make_pair(rsc_e::GOOD, "Numeric offset is not enabled");
         }
 
         if (mDataTypes.second.size() != 1)
         {
-            const std::string message = "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -772,14 +815,16 @@ namespace muffin { namespace jvs {
         {
             if (mDataUnitOrders.second.size() != 1)
             {
-                const std::string message = "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
 
         if (mMappingRules.first == rsc_e::GOOD)
         {
-            const std::string message = "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
@@ -794,7 +839,8 @@ namespace muffin { namespace jvs {
         
         if (mBitIndex.first == rsc_e::GOOD)
         {
-            const std::string message = "NUMERIC OFFSET CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -802,7 +848,8 @@ namespace muffin { namespace jvs {
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
-                const std::string message = "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
@@ -819,13 +866,15 @@ namespace muffin { namespace jvs {
     {
         if (mMappingRules.first == rsc_e::GOOD_NO_DATA)
         {
-            const std::string message = "Mapping rules are not enabled, NODE ID :  "+ mNodeID;
+            char message[64] = {'\0'};
+            snprintf(message, 64, "Mapping rules are not enabled, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::GOOD, message);
         }
 
         if (mDataTypes.second.size() != 1)
         {
-            const std::string message = "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -833,7 +882,8 @@ namespace muffin { namespace jvs {
         {
             if (mDataUnitOrders.second.size() != 1)
             {
-                const std::string message = "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
@@ -860,13 +910,15 @@ namespace muffin { namespace jvs {
     {
         if (mDataUnitOrders.first == rsc_e::GOOD_NO_DATA)
         {
-            const std::string message = "Data unit orders are not enabled, NODE ID :  "+ mNodeID;
+            char message[64] = {'\0'};
+            snprintf(message, 64, "Data unit orders are not enabled, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::GOOD, message);
         }
         
         if (mBitIndex.first == rsc_e::GOOD)
         {
-            const std::string message = "DATA UNIT ORDERS CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "DATA UNIT ORDERS CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -874,14 +926,16 @@ namespace muffin { namespace jvs {
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
-                const std::string message = "DATA UNIT ORDERS CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "DATA UNIT ORDERS CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
         
         if (mDataUnitOrders.second.size() != mDataTypes.second.size())
         {
-            const std::string message = "DATA UNIT ORDERS MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA TYPES, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "DATA UNIT ORDERS MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA TYPES, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -899,7 +953,8 @@ namespace muffin { namespace jvs {
                 const auto result = setIndex.emplace(orderType.Index);
                 if (result.second == false)
                 {
-                    const std::string message = "DATA UNIT ORDER INDICES CANNOT BE DUPLICATED, NODE ID :  "+ mNodeID;
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "DATA UNIT ORDER INDICES CANNOT BE DUPLICATED, NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                     
                 }
@@ -925,7 +980,8 @@ namespace muffin { namespace jvs {
         {
             if (mDataTypes.second.size() != mDataUnitOrders.second.size())
             {
-                const std::string message = "DATA TYPES MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "DATA TYPES MUST HAVE EQUAL LENGTH OF ELEMENTS WITH DATA UNIT ORDERS, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
@@ -971,7 +1027,8 @@ namespace muffin { namespace jvs {
             
                 if (dataTypeSize != sumOrderSize)
                 {
-                    const std::string message = "DATA TYPE SIZE DOES NOT MATCH WITH THE SUM OF DATA UNIT ORDERS, NODE ID :  "+ mNodeID;
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "DATA TYPE SIZE DOES NOT MATCH WITH THE SUM OF DATA UNIT ORDERS, NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
             }
@@ -983,12 +1040,14 @@ namespace muffin { namespace jvs {
             {
                 if (mDataTypes.second.size() != 1)
                 {
-                    const std::string message = "DATA TYPE MUST HAVE ONE ELEMENT WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "DATA TYPE MUST HAVE ONE ELEMENT WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 else if (mDataTypes.second.front() != dt_e::BOOLEAN)
                 {
-                    const std::string message = "DATA TYPE MUST BE \"BOOLEAN\" WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "DATA TYPE MUST BE \"BOOLEAN\" WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
             }
@@ -1028,14 +1087,16 @@ namespace muffin { namespace jvs {
                             sumDataTypeSize += 64;
                             break;
                         default:
-                            const std::string message = "DATA TYPE \"BOOLEAN\" CANNOT BE CONFIGURED WITH MODBUS AREA USING REGISTERS, NODE ID :  "+ mNodeID;
+                            char message[128] = {'\0'};
+                            snprintf(message, 128, "DATA TYPE \"BOOLEAN\" CANNOT BE CONFIGURED WITH MODBUS AREA USING REGISTERS, NODE ID: %s", mNodeID);
                             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                     }
                 }
 
                 if (totalRegisterSize > sumDataTypeSize)
                 {
-                    const std::string message = "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES, NODE ID :  "+ mNodeID;
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "TOTAL SIZE OF MODBUS REGISTERS DOES NOT MATCH WITH THE SUM OF EACH DATA TYPES, NODE ID: %s", mNodeID);
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 else if (totalRegisterSize < sumDataTypeSize)
@@ -1043,8 +1104,7 @@ namespace muffin { namespace jvs {
                     /**
                      * @todo 오류는 아니지만 경고 메시지를 만들어야함
                      */
-                    const std::string message = "TOTAL REGISTER SIZE DOES NOT MATCH DATA TYPE SIZE";
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "TOTAL REGISTER SIZE DOES NOT MATCH DATA TYPE SIZE");
                 }
                 else
                 {
@@ -1067,20 +1127,21 @@ namespace muffin { namespace jvs {
         {
             if (mFormatString.first != rsc_e::GOOD)
             {
-                const std::string message = "FORMAT STRING MUST BE CONFIGURED IF DATA TYPE SIZE IS 2 OR MORE, NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FORMAT STRING MUST BE CONFIGURED IF DATA TYPE SIZE IS 2 OR MORE, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
 
         if (mFormatString.first == rsc_e::GOOD_NO_DATA)
         {
-            const std::string message = "Format string is not enabled";
-            return std::make_pair(rsc_e::GOOD, message);
+            return std::make_pair(rsc_e::GOOD, "Format string is not enabled");
         }
         
         if (mBitIndex.first == rsc_e::GOOD)
         {
-            const std::string message = "FORMAT STRING CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "FORMAT STRING CANNOT BE CONFIGURED IF BIT INDEX IS ENABLED, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -1088,14 +1149,16 @@ namespace muffin { namespace jvs {
         {
             if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
             {
-                const std::string message = "FORMAT STRING CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID :  "+ mNodeID;
+                char message[128] = {'\0'};
+                snprintf(message, 128, "FORMAT STRING CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
 
         if (mVectorFormatSpecifier.size() != mDataTypes.second.size())
         {
-            const std::string message = "THE NUMBER OF FORMAT SPECIFIERS MUST BE EQUAL TO THE NUMBER OF DATA TYPES, NODE ID :  "+ mNodeID;
+            char message[128] = {'\0'};
+            snprintf(message, 128, "THE NUMBER OF FORMAT SPECIFIERS MUST BE EQUAL TO THE NUMBER OF DATA TYPES, NODE ID: %s", mNodeID);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
 
@@ -1108,49 +1171,64 @@ namespace muffin { namespace jvs {
             case fmt_spec_e::INTEGER_32:
                 if (dataType != dt_e::INT8  && dataType != dt_e::INT16  && dataType != dt_e::INT32)
                 {
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"32-BIT INTEGER\", NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"32-BIT INTEGER\", NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             case fmt_spec_e::INTEGER_64:
                 if (dataType != dt_e::INT8  && dataType != dt_e::INT16  && dataType != dt_e::INT32 && dataType != dt_e::INT64)
                 {
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT INTEGER\", NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT INTEGER\", NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             case fmt_spec_e::UNSIGNED_INTEGER_32:
                 if (dataType != dt_e::UINT8 && dataType != dt_e::UINT16 && dataType != dt_e::UINT32)
                 {
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 32-BIT INTEGER\", NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 32-BIT INTEGER\", NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             case fmt_spec_e::UNSIGNED_INTEGER_64:
                 if (dataType != dt_e::UINT8 && dataType != dt_e::UINT16 && dataType != dt_e::UINT32 && dataType != dt_e::UINT64)
                 {
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 64-BIT INTEGER\", NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"UNSIGNED 64-BIT INTEGER\", NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             case fmt_spec_e::FLOATING_POINT_64:
                 if (dataType != dt_e::FLOAT32 && dataType != dt_e::FLOAT64)
                 {
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT FLOATING POINT\", NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"64-BIT FLOATING POINT\", NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             case fmt_spec_e::CHARACTER:
             case fmt_spec_e::STRING:
                 if (dataType != dt_e::STRING)
                 {
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"STRING\", NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"STRING\", NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             case fmt_spec_e::HEX_LOWERCASE:
             case fmt_spec_e::HEX_UPPERCASE:
                 if (dataType == dt_e::BOOLEAN || dataType == dt_e::FLOAT32 || dataType == dt_e::FLOAT64 || dataType == dt_e::STRING)
                 {
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"HEXA CODE\", NODE ID :  "+ mNodeID);
+                    char message[128] = {'\0'};
+                    snprintf(message, 128, "INVALID DATA TYPE FOR FORMAT SPECIFIER \"HEXA CODE\", NODE ID: %s", mNodeID);
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 break;
             default:
-                const std::string message = "[NODE ID] : " + mNodeID + " INVALID DATA TYPE FOR FORMAT SPECIFIER:" + std::to_string(static_cast<uint8_t>(specifier));
+                char message[128] = {'\0'};
+                snprintf(message, 128, "[NODE ID] %s, INVALID DATA TYPE FOR FORMAT SPECIFIER: %u", mNodeID, static_cast<uint8_t>(specifier));
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
@@ -1170,7 +1248,7 @@ namespace muffin { namespace jvs {
         }
         else if (length > UINT8_MAX)
         {
-            LOG_ERROR(logger, "THE ARRAY OF DATA TYPES HAS TOO MANY ELEMENTS: %u", length);
+            LOG_ERROR(logger, "TOO MANY ELEMENTS FOR A DATA TYPE ARRAY: %u", length);
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataTypes);
         }
         
@@ -1193,18 +1271,18 @@ namespace muffin { namespace jvs {
         {
             if (dataType.is<uint8_t>() == false)
             {
-                LOG_ERROR(logger, "DATA TYPE MUST BE AN 8-BIT UNSIGNED INTEGER");
-
                 vectorDataTypes.clear();
+                vectorDataTypes.shrink_to_fit();
+                LOG_ERROR(logger, "DATA TYPE MUST BE AN 8-BIT UNSIGNED INTEGER");
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataTypes);
             }
             
             const auto retDT = convertToDataType(dataType.as<uint8_t>());
             if (retDT.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO CONVERT TO DATA TYPE");
-
                 vectorDataTypes.clear();
+                vectorDataTypes.shrink_to_fit();
+                LOG_ERROR(logger, "FAILED TO CONVERT TO DATA TYPE");
                 return std::make_pair(retDT.first, vectorDataTypes);
             }
             
@@ -1214,9 +1292,9 @@ namespace muffin { namespace jvs {
             }
             catch(const std::exception& e)
             {
-                LOG_ERROR(logger, "FAILED TO EMPLACE DATA TYPE: %s", e.what());
-
                 vectorDataTypes.clear();
+                vectorDataTypes.shrink_to_fit();
+                LOG_ERROR(logger, "FAILED TO EMPLACE DATA TYPE: %s", e.what());
                 return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, vectorDataTypes);
             }
         }
@@ -1242,8 +1320,7 @@ namespace muffin { namespace jvs {
         {
             return std::make_pair(rsc_e::GOOD_NO_DATA, vectorDataUnitOrder);
         }
-
-        if (dataUnitOrders.is<JsonArray>() == false)
+        else if (dataUnitOrders.is<JsonArray>() == false)
         {
             LOG_ERROR(logger, "DATA UNIT ORDERS MUST BE JSON ARRAY");
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
@@ -1274,7 +1351,7 @@ namespace muffin { namespace jvs {
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR(logger, "FAILED TO RESERVE FOR DATA UNIT ORDERS: %s", e.what());
+            LOG_ERROR(logger, "FAILED TO RESERVE DATA UNIT ORDERS: %s", e.what());
             return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, vectorDataUnitOrder);
         }
 
@@ -1282,56 +1359,64 @@ namespace muffin { namespace jvs {
         {
             if (subarrayDataUnitOrders.is<JsonArray>() == false)
             {
-                LOG_ERROR(logger, "ELEMENT ARRAY MUST A JSON ARRAY");
-
                 vectorDataUnitOrder.clear();
+                vectorDataUnitOrder.shrink_to_fit();
+                LOG_ERROR(logger, "ELEMENT ARRAY MUST A JSON ARRAY");
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
             }
             
             JsonArray elementsArray = subarrayDataUnitOrders.as<JsonArray>();
-            const size_t elementsLength = elementsArray.size();
-            if (elementsLength == 0)
+            const size_t elementArraySize = elementsArray.size();
+            if (elementArraySize == 0)
             {
-                LOG_ERROR(logger, "SUB-ARRAY OF DATA UNIT ORDERS CANNOT BE EMPTY");
-
                 vectorDataUnitOrder.clear();
+                vectorDataUnitOrder.shrink_to_fit();
+                LOG_ERROR(logger, "SUB-ARRAY OF DATA UNIT ORDERS CANNOT BE EMPTY");
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
             }
-            else if (elementsLength > UINT8_MAX)
+            else if (elementArraySize > UINT8_MAX)
             {
-                LOG_ERROR(logger, "THE SUB-ARRAY OF DATA UNIT ORDERS HAS TOO MANY ELEMENTS: %u", elementsLength);
-
                 vectorDataUnitOrder.clear();
+                vectorDataUnitOrder.shrink_to_fit();
+                LOG_ERROR(logger, "THE SUB-ARRAY OF DATA UNIT ORDERS HAS TOO MANY ELEMENTS: %u", elementArraySize);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
             }
             
-            DataUnitOrder dataUnitOrder(elementsLength);
+            DataUnitOrder dataUnitOrder(elementArraySize);
             for (auto element : elementsArray)
             {
-                if (element.is<std::string>() == false)
+                if (element.is<const char*>() == false)
                 {
-                    LOG_ERROR(logger, "ELEMENT OF DATA UNIT ORDERS MUST BE A STRING");
-
                     vectorDataUnitOrder.clear();
+                    vectorDataUnitOrder.shrink_to_fit();
+                    LOG_ERROR(logger, "ELEMENT OF DATA UNIT ORDERS MUST BE A STRING");
                     return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
                 }
 
-                const auto retConvert = convertToDataUnitOrderType(element.as<std::string>());
+                const auto retConvert = convertToDataUnitOrderType(element.as<const char*>());
                 if (retConvert.first != rsc_e::GOOD)
                 {
-                    LOG_ERROR(logger, "INVALID ELEMENT FOR DATA UNIT ORDER: %s", element.as<std::string>().c_str());
-
                     vectorDataUnitOrder.clear();
+                    vectorDataUnitOrder.shrink_to_fit();
+                    LOG_ERROR(logger, "INVALID ELEMENT FOR DATA UNIT ORDER: %s", element.as<const char*>());
                     return std::make_pair(retConvert.first, vectorDataUnitOrder);
                 }
                 
                 Status ret = dataUnitOrder.EmplaceBack(retConvert.second);
                 if (ret != Status::Code::GOOD)
                 {
-                    LOG_ERROR(logger, "FAILED TO EMPLACE DATA UNIT ORDER ELEMENT: %s", ret.c_str());
-
                     vectorDataUnitOrder.clear();
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, vectorDataUnitOrder);
+                    vectorDataUnitOrder.shrink_to_fit();
+                    LOG_ERROR(logger, "FAILED TO EMPLACE DATA UNIT ORDER ELEMENT: %s", ret.c_str());
+                    
+                    if (ret == Status::Code::BAD_OUT_OF_MEMORY)
+                    {
+                        return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, vectorDataUnitOrder);
+                    }
+                    else
+                    {
+                        return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, vectorDataUnitOrder);
+                    }
                 }
             }
 
@@ -1341,6 +1426,8 @@ namespace muffin { namespace jvs {
             }
             catch(const std::exception& e)
             {
+                vectorDataUnitOrder.clear();
+                vectorDataUnitOrder.shrink_to_fit();
                 LOG_ERROR(logger, "FAILED TO EMPLACE DATA UNIT ORDER: %s", e.what());
                 return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, vectorDataUnitOrder);
             }
@@ -1595,7 +1682,7 @@ namespace muffin { namespace jvs {
 
             try
             {
-                const auto rsc = mapMappingRules.emplace(numericKey, rule.value().as<std::string>());
+                const auto rsc = mapMappingRules.emplace(numericKey, rule.value().as<const char*>());
                 if (rsc.second == false)
                 {
                     LOG_ERROR(logger, "KEYS CANNOT BE DUPLICATED: %u", numericKey);
@@ -1895,7 +1982,7 @@ namespace muffin { namespace jvs {
         }
         else
         {
-            return std::make_pair(rsc_e::GOOD, formatString.as<std::string>());
+            return std::make_pair(rsc_e::GOOD, formatString.as<const char*>());
         }
         
 
