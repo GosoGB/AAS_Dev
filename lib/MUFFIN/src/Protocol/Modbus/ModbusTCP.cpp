@@ -28,8 +28,6 @@
 
 namespace muffin {
 
-    // WiFiClient wifiClient;
-    // ModbusTCPClient modbusTCPClient(wifiClient);
 
     ModbusTCP::ModbusTCP()
     : mModbusTCPClient(mWifiClient)
@@ -49,7 +47,7 @@ namespace muffin {
     Status ModbusTCP::Config(jvs::config::ModbusTCP* config)
     {
         addNodeReferences(config->GetSlaveID().second, config->GetNodes().second);
-        mServerIP = config->GetIPv4().second;
+        mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
         return Status(Status::Code::GOOD);
     }
@@ -413,7 +411,7 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            mModbusTCPClient.requestFrom(1, INPUT_REGISTERS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
             // const char* lastError = mModbusTCPClient.lastError();
             // mModbusTCPClient.clearError();

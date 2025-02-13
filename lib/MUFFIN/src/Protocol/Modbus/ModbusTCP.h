@@ -35,8 +35,6 @@
 
 namespace muffin {
 
-    // extern ModbusTCPClient modbusTCPClient;
-
     class ModbusTCP
     {
     public:

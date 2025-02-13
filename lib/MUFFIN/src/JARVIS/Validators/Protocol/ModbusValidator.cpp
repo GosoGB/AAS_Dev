@@ -69,6 +69,7 @@ namespace muffin { namespace jvs {
             }
 
             const uint16_t prt      = cin["prt"].as<uint16_t>();
+            const uint8_t sid       = cin["sid"].as<uint8_t>();
             const std::string ip    = cin["ip"].as<std::string>();
             const std::string iface = cin["iface"].as<std::string>();
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
@@ -76,10 +77,17 @@ namespace muffin { namespace jvs {
             const auto retIP      = convertToIPv4(ip);
             const auto retIface   = convertToIface(iface);
             auto retNodes         = convertToNodes(nodes);
+            const auto retSID     = convertToSlaveID(sid);
 
             if (prt == 0)
             {
                 const std::string message = "INVALID MODBUS TCP SERVER PORT NUMBER: " + std::to_string(prt);
+                return std::make_pair(rsc, message);
+            }
+            
+            if (retSID.first != rsc_e::GOOD)
+            {
+                const std::string message = "INVALID MODBUS TCP SLAVE ID: " + std::to_string(sid);
                 return std::make_pair(rsc, message);
             }
 
@@ -107,6 +115,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR MODBUS TCP CONFIG");
             }
 
+            modbusTCP->SetSlaveID(retSID.second);
             modbusTCP->SetIPv4(retIP.second);
             modbusTCP->SetPort(prt);
             modbusTCP->SetNIC(retIface.second);
@@ -237,6 +246,7 @@ namespace muffin { namespace jvs {
     {
         bool isValid = true;
         isValid &= json.containsKey("ip");
+        isValid &= json.containsKey("sid");
         isValid &= json.containsKey("prt");
         isValid &= json.containsKey("iface");
         isValid &= json.containsKey("nodes");
@@ -255,11 +265,13 @@ namespace muffin { namespace jvs {
     {
         bool isValid = true;
         isValid &= json["ip"].isNull()  == false;
+        isValid &= json["sid"].isNull()  == false;
         isValid &= json["prt"].isNull()  == false;
         isValid &= json["iface"].isNull() == false;
         isValid &= json["nodes"].isNull() == false;
         isValid &= json["ip"].is<std::string>();
         isValid &= json["prt"].is<uint16_t>();
+        isValid &= json["sid"].is<uint8_t>();
         isValid &= json["iface"].is<std::string>();
         isValid &= json["nodes"].is<JsonArray>();
 

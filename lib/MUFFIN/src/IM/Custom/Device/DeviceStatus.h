@@ -96,7 +96,7 @@ namespace muffin {
       Status mStatus;
       size_t mRemainedHeapMemory = 0;
       size_t mRemainedFlashMemory = 0;
-      task_info_t mTaskResources[8];
+      task_info_t mTaskResources[9];
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
    #if defined(MODLINK_T2) || defined(MODLINK_B)

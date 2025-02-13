@@ -85,6 +85,10 @@ namespace muffin {
         mTaskResources[7].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[7].RemainedStackSize = -1;
 
+        mTaskResources[8].TaskName          = "CatM1ConnectedTask";
+        mTaskResources[8].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[8].RemainedStackSize = -1;
+
     }
 
     void DeviceStatus::SetResetReason(const esp_reset_reason_t code)
@@ -169,6 +173,9 @@ namespace muffin {
             break;
         case task_name_e::CATM1_PROCESSOR_TASK:
             mTaskResources[7].RemainedStackSize = remainedStack;
+            break;
+            case task_name_e::CATM1_MONITORING_TASK:
+            mTaskResources[8].RemainedStackSize = remainedStack;
             break;
         default:
             LOG_ERROR(logger,"NOT DEFINED TAKSNAME : %d",task);
