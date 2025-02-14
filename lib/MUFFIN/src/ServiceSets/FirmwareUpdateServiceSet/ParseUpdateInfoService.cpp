@@ -294,6 +294,7 @@ namespace muffin {
         if (json["mcu2"].isNull() == true)
         {
             LOG_INFO(logger, "No firmware update available for ATmega2560");
+            output->Head.HasNewFirmware = false;
             return Status(Status::Code::GOOD);
         }
 

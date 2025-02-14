@@ -33,12 +33,8 @@ namespace muffin { namespace http {
     
     Status LwipHTTP::Init()
     {
-    #if defined(DEBUG)
-        mClientSecure.setInsecure();
-    #else
-        mClientSecure.setCACert(ROOT_CA_CRT);
-    #endif
         mFlags.reset();
+        mClientSecure.setCACert(ROOT_CA_CRT);
         return Status(Status::Code::GOOD);
     }
     
