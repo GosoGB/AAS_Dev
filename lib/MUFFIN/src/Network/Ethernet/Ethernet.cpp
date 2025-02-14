@@ -35,8 +35,9 @@ namespace muffin {
         {
             if ((millis() - sNonassignedIPv4Millis) > 10*SECOND_IN_MILLIS)
             {
-                spear.Reset();
-                esp_restart();
+                esp_eth_stop(deprecableEthernet.eth_handle);
+                esp_eth_start(deprecableEthernet.eth_handle);
+                sNonassignedIPv4Millis = millis();
             }
         }
         else
@@ -88,46 +89,25 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
 
-        if (ETH.begin(mPhyAddress, mPhyPower, mPhyMDC, mPhyMDIO, mPhyChipsetType, mPhyClockMode) == false)
+        if (jvs::config::ethernet->GetDHCP().second == false)
+        {
+            const bool isConfigured = deprecableEthernet.config(jvs::config::ethernet->GetStaticIPv4().second,
+                                                                jvs::config::ethernet->GetGateway().second,
+                                                                jvs::config::ethernet->GetSubnetmask().second,
+                                                                jvs::config::ethernet->GetDNS1().second,
+                                                                jvs::config::ethernet->GetDNS2().second);
+
+            if (isConfigured == false)
+            {
+                goto ON_FAIL;
+            }
+        }
+        
+        if (deprecableEthernet.begin(mPhyAddress, mPhyPower, mPhyMDC, mPhyMDIO, mPhyChipsetType, mPhyClockMode) == false)
         {
             goto ON_FAIL;
         }
 
-        if (jvs::config::ethernet->GetDHCP().second == true)
-        {
-            IPAddress dhcpIPv4(0, 0, 0, 0);
-            if (ETH.config(dhcpIPv4, dhcpIPv4, dhcpIPv4, dhcpIPv4, dhcpIPv4) == true)
-            {
-                goto ON_SUCCESS;
-            }
-            else
-            {
-                goto ON_FAIL;
-            }
-        }
-        else
-        {
-            const bool isConfigured = ETH.config(jvs::config::ethernet->GetStaticIPv4().second,
-                                                 jvs::config::ethernet->GetGateway().second,
-                                                 jvs::config::ethernet->GetSubnetmask().second,
-                                                 jvs::config::ethernet->GetDNS1().second,
-                                                 jvs::config::ethernet->GetDNS2().second);
-
-            if (isConfigured == true)
-            {
-                goto ON_SUCCESS;
-            }
-            else
-            {
-                goto ON_FAIL;
-            }
-        }
-
-    ON_FAIL:
-        LOG_ERROR(logger, "FAILED TO START ETHERNET PHY");
-        return Status(Status::Code::BAD_DEVICE_FAILURE);
-        
-    ON_SUCCESS:
         if (xTimer == NULL)
         {
             xTimer = xTimerCreate(
@@ -142,6 +122,10 @@ namespace muffin {
 
         mFlogs.set(static_cast<uint8_t>(flag_e::HAS_STARTED));
         return Status(Status::Code::GOOD);
+
+    ON_FAIL:
+        LOG_ERROR(logger, "FAILED TO START ETHERNET PHY");
+        return Status(Status::Code::BAD_DEVICE_FAILURE);
     }
 
     Status Ethernet::Disconnect()
@@ -178,7 +162,7 @@ namespace muffin {
 
     IPAddress Ethernet::GetIPv4() const
     {
-        return ETH.localIP();
+        return deprecableEthernet.localIP();
     }
 
     Status Ethernet::SyncNTP()

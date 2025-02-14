@@ -27,11 +27,10 @@
 
 #pragma once
 
-#include <ETH.h>
-
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/DataStructure/bitset.h"
+#include "Include/DeprecableEthernet.h"
 #include "JARVIS/Config/Network/Ethernet.h"
 #include "Network/INetwork.h"
 

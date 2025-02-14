@@ -140,7 +140,6 @@ namespace muffin {
         {
             return Status(Status::Code::BAD_DATA_LOST);
         }
-        // LOG_DEBUG(logger, "buffer : %s", payload);
         return Status(Status::Code::GOOD);
     }
 
@@ -456,9 +455,7 @@ namespace muffin {
         const uint8_t size = measureJson(JarvisJson) + 1;
         char payload[size];
         memset(payload, 0, size);
-
         serializeJson(JarvisJson, payload, size);
-        LOG_DEBUG(logger,"SEND MSG : %s",payload);
         
         // writeJson(payload, "/spear/protocol/config.json");
         Send(payload);
@@ -701,10 +698,8 @@ namespace muffin {
         char buffer[size] = {'\0'};
 
         Status ret = Receive(timeout, size, buffer);
-        LOG_DEBUG(logger, "SPEAR RxD: %s", buffer);
         if (ret != Status::Code::GOOD)
-        {   
-            LOG_DEBUG(logger, "ret: %s", ret.c_str());
+        {
             xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
@@ -779,9 +774,7 @@ namespace muffin {
         const uint8_t payloadSize = measureJson(JarvisJson) + 1;
         char payload[payloadSize];
         memset(payload, 0, payloadSize);
-
         serializeJson(JarvisJson, payload, payloadSize);
-        // LOG_DEBUG(logger,"SEND MSG : %s",payload);
 
         while (Serial2.available())
         {
@@ -890,8 +883,6 @@ namespace muffin {
         sprintf(command, "{\"c\":49,\"b\":{\"1\":%u,\"2\":%u,\"3\":%u,\"4\":%u,\"5\":%u}}", 
             static_cast<uint8_t>(msg.Link), msg.SlaveID, static_cast<uint8_t>(msg.Area), msg.Address, msg.Value);
         Send(command);
-
-        LOG_DEBUG(logger,"REMOTE SEND MSG : %s",command);
         
         const uint16_t timeout = 2000;
         const uint8_t size = 64;
@@ -956,7 +947,6 @@ namespace muffin {
         }
         else
         {
-            LOG_DEBUG(logger, "Modbus State: %u", modbusState);
             xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::GOOD);
         }
