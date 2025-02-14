@@ -187,7 +187,7 @@ namespace muffin {
             LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
             return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
         }
-
+        
         Send("{\"c\":2}");
         
         const uint16_t timeout = 1500;
@@ -212,21 +212,21 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::VERSION_ENQUIRY))
         {
@@ -290,21 +290,21 @@ namespace muffin {
             return ret;
         }
         
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
 
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::MEMORY_ENQUIRY))
         {
@@ -367,21 +367,21 @@ namespace muffin {
             return ret;
         }
         
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::STATUS_ENQUIRY))
         {
@@ -460,7 +460,7 @@ namespace muffin {
         serializeJson(JarvisJson, payload, size);
         LOG_DEBUG(logger,"SEND MSG : %s",payload);
         
-        writeJson(payload, "/spear/protocol/config.json");
+        // writeJson(payload, "/spear/protocol/config.json");
         Send(payload);
         delay(80);
         return validateSetService();
@@ -525,9 +525,9 @@ namespace muffin {
         char payload[size];
         memset(payload, 0, size);
 
-        serializeJson(JarvisJson, payload, size);
-        std::string path = port == jvs::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
-        writeJson(payload, path);
+        // serializeJson(JarvisJson, payload, size);
+        // std::string path = port == jvs::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
+        // writeJson(payload, path);
 
         LOG_DEBUG(logger,"payload : %s",payload);
         Send(payload);
@@ -615,84 +615,84 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status SPEAR::resendSetService()
-    {
-        const uint8_t MAX_TRIAL_COUNT = 5;
-        uint8_t trialCount = 0;
-        while (trialCount < MAX_TRIAL_COUNT)
-        {
-            if (resendSetConfig("/spear/link1/config.json") == Status(Status::Code::GOOD))
-            {
-                trialCount = 0;
-                break;
-            }
-            ++trialCount;
-        }
+    // Status SPEAR::resendSetService()
+    // {
+    //     const uint8_t MAX_TRIAL_COUNT = 5;
+    //     uint8_t trialCount = 0;
+    //     while (trialCount < MAX_TRIAL_COUNT)
+    //     {
+    //         if (resendSetConfig("/spear/link1/config.json") == Status(Status::Code::GOOD))
+    //         {
+    //             trialCount = 0;
+    //             break;
+    //         }
+    //         ++trialCount;
+    //     }
 
-        if (trialCount == MAX_TRIAL_COUNT)
-        {
-            LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK1");
-            return Status(Status::Code::BAD);
-        }
+    //     if (trialCount == MAX_TRIAL_COUNT)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK1");
+    //         return Status(Status::Code::BAD);
+    //     }
    
-        while (trialCount < MAX_TRIAL_COUNT)
-        {
-            if (resendSetConfig("/spear/link2/config.json") == Status(Status::Code::GOOD))
-            {
-                trialCount = 0;
-                break;
-            }
-            ++trialCount;
-        }
+    //     while (trialCount < MAX_TRIAL_COUNT)
+    //     {
+    //         if (resendSetConfig("/spear/link2/config.json") == Status(Status::Code::GOOD))
+    //         {
+    //             trialCount = 0;
+    //             break;
+    //         }
+    //         ++trialCount;
+    //     }
 
-        if (trialCount == MAX_TRIAL_COUNT)
-        {
-            LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK2");
-            return Status(Status::Code::BAD);
-        }
+    //     if (trialCount == MAX_TRIAL_COUNT)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK2");
+    //         return Status(Status::Code::BAD);
+    //     }
 
-        while (trialCount < MAX_TRIAL_COUNT)
-        {
-            if (resendSetConfig("/spear/protocol/config.json") == Status(Status::Code::GOOD))
-            {
-                trialCount = 0;
-                break;
-            }
-            ++trialCount;
-        }
+    //     while (trialCount < MAX_TRIAL_COUNT)
+    //     {
+    //         if (resendSetConfig("/spear/protocol/config.json") == Status(Status::Code::GOOD))
+    //         {
+    //             trialCount = 0;
+    //             break;
+    //         }
+    //         ++trialCount;
+    //     }
 
-        if (trialCount == MAX_TRIAL_COUNT)
-        {
-            LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : PROTOCOL");
-            return Status(Status::Code::BAD);
-        }
+    //     if (trialCount == MAX_TRIAL_COUNT)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : PROTOCOL");
+    //         return Status(Status::Code::BAD);
+    //     }
         
-        return Status(Status::Code::GOOD);
-    }
+    //     return Status(Status::Code::GOOD);
+    // }
 
-    Status SPEAR::resendSetConfig(const std::string& path)
-    {
-        const uint8_t size = 64;
-        char payload[64] = {'\0'};
+    // Status SPEAR::resendSetConfig(const std::string& path)
+    // {
+    //     const uint8_t size = 64;
+    //     char payload[64] = {'\0'};
         
-        Status ret = readJson(path, size, payload);
-        if (ret != Status(Status::Code::GOOD))
-        {
-            return ret;
-        }
+    //     Status ret = readJson(path, size, payload);
+    //     if (ret != Status(Status::Code::GOOD))
+    //     {
+    //         return ret;
+    //     }
 
-        if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
-            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-        }
+    //     if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
+    //     {
+    //         LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
+    //         return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+    //     }
 
-        LOG_INFO(logger,"SEND MSG : %s",payload);
+    //     LOG_INFO(logger,"SEND MSG : %s",payload);
 
-        Send(payload);
-        delay(80);
-        return validateSetService();
-    }
+    //     Send(payload);
+    //     delay(80);
+    //     return validateSetService();
+    // }
 
     Status SPEAR::validateSetService()
     {
@@ -719,21 +719,21 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
             
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::JARVIS_SETUP))
         {
@@ -812,20 +812,20 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
             
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::DAQ_POLL))
         {
@@ -915,21 +915,21 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::REMOTE_CONTROL))
         {
