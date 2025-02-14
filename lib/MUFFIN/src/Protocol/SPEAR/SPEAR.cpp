@@ -525,7 +525,7 @@ namespace muffin {
         char payload[size];
         memset(payload, 0, size);
 
-        // serializeJson(JarvisJson, payload, size);
+        serializeJson(JarvisJson, payload, size);
         // std::string path = port == jvs::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
         // writeJson(payload, path);
 
