@@ -149,7 +149,7 @@ namespace muffin { namespace http {
             return Status(Status::Code::BAD_INVALID_STATE);
         }
 
-        File file = esp32FS.Open(mResponsePath);
+        File file = esp32FS.Open(LWIP_HTTP_PATH);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -177,7 +177,7 @@ namespace muffin { namespace http {
         }
         file.close();
         ASSERT((file == false), "FILE MUST BE CLOSED TO BE REMOVED");
-        esp32FS.Remove(mResponsePath);
+        esp32FS.Remove(LWIP_HTTP_PATH);
 
         return Status(Status::Code::GOOD);
     }
@@ -192,7 +192,7 @@ namespace muffin { namespace http {
             return Status(Status::Code::BAD_INVALID_STATE);
         }
 
-        File file = esp32FS.Open(mResponsePath);
+        File file = esp32FS.Open(LWIP_HTTP_PATH);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
@@ -221,7 +221,7 @@ namespace muffin { namespace http {
 
     int32_t LwipHTTP::RetrieveContentLength() const
     {
-        File file = esp32FS.Open(mResponsePath);
+        File file = esp32FS.Open(LWIP_HTTP_PATH);
         if (file == false)
         {
             return -1;
@@ -266,12 +266,12 @@ namespace muffin { namespace http {
                 return ret;
             }
 
-            File file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
                 ret = Status::Code::BAD_DEVICE_FAILURE;
-                esp32FS.Remove(mResponsePath);
+                esp32FS.Remove(LWIP_HTTP_PATH);
                 goto TEARDOWN;
             }
 
@@ -352,12 +352,12 @@ namespace muffin { namespace http {
                 return ret;
             }
 
-            File file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
                 ret = Status::Code::BAD_DEVICE_FAILURE;
-                esp32FS.Remove(mResponsePath);
+                esp32FS.Remove(LWIP_HTTP_PATH);
                 goto TEARDOWN;
             }
 
@@ -435,12 +435,12 @@ namespace muffin { namespace http {
                 return ret;
             }
 
-            File file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
                 ret = Status::Code::BAD_DEVICE_FAILURE;
-                esp32FS.Remove(mResponsePath);
+                esp32FS.Remove(LWIP_HTTP_PATH);
                 goto TEARDOWN;
             }
 
@@ -517,12 +517,12 @@ namespace muffin { namespace http {
                 return ret;
             }
 
-            File file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
                 ret = Status::Code::BAD_DEVICE_FAILURE;
-                esp32FS.Remove(mResponsePath);
+                esp32FS.Remove(LWIP_HTTP_PATH);
                 goto TEARDOWN;
             }
 
@@ -600,12 +600,12 @@ namespace muffin { namespace http {
                 return ret;
             }
 
-            File file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
                 ret = Status::Code::BAD_DEVICE_FAILURE;
-                esp32FS.Remove(mResponsePath);
+                esp32FS.Remove(LWIP_HTTP_PATH);
                 goto TEARDOWN;
             }
 
@@ -682,12 +682,12 @@ namespace muffin { namespace http {
                 return ret;
             }
 
-            File file = esp32FS.Open(mResponsePath, "r", false);
+            File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
             {
                 LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");
                 ret = Status::Code::BAD_DEVICE_FAILURE;
-                esp32FS.Remove(mResponsePath);
+                esp32FS.Remove(LWIP_HTTP_PATH);
                 goto TEARDOWN;
             }
 
@@ -808,7 +808,7 @@ namespace muffin { namespace http {
         WiFiClient* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? &mClient : &mClientSecure;
         Status ret(Status::Code::UNCERTAIN);
 
-        File file = esp32FS.Open(mResponsePath, "w", true);
+        File file = esp32FS.Open(LWIP_HTTP_PATH, "w", true);
         if (file == false)
         {
             LOG_ERROR(logger, "FAILED TO OPEN RESPONSE FILE");

@@ -213,7 +213,7 @@ namespace muffin {
         do
         {
             ret = ethernet->SyncNTP();
-            if ((millis() - startedMillis) > 10*SECOND_IN_MILLIS)
+            if ((millis() - startedMillis) > 60*SECOND_IN_MILLIS)
             {
                 LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER. DEVICE WILL BE RESTARTED");
                 spear.Reset();

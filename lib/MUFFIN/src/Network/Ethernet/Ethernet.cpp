@@ -88,6 +88,11 @@ namespace muffin {
         {
             return Status(Status::Code::GOOD);
         }
+        
+        if (deprecableEthernet.Begin() == false)
+        {
+            goto ON_FAIL;
+        }
 
         if (jvs::config::ethernet->GetDHCP().second == false)
         {
@@ -101,11 +106,6 @@ namespace muffin {
             {
                 goto ON_FAIL;
             }
-        }
-        
-        if (deprecableEthernet.begin(mPhyAddress, mPhyPower, mPhyMDC, mPhyMDIO, mPhyChipsetType, mPhyClockMode) == false)
-        {
-            goto ON_FAIL;
         }
 
         if (xTimer == NULL)
@@ -162,7 +162,7 @@ namespace muffin {
 
     IPAddress Ethernet::GetIPv4() const
     {
-        return deprecableEthernet.localIP();
+        return deprecableEthernet.GetIPv4();
     }
 
     Status Ethernet::SyncNTP()

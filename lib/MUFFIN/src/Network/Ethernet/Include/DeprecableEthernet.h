@@ -8,6 +8,8 @@
  * @version 1.2.6
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * 
+ * @todo 만약 IPv6 표준이 필요한 경우 IPv6Address 클래스를 사용하여 개발할 것
  */
 
 
@@ -37,37 +39,35 @@ class DeprecableEthernet
     friend class WiFiServer;
 
 private:
+    static bool mIsTcpStackInitialized;
     bool initialized;
     bool staticIP;
-#if ESP_IDF_VERSION_MAJOR > 3
+private:
+    esp_netif_t* mInterface = nullptr;
+    esp_eth_mac_t* mEthernetMAC = nullptr;
+
 public:
     esp_eth_handle_t eth_handle;
 
 protected:
     bool started;
     static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
-#else
-    bool started;
-    eth_config_t eth_config;
-#endif
+
 public:
     DeprecableEthernet();
     ~DeprecableEthernet();
+private:
+    const eth_clock_mode_t mClockMode = ETH_CLOCK_GPIO0_IN;
+    const uint8_t mPhyAddress = 1;
+    const uint8_t mPhyPower = 32;
 
-    bool begin(uint8_t phy_addr, int power, int mdc, int mdio, bool use_mac_from_efuse = false);
-
+public:
+    bool Begin();
     bool config(IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1 = (uint32_t)0x00000000, IPAddress dns2 = (uint32_t)0x00000000);
-
-    const char* GetHostname();
-    bool SetHostname(const char* hostname);
-    
 
     bool fullDuplex();
     bool linkUp();
     uint8_t linkSpeed();
-
-    bool enableIpV6();
-    IPv6Address localIPv6();
 
     IPAddress GetIPv4();
     IPAddress GetSubnetMask();
@@ -77,16 +77,8 @@ public:
     IPAddress GetBroadcast();
     IPAddress GetNetworkID();
     uint8_t GetSubnetCIDR();
-    uint8_t *macAddress(uint8_t *mac);
-    String macAddress();
-
-private:
-    const eth_clock_mode_t mClockMode = ETH_CLOCK_GPIO0_IN;
-    const uint8_t mPhyAddress = 1;
-    const uint8_t mPhyMDC = 23;
-    const uint8_t mPhyMDIO = 18;
-    const uint8_t mPhyPower = 32;
 };
+
 
 extern DeprecableEthernet deprecableEthernet;
 

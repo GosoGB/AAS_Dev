@@ -456,7 +456,7 @@ namespace muffin {
         ota::HexParser hexParser;
         size_t currentAddress = 0;
 
-        while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 1))
+        while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 2))
         {
             if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
             {
@@ -844,6 +844,8 @@ namespace muffin {
             char buffer[size] = {'\0'};
             file.readBytes(buffer, size);
             file.close();
+
+            esp32FS.Remove(OTA_REQUEST_PATH);
             
             ret = ParseUpdateInfoService(buffer, esp32, mega2560);
             if (ret != Status::Code::GOOD)

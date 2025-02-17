@@ -26,10 +26,15 @@
 #include <soc/emac_ext_struct.h>
 #include <soc/rtc.h>
 
+#include "Common/Logger/Logger.h"
 #include "DeprecableEthernet.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 
 extern void tcpipInit();
 extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t *esp_netif); /* from WiFiGeneric */
+
+
+bool DeprecableEthernet::mIsTcpStackInitialized = false;
 
 
 
@@ -45,54 +50,64 @@ DeprecableEthernet::~DeprecableEthernet()
 {
 }
 
-bool DeprecableEthernet::begin(uint8_t phy_addr, int power, int mdc, int mdio, bool use_mac_from_efuse)
+bool DeprecableEthernet::Begin()
 {
-    tcpipInit();
-
-    if (use_mac_from_efuse)
+    if (mIsTcpStackInitialized == false)
     {
-        uint8_t p[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        esp_efuse_mac_get_custom(p);
-        esp_base_mac_addr_set(p);
+        tcpipInit();
+        mIsTcpStackInitialized = true;
     }
 
-    tcpip_adapter_set_default_eth_handlers();
-
-    esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
-    esp_netif_t *eth_netif = esp_netif_new(&cfg);
-
-    esp_eth_mac_t *eth_mac = NULL;
-
-    eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
-    mac_config.clock_config.rmii.clock_mode = mClockMode ? EMAC_CLK_OUT : EMAC_CLK_EXT_IN;
-    mac_config.clock_config.rmii.clock_gpio = (mClockMode == 1) ? EMAC_APPL_CLK_OUT_GPIO :
-                                              (2 == mClockMode) ? EMAC_CLK_OUT_GPIO      :
-                                              (3 == mClockMode) ? EMAC_CLK_OUT_180_GPIO  : EMAC_CLK_IN_GPIO;
-    mac_config.smi_mdc_gpio_num = mdc;
-    mac_config.smi_mdio_gpio_num = mdio;
-    mac_config.sw_reset_timeout_ms = 1000;
-    eth_mac = esp_eth_mac_new_esp32(&mac_config);
-
-    
-    if (eth_mac == NULL)
+    esp_err_t ret = tcpip_adapter_set_default_eth_handlers();
+    if (ret != ESP_OK)
     {
-        log_e("esp_eth_mac_new_esp32 failed");
+        LOG_ERROR(muffin::logger, "FAILED TO SET DEFAULT ETHERNET HANDLER: %u", ret);
+        return false;
+    }
+
+    esp_netif_config_t cfg;
+    cfg.base    = ESP_NETIF_BASE_DEFAULT_ETH;
+    cfg.driver  = NULL;
+    cfg.stack   = ESP_NETIF_NETSTACK_DEFAULT_ETH;
+
+    mInterface = esp_netif_new(&cfg);
+    if (mInterface == nullptr)
+    {
+        LOG_ERROR(muffin::logger, "FAILED TO CREATE ETHERNET INTERFACE INSTANCE");
+        return false;
+    }
+
+    eth_mac_config_t macConfig;
+    macConfig.sw_reset_timeout_ms = 1000;
+    macConfig.rx_task_stack_size = 2048;
+    macConfig.rx_task_prio = 15;
+    macConfig.smi_mdc_gpio_num = 23;
+    macConfig.smi_mdio_gpio_num = 18;
+    macConfig.flags = 0;
+    macConfig.interface = EMAC_DATA_INTERFACE_RMII;
+    macConfig.clock_config.rmii.clock_mode = EMAC_CLK_EXT_IN;
+    macConfig.clock_config.rmii.clock_gpio = EMAC_CLK_IN_GPIO;
+    
+    mEthernetMAC = esp_eth_mac_new_esp32(&macConfig);
+    if (mEthernetMAC == nullptr)
+    {
+        LOG_ERROR(muffin::logger, "FAILED TO CREATE ETHERNET MAC INSTANCE");
         return false;
     }
 
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
-    phy_config.phy_addr = phy_addr;
-    phy_config.reset_gpio_num = power;
+    phy_config.phy_addr = mPhyAddress;
+    phy_config.reset_gpio_num = mPhyPower;
 
-    esp_eth_phy_t *eth_phy = esp_eth_phy_new_lan8720(&phy_config);
-    if (eth_phy == NULL)
+    esp_eth_phy_t* eth_phy = esp_eth_phy_new_lan8720(&phy_config);
+    if (eth_phy == nullptr)
     {
-        log_e("esp_eth_phy_new failed");
+        LOG_ERROR(muffin::logger, "FAILED TO CREATE ETHERNET PHY INSTANCE");
         return false;
     }
 
     eth_handle = NULL;
-    esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(eth_mac, eth_phy);
+    esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(mEthernetMAC, eth_phy);
     if (esp_eth_driver_install(&eth_config, &eth_handle) != ESP_OK || eth_handle == NULL)
     {
         log_e("esp_eth_driver_install failed");
@@ -100,15 +115,30 @@ bool DeprecableEthernet::begin(uint8_t phy_addr, int power, int mdc, int mdio, b
     }
 
     /* attach Ethernet driver to TCP/IP stack */
-    if (esp_netif_attach(eth_netif, esp_eth_new_netif_glue(eth_handle)) != ESP_OK)
+    if (esp_netif_attach(mInterface, esp_eth_new_netif_glue(eth_handle)) != ESP_OK)
     {
         log_e("esp_netif_attach failed");
         return false;
     }
 
     /* attach to WiFiGeneric to receive events */
-    add_esp_interface_netif(ESP_IF_ETH, eth_netif);
+    add_esp_interface_netif(ESP_IF_ETH, mInterface);
 
+    char hostName[32] = {'\0'};
+#if defined(MODLINK_T2)
+    snprintf(hostName, 32, "MODLINK-T2-%s", muffin::macAddress.GetEthernet());
+#elif defined(MODLINK_B)
+    snprintf(hostName, 32, "MODLINK-B-%s", muffin::macAddress.GetEthernet());
+#endif
+    
+    ret = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_ETH, hostName);
+    if (ret != ESP_OK)
+    {
+        LOG_ERROR(muffin::logger, "FAILED TO SET HOSTNAME WITH CODE: %u", ret);
+        std::abort();
+    }
+    LOG_INFO(muffin::logger, "Host name: %s", hostName);
+    
     if (esp_eth_start(eth_handle) != ESP_OK)
     {
         log_e("esp_eth_start failed");
@@ -260,89 +290,25 @@ uint8_t DeprecableEthernet::GetSubnetCIDR()
     return WiFiGenericClass::calculateSubnetCIDR(IPAddress(ip.netmask.addr));
 }
 
-const char* DeprecableEthernet::GetHostname()
-{
-    const char *hostname;
-    if (tcpip_adapter_get_hostname(TCPIP_ADAPTER_IF_ETH, &hostname))
-    {
-        return NULL;
-    }
-    return hostname;
-}
-
-bool DeprecableEthernet::SetHostname(const char* hostname)
-{
-    return tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_ETH, hostname) == 0;
-}
-
 bool DeprecableEthernet::fullDuplex()
 {
-#if ESP_IDF_VERSION_MAJOR > 3
     eth_duplex_t link_duplex;
     esp_eth_ioctl(eth_handle, ETH_CMD_G_DUPLEX_MODE, &link_duplex);
     return (link_duplex == ETH_DUPLEX_FULL);
-#else
-    return eth_config.phy_get_duplex_mode();
-#endif
 }
 
 bool DeprecableEthernet::linkUp()
 {
-#if ESP_IDF_VERSION_MAJOR > 3
     return WiFiGenericClass::getStatusBits() & ETH_CONNECTED_BIT;
-#else
-    return eth_config.phy_check_link();
-#endif
 }
 
 uint8_t DeprecableEthernet::linkSpeed()
 {
-#if ESP_IDF_VERSION_MAJOR > 3
     eth_speed_t link_speed;
     esp_eth_ioctl(eth_handle, ETH_CMD_G_SPEED, &link_speed);
     return (link_speed == ETH_SPEED_10M) ? 10 : 100;
-#else
-    return eth_config.phy_get_speed_mode() ? 100 : 10;
-#endif
 }
 
-bool DeprecableEthernet::enableIpV6()
-{
-    return tcpip_adapter_create_ip6_linklocal(TCPIP_ADAPTER_IF_ETH) == 0;
-}
-
-IPv6Address DeprecableEthernet::localIPv6()
-{
-    static ip6_addr_t addr;
-    if (tcpip_adapter_get_ip6_linklocal(TCPIP_ADAPTER_IF_ETH, &addr))
-    {
-        return IPv6Address();
-    }
-    return IPv6Address(addr.addr);
-}
-
-uint8_t *DeprecableEthernet::macAddress(uint8_t *mac)
-{
-    if (!mac)
-    {
-        return NULL;
-    }
-#ifdef ESP_IDF_VERSION_MAJOR
-    esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac);
-#else
-    esp_eth_get_mac(mac);
-#endif
-    return mac;
-}
-
-String DeprecableEthernet::macAddress(void)
-{
-    uint8_t mac[6] = {0, 0, 0, 0, 0, 0};
-    char macStr[18] = {0};
-    macAddress(mac);
-    sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    return String(macStr);
-}
 
 DeprecableEthernet deprecableEthernet;
 

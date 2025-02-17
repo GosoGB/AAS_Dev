@@ -34,14 +34,26 @@ namespace muffin {
     constexpr const char* NVS_NAMESPACE_INIT = "init";
 
     /**
+     * @todo Ver.1.3 미만 펌웨어가 없다면 아래의 상수는 삭제할 예정임
+     */
+    constexpr const char* DEPRECATED_INIT_FILE_PATH         = "/init/config.csv";
+    constexpr const char* DEPRECATED_JARVIS_PATH            = "/jarvis/config.json";
+    constexpr const char* DEPRECATED_JARVIS_PATH_FETCHED    = "/jarvis/fetched.json";
+    constexpr const char* DEPRECATED_OTA_REQUEST_PATH       = "/ota/request.json";
+    constexpr const char* DEPRECATED_OTA_CHUNK_PATH_ESP32   = "/ota/chunk_esp32.csv";
+    constexpr const char* DEPRECATED_OTA_CHUNK_PATH_MEGA    = "/ota/chunk_mega2560.csv";
+    constexpr const char* DEPRECATED_LWIP_HTTP_PATH         = "/http/response";
+
+    /**
      * @brief SPIFFS 파티션 읽기/쓰기에 사용되는 상수 정의
      */
-    constexpr const char* INIT_FILE_PATH         = "/init/config.csv";
-    constexpr const char* JARVIS_PATH            = "/jarvis/config.json";
-    constexpr const char* JARVIS_PATH_FETCHED    = "/jarvis/fetched.json";
-    constexpr const char* OTA_REQUEST_PATH       = "/ota/request.json";
-    constexpr const char* OTA_CHUNK_PATH_ESP32   = "/ota/chunk_esp32.csv";
-    constexpr const char* OTA_CHUNK_PATH_MEGA    = "/ota/chunk_mega2560.csv";
+    constexpr const char* INIT_FILE_PATH         = "/init_config.csv";
+    constexpr const char* JARVIS_PATH            = "/jarvis_config.json";
+    constexpr const char* JARVIS_PATH_FETCHED    = "/jarvis_fetched.json";
+    constexpr const char* OTA_REQUEST_PATH       = "/ota_request.json";
+    constexpr const char* OTA_CHUNK_PATH_ESP32   = "/ota_chunk_esp32.csv";
+    constexpr const char* OTA_CHUNK_PATH_MEGA    = "/ota_chunk_mega2560.csv";
+    constexpr const char* LWIP_HTTP_PATH         = "/http_response";
 
     typedef enum class TaskName
         : uint8_t

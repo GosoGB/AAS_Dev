@@ -73,6 +73,65 @@ namespace muffin {
     std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
     std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
 
+    /**
+     * @todo Ver.1.3 미만 펌웨어가 없다면 본 함수는 삭제할 예정임
+     */
+    void replaceDeprecatedPaths()
+    {
+        if (esp32FS.DoesExist(DEPRECATED_INIT_FILE_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_INIT_FILE_PATH, INIT_FILE_PATH);
+            esp32FS.RemoveDirectory("/init");
+        }
+
+        bool hasJarvisPath = false;
+        if (esp32FS.DoesExist(DEPRECATED_JARVIS_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_JARVIS_PATH, JARVIS_PATH);
+            hasJarvisPath = true;
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_JARVIS_PATH_FETCHED) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_JARVIS_PATH_FETCHED, JARVIS_PATH_FETCHED);
+            hasJarvisPath = true;
+        }
+
+        if (hasJarvisPath == true)
+        {
+            esp32FS.RemoveDirectory("/jarvis");
+        }
+        
+        bool hasUpdatePath = false;
+        if (esp32FS.DoesExist(DEPRECATED_OTA_REQUEST_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_OTA_REQUEST_PATH, OTA_REQUEST_PATH);
+            hasUpdatePath = true;
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_OTA_CHUNK_PATH_ESP32) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_OTA_CHUNK_PATH_ESP32, OTA_CHUNK_PATH_ESP32);
+            hasUpdatePath = true;
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_OTA_CHUNK_PATH_MEGA) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_OTA_CHUNK_PATH_MEGA, OTA_CHUNK_PATH_MEGA);
+            hasUpdatePath = true;
+        }
+
+        if (hasUpdatePath == true)
+        {
+            esp32FS.RemoveDirectory("/ota");
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_LWIP_HTTP_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_LWIP_HTTP_PATH, LWIP_HTTP_PATH);
+            esp32FS.RemoveDirectory("/http");
+        }
+    }
 
     void Core::Init()
     {
@@ -148,6 +207,7 @@ namespace muffin {
             std::abort();
         }
         LOG_INFO(logger, "File system: %s", ret.c_str());
+        replaceDeprecatedPaths();
 
         init_cfg_t initConfig;
         ret = readInitConfig(&initConfig);
@@ -358,6 +418,8 @@ namespace muffin {
             esp_restart();
         }
 
+        esp32FS.Remove(LWIP_HTTP_PATH);
+        
         ApplyJarvisTask();
         PublishFirmwareStatusMessageService();
         PublishStatusEventMessageService(&initConfig);
@@ -427,14 +489,19 @@ namespace muffin {
         
         if (output->HasPendingUpdate == false)
         {
+            if (esp32FS.DoesExist(OTA_CHUNK_PATH_MEGA) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(OTA_CHUNK_PATH_MEGA);
+            }
+
             if (esp32FS.DoesExist(OTA_CHUNK_PATH_ESP32) == Status::Code::GOOD)
             {
                 esp32FS.Remove(OTA_CHUNK_PATH_ESP32);
             }
 
-            if (esp32FS.DoesExist(OTA_CHUNK_PATH_MEGA) == Status::Code::GOOD)
+            if (esp32FS.DoesExist(OTA_REQUEST_PATH) == Status::Code::GOOD)
             {
-                esp32FS.Remove(OTA_CHUNK_PATH_MEGA);
+                esp32FS.Remove(OTA_REQUEST_PATH);
             }
         }
 

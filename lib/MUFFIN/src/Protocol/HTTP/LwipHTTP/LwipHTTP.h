@@ -75,7 +75,6 @@ namespace muffin { namespace http {
         } flag_e;
         bitset<static_cast<uint8_t>(flag_e::TOP)> mFlags;
     private:
-        const char* mResponsePath = "/http/response";
         uint16_t mRSC = 0;
         size_t mFilePosition = 0;
         int32_t mContentLength = 0;
