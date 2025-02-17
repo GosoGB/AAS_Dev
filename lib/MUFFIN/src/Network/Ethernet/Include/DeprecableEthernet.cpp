@@ -4,7 +4,7 @@
  * 
  * @brief Ethernet Handle 값 사용을 위해 임시로 복사해둔 ETH.h 파일 사본입니다.
  *
- * @date 2025-02-14
+ * @date 2025-02-17
  * @version 1.2.6
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
@@ -15,64 +15,29 @@
 
 #if defined(MODLINK_T2) || defined(MODLINK_B)
 
+#include <esp_eth.h>
+#include <esp_eth_com.h>
+#include <esp_eth_mac.h>
+#include <esp_eth_phy.h>
+#include <esp_event.h>
+#include <esp_system.h>
+#include <lwip/dns.h>
+#include <lwip/err.h>
+#include <soc/emac_ext_struct.h>
+#include <soc/rtc.h>
+
 #include "DeprecableEthernet.h"
-#include "esp_system.h"
-#if ESP_IDF_VERSION_MAJOR > 3
-#include "esp_event.h"
-#include "esp_eth.h"
-#include "esp_eth_phy.h"
-#include "esp_eth_mac.h"
-#include "esp_eth_com.h"
-#if CONFIG_IDF_TARGET_ESP32
-#include "soc/emac_ext_struct.h"
-#include "soc/rtc.h"
-// #include "soc/io_mux_reg.h"
-// #include "hal/gpio_hal.h"
-#endif
-#else
-#include "eth_phy/phy.h"
-#include "eth_phy/phy_tlk110.h"
-#include "eth_phy/phy_lan8720.h"
-#endif
-#include "lwip/err.h"
-#include "lwip/dns.h"
 
 extern void tcpipInit();
 extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t *esp_netif); /* from WiFiGeneric */
 
-#if ESP_IDF_VERSION_MAJOR > 3
-/**
- * @brief Callback function invoked when lowlevel initialization is finished
- *
- * @param[in] eth_handle: handle of Ethernet driver
- *
- * @return
- *       - ESP_OK: process extra lowlevel initialization successfully
- *       - ESP_FAIL: error occurred when processing extra lowlevel initialization
- */
 
-static eth_clock_mode_t eth_clock_mode = ETH_CLK_MODE;
-
-/**
- * @brief Callback function invoked when lowlevel deinitialization is finished
- *
- * @param[in] eth_handle: handle of Ethernet driver
- *
- * @return
- *       - ESP_OK: process extra lowlevel deinitialization successfully
- *       - ESP_FAIL: error occurred when processing extra lowlevel deinitialization
- */
-#else
-#endif
 
 DeprecableEthernet::DeprecableEthernet()
-    : initialized(false), staticIP(false)
-#if ESP_IDF_VERSION_MAJOR > 3
-      ,
-      eth_handle(NULL)
-#endif
-      ,
-      started(false)
+    : initialized(false)
+    , staticIP(false)
+    , eth_handle(NULL)  // handle of Ethernet driver
+    , started(false)
 {
 }
 
@@ -80,10 +45,8 @@ DeprecableEthernet::~DeprecableEthernet()
 {
 }
 
-bool DeprecableEthernet::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_type_t type, eth_clock_mode_t clock_mode, bool use_mac_from_efuse)
+bool DeprecableEthernet::begin(uint8_t phy_addr, int power, int mdc, int mdio, bool use_mac_from_efuse)
 {
-#if ESP_IDF_VERSION_MAJOR > 3
-    eth_clock_mode = clock_mode;
     tcpipInit();
 
     if (use_mac_from_efuse)
@@ -99,29 +62,18 @@ bool DeprecableEthernet::begin(uint8_t phy_addr, int power, int mdc, int mdio, e
     esp_netif_t *eth_netif = esp_netif_new(&cfg);
 
     esp_eth_mac_t *eth_mac = NULL;
-#if CONFIG_ETH_SPI_ETHERNET_DM9051
-    if (type == ETH_PHY_DM9051)
-    {
-        return false; // todo
-    }
-    else
-    {
-#endif
-#if CONFIG_ETH_USE_ESP32_EMAC
-        eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
-        mac_config.clock_config.rmii.clock_mode = (eth_clock_mode) ? EMAC_CLK_OUT : EMAC_CLK_EXT_IN;
-        mac_config.clock_config.rmii.clock_gpio = (1 == eth_clock_mode) ? EMAC_APPL_CLK_OUT_GPIO : (2 == eth_clock_mode) ? EMAC_CLK_OUT_GPIO
-                                                                                               : (3 == eth_clock_mode)   ? EMAC_CLK_OUT_180_GPIO
-                                                                                                                         : EMAC_CLK_IN_GPIO;
-        mac_config.smi_mdc_gpio_num = mdc;
-        mac_config.smi_mdio_gpio_num = mdio;
-        mac_config.sw_reset_timeout_ms = 1000;
-        eth_mac = esp_eth_mac_new_esp32(&mac_config);
-#endif
-#if CONFIG_ETH_SPI_ETHERNET_DM9051
-    }
-#endif
 
+    eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
+    mac_config.clock_config.rmii.clock_mode = mClockMode ? EMAC_CLK_OUT : EMAC_CLK_EXT_IN;
+    mac_config.clock_config.rmii.clock_gpio = (mClockMode == 1) ? EMAC_APPL_CLK_OUT_GPIO :
+                                              (2 == mClockMode) ? EMAC_CLK_OUT_GPIO      :
+                                              (3 == mClockMode) ? EMAC_CLK_OUT_180_GPIO  : EMAC_CLK_IN_GPIO;
+    mac_config.smi_mdc_gpio_num = mdc;
+    mac_config.smi_mdio_gpio_num = mdio;
+    mac_config.sw_reset_timeout_ms = 1000;
+    eth_mac = esp_eth_mac_new_esp32(&mac_config);
+
+    
     if (eth_mac == NULL)
     {
         log_e("esp_eth_mac_new_esp32 failed");
@@ -131,43 +83,8 @@ bool DeprecableEthernet::begin(uint8_t phy_addr, int power, int mdc, int mdio, e
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
     phy_config.phy_addr = phy_addr;
     phy_config.reset_gpio_num = power;
-    esp_eth_phy_t *eth_phy = NULL;
-    switch (type)
-    {
-    case ETH_PHY_LAN8720:
-        eth_phy = esp_eth_phy_new_lan8720(&phy_config);
-        break;
-    case ETH_PHY_TLK110:
-        eth_phy = esp_eth_phy_new_ip101(&phy_config);
-        break;
-    case ETH_PHY_RTL8201:
-        eth_phy = esp_eth_phy_new_rtl8201(&phy_config);
-        break;
-    case ETH_PHY_DP83848:
-        eth_phy = esp_eth_phy_new_dp83848(&phy_config);
-        break;
-#if CONFIG_ETH_SPI_ETHERNET_DM9051
-    case ETH_PHY_DM9051:
-        eth_phy = esp_eth_phy_new_dm9051(&phy_config);
-        break;
-#endif
-    case ETH_PHY_KSZ8041:
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
-        eth_phy = esp_eth_phy_new_ksz8041(&phy_config);
-#else
-        log_e("unsupported ethernet type 'ETH_PHY_KSZ8041'");
-#endif
-        break;
-    case ETH_PHY_KSZ8081:
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
-        eth_phy = esp_eth_phy_new_ksz8081(&phy_config);
-#else
-        log_e("unsupported ethernet type 'ETH_PHY_KSZ8081'");
-#endif
-        break;
-    default:
-        break;
-    }
+
+    esp_eth_phy_t *eth_phy = esp_eth_phy_new_lan8720(&phy_config);
     if (eth_phy == NULL)
     {
         log_e("esp_eth_phy_new failed");
@@ -197,7 +114,7 @@ bool DeprecableEthernet::begin(uint8_t phy_addr, int power, int mdc, int mdio, e
         log_e("esp_eth_start failed");
         return false;
     }
-#endif
+    
     // holds a few milliseconds to let DHCP start and enter into a good state
     // FIX ME -- adresses issue https://github.com/espressif/arduino-esp32/issues/5733
     delay(50);
@@ -271,7 +188,7 @@ bool DeprecableEthernet::config(IPAddress local_ip, IPAddress gateway, IPAddress
     return true;
 }
 
-IPAddress DeprecableEthernet::localIP()
+IPAddress DeprecableEthernet::GetIPv4()
 {
     tcpip_adapter_ip_info_t ip;
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_ETH, &ip))
@@ -281,7 +198,7 @@ IPAddress DeprecableEthernet::localIP()
     return IPAddress(ip.ip.addr);
 }
 
-IPAddress DeprecableEthernet::subnetMask()
+IPAddress DeprecableEthernet::GetSubnetMask()
 {
     tcpip_adapter_ip_info_t ip;
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_ETH, &ip))
@@ -291,7 +208,7 @@ IPAddress DeprecableEthernet::subnetMask()
     return IPAddress(ip.netmask.addr);
 }
 
-IPAddress DeprecableEthernet::gatewayIP()
+IPAddress DeprecableEthernet::GetGateway()
 {
     tcpip_adapter_ip_info_t ip;
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_ETH, &ip))
@@ -301,13 +218,19 @@ IPAddress DeprecableEthernet::gatewayIP()
     return IPAddress(ip.gw.addr);
 }
 
-IPAddress DeprecableEthernet::dnsIP(uint8_t dns_no)
+IPAddress DeprecableEthernet::GetDNS1()
 {
-    const ip_addr_t *dns_ip = dns_getserver(dns_no);
+    const ip_addr_t *dns_ip = dns_getserver(0);
     return IPAddress(dns_ip->u_addr.ip4.addr);
 }
 
-IPAddress DeprecableEthernet::broadcastIP()
+IPAddress DeprecableEthernet::GetDNS2()
+{
+    const ip_addr_t *dns_ip = dns_getserver(1);
+    return IPAddress(dns_ip->u_addr.ip4.addr);
+}
+
+IPAddress DeprecableEthernet::GetBroadcast()
 {
     tcpip_adapter_ip_info_t ip;
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_ETH, &ip))
@@ -317,7 +240,7 @@ IPAddress DeprecableEthernet::broadcastIP()
     return WiFiGenericClass::calculateBroadcast(IPAddress(ip.gw.addr), IPAddress(ip.netmask.addr));
 }
 
-IPAddress DeprecableEthernet::networkID()
+IPAddress DeprecableEthernet::GetNetworkID()
 {
     tcpip_adapter_ip_info_t ip;
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_ETH, &ip))
@@ -327,7 +250,7 @@ IPAddress DeprecableEthernet::networkID()
     return WiFiGenericClass::calculateNetworkID(IPAddress(ip.gw.addr), IPAddress(ip.netmask.addr));
 }
 
-uint8_t DeprecableEthernet::subnetCIDR()
+uint8_t DeprecableEthernet::GetSubnetCIDR()
 {
     tcpip_adapter_ip_info_t ip;
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_ETH, &ip))
@@ -337,7 +260,7 @@ uint8_t DeprecableEthernet::subnetCIDR()
     return WiFiGenericClass::calculateSubnetCIDR(IPAddress(ip.netmask.addr));
 }
 
-const char *DeprecableEthernet::getHostname()
+const char* DeprecableEthernet::GetHostname()
 {
     const char *hostname;
     if (tcpip_adapter_get_hostname(TCPIP_ADAPTER_IF_ETH, &hostname))
@@ -347,7 +270,7 @@ const char *DeprecableEthernet::getHostname()
     return hostname;
 }
 
-bool DeprecableEthernet::setHostname(const char *hostname)
+bool DeprecableEthernet::SetHostname(const char* hostname)
 {
     return tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_ETH, hostname) == 0;
 }

@@ -68,13 +68,6 @@ namespace muffin {
             TOP          = 4
         } flag_e;
         bitset<static_cast<uint8_t>(flag_e::TOP)> mFlogs;
-    private:
-        const eth_phy_type_t mPhyChipsetType = ETH_PHY_LAN8720;
-        const eth_clock_mode_t mPhyClockMode = ETH_CLOCK_GPIO0_IN;
-        const uint8_t mPhyMDIO = ETH_PHY_MDIO;
-        const uint8_t mPhyMDC = ETH_PHY_MDC;
-        const uint8_t mPhyAddress = 1;
-        const uint8_t mPhyPower = 32;
     };
 
 
