@@ -655,6 +655,7 @@ namespace muffin { namespace im {
                 {
                     applyMappingRules(*variableData);
                 }
+
                 return;
             }
 
@@ -1144,6 +1145,8 @@ namespace muffin { namespace im {
         const var_data_t lastestHistory = mDataBuffer.back();
         switch (variableData.DataType)
         {
+        case jvs::dt_e::BOOLEAN:
+            return lastestHistory.Value.Boolean != variableData.Value.Boolean; 
         case jvs::dt_e::INT8:
             return lastestHistory.Value.Int8 != variableData.Value.Int8;
         case jvs::dt_e::UINT8:
