@@ -466,7 +466,7 @@ namespace muffin {
         ota::HexParser hexParser;
         size_t currentAddress = 0;
 
-        while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 2))
+        while (uxQueueMessagesWaiting(sQueueHandle) < (MAX_QUEUE_LENGTH - 3))
         {
             if (sServiceFlags.test(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED)) == true)
             {
