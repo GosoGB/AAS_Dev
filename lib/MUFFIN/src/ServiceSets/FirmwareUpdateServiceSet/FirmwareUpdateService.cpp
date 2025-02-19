@@ -121,7 +121,12 @@ namespace muffin {
 
     void downloadTaskCallback(Status status)
     {
-        if (status != Status::Code::GOOD)
+        if (status == Status::Code::GOOD_MORE_DATA)
+        {
+            LOG_DEBUG(logger, "Reset sTrialCount: %u -> %u", sTrialCount, 0);
+            sTrialCount = 0;
+        }
+        else if (status != Status::Code::GOOD)
         {
             LOG_INFO(logger, "Received download task callback: %s", status.c_str());
 
@@ -130,6 +135,11 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO DOWNLOAD FIRMWARE: %s", status.c_str());
                 sServiceFlags.reset(static_cast<uint8_t>(srv_status_e::DOWNLOAD_STARTED));
                 sServiceFlags.set(static_cast<uint8_t>(srv_status_e::DOWNLOAD_FAILED));
+
+                /**
+                 * @todo 리셋 전에 실패했다고 전송해야 함
+                 */
+                esp_restart();
             }
             else
             {

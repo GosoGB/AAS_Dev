@@ -156,7 +156,7 @@ namespace muffin { namespace http {
                 ret.c_str(), processCmeErrorCode(rxd).c_str());
             return cmeErrorCode;
         }
-
+            
         std::vector<size_t> vecDelimiter;
         vecDelimiter.emplace_back(rxd.find(' '));
         if (vecDelimiter.front() == std::string::npos)
@@ -282,7 +282,6 @@ namespace muffin { namespace http {
         }
 
         ret = catM1->Execute(header.ToString() + body.ToString(), mutex);
-        LOG_DEBUG(logger, "HTTP POST REQUEST\n%s\n", (header.ToString() + body.ToString()).c_str());
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO REQUEST POST: %s", ret.c_str());
@@ -1057,7 +1056,6 @@ namespace muffin { namespace http {
                 LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
                 continue;
             }
-            Serial.printf("catM1->Read(): %c \n", (char)value);
             
             if (value == 'O')
             {   
@@ -1082,8 +1080,6 @@ namespace muffin { namespace http {
                 continue;
             }
         }
-
-        LOG_DEBUG(logger, "Download IDX: %u, Target IDX: %u", idx, length);
         return Status(Status::Code::BAD_TIMEOUT);
     }
 
@@ -1135,7 +1131,6 @@ namespace muffin { namespace http {
 
     Status CatHTTP::processCmeErrorCode(const std::string& rxd)
     {
-        LOG_ERROR(logger, "rxd: %s", rxd.c_str());
         const std::string cmeErrorIndicator = "+CME ERROR: ";
         const size_t cmeStartPosition  = rxd.find(cmeErrorIndicator) + cmeErrorIndicator.length();
         const size_t cmeFinishPosition = rxd.find("\r", cmeStartPosition);
@@ -1248,9 +1243,8 @@ namespace muffin { namespace http {
             LOG_ERROR(logger, "INVALID PARAMETER");
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         default:
-            // LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
-            // return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
-            assert(false);
+            LOG_DEBUG(logger, "INVALID CME ERROR CODE: %u", errorCode);
+            return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
     }
 }}

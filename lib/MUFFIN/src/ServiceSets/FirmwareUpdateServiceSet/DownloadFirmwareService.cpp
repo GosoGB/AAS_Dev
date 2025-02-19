@@ -112,7 +112,7 @@ namespace muffin {
                 goto TEARDOWN;
             }
 
-            ret = httpClient->GET(mutex.second, header, parameters, 5);
+            ret = httpClient->GET(mutex.second, header, parameters, 60);
             if (ret != Status::Code::GOOD)
             {
                 sParams->_MemoryPool->Deallocate((void*)output, chunk.Size);
@@ -150,6 +150,7 @@ namespace muffin {
             ASSERT((sParams->Queue != NULL), "INPUT PARAMETERS CANNOT BE NULL");
             xQueueSend(sParams->Queue, (void*)&output, UINT32_MAX);
             ++sParams->Info->Chunk.DownloadIDX;
+            sParams->Callback(Status(Status::Code::GOOD_MORE_DATA));
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
