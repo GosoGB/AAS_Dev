@@ -416,7 +416,7 @@ namespace muffin { namespace jvs {
 
     std::pair<rsc_e, uint8_t> ModbusValidator::convertToSlaveID(const uint8_t slaveID)
     {
-        if (slaveID > 247 || slaveID == 0)
+        if ( slaveID == 0)
         {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 0);
         }

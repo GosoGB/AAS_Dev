@@ -99,8 +99,6 @@ namespace muffin { namespace jvs { namespace config {
 
     void ModbusTCP::SetSlaveID(const uint8_t sid)
     {
-        ASSERT((0 < sid && sid < 248), "INVALID SLAVED ID: %u", sid);
-
         mSlaveID = sid;
         mIsSlaveIdSet = true;
     }
