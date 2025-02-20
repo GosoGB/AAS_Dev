@@ -73,11 +73,52 @@ namespace muffin {
     std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
     std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
 
+    void listDir(const char* dirname, const uint8_t levels)
+    {
+        File root = esp32FS.Open(dirname);
+        if (!root)
+        {
+            Serial.println("FAILED TO OPEN ROOT DIRECTORY");
+            return;
+        }
+
+        if (!root.isDirectory())
+        {
+            return;
+        }
+    
+        File file = root.openNextFile();
+        while (file)
+        {
+            if (file.isDirectory())
+            {
+                Serial.print("  DIR : ");
+                Serial.println(file.path());
+                if (levels)
+                {
+                    listDir(file.path(), levels - 1);
+                }
+            }
+            else
+            {
+                Serial.print("    FILE: ");
+                Serial.print(file.name());
+                Serial.print("\tSIZE: ");
+                Serial.println(file.size());
+            }
+            
+            file = root.openNextFile();
+        }
+    }
+
     /**
      * @todo Ver.1.3 미만 펌웨어가 없다면 본 함수는 삭제할 예정임
      */
     void replaceDeprecatedPaths()
     {
+        listDir("/", 2);
+        LOG_DEBUG(logger, "Remained Flash Memory: %u Bytes", esp32FS.GetTotalBytes() - esp32FS.GetUsedBytes());
+
         if (esp32FS.DoesExist(DEPRECATED_INIT_FILE_PATH) == Status::Code::GOOD)
         {
             esp32FS.Rename(DEPRECATED_INIT_FILE_PATH, INIT_FILE_PATH);
@@ -131,6 +172,28 @@ namespace muffin {
             esp32FS.Rename(DEPRECATED_LWIP_HTTP_PATH, LWIP_HTTP_PATH);
             esp32FS.RemoveDirectory("/http");
         }
+        
+        if (esp32FS.DoesExist(DEPRECATED_SPEAR_LINK1_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Remove(DEPRECATED_SPEAR_LINK1_PATH);
+            esp32FS.RemoveDirectory("/spear/link1");
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_SPEAR_LINK2_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Remove(DEPRECATED_SPEAR_LINK2_PATH);
+            esp32FS.RemoveDirectory("/spear/link2");
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_SPEAR_PRTCL_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Remove(DEPRECATED_SPEAR_PRTCL_PATH);
+            esp32FS.RemoveDirectory("/spear/protocol");
+            esp32FS.RemoveDirectory("/spear");
+        }
+
+        listDir("/", 2);
+        LOG_DEBUG(logger, "Remained Flash Memory: %u Bytes", esp32FS.GetTotalBytes() - esp32FS.GetUsedBytes());
     }
 
     void Core::Init()

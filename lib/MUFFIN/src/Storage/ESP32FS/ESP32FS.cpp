@@ -49,9 +49,8 @@ namespace muffin {
         {
             if (LittleFS.begin(false) == true)
             {
-                if (LittleFS.exists(JARVIS_PATH) == true)
+                if (LittleFS.exists(JARVIS_PATH) == true || LittleFS.exists(DEPRECATED_JARVIS_PATH) == true)
                 {
-                    std::cout << "\033[34mFirst System Boot Detected. but JARVIS File already exists." << std::endl;
                     pf.putBool(key, false);
                     if (pf.getBool(key, true) == true)
                     {
@@ -59,6 +58,8 @@ namespace muffin {
                         pf.clear();
                         std::abort();
                     }
+
+                    std::cout << "\033[34mFirst System Boot Detected But JARVIS File already exists." << std::endl;
                     return;
                 }
             }

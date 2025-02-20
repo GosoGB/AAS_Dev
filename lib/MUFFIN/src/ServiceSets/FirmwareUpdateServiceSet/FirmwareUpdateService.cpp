@@ -617,7 +617,7 @@ namespace muffin {
                 {
                     LOG_ERROR(logger, "FAILED TO UPDATE: READ BACK PAGE SIZE DOES NOT MATCH: Target: %u, Actual: %u",
                         page.Size, pageReadBack.Size);
-                        
+                    
                     mega2560.TearDown();
                     Status postResult = PostUpdateResult(info, "failure");
                     LOG_INFO(logger, "[POST] update result api: %s", postResult.c_str());
@@ -926,6 +926,7 @@ namespace muffin {
             if (ret != Status::Code::GOOD)
             {
                 StopDownloadFirmwareService();
+                vTaskDelete(sParsingTaskHandle);
             }
         }
         sMemoryPool->Reset();

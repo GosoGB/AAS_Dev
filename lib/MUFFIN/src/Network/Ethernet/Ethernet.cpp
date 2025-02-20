@@ -35,11 +35,9 @@ namespace muffin {
         {
             if ((millis() - sNonassignedIPv4Millis) > 10*SECOND_IN_MILLIS)
             {
-                esp_restart();
-                // esp_eth_stop(deprecableEthernet.eth_handle);
-                // vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-                // esp_eth_start(deprecableEthernet.eth_handle);
-                // sNonassignedIPv4Millis = millis();
+                esp_eth_stop(deprecableEthernet.eth_handle);
+                esp_eth_start(deprecableEthernet.eth_handle);
+                sNonassignedIPv4Millis = millis();
             }
         }
         else

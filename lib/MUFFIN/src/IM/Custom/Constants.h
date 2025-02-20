@@ -43,6 +43,9 @@ namespace muffin {
     constexpr const char* DEPRECATED_OTA_CHUNK_PATH_ESP32   = "/ota/chunk_esp32.csv";
     constexpr const char* DEPRECATED_OTA_CHUNK_PATH_MEGA    = "/ota/chunk_mega2560.csv";
     constexpr const char* DEPRECATED_LWIP_HTTP_PATH         = "/http/response";
+    constexpr const char* DEPRECATED_SPEAR_LINK1_PATH       = "/spear/link1/config.json";
+    constexpr const char* DEPRECATED_SPEAR_LINK2_PATH       = "/spear/link2/config.json";
+    constexpr const char* DEPRECATED_SPEAR_PRTCL_PATH       = "/spear/protocol/config.json";
 
     /**
      * @brief SPIFFS 파티션 읽기/쓰기에 사용되는 상수 정의

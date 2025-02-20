@@ -15,6 +15,7 @@
 
 
 #include <string>
+#include <LittleFS.h>
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
@@ -152,6 +153,7 @@ namespace muffin {
             ++sParams->Info->Chunk.DownloadIDX;
             sParams->Callback(Status(Status::Code::GOOD_MORE_DATA));
             vTaskDelay(100 / portTICK_PERIOD_MS);
+            LOG_DEBUG(logger, "Remained Flash Memory: %u Bytes", LittleFS.totalBytes() - LittleFS.usedBytes());
         }
 
         LOG_INFO(logger, "Download finished");
