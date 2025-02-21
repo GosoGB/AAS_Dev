@@ -408,6 +408,10 @@ namespace muffin {
 
         if (initConfig.HasPendingJARVIS == true)
         {
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, before unloading", ESP.getFreeHeap());
+            unloadJarvisConfig();
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, after unloading", ESP.getFreeHeap());
+
             initConfig.HasPendingJARVIS = false;
             initConfig.ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_CONFIG_CHANGE);
             ret = writeInitConfig(initConfig);
@@ -457,6 +461,10 @@ namespace muffin {
         
         if (initConfig.HasPendingUpdate == true)
         {
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, before unloading", ESP.getFreeHeap());
+            unloadJarvisConfig();
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, after unloading", ESP.getFreeHeap());
+
             initConfig.HasPendingUpdate = false;
             ret = writeInitConfig(initConfig);
             if (ret != Status::Code::GOOD)
@@ -722,6 +730,27 @@ namespace muffin {
         }
 
         return ret;
+    }
+
+    void Core::unloadJarvisConfig()
+    {
+        for (auto it = jarvis->begin(); it != jarvis->end(); ++it)
+        {
+            if (it->second.size() == 0)
+            {
+                continue;
+            }
+
+            for (auto _it = it->second.begin(); _it != std::prev(it->second.end()); ++_it)
+            {
+                auto item = _it.operator*();
+                delete item;
+            }
+
+            it->second.clear();
+        }
+
+        jarvis->Clear();
     }
 
     void Core::PublishStatusEventMessageService(init_cfg_t* output)
