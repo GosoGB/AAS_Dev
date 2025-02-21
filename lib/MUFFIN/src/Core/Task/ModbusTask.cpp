@@ -234,7 +234,7 @@ namespace muffin {
             NULL,			        // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusTcpHandle,       // The identifier of this task for machines
-            0				        // Index of MCU core where the function to run
+            1				        // Index of MCU core where the function to run
         );
 
         /**
