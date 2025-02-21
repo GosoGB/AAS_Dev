@@ -91,7 +91,7 @@ namespace muffin {
         void parseQIND();
         void parseAPPRDY();
         void parseQMTRECV();
-        // void parseQMTSTAT();
+        void parseQMTSTAT();
     private:
         typedef enum LteModuleProcessorInitializationFlagEnum
             : uint8_t
@@ -113,7 +113,7 @@ namespace muffin {
         void RegisterCallbackQIND(const std::function<void()>& cb);
         void RegisterCallbackAPPRDY(const std::function<void()>& cb);
         // void RegisterCallbackQMTRECV(const std::function<void()>& cb);
-        // void RegisterCallbackQMTSTAT(const std::function<void(uint8_t, uint8_t)>& cb);
+        void RegisterCallbackQMTSTAT(const std::function<void(uint8_t, uint8_t)>& cb);
     private:
         void triggerCallbackRDY();
         void triggerCallbackCFUN();
@@ -121,7 +121,7 @@ namespace muffin {
         void triggerCallbackQIND();
         void triggerCallbackAPPRDY();
         // void triggerCallbackQMTRECV();
-        // void triggerCallbackQMTSTAT(const uint8_t socketID, const uint8_t errorCode);
+        void triggerCallbackQMTSTAT(const uint8_t socketID, const uint8_t errorCode);
     private:
         std::function<void()> mCallbackRDY;
         std::function<void()> mCallbackCFUN;
@@ -129,6 +129,7 @@ namespace muffin {
         std::function<void()> mCallbackQIND;
         std::function<void()> mCallbackAPPRDY;
         // std::function<void()> mCallbackQMTRECV;
-        // std::function<void(uint8_t, uint8_t)> mCallbackQMTSTAT;
+        std::function<void(uint8_t, uint8_t)> mCallbackQMTSTAT;
+        std::function<void(uint8_t, uint8_t)> vCallbackQMTSTAT;
     };
 }

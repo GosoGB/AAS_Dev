@@ -85,9 +85,10 @@ namespace muffin {
         Status ret = mqttClient->Disconnect(mutex.second);
         if (ret != Status::Code::GOOD)
         {
+            snic->ReleaseMutex();
             goto ON_FAIL;
         }
-        
+        snic->ReleaseMutex();
         ret = InitMqttClientService();
         if (ret != Status::Code::GOOD)
         {
@@ -102,6 +103,7 @@ namespace muffin {
 
         LOG_INFO(logger, "Reconnected to the MQTT broker");
         snic->ReleaseMutex();
+        RECONNECT_TRIAL_COUNT = 0;
         return ret;
         
     ON_FAIL:

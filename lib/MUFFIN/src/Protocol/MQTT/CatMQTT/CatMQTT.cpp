@@ -162,6 +162,7 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::Disconnect(const size_t mutexHandle)
     {
+        
     /*  ASSERT((mState == state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"Disconnect()\"");
 
         Status ret = IsConnected();
@@ -170,30 +171,27 @@ namespace muffin { namespace mqtt {
             LOG_WARNING(logger, "NO CONNECTION OR SESSION TO DISCONNECT");
             return Status(Status::Code::GOOD);
         }*/
+        // Status ret = closeSession(mutexHandle);
+        // if (ret != Status::Code::GOOD)
+        // {
+        //     LOG_ERROR(logger, "FAILED TO CLOSE MQTT SESSION: %s", ret.c_str());
+        //     return ret;
+        // }
 
-        Status ret = disconnectBroker(mutexHandle);
+        //  ret = disconnectBroker(mutexHandle);
         // if (ret != Status::Code::GOOD)
         // {
         //     LOG_ERROR(logger, "FAILED TO DISCONNECT FROM THE MQTT BROKER: %s", ret.c_str());
-        //     return ret;
+            
         // }
-        
-        ret = closeSession(mutexHandle);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO CLOSE MQTT SESSION: %s", ret.c_str());
-            return ret;
-        }
-        
-        LOG_INFO(logger, "Disconnected from broker: %s", ret.c_str());
+        // LOG_INFO(logger, "Disconnected from broker: %s", ret.c_str());
         mState = state_e::DISCONNECTED;
-        return ret;
+        return Status(Status::Code::GOOD);
     }
 
     Status CatMQTT::IsConnected()
     {
-        ASSERT((mState >= state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"IsConnected()\"");
-
+        // ASSERT((mState >= state_e::INITIALIZED), "MUST BE INITIALIZED PRIOR TO \"IsConnected()\"");
         switch (mState)
         {
         case state_e::CONNECT_FAILED:
@@ -215,7 +213,7 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::Subscribe(const size_t mutexHandle, const std::vector<Message>& messages)
     {
-        ASSERT((mState == state_e::CONNECTED), "MUST BE CONNECTED TO THE BROKER PRIOR TO \"Subscribe()\"");
+        // ASSERT((mState == state_e::CONNECTED), "MUST BE CONNECTED TO THE BROKER PRIOR TO \"Subscribe()\"");
         ASSERT((messages.size() != 0), "NUMBER OF TOPICS TO SUBSCRIBE CANNOT BE 0");
 
         if (mState != state_e::CONNECTED)
@@ -496,7 +494,7 @@ namespace muffin { namespace mqtt {
 
     Status CatMQTT::Publish(const size_t mutexHandle, const Message& message)
     {
-        ASSERT((mState == state_e::CONNECTED), "MUST BE CONNECTED TO THE BROKER PRIOR TO \"Unsubscribe()\"");
+        // ASSERT((mState == state_e::CONNECTED), "MUST BE CONNECTED TO THE BROKER PRIOR TO \"Unsubscribe()\"");
         ASSERT((strlen(message.GetPayload()) < 4097), "PAYLOAD SIZE CANNOT EXCEED 4,096 BYTES");
         ASSERT((message.GetSocketID() == mBrokerInfo.GetSocketID()), 
             "INVALID SOCKET ID: \"Broker\": %u,  \"Message\": %u",
@@ -1023,7 +1021,7 @@ PATTERN_FOUND:
     }*/
 
     Status CatMQTT::openSession(const size_t mutexHandle)
-    {
+    {   
         const uint8_t brokerSocketID = static_cast<uint8_t>(mBrokerInfo.GetSocketID());
 
         const std::string command = "AT+QMTOPEN="
@@ -1261,6 +1259,25 @@ PATTERN_FOUND:
         }
 
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
+        LOG_DEBUG(logger, "DISCONNECT RxD: %s", rxd.c_str());
+        rxd.clear();
+        const uint32_t startMillis = millis();
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (catM1->GetAvailableBytes() > 0)
+            {
+                int16_t value = catM1->Read();
+                if (value == -1)
+                {
+                    LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
+                    continue;
+                }
+                rxd += value;
+            }
+        }
+        
+        LOG_DEBUG(logger, "[2] DISCONNECT RxD: %s", rxd.c_str());
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO DISCONNECT: %s: %s", ret.c_str(), processCmeErrorCode(rxd).c_str());
@@ -1316,7 +1333,7 @@ PATTERN_FOUND:
         const uint8_t brokerSocketID = static_cast<uint8_t>(mBrokerInfo.GetSocketID());
         
         const std::string command = "AT+QMTCLOSE=" + std::to_string(brokerSocketID);
-        const uint32_t timeoutMillis = 300;
+        const uint32_t timeoutMillis = 3000;
         // const uint32_t startedMillis = millis();
         std::string rxd;
 
@@ -1328,7 +1345,26 @@ PATTERN_FOUND:
         }
 
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
-        LOG_DEBUG(logger, "RxD: %s", rxd.c_str());
+        
+        LOG_DEBUG(logger, "[1] CLOSE SESSION RxD: %s", rxd.c_str());
+        rxd.clear();
+        const uint32_t startMillis = millis();
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (catM1->GetAvailableBytes() > 0)
+            {
+                int16_t value = catM1->Read();
+                if (value == -1)
+                {
+                    LOG_WARNING(logger, "FAILED TO TAKE MUTEX OR NO DATA AVAILABLE");
+                    continue;
+                }
+                rxd += value;
+            }
+        }
+
+        LOG_DEBUG(logger, "CLOSE SESSION RxD: %s", rxd.c_str());
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CLOSE: %s: %s", ret.c_str(), processCmeErrorCode(rxd).c_str());
@@ -1551,5 +1587,14 @@ PATTERN_FOUND:
             //LOG_DEBUG(logger, "INVALID CME ERROR CODE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
+    }
+
+    Status CatMQTT::ResetTEMP()
+    {
+        mInitFlags.reset();
+        mInitFlags.set(init_flag_e::ENABLE_LWT_MSG);
+        mState = state_e::DISCONNECTED;
+
+        return Status(Status::Code::GOOD);
     }
 }}

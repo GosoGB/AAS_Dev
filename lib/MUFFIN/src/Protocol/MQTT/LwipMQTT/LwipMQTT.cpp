@@ -277,6 +277,10 @@ namespace muffin { namespace mqtt {
         return;
     }
 
+    Status LwipMQTT::ResetTEMP()
+    {
+        return Status(Status::Code::GOOD);
+    }
 
     PubSubClient LwipMQTT::mClient;
 }}

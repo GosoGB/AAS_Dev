@@ -110,15 +110,19 @@ namespace muffin {
         void onEventCPIN(const std::string& state);
         void onEventQIND();
         void onEventAPPRDY();
+        void onEventQMTSTAT(const uint8_t socketID, const uint8_t errorCode);
         // void onEventQMTRECV();
         void checkCatM1Started();
         static void onEventPinStatusFalling(void* pvParameter, uint32_t ulParameter);
         static void IRAM_ATTR handlePinStatusISR();
 
-    private:
+    public:
+        Processor mProcessor;
+    
+        private:
         size_t mMutexHandle = 0;
         SemaphoreHandle_t xSemaphore;
-        Processor mProcessor;
+        
         std::pair<bool, jvs::config::CatM1> mConfig;
         static state_e mState;
         static std::bitset<8> mInitFlags;

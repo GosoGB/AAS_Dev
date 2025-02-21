@@ -326,7 +326,7 @@ namespace muffin {
                 parseQIND();
                 parseAPPRDY();
                 parseQMTRECV();
-                // parseQMTSTAT(&rxd);
+                parseQMTSTAT();
 
                 xSemaphoreGive(xSemaphore);
                 vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
@@ -521,32 +521,31 @@ namespace muffin {
         // void triggerCallbackQMTRECV();
     }
 
-/*
-    void Processor::parseQMTSTAT(std::string* rxd)
+    void Processor::parseQMTSTAT()
     {
-        assert(rxd != nullptr);
-
-        if (rxd->find(urcQMTSTAT) == std::string::npos)
-        {
+        if (mRxBuffer.HasPattern(urcQMTSTAT) == false)
+        {   
             return;
         }
 
-        const size_t posStart  = rxd->find(urcQMTSTAT) + urcQMTSTAT.length();
-        const size_t delimiter = rxd->rfind(",", posStart + 1);
-        LOG_DEBUG(logger, "QMTSTAT URC: %s", rxd->substr(posStart, delimiter - posStart + 1).c_str());
+        std::vector<uint8_t> vectorRxD = mRxBuffer.ReadBetweenPatterns(urcQMTSTAT, "\r\n");
+        const std::string data(vectorRxD.begin(), vectorRxD.end());
+        
+        LOG_INFO(logger,"rxd : %s",data.c_str());
 
-        if (delimiter == std::string::npos)
+        size_t idx = data.find(',');
+        if (idx == std::string::npos)
         {
-            LOG_ERROR(logger, "INVALID MQTT LINK LAYER URC RECEIVED");
-            rxd->erase(rxd->find(urcQMTSTAT), urcQMTSTAT.length());
-            LOG_DEBUG(logger, "REM: %s", rxd->c_str());
-
-            assert(delimiter != std::string::npos);
+            LOG_ERROR(logger,"INVALID RESPONSE");
             return;
         }
+        std::string socketIdStr = data.substr(idx - 1, 1);
+        std::string errorCodeStr = data.substr(idx + 1, 1);
+        
+        const uint8_t socketID = std::stoi(socketIdStr);
+        const uint8_t errorCode = std::stoi(errorCodeStr);   
 
-        const uint8_t socketID  = std::stoi(rxd->substr(delimiter - 1, 1));
-        const uint8_t errorCode = std::stoi(rxd->substr(delimiter + 1, 1));
+        LOG_INFO(logger,"soketID : %u , errorCode : %u",socketID,errorCode);
 
         switch (errorCode)
         {
@@ -572,12 +571,12 @@ namespace muffin {
             LOG_ERROR(logger, "THE LINK IS NOT ALIVE OR BROKER UNAVAILABLE");
             break;
         default:
-            LOG_ERROR(logger, "PROCESSOR ERROR: UNDEFINED ERROR CODE: %d", errorCode);
-            return;
+            LOG_ERROR(logger, "PROCESSOR ERROR: UNDEFINED ERROR CODE: %u", errorCode);
+            break;
         }
-        // triggerCallbackQMTSTAT(socketID, errorCode);
+
+        triggerCallbackQMTSTAT(socketID, errorCode);
     }
-*/
 
     void Processor::RegisterCallbackRDY(const std::function<void()>& cb)
     {
@@ -602,6 +601,11 @@ namespace muffin {
     void Processor::RegisterCallbackAPPRDY(const std::function<void()>& cb)
     {
         mCallbackAPPRDY = cb;
+    }
+
+    void Processor::RegisterCallbackQMTSTAT(const std::function<void(uint8_t, uint8_t)>& cb)
+    {
+        mCallbackQMTSTAT = cb;
     }
 
     void Processor::triggerCallbackRDY()
@@ -680,16 +684,17 @@ namespace muffin {
     //     }
     // }
 
-    // void Processor::triggerCallbackQMTSTAT(const uint8_t socketID, 
-    //                                        const uint8_t errorCode)
-    // {
-    //     if (mCallbackQMTSTAT)
-    //     {
-    //         mCallbackQMTSTAT(socketID, errorCode);
-    //     }
-    //     else
-    //     {
-    //         assert(mCallbackQMTSTAT);
-    //     }
-    // }
+    void Processor::triggerCallbackQMTSTAT(const uint8_t socketID, 
+                                           const uint8_t errorCode)
+    {
+        if (mCallbackQMTSTAT != nullptr)
+        {
+            mCallbackQMTSTAT(socketID, errorCode);
+        }
+        else
+        {
+            LOG_ERROR(logger, "CALLBACK IS NOT REGISTERED");
+            assert(mCallbackQMTSTAT);
+        }
+    }
 }

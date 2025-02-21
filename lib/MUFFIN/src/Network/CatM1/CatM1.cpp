@@ -63,6 +63,7 @@ namespace muffin {
             mProcessor.RegisterCallbackCPIN(std::bind(&CatM1::onEventCPIN, this, std::placeholders::_1));
             mProcessor.RegisterCallbackQIND(std::bind(&CatM1::onEventQIND, this));
             mProcessor.RegisterCallbackAPPRDY(std::bind(&CatM1::onEventAPPRDY, this));
+            mProcessor.RegisterCallbackQMTSTAT(std::bind(&CatM1::onEventQMTSTAT, this, std::placeholders::_1, std::placeholders::_2));
             mInitFlags.set(init_flags_e::URC_CALLBACK);
         }
 
@@ -732,6 +733,12 @@ namespace muffin {
             LOG_WARNING(logger, "Callback: MT IS PENDING FOR PIN TO ACCESS (U)SIM");
             // call method to set the pin numbers to activate the sim card
         }
+    }
+
+    void CatM1::onEventQMTSTAT(const uint8_t socketID, const uint8_t errorCode)
+    {
+        LOG_INFO(logger, "Callback: BROKER DISCONNECTED");
+        mState = state_e::CatM1_DISCONNECTED;
     }
 
     void CatM1::onEventQIND()
