@@ -51,6 +51,7 @@ namespace muffin {
         bool isResetByPanic();
         Status createDefaultJARVIS();
         Status loadJarvisConfig();
+        void unloadJarvisConfig();
         void PublishStatusEventMessageService(init_cfg_t* output);
     };
 
