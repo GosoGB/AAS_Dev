@@ -5,14 +5,14 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 선언합니다.
  * 
- * @date 2024-11-01
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
  * @todo 현재는 모든 데이터 수집 주기가 동일하기 때문에 샘플링 인터벌 변수를
  *       static 키워드를 사용해 선언하였습니다. 다만 향후에 노드 별로 수집
  *       주기가 달라진다면 static 키워드를 제거해야 합니다.
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 

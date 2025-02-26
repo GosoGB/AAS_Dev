@@ -4,10 +4,10 @@
  * 
  * @brief Node 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2025-02-12
- * @version 1.2.3
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024-2025
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
  * @todo Node 설정 유형별로 테스트 케이스를 설계한 다음 다음 유닛 테스트를 작성할 것
  */
@@ -63,9 +63,8 @@ namespace muffin { namespace jvs {
         void convertToAddressQuantity(JsonVariant addressQuantity);
         void convertToNumericScale(JsonVariant numericScale);
         void convertToNumericOffset(JsonVariant numericOffset);
-        void convertToMappingRules(JsonObject mappingRules);
-        void convertToDataUnitOrderType(const std::string& value);
-        void convertToDataType(const uint8_t dataType);
+        std::pair<rsc_e, ord_t> convertToDataUnitOrderType(const std::string& value);
+        std::pair<rsc_e, dt_e> convertToDataType(const uint8_t dataType);
         void convertToFormatString(const JsonVariant formatString);
     private:
         char mNodeID[5];
@@ -76,13 +75,10 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, uint8_t> mAddressQuantity;
         std::pair<rsc_e, scl_e> mNumericScale;
         std::pair<rsc_e, float> mNumericOffset;
-        std::pair<rsc_e, std::map<uint16_t, std::string>> mMappingRules;
         std::pair<rsc_e, std::vector<DataUnitOrder>> mDataUnitOrders;
         std::pair<rsc_e, std::vector<dt_e>> mDataTypes;
         std::pair<rsc_e, std::string> mFormatString;
         char mUID[5];
-        char mDisplayName[121];
-        char mDisplayUnit[41];
         bool mIsEventType = false;
     private:
         std::vector<fmt_spec_e> mVectorFormatSpecifier;

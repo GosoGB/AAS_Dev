@@ -4,10 +4,10 @@
  * 
  * @brief Node 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2025-02-12
- * @version 1.2.3
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024-2025
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -30,16 +30,13 @@ namespace muffin { namespace jvs {
         , mAddressQuantity(rsc_e::UNCERTAIN, 0)
         , mNumericScale(rsc_e::UNCERTAIN, scl_e::NEGATIVE_1)
         , mNumericOffset(rsc_e::UNCERTAIN, 0.0f)
-        , mMappingRules(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>())
         , mDataUnitOrders(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>())
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mPatternUID(std::regex(R"(^(?:[PAE][A-Za-z0-9!@#$%^&*()_+=-]{3}|(?:DI|DO|MD)[A-Za-z0-9!@#$%^&*()_+=-]{2})$)"))
     {
-        memset(mNodeID,       '\0',    sizeof(mNodeID));
-        memset(mUID,          '\0',    sizeof(mUID));
-        memset(mDisplayName,  '\0',    sizeof(mDisplayName));
-        memset(mDisplayUnit,  '\0',    sizeof(mDisplayUnit));
+        memset(mNodeID, '\0', sizeof(mNodeID));
+        memset(mUID,    '\0', sizeof(mUID));
     }
 
     std::pair<rsc_e, std::string> NodeValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
@@ -78,7 +75,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mAddressType.first, message);
             }
             
-            mAddress = convertToAddress(json["addr"].as<JsonVariant>());
+            convertToAddress(json["addr"].as<JsonVariant>());
             if (mAddress.first != rsc_e::GOOD)
             {
                 char message[64] = {'\0'};
@@ -103,16 +100,10 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
 
-            /**
-             * @todo 잘리는 경우에는 uncertain 또는 bad을 반환하도록 해야 함
-             */
-            strncpy(mDisplayName, json["name"].as<const char*>(), sizeof(mDisplayName));
-            strncpy(mDisplayUnit, json["unit"].as<const char*>(), sizeof(mDisplayUnit));
-
             mIsEventType = json["event"].as<bool>();
             /*Node 설정 형식에서 필수로 입력해야 하는 속성은 모두 유효합니다.*/
 
-            mModbusArea = convertToModbusArea(json["area"].as<JsonVariant>());
+            convertToModbusArea(json["area"].as<JsonVariant>());
             if (mModbusArea.first != rsc_e::GOOD && 
                 mModbusArea.first != rsc_e::GOOD_NO_DATA)
             {
@@ -121,7 +112,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mModbusArea.first, message);
             }
 
-            mBitIndex = convertToBitIndex(json["bit"].as<JsonVariant>());
+            convertToBitIndex(json["bit"].as<JsonVariant>());
             if (mBitIndex.first != rsc_e::GOOD && 
                 mBitIndex.first != rsc_e::GOOD_NO_DATA)
             {
@@ -130,7 +121,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mBitIndex.first, message);
             }
 
-            mAddressQuantity = convertToAddressQuantity(json["qty"].as<JsonVariant>());
+            convertToAddressQuantity(json["qty"].as<JsonVariant>());
             if (mAddressQuantity.first != rsc_e::GOOD && 
                 mAddressQuantity.first != rsc_e::GOOD_NO_DATA)
             {
@@ -139,7 +130,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mAddressQuantity.first, message);
             }
 
-            mNumericScale = convertToNumericScale(json["scl"].as<JsonVariant>());
+            convertToNumericScale(json["scl"].as<JsonVariant>());
             if (mNumericScale.first != rsc_e::GOOD && 
                 mNumericScale.first != rsc_e::GOOD_NO_DATA)
             {
@@ -148,22 +139,13 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mNumericScale.first, message);
             }
 
-            mNumericOffset = convertToNumericOffset(json["ofst"].as<JsonVariant>());
+            convertToNumericOffset(json["ofst"].as<JsonVariant>());
             if (mNumericOffset.first != rsc_e::GOOD && 
                 mNumericOffset.first != rsc_e::GOOD_NO_DATA)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "FAILED TO CONVERT TO NUMERIC OFFSET: %s, NODE ID: %s", json["ofst"].as<const char*>(), mNodeID);
                 return std::make_pair(mNumericOffset.first, message);
-            }
-
-            mMappingRules = convertToMappingRules(json["map"].as<JsonVariant>());
-            if (mMappingRules.first != rsc_e::GOOD && 
-                mMappingRules.first != rsc_e::GOOD_NO_DATA)
-            {
-                char message[512] = {'\0'};
-                snprintf(message, 512, "FAILED TO CONVERT TO MAPPING RULES: %s, NODE ID: %s", json["map"].as<const char*>(), mNodeID);
-                return std::make_pair(mMappingRules.first, message);
             }
 
             mDataUnitOrders = processDataUnitOrders(json["ord"].as<JsonVariant>());
@@ -174,7 +156,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mDataUnitOrders.first, message);
             }
 
-            mFormatString = convertToFormatString(json["fmt"].as<JsonVariant>());
+            convertToFormatString(json["fmt"].as<JsonVariant>());
             if (mFormatString.first != rsc_e::GOOD && mFormatString.first != rsc_e::GOOD_NO_DATA)
             {
                 char message[128] = {'\0'};
@@ -257,8 +239,6 @@ namespace muffin { namespace jvs {
             node->SetAddrress(mAddress.second);
             node->SetDataTypes(std::move(mDataTypes.second));
             node->SetDeprecableUID(mUID);
-            node->SetDeprecableDisplayName(mDisplayName);
-            node->SetDeprecableDisplayUnit(mDisplayUnit);
             node->SetAttributeEvent(mIsEventType);
 
             if (mModbusArea.first == rsc_e::GOOD)
@@ -284,11 +264,6 @@ namespace muffin { namespace jvs {
             if (mNumericOffset.first == rsc_e::GOOD)
             {
                 node->SetNumericOffset(mNumericOffset.second);
-            }
-
-            if (mMappingRules.first == rsc_e::GOOD)
-            {
-                node->SetMappingRules(std::move(mMappingRules.second));
             }
 
             if (mDataUnitOrders.first == rsc_e::GOOD)
@@ -330,13 +305,10 @@ namespace muffin { namespace jvs {
             mAddressQuantity  = std::make_pair(rsc_e::UNCERTAIN, 0);
             mNumericScale     = std::make_pair(rsc_e::UNCERTAIN, scl_e::NEGATIVE_1);
             mNumericOffset    = std::make_pair(rsc_e::UNCERTAIN, 0.0f);
-            mMappingRules     = std::make_pair(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>());
             mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
             mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>());
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
             memset(mUID, '\0', sizeof(mUID));
-            memset(mDisplayName, '\0', sizeof(mDisplayName));
-            memset(mDisplayUnit, '\0', sizeof(mDisplayUnit));
             mIsEventType = false;
             mVectorFormatSpecifier.clear();
         }
@@ -360,13 +332,10 @@ namespace muffin { namespace jvs {
         isValid &= json.containsKey("qty");
         isValid &= json.containsKey("scl");
         isValid &= json.containsKey("ofst");
-        isValid &= json.containsKey("map");
         isValid &= json.containsKey("ord");
         isValid &= json.containsKey("dt");
         isValid &= json.containsKey("fmt");
         isValid &= json.containsKey("uid");
-        isValid &= json.containsKey("name");
-        isValid &= json.containsKey("unit");
         isValid &= json.containsKey("event");
 
         if (isValid == true)
@@ -392,16 +361,12 @@ namespace muffin { namespace jvs {
         isValid &= json["addr"].isNull()   == false;
         isValid &= json["dt"].isNull()     == false;
         isValid &= json["uid"].isNull()    == false;
-        isValid &= json["name"].isNull()   == false;
-        isValid &= json["unit"].isNull()   == false;
         isValid &= json["event"].isNull()  == false;
         isValid &= json["id"].is<const char*>();
         isValid &= json["adtp"].is<uint8_t>();
         isValid &= json["addr"].is<JsonVariant>();
         isValid &= json["dt"].is<JsonArray>();
         isValid &= json["uid"].is<const char*>();
-        isValid &= json["name"].is<const char*>();
-        isValid &= json["unit"].is<const char*>();
         isValid &= json["event"].is<bool>();
 
         if (isValid == true)
@@ -436,11 +401,15 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
         }
         
-        // if (mAddress.second.Numeric > 0x270F)
-        // {
-        //     const std::string message = "EXTENDED REGISTER ADDRESS FOR MODBUS PROTOCOL IS NOT SUPPORTED, NODE ID:  "+ mNodeID;
-        //     return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
-        // }
+    /** @todo 나중에 Modbus 확장 주소로 설정해야 할 때 구현해야 합니다.
+     *  @code {.cpp}
+     *  if (mAddress.second.Numeric > 0x270F)
+     *  {
+     *      const std::string message = "EXTENDED REGISTER ADDRESS FOR MODBUS PROTOCOL IS NOT SUPPORTED, NODE ID:  "+ mNodeID;
+     *      return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
+     *  }    
+     * @endcode
+     */
 
         if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
         {
@@ -755,13 +724,6 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
-
-        if (mMappingRules.first == rsc_e::GOOD)
-        {
-            char message[128] = {'\0'};
-            snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID: %s", mNodeID);
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
-        }
         
         switch (mDataTypes.second.front())
         {
@@ -820,13 +782,6 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
         }
-
-        if (mMappingRules.first == rsc_e::GOOD)
-        {
-            char message[128] = {'\0'};
-            snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MAPPING RULES, NODE ID: %s", mNodeID);
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
-        }
         
         switch (mDataTypes.second.front())
         {
@@ -864,13 +819,6 @@ namespace muffin { namespace jvs {
      */
     std::pair<rsc_e, std::string> NodeValidator::validateMappingRules()
     {
-        if (mMappingRules.first == rsc_e::GOOD_NO_DATA)
-        {
-            char message[64] = {'\0'};
-            snprintf(message, 64, "Mapping rules are not enabled, NODE ID: %s", mNodeID);
-            return std::make_pair(rsc_e::GOOD, message);
-        }
-
         if (mDataTypes.second.size() != 1)
         {
             char message[128] = {'\0'};
@@ -1580,8 +1528,6 @@ namespace muffin { namespace jvs {
         mAddressQuantity.second  = addressQuantity.as<uint8_t>();
     }
 
-    여기서부터 이어서 작업해야 해유
-
     /**
      * @return std::pair<Status, scl_e> 
      *     @li rsc_e::GOOD 설정 값이 올바릅니다.
@@ -1592,32 +1538,42 @@ namespace muffin { namespace jvs {
     {
         if (numericScale.isNull() == true)
         {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, scl_e::NEGATIVE_1);
+            mNumericScale.first = rsc_e::GOOD_NO_DATA;
+            return;
         }
 
         if (numericScale.is<int8_t>() == false)
         {
-            LOG_ERROR(logger, "NUMERIC SCALE MUST BE A 8-BIT SIGNED INTEGER");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, scl_e::NEGATIVE_1);
+            mNumericScale.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
         
         switch (numericScale.as<int8_t>())
         {
         case -3:
-            return std::make_pair(rsc_e::GOOD, scl_e::NEGATIVE_3);
+            mNumericScale.second = scl_e::NEGATIVE_3;
+            break;
         case -2:
-            return std::make_pair(rsc_e::GOOD, scl_e::NEGATIVE_2);
+            mNumericScale.second = scl_e::NEGATIVE_2;
+            break;
         case -1:
-            return std::make_pair(rsc_e::GOOD, scl_e::NEGATIVE_1);
+            mNumericScale.second = scl_e::NEGATIVE_1;
+            break;
         case 1:
-            return std::make_pair(rsc_e::GOOD, scl_e::POSITIVE_1);
+            mNumericScale.second = scl_e::POSITIVE_1;
+            break;
         case 2:
-            return std::make_pair(rsc_e::GOOD, scl_e::POSITIVE_2);
+            mNumericScale.second = scl_e::POSITIVE_2;
+            break;
         case 3:
-            return std::make_pair(rsc_e::GOOD, scl_e::POSITIVE_3);
+            mNumericScale.second = scl_e::POSITIVE_3;
+            break;
         default:
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, scl_e::NEGATIVE_3);
+            mNumericScale.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
+
+        mNumericScale.first = rsc_e::GOOD;
     }
 
     /**
@@ -1630,101 +1586,18 @@ namespace muffin { namespace jvs {
     {
         if (numericOffset.isNull() == true)
         {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, std::numeric_limits<float>::max());
+            mNumericOffset.first = rsc_e::GOOD_NO_DATA;
+            return;
         }
 
         if (numericOffset.is<float>() == false)
         {
-            LOG_ERROR(logger, "NUMERIC OFFSET MUST BE A 32-BIT FLOATING POINT");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, std::numeric_limits<float>::max());
-        }
-        
-        return std::make_pair(rsc_e::GOOD, numericOffset.as<float>());
-    }
-
-    /**
-     * @return std::pair<Status, float> 
-     *     @li rsc_e::GOOD 설정 값이 올바릅니다.
-     *     @li rsc_e::GOOD_NO_DATA 설정 값이 NULL 입니다.
-     *     @li Status::Code::BAD_ENCODING_ERROR 설정 형식이 올바르지 않습니다.
-     *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
-     *     @li Status::Code::BAD_OUT_OF_RANGE 키(key) 값이 int32_t 타입으로 변환 가능한 범위를 벗어났습니다.
-     *     @li Status::Code::BAD_OUT_OF_MEMORY 설정 값을 저장에 할당 가능한 메모리가 부족합니다.
-     *     @li Status::Code::BAD_UNEXPECTED_ERROR 알 수 없는 예외가 발생했습니다.
-     */
-    void NodeValidator::convertToMappingRules(JsonObject mappingRules)
-    {
-        std::map<uint16_t, std::string> mapMappingRules;
-
-        if (mappingRules.isNull() == true)
-        {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, mapMappingRules);
+            mNumericOffset.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
 
-        if (mappingRules.size() == 0)
-        {
-            LOG_ERROR(logger, "MAPPING RULES CANNOT BE AN EMPTY JSON OBJECT");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, mapMappingRules);
-        }
-
-        for (auto rule : mappingRules)
-        {
-            uint16_t numericKey = 0;
-            
-            try
-            {
-                const int key = std::stoi(rule.key().c_str());
-                if (key > UINT16_MAX)
-                {
-                    LOG_ERROR(logger, "KEY MUST BE A 16-BIT UNSIGNED INTEGER");
-
-                    mapMappingRules.clear();
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, mapMappingRules);
-                }
-                numericKey = static_cast<uint16_t>(key);
-            }
-            catch (const std::invalid_argument& e)
-            {
-                LOG_ERROR(logger, "INVALID KEY ARGUMENT: %u", numericKey);
-
-                mapMappingRules.clear();
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, mapMappingRules);
-            }
-            catch (const std::out_of_range& e)
-            {
-                LOG_ERROR(logger, "KEY OUT OF RANGE: %u", numericKey);
-
-                mapMappingRules.clear();
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, mapMappingRules);
-            }
-
-            try
-            {
-                const auto rsc = mapMappingRules.emplace(numericKey, rule.value().as<const char*>());
-                if (rsc.second == false)
-                {
-                    LOG_ERROR(logger, "KEYS CANNOT BE DUPLICATED: %u", numericKey);
-
-                    mapMappingRules.clear();
-                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, mapMappingRules);
-                }
-            }
-            catch (const std::bad_alloc& e)
-            {
-                LOG_ERROR(logger, "%s", e.what());
-                return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, mapMappingRules);
-            }
-            catch(const std::exception& e)
-            {
-                LOG_ERROR(logger, "FAILED TO EMPLACE MAPPING RULE: %s", e.what());
-                return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, mapMappingRules);
-            }
-        }
-
-        /**
-         * @todo Map 내부의 키 값이 중복되서 들어올 시, 에러를 반환해야 함
-         */
-        return std::make_pair(rsc_e::GOOD, mapMappingRules);
+        mNumericOffset.first = rsc_e::GOOD;
+        mNumericOffset.second = numericOffset.as<float>();
     }
 
     /**
@@ -1733,7 +1606,7 @@ namespace muffin { namespace jvs {
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
      *     @li Status::Code::BAD_OUT_OF_RANGE 키(key) 값이 int32_t 타입으로 변환 가능한 범위를 벗어났습니다.
      */
-    void NodeValidator::convertToDataUnitOrderType(const std::string& value)
+    std::pair<rsc_e, ord_t> NodeValidator::convertToDataUnitOrderType(const std::string& value)
     {
         std::string stringIndex;
         ord_t dataUnitOrder;
@@ -1808,7 +1681,7 @@ namespace muffin { namespace jvs {
         return std::make_pair(rsc_e::GOOD, dataUnitOrder);
     }
 
-    void NodeValidator::convertToDataType(const uint8_t dataType)
+    std::pair<rsc_e, dt_e> NodeValidator::convertToDataType(const uint8_t dataType)
     {
         switch (dataType)
         {
@@ -1845,20 +1718,21 @@ namespace muffin { namespace jvs {
     {
         if (formatString.isNull() == true)
         {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, std::string());
+            mFormatString.first = rsc_e::GOOD_NO_DATA;
+            return;
         }
 
         if (formatString.is<const char*>() == false)
         {
-            LOG_ERROR(logger, "FORMAT STRING MUST BE A STRING");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, std::string());
+            mFormatString.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
         
         const char* format = formatString.as<const char*>();
         if (strlen(format) == 0)
         {
-            LOG_ERROR(logger, "FORMAT STRING CANNOT BE AN EMPTY STRING");
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, std::string());
+            mFormatString.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
         
         while (*format)
@@ -1975,13 +1849,13 @@ namespace muffin { namespace jvs {
                 }
                 catch (const std::bad_alloc& e)
                 {
-                    LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY: %s", e.what());
-                    return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, std::string());
+                    mFormatString.first = rsc_e::BAD_OUT_OF_MEMORY;
+                    return;
                 }
                 catch(const std::exception& e)
                 {
-                    LOG_ERROR(logger, "FAILED TO EMPLACE FORMAT SPECIFIER: %s", e.what());
-                    return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, std::string());
+                    mFormatString.first = rsc_e::BAD_UNEXPECTED_ERROR;
+                    return;
                 }
                 
                 ++format;
@@ -1994,19 +1868,18 @@ namespace muffin { namespace jvs {
 
         if (mVectorFormatSpecifier.size() == 0)
         {
-            LOG_ERROR(logger, "NO FORMAT SPECIFIER IS IN THE FORMAT STRING: %s", format);
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, std::string());
+            mFormatString.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
         }
         else
         {
-            return std::make_pair(rsc_e::GOOD, formatString.as<const char*>());
+            mFormatString.first   = rsc_e::GOOD;
+            mFormatString.second  = formatString.as<const char*>();
+            return;
         }
         
-
     INVALID_SPECIFIER:
-        LOG_ERROR(logger, "INVALID FORMAT STRING: %s", format);
-
         mVectorFormatSpecifier.clear();
-        return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, std::string());
+        mFormatString.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
     }
 }}

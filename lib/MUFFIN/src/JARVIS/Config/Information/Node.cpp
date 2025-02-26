@@ -5,10 +5,10 @@
  * 
  * @brief Node 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-14
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -44,13 +44,10 @@ namespace muffin { namespace jvs { namespace config {
             mAddressQuantity        = obj.mAddressQuantity;
             mNumericScale           = obj.mNumericScale;
             mNumericOffset          = obj.mNumericOffset;
-            mMapMappingRules        = obj.mMapMappingRules;
             mVectorDataUnitOrders   = obj.mVectorDataUnitOrders;
             mVectorDataTypes        = obj.mVectorDataTypes;
             mFormatString           = obj.mFormatString;
             mDeprecableUID          = obj.mDeprecableUID;
-            mDeprecableDisplayName  = obj.mDeprecableDisplayName;
-            mDeprecableDisplayUnit  = obj.mDeprecableDisplayUnit;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
         }
         
@@ -68,13 +65,10 @@ namespace muffin { namespace jvs { namespace config {
             mAddressQuantity        == obj.mAddressQuantity         &&
             mNumericScale           == obj.mNumericScale            &&
             mNumericOffset          == obj.mNumericOffset           &&
-            mMapMappingRules        == obj.mMapMappingRules         &&
             std::equal(mVectorDataUnitOrders.begin(), mVectorDataUnitOrders.end(), obj.mVectorDataUnitOrders.begin()) &&
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
             mDeprecableUID          == obj.mDeprecableUID           &&
-            mDeprecableDisplayName  == obj.mDeprecableDisplayName   &&
-            mDeprecableDisplayUnit  == obj.mDeprecableDisplayUnit   &&
             mHasAttributeEvent      == obj.mHasAttributeEvent
         );
     }
@@ -330,8 +324,6 @@ namespace muffin { namespace jvs { namespace config {
             ), "MAPPING RULES CANNOT BE APPLIED TO DATA WHICH IS STRING, FP32 OR FP64 TYPE"
         );
         ASSERT((mappingRules.size() > 0), "INVALID MAPPING RULES: NO RULE AT ALL");
-
-        mMapMappingRules = std::move(mappingRules);
         mIsMappingRulesSet = true;
     }
 
@@ -546,13 +538,11 @@ namespace muffin { namespace jvs { namespace config {
 
     void Node::SetDeprecableDisplayName(const std::string& displayName)
     {
-        mDeprecableDisplayName = displayName;
         mIsDeprecableDisplayNameSet = true;
     }
 
     void Node::SetDeprecableDisplayUnit(const std::string& displayUnit)
     {
-        mDeprecableDisplayUnit = displayUnit;
         mIsDeprecableDisplayUnitSet = true;
     }
 

@@ -5,10 +5,10 @@
  * 
  * @brief Node 설정 형식을 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-08
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 

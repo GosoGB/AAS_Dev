@@ -5,10 +5,10 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
- * @date 2024-11-01
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -1210,20 +1210,6 @@ namespace muffin { namespace im {
             }
 
             float floatTemp = 0;
-            
-            if (mMapMappingRules.first == true)
-            {
-                auto it = mMapMappingRules.second.find(Convert.ToUInt16(data));
-                if (it != mMapMappingRules.second.end()) 
-                {
-                    return std::make_pair(Status(Status::Code::GOOD), it->first);
-                } 
-                else
-                {
-                    LOG_ERROR(logger,"NO MATCHING KEY DATA IN MAPPING RULES, DATA : %s",data.c_str());
-                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), it->first);
-                }
-            }
 
             if (mBitIndex.first == true)
             {
@@ -1378,10 +1364,8 @@ namespace muffin { namespace im {
             return std::make_pair(false, daq);
         }
 
-        daq.Name = mDeprecableDisplayName;
         daq.SourceTimestamp = variableData.Timestamp;
         daq.Uid = mDeprecableUID;
-        daq.Unit = mDeprecableDisplayUnit;
         daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
                     mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
                     mqtt::topic_e::DAQ_PARAM;
