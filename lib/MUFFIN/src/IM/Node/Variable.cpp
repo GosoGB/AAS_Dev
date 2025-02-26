@@ -35,15 +35,10 @@ namespace muffin { namespace im {
         , mAddressQuantity(false, 1)
         , mNumericScale(false, jvs::scl_e::NEGATIVE_1)
         , mNumericOffset(false, 0.0f)
-        , mMapMappingRules(false, std::map<std::uint16_t, std::string>())
         , mVectorDataUnitOrders(false, std::vector<jvs::DataUnitOrder>())
         , mFormatString(false, std::string())
         , mNodeID(nodeID)
         , mDeprecableUID(UID)
-    {
-    }
-
-    Variable::~Variable()
     {
     }
 
@@ -53,9 +48,6 @@ namespace muffin { namespace im {
         mAddress                  = cin->GetAddrress().second;
         mVectorDataTypes          = cin->GetDataTypes().second;
         mHasAttributeEvent        = cin->GetAttributeEvent().second;
-        mDeprecableDisplayName    = cin->GetDeprecableDisplayName().second;
-        mDeprecableDisplayUnit    = cin->GetDeprecableDisplayUnit().second;                
-
 
         if (cin->GetModbusArea().first == Status::Code::GOOD)
         {
@@ -86,12 +78,6 @@ namespace muffin { namespace im {
             mNumericOffset.first   = true;
             mNumericOffset.second  = cin->GetNumericOffset().second;
         }
-        
-        if (cin->GetMappingRules().first == Status::Code::GOOD)
-        {
-            mMapMappingRules.first   = true;
-            mMapMappingRules.second  = cin->GetMappingRules().second;
-        }
 
         if (cin->GetDataUnitOrders().first == Status::Code::GOOD)
         {
@@ -105,7 +91,7 @@ namespace muffin { namespace im {
             mFormatString.second  = cin->GetFormatString().second;
         }
     
-        if (mMapMappingRules.first == true || mFormatString.first == true)
+        if (mFormatString.first == true)
         {
             mDataType = jvs::dt_e::STRING;
         }
@@ -468,17 +454,6 @@ namespace muffin { namespace im {
         if (mBitIndex.first == true)
         {
             applyBitIndex(variableData);
-            if (mMapMappingRules.first == true)
-            {
-                applyMappingRules(variableData);
-                goto CHECK_EVENT;
-            }
-            goto CHECK_EVENT;
-        }
-
-        if (mMapMappingRules.first == true)
-        {
-            applyMappingRules(variableData);
             goto CHECK_EVENT;
         }
 
@@ -521,10 +496,8 @@ namespace muffin { namespace im {
                 mDeprecableUID.substr(0, 1) == "P")
             {
                 daq_struct_t daq;
-                daq.Name = mDeprecableDisplayName;
                 daq.SourceTimestamp = variableData.Timestamp;
                 daq.Uid = mDeprecableUID;
-                daq.Unit = mDeprecableDisplayUnit;
                 daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
                             mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
                             mqtt::topic_e::DAQ_PARAM;
@@ -650,12 +623,6 @@ namespace muffin { namespace im {
 
                 variableData->DataType = jvs::dt_e::BOOLEAN;
                 variableData->Value.Boolean = polledData.front().Value.Boolean;
-
-                if (mMapMappingRules.first == true)
-                {
-                    applyMappingRules(*variableData);
-                }
-
                 return;
             }
 
@@ -885,46 +852,6 @@ namespace muffin { namespace im {
         }
 
         variableData.DataType  = jvs::dt_e::BOOLEAN;
-    }
-
-    void Variable::applyMappingRules(var_data_t& variableData)
-    {
-        auto it = mMapMappingRules.second.end();
-
-        switch (variableData.DataType)
-        {
-        case jvs::dt_e::BOOLEAN:
-            it = mMapMappingRules.second.find(variableData.Value.Boolean);
-            break;
-        case jvs::dt_e::INT8:
-        case jvs::dt_e::UINT8:
-            it = mMapMappingRules.second.find(variableData.Value.UInt8);
-            break;
-        case jvs::dt_e::INT16:
-        case jvs::dt_e::UINT16:
-            it = mMapMappingRules.second.find(variableData.Value.UInt16);
-            break;
-        case jvs::dt_e::INT32:
-        case jvs::dt_e::UINT32:
-            it = mMapMappingRules.second.find(variableData.Value.UInt16);
-            break;
-        default:
-            break;
-        }
-        // ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
-        
-        if (it == mMapMappingRules.second.end())
-        {
-            variableData.DataType = jvs::dt_e::STRING;
-            variableData.Value.String = ToMuffinString("UNDEFINED : " + std::to_string(variableData.Value.UInt16));
-        }
-        else
-        {
-            variableData.DataType = jvs::dt_e::STRING;
-            variableData.Value.String = ToMuffinString(it->second);
-        }
-        
-        
     }
 
     void Variable::applyNumericScale(var_data_t& variableData)
@@ -1195,7 +1122,6 @@ namespace muffin { namespace im {
     // {
     //     ;
     // }
-
 
     size_t Variable::RetrieveCount() const
     {

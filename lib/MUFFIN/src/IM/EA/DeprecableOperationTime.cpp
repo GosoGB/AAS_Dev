@@ -291,20 +291,6 @@ namespace muffin {
 
         case jvs::dt_e::FLOAT64:
             return mCriterion.second == datum.Value.Float64;
-
-        case jvs::dt_e::STRING:
-            {
-                const auto mappingRules = node.VariableNode.GetMappingRules();
-                for (auto& pair : mappingRules)
-                {
-                    const std::string strValue = std::string(datum.Value.String.Data);
-                    if (pair.second == strValue)
-                    {
-                        return mCriterion.second == static_cast<int32_t>(pair.first);
-                    }
-                }
-                return false;
-            }
             
         default:
             return false;
@@ -347,20 +333,6 @@ namespace muffin {
 
         case jvs::dt_e::FLOAT64:
             return mCriterion.second >= datum.Value.Float64;
-
-        case jvs::dt_e::STRING:
-            {
-                const auto mappingRules = node.VariableNode.GetMappingRules();
-                for (auto& pair : mappingRules)
-                {
-                    const std::string strValue = std::string(datum.Value.String.Data);
-                    if (pair.second == strValue)
-                    {
-                        return mCriterion.second >= static_cast<int32_t>(pair.first);
-                    }
-                }
-                return false;
-            }
             
         default:
             return false;
@@ -403,20 +375,6 @@ namespace muffin {
 
         case jvs::dt_e::FLOAT64:
             return mCriterion.second > datum.Value.Float64;
-
-        case jvs::dt_e::STRING:
-            {
-                const auto mappingRules = node.VariableNode.GetMappingRules();
-                for (auto& pair : mappingRules)
-                {
-                    const std::string strValue = std::string(datum.Value.String.Data);
-                    if (pair.second == strValue)
-                    {
-                        return mCriterion.second > static_cast<int32_t>(pair.first);
-                    }
-                }
-                return false;
-            }
             
         default:
             return false;
@@ -460,20 +418,6 @@ namespace muffin {
         case jvs::dt_e::FLOAT64:
             return mCriterion.second <= datum.Value.Float64;
 
-        case jvs::dt_e::STRING:
-            {
-                const auto mappingRules = node.VariableNode.GetMappingRules();
-                for (auto& pair : mappingRules)
-                {
-                    const std::string strValue = std::string(datum.Value.String.Data);
-                    if (pair.second == strValue)
-                    {
-                        return mCriterion.second <= static_cast<int32_t>(pair.first);
-                    }
-                }
-                return false;
-            }
-            
         default:
             return false;
         }
@@ -515,20 +459,6 @@ namespace muffin {
 
         case jvs::dt_e::FLOAT64:
             return mCriterion.second < datum.Value.Float64;
-
-        case jvs::dt_e::STRING:
-            {
-                const auto mappingRules = node.VariableNode.GetMappingRules();
-                for (auto& pair : mappingRules)
-                {
-                    const std::string strValue = std::string(datum.Value.String.Data);
-                    if (pair.second == strValue)
-                    {
-                        return mCriterion.second < static_cast<int32_t>(pair.first);
-                    }
-                }
-                return false;
-            }
             
         default:
             return false;

@@ -37,7 +37,7 @@ namespace muffin { namespace im {
     {
     public:
         Variable(const std::string& nodeID, const std::string& UID);
-        virtual ~Variable();
+        virtual ~Variable() {}
     public:
         void Init(const jvs::config::Node* cin);
     public:
@@ -49,7 +49,6 @@ namespace muffin { namespace im {
         void flattenToByteArray(const std::vector<poll_data_t>& polledData, std::vector<uint8_t>* outputFlattenVector);
         void castByteVector(const jvs::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
         void applyBitIndex(var_data_t& variableData);
-        void applyMappingRules(var_data_t& variableData);
         void applyNumericScale(var_data_t& variableData);
         void applyNumericOffset(var_data_t& variableData);
         bool isEventOccured(var_data_t& variableData);
@@ -70,9 +69,6 @@ namespace muffin { namespace im {
         uint8_t GetQuantity() const;
         uint16_t GetBitIndex() const;
         jvs::mb_area_e GetModbusArea() const;
-        std::map<std::uint16_t, std::string> GetMappingRules() const { return mMapMappingRules.second; }
-        std::string GetDisplayName() const { return mDeprecableDisplayName; }
-        std::string GetDisplayUnit() const { return mDeprecableDisplayUnit; }
         std::pair<bool, jvs::scl_e> GetNumericScale() const { return mNumericScale; }
         bool GetHasAttributeEvent() const { return mHasAttributeEvent; }
         std::pair<bool, daq_struct_t> CreateDaqStruct();
@@ -87,18 +83,15 @@ namespace muffin { namespace im {
         // virtual void strategySingleDataType() override;
         // void strategySingleDataType();
     private:
-        jvs::adtp_e mAddressType;
         jvs::addr_u mAddress;
-        std::vector<jvs::dt_e> mVectorDataTypes;
+        jvs::adtp_e mAddressType;
         bool mHasAttributeEvent;
-        std::string mDeprecableDisplayName;
-        std::string mDeprecableDisplayUnit;
+        std::vector<jvs::dt_e> mVectorDataTypes;
         std::pair<bool, jvs::mb_area_e> mModbusArea;
         std::pair<bool, uint8_t> mBitIndex;
         std::pair<bool, uint8_t> mAddressQuantity;
         std::pair<bool, jvs::scl_e> mNumericScale;
         std::pair<bool, float> mNumericOffset;
-        std::pair<bool, std::map<std::uint16_t, std::string>> mMapMappingRules;
         std::pair<bool, std::vector<jvs::DataUnitOrder>> mVectorDataUnitOrders;
         std::pair<bool, std::string> mFormatString;
 

@@ -128,9 +128,7 @@ namespace muffin {
 
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
-        doc["name"]   = msg.Name;
         doc["uid"]    = msg.Uid;
-        doc["unit"]   = msg.Unit;
         doc["value"]  = msg.Value;
 
         serializeJson(doc, output, size);
@@ -146,7 +144,6 @@ namespace muffin {
         doc["tp"]    = msg.AlarmType;
         doc["ts"]    = msg.AlarmStartTime;
         doc["tf"]    = msg.AlarmFinishTime;
-        doc["name"]  = msg.Name;
         doc["uid"]   = msg.Uid;
         doc["id"]    = msg.UUID;
 
@@ -186,7 +183,6 @@ namespace muffin {
         JsonDocument doc;
 
         doc["mac"]   = macAddress.GetEthernet();
-        doc["name"]  = msg.Name;
         doc["ts"]    = msg.SourceTimestamp;
 
         serializeJson(doc, output, size);

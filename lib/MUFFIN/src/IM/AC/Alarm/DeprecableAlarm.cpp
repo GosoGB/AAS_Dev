@@ -368,20 +368,6 @@ namespace muffin {
             value = static_cast<int16_t>(datum.Value.UInt16);
             hasValue = true;
             break;
-        case jvs::dt_e::STRING:
-            {
-                const auto mappingRules = node.GetMappingRules();
-                for (auto& pair : mappingRules)
-                {
-                    const std::string strValue = std::string(datum.Value.String.Data);
-                    if (pair.second == strValue)
-                    {
-                        value = static_cast<int16_t>(pair.first);
-                        hasValue = true;
-                    }
-                }
-            }
-            break;
         default:
             break;
         }
@@ -594,13 +580,9 @@ namespace muffin {
         {
         case jvs::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
-            alarm.Name = node.GetDisplayName() + " 하한 도달";
-            push.Name = node.GetDisplayName() + " 하한 도달";
             break;
         case jvs::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
-            alarm.Name = node.GetDisplayName() + " 상한 초과";
-            push.Name = node.GetDisplayName() + " 상한 초과";
             break;
         case jvs::alarm_type_e::CONDITION:
             {
@@ -610,8 +592,6 @@ namespace muffin {
                     if (cin.GetNodeID().second == nodeRef.first)
                     {
                         alarm.Uid = nodeRef.second->GetUID();
-                        alarm.Name = std::string(node.RetrieveData().Value.String.Data);
-                        push.Name = std::string(node.RetrieveData().Value.String.Data);
                         break;
                     }
                 }
@@ -878,9 +858,7 @@ namespace muffin {
             daq_struct_t param;
 
             param.SourceTimestamp = GetTimestampInMillis();
-            param.Name = node.GetDisplayName() + " 하한 값";
             param.Uid = cin.GetLclUID().second;
-            param.Unit = node.GetDisplayUnit();
             param.Value = node.FloatConvertToStringForLimitValue(lcl);
 
             JSON json;
@@ -905,9 +883,7 @@ namespace muffin {
             daq_struct_t param;
 
             param.SourceTimestamp = GetTimestampInMillis();
-            param.Name = node.GetDisplayName() + " 상한 값";
             param.Uid = cin.GetUclUID().second;
-            param.Unit = node.GetDisplayUnit();
             param.Value = node.FloatConvertToStringForLimitValue(ucl);
 
             JSON json;

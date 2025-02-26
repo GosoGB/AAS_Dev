@@ -62,13 +62,11 @@ namespace muffin { namespace jvs { namespace config {
         std::pair<Status, uint8_t> GetNumericAddressQuantity() const;
         std::pair<Status, scl_e> GetNumericScale() const;
         std::pair<Status, float> GetNumericOffset() const;
-        std::pair<Status, std::map<std::uint16_t, std::string>> GetMappingRules() const;
+        
         std::pair<Status, std::vector<DataUnitOrder>> GetDataUnitOrders() const;
         std::pair<Status, std::vector<dt_e>> GetDataTypes() const;
         std::pair<Status, std::string> GetFormatString() const;
         std::pair<Status, std::string> GetDeprecableUID() const;
-        std::pair<Status, std::string> GetDeprecableDisplayName() const;
-        std::pair<Status, std::string> GetDeprecableDisplayUnit() const;
         std::pair<Status, bool> GetAttributeEvent() const;
     private:
         bool mIsNodeIdSet                   = false;
@@ -96,13 +94,10 @@ namespace muffin { namespace jvs { namespace config {
         uint8_t mAddressQuantity;
         scl_e mNumericScale;
         float mNumericOffset;
-        std::map<std::uint16_t, std::string> mMapMappingRules;
         std::vector<DataUnitOrder> mVectorDataUnitOrders;
         std::vector<dt_e> mVectorDataTypes;
         std::string mFormatString;
         std::string mDeprecableUID;
-        std::string mDeprecableDisplayName;
-        std::string mDeprecableDisplayUnit;
         bool mHasAttributeEvent;
     };
 }}}

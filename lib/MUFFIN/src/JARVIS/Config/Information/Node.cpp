@@ -658,18 +658,6 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, std::map<std::uint16_t, std::string>> Node::GetMappingRules() const
-    {
-        if (mIsMappingRulesSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mMapMappingRules);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mMapMappingRules);
-        }
-    }
-
     std::pair<Status, std::vector<DataUnitOrder>> Node::GetDataUnitOrders() const
     {
         if (mIsDataUnitOrdersSet)
@@ -715,30 +703,6 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mDeprecableUID);
-        }
-    }
-
-    std::pair<Status, std::string> Node::GetDeprecableDisplayName() const
-    {
-        if (mIsDeprecableDisplayNameSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mDeprecableDisplayName);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mDeprecableDisplayName);
-        }
-    }
-
-    std::pair<Status, std::string> Node::GetDeprecableDisplayUnit() const
-    {
-        if (mIsDeprecableDisplayUnitSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mDeprecableDisplayUnit);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mDeprecableDisplayUnit);
         }
     }
 
