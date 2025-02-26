@@ -4,10 +4,10 @@
  * 
  * @brief 알람 이벤트를 생성하기 위한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2024-10-12
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -30,8 +30,8 @@ namespace muffin { namespace jvs {
     class AlarmValidator
     {
     public:
-        AlarmValidator();
-        virtual ~AlarmValidator();
+        AlarmValidator() {}
+        virtual ~AlarmValidator() {}
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
