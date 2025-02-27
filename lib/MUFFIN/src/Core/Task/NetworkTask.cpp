@@ -217,27 +217,27 @@ namespace muffin {
             LOG_WARNING(logger, "NOTHING TO DO: ALREADY CONNECTED TO THE BROKER");
             return Status(Status::Code::GOOD);
         }
-
+        
     #if defined(DEBUG)
         mqtt::BrokerInfo info(
             MacAddress::GetEthernet(),
-            "mqtt.vitcon.iotops.opsnow.com",
+            "mmm.broker.edgecross.ai",
             8883,
-            40,
+            7,
             mqtt::socket_e::SOCKET_0,
-            "vitcon",
-            "tkfkdgo5!@#$"
+            "edgeaiot",
+            "!edge1@1159"
         );
     #else
         // mqtt::BrokerInfo info(MacAddress::GetEthernet());
         mqtt::BrokerInfo info(
             MacAddress::GetEthernet(),
-            "mqtt.vitcon.iotops.opsnow.com",
+            "mmm.broker.edgecross.ai",
             8883,
-            40,
+            7,
             mqtt::socket_e::SOCKET_0,
-            "vitcon",
-            "tkfkdgo5!@#$"
+            "edgeaiot",
+            "!edge1@1159"
         );
     #endif
         

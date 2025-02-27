@@ -53,8 +53,8 @@ namespace muffin {
     DeviceStatus::DeviceStatus()
         : mStatus(Status::Code::UNCERTAIN)
     {
-        mVersionESP32.Semantic = "1.2.1";
-        mVersionESP32.Code = 121;
+        mVersionESP32.Semantic = "1.2.2";
+        mVersionESP32.Code = 122;
 #if defined(MODLINK_T2) || defined(MODLINK_B)
         mVersionMEGA2560.Semantic = "0.0.0";
         mVersionMEGA2560.Code = 999;
