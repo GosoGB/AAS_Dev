@@ -4,10 +4,10 @@
  * 
  * @brief Intel Hex 형식의 데이터를 파싱 하는 클래스를 선언합니다.
  * 
- * @date 2024-11-28
- * @version 1.0.0
+ * @date 2025-02-06
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright Edgecross Inc. (c) 2024-2025
  */
 
 
@@ -51,7 +51,7 @@ namespace muffin { namespace ota {
          * @param pages 256 bytes 크기로 파싱된 Intel Hex 파일
          * @return Status 
          */
-        Status Parse(const std::string& chunk);
+        Status Parse(std::string& chunk);
         size_t GetPageCount() const;
         page_t GetPage();
         void RemovePage();

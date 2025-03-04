@@ -17,25 +17,14 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
 #include "Helper.h"
 
 
 
 namespace muffin { namespace mqtt {
-    
-    const char* ConvertVersionToString(const version_e version)
-    {
-        switch (version)
-        {
-        case version_e::Ver_3_1_0:
-            return "Ver.3.1.0";
-        case version_e::Ver_3_1_1:
-            return "Ver.3.1.1";
-        default:
-            ASSERT(false, "UNDEFINED OR UNSUPPORTED VERSION");
-            return nullptr;
-        }
-    }
 
     version_e ConvertUInt32ToVersion(const uint32_t integer)
     {

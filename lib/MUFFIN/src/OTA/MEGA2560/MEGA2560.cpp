@@ -102,7 +102,7 @@ namespace muffin { namespace ota {
     
     Status MEGA2560::LoadAddress(const uint32_t address)
     {
-        LOG_INFO(logger, "Loading address 0x%X", address);
+        // LOG_INFO(logger, "Loading address 0x%X", address);
 
         const uint32_t extendedAddress = address | (1 << 31);
         const uint8_t address01 = (extendedAddress >> 24) & 0xFF;
@@ -152,19 +152,19 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD);
         }
 
-        LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
-        LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
-        LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
+        // LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
+        // LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
+        // LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
 
         ++mSequenceID;
-        LOG_INFO(logger, "Loaded address 0x%X", address);
+        // LOG_INFO(logger, "Loaded address 0x%X", address);
         return Status(Status::Code::GOOD);
     }
     
     Status MEGA2560::ProgramFlashISP(const page_t page)
     {
         ASSERT((page.Size == PAGE_SIZE), "INVALID PAGE SIZE");
-        LOG_INFO(logger, "Programming Flash ISP");
+        // LOG_INFO(logger, "Programming Flash ISP");
 
         constexpr uint16_t bodySize  = 10 + PAGE_SIZE;
 
@@ -219,19 +219,19 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD);
         }
 
-        LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
-        LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
-        LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
+        // LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
+        // LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
+        // LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
         
         ++mSequenceID;
-        LOG_INFO(logger, "Programmed Flash ISP");
+        // LOG_INFO(logger, "Programmed Flash ISP");
         return Status(Status::Code::GOOD);
     }
 
     Status MEGA2560::ReadFlashISP(const uint16_t readLength, page_t* outputPage)
     {
         ASSERT((outputPage != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
-        LOG_INFO(logger, "Reading Flash ISP: %u", readLength);
+        // LOG_INFO(logger, "Reading Flash ISP: %u", readLength);
 
         const uint8_t lengthByteHIGH = (readLength >>  8) & 0xFF;
         const uint8_t lengthByteLOW  = readLength & 0xFF;
@@ -294,12 +294,12 @@ namespace muffin { namespace ota {
             ++outputPage->Size;
         }
 
-        LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
-        LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
-        LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
+        // LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
+        // LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
+        // LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
 
         ++mSequenceID;
-        LOG_INFO(logger, "Finished reading Flash ISP: %u", readLength);
+        // LOG_INFO(logger, "Finished reading Flash ISP: %u", readLength);
         return Status(Status::Code::GOOD);
     }
 
@@ -347,9 +347,9 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD);
         }
 
-        LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
-        LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
-        LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
+        // LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
+        // LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
+        // LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
 
         ++mSequenceID;
         return Status(Status::Code::GOOD);
@@ -471,10 +471,10 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
         }
         
-        LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
-        LOG_DEBUG(logger, "Status: 0x%X", response.MessageBody[1]);
-        LOG_DEBUG(logger, "Signature Length: 0x%X", response.MessageBody[2]);
-        LOG_DEBUG(logger, "Signature: %s", signature);
+        // LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
+        // LOG_DEBUG(logger, "Status: 0x%X", response.MessageBody[1]);
+        // LOG_DEBUG(logger, "Signature Length: 0x%X", response.MessageBody[2]);
+        // LOG_DEBUG(logger, "Signature: %s", signature);
         LOG_INFO(logger, "Sign-on to the programmer of ATmega2560 MCU");
 
         ++mSequenceID;
@@ -541,9 +541,9 @@ namespace muffin { namespace ota {
             return Status(Status::Code::BAD);
         }
 
-        LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
-        LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
-        LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
+        // LOG_DEBUG(logger, "Answer ID: 0x%X", response.MessageBody[0]);
+        // LOG_DEBUG(logger, "Status Code: 0x%X", response.MessageBody[1]);
+        // LOG_DEBUG(logger, "Status String: %s", ConvertToString(response.MessageBody[1]));
         
         ++mSequenceID;
         return Status(Status::Code::GOOD);
@@ -557,7 +557,7 @@ namespace muffin { namespace ota {
         const uint16_t sizeHigh = static_cast<uint16_t>(outputMessage->Header.SizeHighByte) << 8;
         const uint8_t  sizeLow  = outputMessage->Header.SizeLowByte;
         const uint16_t size = sizeHigh | sizeLow;
-        LOG_DEBUG(logger, "Message body size: %u", size);
+        // LOG_DEBUG(logger, "Message body size: %u", size);
 
         outputMessage->Checksum = 0;
         outputMessage->Checksum ^= outputMessage->Header.Start;
@@ -570,7 +570,7 @@ namespace muffin { namespace ota {
             outputMessage->Checksum ^= outputMessage->MessageBody[i];
         }
 
-        LOG_DEBUG(logger, "Checksum: 0x%X", outputMessage->Checksum);
+        // LOG_DEBUG(logger, "Checksum: 0x%X", outputMessage->Checksum);
     }
 
     void MEGA2560::calculateChecksum(std::vector<uint8_t>& vector, uint8_t* outputChecksum)
@@ -593,7 +593,7 @@ namespace muffin { namespace ota {
         const uint8_t  bodySizeLow  = command.Header.SizeLowByte;
         const uint16_t bodySize     = bodySizeHigh | bodySizeLow;
         const uint16_t size         = MESSAGE_OVERHEAD + bodySize + MESSAGE_CHECKSUM;
-        LOG_DEBUG(logger, "Message size: %u", size);
+        // LOG_DEBUG(logger, "Message size: %u", size);
         ASSERT((bodySize > 0), "MESSAGE BODY CANNOT BE EMPTY");
 
         uint8_t message[size] = { 0 };
@@ -608,14 +608,14 @@ namespace muffin { namespace ota {
         }
         message[(size - 1)] = command.Checksum;
 
-    #if defined(DEBUG)
-        Serial.print("Command: ");
-        for (size_t i = 0; i < size; ++i)
-        {
-            Serial.printf("0x%X ", message[i]);
-        }
-        Serial.println();
-    #endif
+    // #if defined(DEBUG)
+    //     Serial.print("Command: ");
+    //     for (size_t i = 0; i < size; ++i)
+    //     {
+    //         Serial.printf("0x%X ", message[i]);
+    //     }
+    //     Serial.println();
+    // #endif
         return Serial2.write(message, size);
     }
 
@@ -680,9 +680,17 @@ namespace muffin { namespace ota {
         }
         outputResponse->Checksum = rxd.back();
         ++idx;
-        ASSERT((idx <= MAX_MESSAGE_SIZE), "RESPONSE LENGTH CANNOT EXCEED THE MAXIMUM MESSAGE SIZE");
-        outputResponse->Size = idx;
-        return Status(Status::Code::GOOD);
+        ASSERT((idx <= MAX_MESSAGE_SIZE), "RESPONSE LENGTH CANNOT EXCEED THE MAXIMUM MESSAGE SIZE: %u <= %u", idx, MAX_MESSAGE_SIZE);
+
+        if ((idx <= MAX_MESSAGE_SIZE))
+        {
+            outputResponse->Size = idx;
+            return Status(Status::Code::GOOD);
+        }
+        else
+        {
+            return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+        }
     }
 }}
 

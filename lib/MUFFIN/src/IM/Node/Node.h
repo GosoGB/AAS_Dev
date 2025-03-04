@@ -16,7 +16,7 @@
 #pragma once
 
 #include "Common/Status.h"
-#include "Jarvis/Config/Information/Node.h"
+#include "JARVIS/Config/Information/Node.h"
 #include "Method.h"
 #include "Variable.h"
 
@@ -27,7 +27,7 @@ namespace muffin { namespace im {
     class Node
     {
     public:
-        explicit Node(const jarvis::config::Node* cin);
+        explicit Node(const jvs::config::Node* cin);
         virtual ~Node();
     public:
         const std::string& GetNodeID() const;

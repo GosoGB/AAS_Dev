@@ -4,10 +4,10 @@
  *
  * @brief
  *
- * @date 2024-12-29
- * @version 1.2.0
+ * @date 2025-02-04
+ * @version 1.2.2
  *
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -63,7 +63,17 @@ namespace muffin
             mFreeBlocks.push_back((char*)block + i * mBlockSize);
         }
     }
+    
+    void MemoryPool::Reset()
+    {
+        mFreeBlocks.clear();  // 기존의 할당된 블록 목록을 비웁니다.
+
+        for (size_t idx = 0; idx < mBlockCount; ++idx)
+        {
+            mFreeBlocks.push_back(mPool + idx * mBlockSize);
+        }
+    }
 
 
-    MemoryPool memoryPool(800, 50);
+    MemoryPool memoryPool(320, 50);
 }

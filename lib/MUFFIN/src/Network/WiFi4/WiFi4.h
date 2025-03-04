@@ -4,8 +4,8 @@
  * 
  * @brief Wi-Fi 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-09-03
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  *  
  * @todo JARVIS 설계 문서에 WPA2 authentication method 속성을 추가로 정의해야 합니다.
  * 그러나 그에 앞서서 각 auth 모드에 따라 사용자로부터 추가로 입력을 받아야 하는 데이터가 
@@ -20,7 +20,7 @@
  * 경우에는 현재의 소스 코드를 변경해야 합니다. 다만 SRP 원칙 등을 고려했을 때, 클래스를
  * 분리하는 것이 좋을지 아니면 하나의 클래스 안에 구현할지에 대한 의사결정이 필요합니다.
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -30,7 +30,7 @@
 
 #include <WiFiGeneric.h>
 
-#include "Jarvis/Config/Network/WiFi4.h"
+#include "JARVIS/Config/Network/WiFi4.h"
 #include "Network/INetwork.h"
 
 
@@ -76,19 +76,21 @@ namespace muffin {
         } state_e;
     public:
         virtual Status Init() override;
-        virtual Status Config(jarvis::config::Base* config) override;
+        virtual Status Config(jvs::config::Base* config) override;
         virtual Status Connect() override;
         virtual Status Disconnect() override;
         virtual Status Reconnect() override;
         virtual bool IsConnected() const override;
         virtual IPAddress GetIPv4() const override;
+        virtual std::pair<Status, size_t> TakeMutex() override;
+        virtual Status ReleaseMutex() override;
         const char* GetMacAddress() const;
         state_e GetState() const;
     private:
         static void getArduinoWiFiEvent(arduino_event_id_t event);
     private:
         static state_e mState;
-        jarvis::config::WiFi4 mConfig;
+        jvs::config::WiFi4 mConfig;
         bool mIsArduinoEventCallbackRegistered = false;
     };
 }

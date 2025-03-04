@@ -20,18 +20,18 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "ConvertClass.h"
-#include "Jarvis/Config/Information/Alarm.h"
-#include "Jarvis/Config/Information/Node.h"
-#include "Jarvis/Config/Information/OperationTime.h"
-#include "Jarvis/Config/Information/Production.h"
-#include "Jarvis/Config/Interfaces/Rs232.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
-#include "Jarvis/Config/Network/CatM1.h"
-#include "Jarvis/Config/Network/Ethernet.h"
-#include "Jarvis/Config/Network/WiFi4.h"
-#include "Jarvis/Config/Operation/Operation.h"
-#include "Jarvis/Config/Protocol/ModbusRTU.h"
-#include "Jarvis/Config/Protocol/ModbusTCP.h"
+#include "JARVIS/Config/Information/Alarm.h"
+#include "JARVIS/Config/Information/Node.h"
+#include "JARVIS/Config/Information/OperationTime.h"
+#include "JARVIS/Config/Information/Production.h"
+#include "JARVIS/Config/Interfaces/Rs232.h"
+#include "JARVIS/Config/Interfaces/Rs485.h"
+#include "JARVIS/Config/Network/CatM1.h"
+#include "JARVIS/Config/Network/Ethernet.h"
+#include "JARVIS/Config/Network/WiFi4.h"
+#include "JARVIS/Config/Operation/Operation.h"
+#include "JARVIS/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Config/Protocol/ModbusTCP.h"
 
 
 
@@ -87,12 +87,12 @@ namespace muffin {
         return static_cast<uint8_t>(ToUInt64(input));
     }
 
-    uint8_t ConvertClass::ToUInt8(const jarvis::cfg_key_e input)
+    uint8_t ConvertClass::ToUInt8(const jvs::cfg_key_e input)
     {
         return static_cast<uint8_t>(input);
     }
 
-    uint8_t ConvertClass::ToUInt8(const jarvis::prtcl_ver_e input)
+    uint8_t ConvertClass::ToUInt8(const jvs::prtcl_ver_e input)
     {
         return static_cast<uint8_t>(input);
     }
@@ -102,7 +102,7 @@ namespace muffin {
         return static_cast<uint16_t>(ToUInt64(input));
     }
     
-    uint16_t ConvertClass::ToUInt16(const jarvis::rsc_e input)
+    uint16_t ConvertClass::ToUInt16(const jvs::rsc_e input)
     {
         return static_cast<uint16_t>(input);
     }
@@ -117,7 +117,7 @@ namespace muffin {
         return static_cast<uint32_t>(input);
     }
 
-    uint32_t ConvertClass::ToUInt32(const jarvis::bdr_e input)
+    uint32_t ConvertClass::ToUInt32(const jvs::bdr_e input)
     {
         return static_cast<uint32_t>(input);
     }
@@ -206,9 +206,9 @@ namespace muffin {
         }
     }
 
-    std::string ConvertClass::ToString(const jarvis::cfg_key_e input)
+    std::string ConvertClass::ToString(const jvs::cfg_key_e input)
     {
-        using namespace jarvis;
+        using namespace jvs;
 
         switch (input)
         {
@@ -242,9 +242,9 @@ namespace muffin {
         }
     }
 
-    std::string ConvertClass::ToString(const jarvis::prtcl_ver_e input)
+    std::string ConvertClass::ToString(const jvs::prtcl_ver_e input)
     {
-        using namespace jarvis;
+        using namespace jvs;
 
         switch (input)
         {
@@ -264,9 +264,23 @@ namespace muffin {
         }
     }
 
-    std::pair<Status, jarvis::cfg_key_e> ConvertClass::ToJarvisKey(const jarvis::prtcl_ver_e version, const std::string& input)
+    const char* ConvertClass::ToString(const mqtt::version_e input)
     {
-        using namespace jarvis;
+        switch (input)
+        {
+        case mqtt::version_e::Ver_3_1_0:
+            return "3.1.0";
+        case mqtt::version_e::Ver_3_1_1:
+            return "3.1.1";
+        default:
+            ASSERT(false, "UNDEFINED MQTT PROTOCOL VERSION");
+            return nullptr;
+        }
+    }
+
+    std::pair<Status, jvs::cfg_key_e> ConvertClass::ToJarvisKey(const jvs::prtcl_ver_e version, const std::string& input)
+    {
+        using namespace jvs;
 
         if (static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_1) <= static_cast<uint8_t>(version))
         {
@@ -331,9 +345,9 @@ namespace muffin {
         }
     }
 
-    std::pair<Status, jarvis::prtcl_ver_e> ConvertClass::ToJarvisVersion(const std::string& input)
+    std::pair<Status, jvs::prtcl_ver_e> ConvertClass::ToJarvisVersion(const std::string& input)
     {
-        using namespace jarvis;
+        using namespace jvs;
 
         if (input == "v1")
         {
@@ -353,75 +367,75 @@ namespace muffin {
         }
     }
 
-    jarvis::config::Alarm* ConvertClass::ToAlarmCIN(jarvis::config::Base* config)
+    jvs::config::Alarm* ConvertClass::ToAlarmCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::ALARM), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::Alarm*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::ALARM), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Alarm*>(config);
     }
 
-    jarvis::config::Node* ConvertClass::ToNodeCIN(jarvis::config::Base* config)
+    jvs::config::Node* ConvertClass::ToNodeCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::NODE), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::Node*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::NODE), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Node*>(config);
     }
 
-    jarvis::config::OperationTime* ConvertClass::ToOperationTimeCIN(jarvis::config::Base* config)
+    jvs::config::OperationTime* ConvertClass::ToOperationTimeCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::OPERATION_TIME), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::OperationTime*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::OPERATION_TIME), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::OperationTime*>(config);
     }
 
-    jarvis::config::Production* ConvertClass::ToProductionCIN(jarvis::config::Base* config)
+    jvs::config::Production* ConvertClass::ToProductionCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::PRODUCTION_INFO), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::Production*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::PRODUCTION_INFO), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Production*>(config);
     }
 
-    jarvis::config::Rs232* ConvertClass::ToRS232CIN(jarvis::config::Base* config)
+    jvs::config::Rs232* ConvertClass::ToRS232CIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::RS232), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::Rs232*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::RS232), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Rs232*>(config);
     }
 
-    jarvis::config::Rs485* ConvertClass::ToRS485CIN(jarvis::config::Base* config)
+    jvs::config::Rs485* ConvertClass::ToRS485CIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::RS485), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::Rs485*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::RS485), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Rs485*>(config);
     }
 
-    jarvis::config::CatM1* ConvertClass::ToCatM1CIN(jarvis::config::Base* config)
+    jvs::config::CatM1* ConvertClass::ToCatM1CIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::LTE_CatM1), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::CatM1*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::LTE_CatM1), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::CatM1*>(config);
     }
 
-    jarvis::config::Ethernet* ConvertClass::ToEthernetCIN(jarvis::config::Base* config)
+    jvs::config::Ethernet* ConvertClass::ToEthernetCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::ETHERNET), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::Ethernet*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::ETHERNET), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Ethernet*>(config);
     }
 
-    jarvis::config::WiFi4* ConvertClass::ToWiFi4CIN(jarvis::config::Base* config)
+    jvs::config::WiFi4* ConvertClass::ToWiFi4CIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::WIFI4), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::WiFi4*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::WIFI4), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::WiFi4*>(config);
     }
 
-    jarvis::config::Operation* ConvertClass::ToOperationCIN(jarvis::config::Base* config)
+    jvs::config::Operation* ConvertClass::ToOperationCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::OPERATION), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::Operation*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::OPERATION), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Operation*>(config);
     }
 
-    jarvis::config::ModbusRTU* ConvertClass::ToModbusRTUCIN(jarvis::config::Base* config)
+    jvs::config::ModbusRTU* ConvertClass::ToModbusRTUCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::MODBUS_RTU), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::ModbusRTU*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::MODBUS_RTU), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::ModbusRTU*>(config);
     }
 
-    jarvis::config::ModbusTCP* ConvertClass::ToModbusTCPCIN(jarvis::config::Base* config)
+    jvs::config::ModbusTCP* ConvertClass::ToModbusTCPCIN(jvs::config::Base* config)
     {
-        ASSERT((config->GetCategory() == jarvis::cfg_key_e::MODBUS_TCP), "CATEGORY DOES NOT MATCH");
-        return static_cast<jarvis::config::ModbusTCP*>(config);
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::MODBUS_TCP), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::ModbusTCP*>(config);
     }
 }

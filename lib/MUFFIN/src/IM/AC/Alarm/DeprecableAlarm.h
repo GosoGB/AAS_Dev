@@ -24,7 +24,7 @@
 
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Node/NodeStore.h"
-#include "Jarvis/Config/Information/Alarm.h"
+#include "JARVIS/Config/Information/Alarm.h"
 
 
 
@@ -43,7 +43,7 @@ namespace muffin {
         static AlarmMonitor* mInstance;
     
     public:
-        void Add(jarvis::config::Alarm* cin);
+        void Add(jvs::config::Alarm* cin);
         void Clear();
         bool HasError() const;
     public:
@@ -58,25 +58,25 @@ namespace muffin {
     private:
         static void wrapImplTask(void* pvParams);
         void implTask();
-        void strategyLCL(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
-        void strategyUCL(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
-        void strategyLclAndUcl(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
-        void strategyCondition(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
+        void strategyLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
+        void strategyUCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
+        void strategyLclAndUcl(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
+        void strategyCondition(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
         bool isActiveAlarm(const std::string& uid);
         float convertToFloat(const im::var_data_t& datum);
         alarm_struct_t retrieveActiveAlarm(const std::string& uid);
         std::string createAlarmUUID();
-        void activateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin, const im::Variable& node);
-        void deactivateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin);
+        void activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node);
+        void deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin);
 
     private:
-        void pubLclToScautr( jarvis::config::Alarm& cin, const im::Variable& node);
-        void pubUclToScautr( jarvis::config::Alarm& cin, const im::Variable& node);
+        void pubLclToScautr( jvs::config::Alarm& cin, const im::Variable& node);
+        void pubUclToScautr( jvs::config::Alarm& cin, const im::Variable& node);
         void updateFlashUclValue(std::string nodeid, float ucl);
         void updateFlashLclValue(std::string nodeid, float lcl);
     private:
         using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node*>>;
-        std::vector<jarvis::config::Alarm> mVectorConfig;
+        std::vector<jvs::config::Alarm> mVectorConfig;
         std::vector<node_reference> mVectorNodeReference;
         std::vector<alarm_struct_t> mVectorAlarmInfo;
         TaskHandle_t xHandle;

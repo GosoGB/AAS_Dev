@@ -17,41 +17,23 @@
 
 #include <ArduinoJson.h>
 
-#include "Jarvis/Include/Base.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
-#include "Jarvis/Validators/ValidationResult.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Config/Interfaces/Rs485.h"
+#include "JARVIS/Validators/ValidationResult.h"
 #include "Protocol/MQTT/Include/Message.h"
 
 
 
 namespace muffin {
 
-    typedef struct JarvisTaskParameters
-    {
-        void (*Callback)(muffin::jarvis::ValidationResult);
-        std::string RequestPayload;
-    } jarvis_task_params;
-
-
-    void ProcessJarvisRequestTask(void* pvParameters);
-    void RetrieveJarvisRequestPayload(std::string* outputpayload);
     void ApplyJarvisTask();
 
-    void applyAlarmCIN(std::vector<jarvis::config::Base*>& vectorAlarmCIN);
-    void applyNodeCIN(std::vector<jarvis::config::Base*>& vectorNodeCIN);
-    void applyOperationTimeCIN(std::vector<jarvis::config::Base*>& vectorOperationTimeCIN);
-    void applyProductionInfoCIN(std::vector<jarvis::config::Base*>& vectorProductionInfoCIN);
-    void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN);
-    void applyRS485CIN(std::vector<jarvis::config::Base*>& vectorRS485CIN);
-    
-    void applyLteCatM1CIN(std::vector<jarvis::config::Base*>& vectorLteCatM1CIN);
-    void applyEthernetCIN(std::vector<jarvis::config::Base*>& vectorEthernetCIN);
-    // void applyWiFi4CIN(std::vector<jarvis::config::Base*>& vectorWiFi4CIN);
+    void applyAlarmCIN(std::vector<jvs::config::Base*>& vectorAlarmCIN);
+    void applyNodeCIN(std::vector<jvs::config::Base*>& vectorNodeCIN);
+    void applyOperationTimeCIN(std::vector<jvs::config::Base*>& vectorOperationTimeCIN);
+    void applyProductionInfoCIN(std::vector<jvs::config::Base*>& vectorProductionInfoCIN);
+    void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN);
 
-    void applyOperationCIN(std::vector<jarvis::config::Base*>& vectorOperationCIN);
-    uint16_t RetrievePublishInterval();
-    jarvis::snic_e RetrieveServerNIC();
-
-    void applyModbusRtuCIN(std::vector<jarvis::config::Base*>& vectorModbusRTUCIN, jarvis::config::Rs485* rs485CIN);
-    void applyModbusTcpCIN(std::vector<jarvis::config::Base*>& vectorModbusTCPCIN);
+    void applyModbusRtuCIN(std::vector<jvs::config::Base*>& vectorModbusRTUCIN, jvs::config::Rs485* rs485CIN);
+    void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN);
 }

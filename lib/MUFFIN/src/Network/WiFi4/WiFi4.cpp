@@ -4,10 +4,10 @@
  * 
  * @brief Wi-Fi 통신을 사용하는데 필요한 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-09-03
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -62,7 +62,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status WiFi4::Config(jarvis::config::Base* config)
+    Status WiFi4::Config(jvs::config::Base* config)
     {
         assert(config != nullptr);
         // assert(config->GetCategory() == cfg_key_e::WIFI4);
@@ -83,7 +83,7 @@ namespace muffin {
             }
         }
         
-        mConfig = *static_cast<jarvis::config::WiFi4*>(config);
+        mConfig = *static_cast<jvs::config::WiFi4*>(config);
         WiFi.setMinSecurity(mConfig.GetAuthMode().second);
         WiFi.setAutoReconnect(true);
 
@@ -205,6 +205,16 @@ namespace muffin {
     IPAddress WiFi4::GetIPv4() const
     {
         return WiFi.localIP();
+    }
+
+    std::pair<Status, size_t> WiFi4::TakeMutex()
+    {
+        return std::make_pair(Status(Status::Code::GOOD), 1);
+    }
+
+    Status WiFi4::ReleaseMutex()
+    {
+        return Status(Status::Code::GOOD);
     }
 
     const char* WiFi4::GetMacAddress() const

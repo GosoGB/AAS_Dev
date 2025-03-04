@@ -44,9 +44,9 @@ namespace muffin {
     #endif
     }
 
-    Status ModbusRTU::SetPort(jarvis::config::Rs485* portConfig)
+    Status ModbusRTU::SetPort(jvs::config::Rs485* portConfig)
     {
-        const jarvis::prt_e portIndex = portConfig->GetPortIndex().second;
+        const jvs::prt_e portIndex = portConfig->GetPortIndex().second;
        
         Status ret = configurePort(portIndex, portConfig);
      
@@ -68,7 +68,7 @@ namespace muffin {
         return ret;
     }
 
-    Status ModbusRTU::Config(jarvis::config::ModbusRTU* config)
+    Status ModbusRTU::Config(jvs::config::ModbusRTU* config)
     {
         if (config->GetNodes().second.empty())
         {
@@ -87,26 +87,26 @@ namespace muffin {
         mPolledDataTable.Clear();
     }
 
-    SerialConfig ModbusRTU::convert2SerialConfig(const jarvis::dbit_e dbit, const jarvis::sbit_e sbit, const jarvis::pbit_e pbit)
+    SerialConfig ModbusRTU::convert2SerialConfig(const jvs::dbit_e dbit, const jvs::sbit_e sbit, const jvs::pbit_e pbit)
     {
         const uint8_t dataBits    = (static_cast<uint8_t>(dbit) - 0x05) << 0x2;
-        const uint8_t stopBits    = (sbit == jarvis::sbit_e::SBIT_1 ? 0x01 : 0x03) << 0x4;        
-        const uint8_t parityBits  = pbit == jarvis::pbit_e::NONE ? 0x00 : 
-                                    pbit == jarvis::pbit_e::EVEN ? 0x02 :
+        const uint8_t stopBits    = (sbit == jvs::sbit_e::SBIT_1 ? 0x01 : 0x03) << 0x4;        
+        const uint8_t parityBits  = pbit == jvs::pbit_e::NONE ? 0x00 : 
+                                    pbit == jvs::pbit_e::EVEN ? 0x02 :
                                     0x03;
 
         const uint32_t config = 0x8000000 | dataBits | stopBits | parityBits;
         return static_cast<SerialConfig>(config);
     }
 
-    Status ModbusRTU::configurePort(jarvis::prt_e portIndex, jarvis::config::Rs485* portConfig)
+    Status ModbusRTU::configurePort(jvs::prt_e portIndex, jvs::config::Rs485* portConfig)
     {
-        if (portIndex == jarvis::prt_e::PORT_2)
+        if (portIndex == jvs::prt_e::PORT_2)
         {
-            const jarvis::bdr_e baudrate   = portConfig->GetBaudRate().second;
-            const jarvis::dbit_e dataBit   = portConfig->GetDataBit().second;
-            const jarvis::pbit_e parityBit = portConfig->GetParityBit().second;
-            const jarvis::sbit_e stopBit   = portConfig->GetStopBit().second;
+            const jvs::bdr_e baudrate   = portConfig->GetBaudRate().second;
+            const jvs::dbit_e dataBit   = portConfig->GetDataBit().second;
+            const jvs::pbit_e parityBit = portConfig->GetParityBit().second;
+            const jvs::sbit_e stopBit   = portConfig->GetStopBit().second;
 
             SerialConfig serialConfig = convert2SerialConfig(dataBit, stopBit, parityBit);
             ModbusRTUClient.begin(*RS485, Convert.ToUInt32(baudrate), serialConfig);
@@ -141,7 +141,7 @@ namespace muffin {
                 return ret;
             }
 
-            const jarvis::mb_area_e area = reference->VariableNode.GetModbusArea();
+            const jvs::mb_area_e area = reference->VariableNode.GetModbusArea();
             const AddressRange range = createAddressRange(reference->VariableNode.GetAddress().Numeric, reference->VariableNode.GetQuantity());
     
             ret = mAddressTable.Update(slaveID, area, range);
@@ -165,7 +165,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        const jarvis::mb_area_e area = node.VariableNode.GetModbusArea();
+        const jvs::mb_area_e area = node.VariableNode.GetModbusArea();
         const AddressRange range = createAddressRange(node);
 
         ret = mAddressTable.Remove(slaveID, area, range);
@@ -223,16 +223,16 @@ Status ModbusRTU::PollTemp()
                     {       
                         switch (msg.Area)
                         {
-                        case jarvis::mb_area_e::COILS:
+                        case jvs::mb_area_e::COILS:
                             mPolledDataTable.UpdateCoil(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
                             break;
-                        case jarvis::mb_area_e::DISCRETE_INPUT:
+                        case jvs::mb_area_e::DISCRETE_INPUT:
                             mPolledDataTable.UpdateDiscreteInput(msg.SlaveID, msg.Address++, static_cast<int8_t>(val));
                             break;
-                        case jarvis::mb_area_e::INPUT_REGISTER:
+                        case jvs::mb_area_e::INPUT_REGISTER:
                             mPolledDataTable.UpdateInputRegister(msg.SlaveID, msg.Address++, val);
                             break;
-                        case jarvis::mb_area_e::HOLDING_REGISTER:
+                        case jvs::mb_area_e::HOLDING_REGISTER:
                             mPolledDataTable.UpdateHoldingRegister(msg.SlaveID, msg.Address++, val);
                             break;
                         default:
@@ -309,16 +309,16 @@ Status ModbusRTU::PollTemp()
 
                 switch (area)
                 {
-                case jarvis::mb_area_e::COILS:
+                case jvs::mb_area_e::COILS:
                     ret = pollCoil(slaveID, addressSetToPoll);
                     break;
-                case jarvis::mb_area_e::DISCRETE_INPUT:
+                case jvs::mb_area_e::DISCRETE_INPUT:
                     ret = pollDiscreteInput(slaveID, addressSetToPoll);
                     break;
-                case jarvis::mb_area_e::INPUT_REGISTER:
+                case jvs::mb_area_e::INPUT_REGISTER:
                     ret = pollInputRegister(slaveID, addressSetToPoll);
                     break;
-                case jarvis::mb_area_e::HOLDING_REGISTER:
+                case jvs::mb_area_e::HOLDING_REGISTER:
                     ret = pollHoldingRegister(slaveID, addressSetToPoll);
                     break;
                 default:
@@ -361,7 +361,7 @@ Status ModbusRTU::PollTemp()
             {
                 const uint16_t address  = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
-                const jarvis::mb_area_e area = node->VariableNode.GetModbusArea();
+                const jvs::mb_area_e area = node->VariableNode.GetModbusArea();
 
                 modbus::datum_t datum;
                 datum.Address = address;
@@ -371,7 +371,7 @@ Status ModbusRTU::PollTemp()
                 std::vector<im::poll_data_t> vectorPolledData;
                 im::poll_data_t polledData;
                 polledData.StatusCode = Status::Code::GOOD;
-                polledData.AddressType = jarvis::adtp_e::NUMERIC;
+                polledData.AddressType = jvs::adtp_e::NUMERIC;
                 polledData.Address.Numeric = address;
                 polledData.Timestamp = timestampInMillis;
 
@@ -381,10 +381,10 @@ Status ModbusRTU::PollTemp()
                  */
                 switch (area)
                 {
-                case jarvis::mb_area_e::COILS:
+                case jvs::mb_area_e::COILS:
                     datum = mPolledDataTable.RetrieveCoil(slaveID, address);
                     goto BIT_MEMORY;
-                case jarvis::mb_area_e::DISCRETE_INPUT:
+                case jvs::mb_area_e::DISCRETE_INPUT:
                     datum = mPolledDataTable.RetrieveDiscreteInput(slaveID, address);
                 BIT_MEMORY:
                     if (datum.IsOK == false)
@@ -397,28 +397,28 @@ Status ModbusRTU::PollTemp()
                         polledData.StatusCode = Status::Code::GOOD;
                         polledData.Value.Boolean = datum.Value == 1 ? true : false;
                     }
-                    polledData.ValueType = jarvis::dt_e::BOOLEAN;
+                    polledData.ValueType = jvs::dt_e::BOOLEAN;
                     vectorPolledData.emplace_back(polledData);
                     node->VariableNode.Update(vectorPolledData);
                     break;
-                case jarvis::mb_area_e::INPUT_REGISTER:
+                case jvs::mb_area_e::INPUT_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveInputRegister(slaveID, address + i);
                         polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
-                        polledData.ValueType = jarvis::dt_e::UINT16;
+                        polledData.ValueType = jvs::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;
                         vectorPolledData.emplace_back(polledData);
                     }
                     goto REGISTER_MEMORY;
-                case jarvis::mb_area_e::HOLDING_REGISTER:
+                case jvs::mb_area_e::HOLDING_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveHoldingRegister(slaveID, address + i);
                         polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
-                        polledData.ValueType = jarvis::dt_e::UINT16;
+                        polledData.ValueType = jvs::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;
                         vectorPolledData.emplace_back(polledData);
                     }
@@ -630,22 +630,22 @@ Status ModbusRTU::PollTemp()
         return ret;
     }
 
-    modbus::datum_t ModbusRTU::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area)
+    modbus::datum_t ModbusRTU::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area)
     {
         modbus::datum_t data;
         data.IsOK = false;
         switch (area)
         {
-        case jarvis::mb_area_e::COILS :
+        case jvs::mb_area_e::COILS :
             data = mPolledDataTable.RetrieveCoil(slaveID,address);
             break;
-        case jarvis::mb_area_e::DISCRETE_INPUT :
+        case jvs::mb_area_e::DISCRETE_INPUT :
             data = mPolledDataTable.RetrieveDiscreteInput(slaveID,address);
             break;
-        case jarvis::mb_area_e::INPUT_REGISTER :
+        case jvs::mb_area_e::INPUT_REGISTER :
             data = mPolledDataTable.RetrieveInputRegister(slaveID,address);
             break;
-        case jarvis::mb_area_e::HOLDING_REGISTER :
+        case jvs::mb_area_e::HOLDING_REGISTER :
             data = mPolledDataTable.RetrieveHoldingRegister(slaveID,address);
             break;
         default:

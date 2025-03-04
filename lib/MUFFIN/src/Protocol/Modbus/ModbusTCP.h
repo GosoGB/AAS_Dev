@@ -25,17 +25,15 @@
 #include "Include/NodeTable.h"
 #include "Include/PolledDataTable.h"
 #include "Include/TypeDefinitions.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
-#include "Jarvis/Config/Protocol/ModbusTCP.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Config/Interfaces/Rs485.h"
+#include "JARVIS/Config/Protocol/ModbusTCP.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusTCPClient.h"
 #include "WiFi.h"
 
 
 namespace muffin {
-
-    extern ModbusTCPClient modbusTCPClient;
 
     class ModbusTCP
     {
@@ -45,7 +43,7 @@ namespace muffin {
     private:
         using AddressRange = im::NumericAddressRange;
     public:
-        Status Config(jarvis::config::ModbusTCP* config);
+        Status Config(jvs::config::ModbusTCP* config);
         void Clear();
     public:
         IPAddress GetServerIP();
@@ -58,7 +56,7 @@ namespace muffin {
 
     public:
         Status Poll();
-        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area);
+        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area);
     private:
         Status implementPolling();
         Status updateVariableNodes();
@@ -75,5 +73,8 @@ namespace muffin {
     private:
         IPAddress mServerIP;
         uint16_t mServerPort;
+    public:
+        WiFiClient mWifiClient;
+        ModbusTCPClient mModbusTCPClient;
     };
 }

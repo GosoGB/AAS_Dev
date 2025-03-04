@@ -4,25 +4,26 @@
  * 
  * @brief SPEAR 프로토콜 클래스를 정의합니다.
  * 
- * @date 2024-12-24
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
 
+
+#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "DataFormat/JSON/JSON.h"
-#include "IM/FirmwareVersion/FirmwareVersion.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
+#include "JARVIS/Config/Interfaces/Rs485.h"
 #include "SPEAR.h"
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
 namespace muffin {
 
     SemaphoreHandle_t xSemaphoreSPEAR = NULL;
@@ -76,18 +77,25 @@ namespace muffin {
 
         size_t length = 0;
         const uint32_t startedMillis = millis();
-
-        while ((millis() - startedMillis) < timeoutMillis)
+    
+        while ((millis() - startedMillis) < timeoutMillis) 
         {
-            if (Serial2.available() < (HEAD_SIZE + TAIL_SIZE))
+            if (Serial2.available() >= HEAD_SIZE) 
             {
-                const uint32_t elapsedMillis = millis() - startedMillis;
-                const uint32_t remainedMillis = timeoutMillis - elapsedMillis;
-                delay(remainedMillis > 50 ? 50 : remainedMillis);
-                continue;
+                break;
             }
+            delay(10);
+        }
 
-            while (Serial2.available())
+        if (Serial2.available() < HEAD_SIZE) 
+        {
+            LOG_ERROR(logger, "TIMEOUT WAITING FOR HEADER");
+            return Status(Status::Code::BAD_TIMEOUT);
+        }
+
+        while (length < HEAD_SIZE && (millis() - startedMillis) < timeoutMillis) 
+        {
+            if (Serial2.available()) 
             {
                 int rxd = Serial2.read();
                 if (rxd == -1)
@@ -95,51 +103,62 @@ namespace muffin {
                     continue;
                 }
                 payload[length++] = rxd;
-                if (payload[length - 1] == 0x03)
+            }
+        }
+        
+        // 헤더 검증
+        if (payload[0] != STX) 
+        {
+            LOG_ERROR(logger, "INVALID START BYTE : 0x%02X", payload[0]);
+            return Status(Status::Code::BAD_DATA_LOST);
+        }
+        // 헤더에서 payload 길이(2바이트)를 추출
+        const uint16_t receivedPayloadLength = ((uint16_t)payload[1] << 8) | payload[2];
+        // 전체 패킷 길이: 헤더 + payload + (체크섬 + ETX)
+        const uint16_t totalExpectedLength = HEAD_SIZE + receivedPayloadLength + TAIL_SIZE;
+    
+        // 전체 패킷 수신
+        while ((millis() - startedMillis) < timeoutMillis && length < totalExpectedLength) 
+        {
+            if (Serial2.available()) 
+            {
+                int rxd = Serial2.read();
+                if (rxd == -1)
                 {
-                    goto RECEIVED_ETX;
+                    continue;
                 }
+                payload[length++] = rxd;
             }
         }
 
-        if (length == 0)
+        if (length < totalExpectedLength)
         {
-            LOG_ERROR(logger,"TIMEOUT");
+            LOG_ERROR(logger, "TIMEOUT WAITING FOR FULL PACKET, EXPECTED %d BYTES, RECEIVED %d BYTES", totalExpectedLength, length);
             return Status(Status::Code::BAD_TIMEOUT);
         }
-        else
+    
+        if (payload[length - 1] != ETX) 
         {
-            return Status(Status::Code::BAD_DATA_LOST);
-        }
-
-    RECEIVED_ETX:
-        if (payload[0] != STX || payload[length - 1] != ETX)
-        {
-            return Status(Status::Code::BAD_DATA_LOST);
-        }
-        
-        const uint16_t calculatedLength = length - HEAD_SIZE - TAIL_SIZE;
-        const uint16_t receivedLength   = ((uint16_t)payload[1] << 8) | payload[2];
-        if (calculatedLength != receivedLength)
-        {
+            LOG_ERROR(logger, "MISSING ETX. FOUND: 0x%02X", payload[length - 1]);
             return Status(Status::Code::BAD_DATA_LOST);
         }
         
         const uint8_t receivedChecksum = payload[length - 2];
-        length = receivedLength;
-        
-        for (uint16_t i = 0; i < length; ++i)
+    
+        // 실제 payload 데이터 추출 (헤더 제거)
+        for (uint16_t i = 0; i < receivedPayloadLength; ++i) 
         {
             payload[i] = payload[HEAD_SIZE + i];
         }
-        payload[length] = '\0';
-
+        payload[receivedPayloadLength] = '\0';
+    
         const uint8_t calculatedChecksum = calculateChecksum(payload);
-        if (calculatedChecksum != receivedChecksum)
+        if (calculatedChecksum != receivedChecksum) 
         {
+            LOG_ERROR(logger, "CHECKSUM ERROR: calculated 0x%02X, received 0x%02X", calculatedChecksum, receivedChecksum);
             return Status(Status::Code::BAD_DATA_LOST);
         }
-        LOG_DEBUG(logger, "buffer : %s", payload);
+        
         return Status(Status::Code::GOOD);
     }
 
@@ -186,7 +205,7 @@ namespace muffin {
             LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
             return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
         }
-
+        
         Send("{\"c\":2}");
         
         const uint16_t timeout = 1500;
@@ -211,21 +230,21 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::VERSION_ENQUIRY))
         {
@@ -289,21 +308,21 @@ namespace muffin {
             return ret;
         }
         
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
 
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::MEMORY_ENQUIRY))
         {
@@ -366,21 +385,21 @@ namespace muffin {
             return ret;
         }
         
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::STATUS_ENQUIRY))
         {
@@ -431,7 +450,7 @@ namespace muffin {
         }
     }
 
-    Status SPEAR::SetJarvisProtocolConfig(const std::set<jarvis::prt_e> link)
+    Status SPEAR::SetJarvisProtocolConfig(const std::set<jvs::prt_e> link)
     {
         JsonDocument JarvisJson;
         JarvisJson["c"] = static_cast<uint8_t>(spear_cmd_e::JARVIS_SETUP);
@@ -442,7 +461,7 @@ namespace muffin {
         JsonArray configArray = config["l"].to<JsonArray>();
         for(auto& val : link)
         {
-           uint8_t value = val == jarvis::prt_e::PORT_2 ? 1 : 2;
+           uint8_t value = val == jvs::prt_e::PORT_2 ? 1 : 2;
            configArray.add(value);
         }
 
@@ -455,26 +474,24 @@ namespace muffin {
         const uint8_t size = measureJson(JarvisJson) + 1;
         char payload[size];
         memset(payload, 0, size);
-
         serializeJson(JarvisJson, payload, size);
-        LOG_INFO(logger,"SEND MSG : %s",payload);
         
-        writeJson(payload, "/spear/protocol/config.json");
+        // writeJson(payload, "/spear/protocol/config.json");
         Send(payload);
         delay(80);
         return validateSetService();
     }
 
-    Status SPEAR::SetJarvisLinkConfig(jarvis::config::Base* cin, const jarvis::cfg_key_e type)
+    Status SPEAR::SetJarvisLinkConfig(jvs::config::Base* cin, const jvs::cfg_key_e type)
     {
         Status ret = Status(Status::Code::UNCERTAIN);
 
         switch (type)
         {
-        case jarvis::cfg_key_e::RS232:
+        case jvs::cfg_key_e::RS232:
             // ret = setJarvisRs232Config();
             break;
-        case jarvis::cfg_key_e::RS485:
+        case jvs::cfg_key_e::RS485:
             ret = setJarvisRs485Config(cin);
             break;
         default:
@@ -484,16 +501,16 @@ namespace muffin {
         return ret;
     }
 
-    Status SPEAR::setJarvisRs485Config(jarvis::config::Base* cin)
+    Status SPEAR::setJarvisRs485Config(jvs::config::Base* cin)
     {
         JsonDocument JarvisJson;
 
         JarvisJson["c"] = static_cast<uint8_t>(spear_cmd_e::JARVIS_SETUP);
         JsonObject body = JarvisJson["b"].to<JsonObject>();
 
-        jarvis::config::Rs485* data = Convert.ToRS485CIN(cin);
-        jarvis::prt_e port = data->GetPortIndex().second;
-        if (port == jarvis::prt_e::PORT_2)
+        jvs::config::Rs485* data = Convert.ToRS485CIN(cin);
+        jvs::prt_e port = data->GetPortIndex().second;
+        if (port == jvs::prt_e::PORT_2)
         {
             body["1"] = static_cast<uint8_t>(cfg_type_e::LINK1);
             body["2"] = static_cast<uint8_t>(cfg_key_e::RS485);
@@ -525,10 +542,10 @@ namespace muffin {
         memset(payload, 0, size);
 
         serializeJson(JarvisJson, payload, size);
-        std::string path = port == jarvis::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
-        writeJson(payload, path);
+        // std::string path = port == jvs::prt_e::PORT_2 ? "/spear/link1/config.json" : "/spear/link2/config.json";
+        // writeJson(payload, path);
 
-        LOG_INFO(logger,"payload : %s",payload);
+        LOG_DEBUG(logger,"payload : %s",payload);
         Send(payload);
         delay(100);
         return validateSetService();
@@ -579,9 +596,7 @@ namespace muffin {
 
     void SPEAR::writeJson(const char payload[], const std::string& path)
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         File file = esp32FS.Open(path, "w", true);
-
         for (size_t i = 0; i < strlen(payload); ++i)
         {
             file.write(payload[i]);
@@ -591,7 +606,6 @@ namespace muffin {
 
     Status SPEAR::readJson(const std::string& path, const uint8_t size, char payload[])
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
         File file = esp32FS.Open(path);
 
         if (!file)
@@ -617,84 +631,84 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status SPEAR::resendSetService()
-    {
-        const uint8_t MAX_TRIAL_COUNT = 5;
-        uint8_t trialCount = 0;
-        while (trialCount < MAX_TRIAL_COUNT)
-        {
-            if (resendSetConfig("/spear/link1/config.json") == Status(Status::Code::GOOD))
-            {
-                trialCount = 0;
-                break;
-            }
-            ++trialCount;
-        }
+    // Status SPEAR::resendSetService()
+    // {
+    //     const uint8_t MAX_TRIAL_COUNT = 5;
+    //     uint8_t trialCount = 0;
+    //     while (trialCount < MAX_TRIAL_COUNT)
+    //     {
+    //         if (resendSetConfig("/spear/link1/config.json") == Status(Status::Code::GOOD))
+    //         {
+    //             trialCount = 0;
+    //             break;
+    //         }
+    //         ++trialCount;
+    //     }
 
-        if (trialCount == MAX_TRIAL_COUNT)
-        {
-            LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK1");
-            return Status(Status::Code::BAD);
-        }
+    //     if (trialCount == MAX_TRIAL_COUNT)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK1");
+    //         return Status(Status::Code::BAD);
+    //     }
    
-        while (trialCount < MAX_TRIAL_COUNT)
-        {
-            if (resendSetConfig("/spear/link2/config.json") == Status(Status::Code::GOOD))
-            {
-                trialCount = 0;
-                break;
-            }
-            ++trialCount;
-        }
+    //     while (trialCount < MAX_TRIAL_COUNT)
+    //     {
+    //         if (resendSetConfig("/spear/link2/config.json") == Status(Status::Code::GOOD))
+    //         {
+    //             trialCount = 0;
+    //             break;
+    //         }
+    //         ++trialCount;
+    //     }
 
-        if (trialCount == MAX_TRIAL_COUNT)
-        {
-            LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK2");
-            return Status(Status::Code::BAD);
-        }
+    //     if (trialCount == MAX_TRIAL_COUNT)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : LINK2");
+    //         return Status(Status::Code::BAD);
+    //     }
 
-        while (trialCount < MAX_TRIAL_COUNT)
-        {
-            if (resendSetConfig("/spear/protocol/config.json") == Status(Status::Code::GOOD))
-            {
-                trialCount = 0;
-                break;
-            }
-            ++trialCount;
-        }
+    //     while (trialCount < MAX_TRIAL_COUNT)
+    //     {
+    //         if (resendSetConfig("/spear/protocol/config.json") == Status(Status::Code::GOOD))
+    //         {
+    //             trialCount = 0;
+    //             break;
+    //         }
+    //         ++trialCount;
+    //     }
 
-        if (trialCount == MAX_TRIAL_COUNT)
-        {
-            LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : PROTOCOL");
-            return Status(Status::Code::BAD);
-        }
+    //     if (trialCount == MAX_TRIAL_COUNT)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO RESEND SETSERVICE : PROTOCOL");
+    //         return Status(Status::Code::BAD);
+    //     }
         
-        return Status(Status::Code::GOOD);
-    }
+    //     return Status(Status::Code::GOOD);
+    // }
 
-    Status SPEAR::resendSetConfig(const std::string& path)
-    {
-        const uint8_t size = 64;
-        char payload[64] = {'\0'};
+    // Status SPEAR::resendSetConfig(const std::string& path)
+    // {
+    //     const uint8_t size = 64;
+    //     char payload[64] = {'\0'};
         
-        Status ret = readJson(path, size, payload);
-        if (ret != Status(Status::Code::GOOD))
-        {
-            return ret;
-        }
+    //     Status ret = readJson(path, size, payload);
+    //     if (ret != Status(Status::Code::GOOD))
+    //     {
+    //         return ret;
+    //     }
 
-        if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
-            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-        }
+    //     if (xSemaphoreTake(xSemaphoreSPEAR, 2000)  != pdTRUE)
+    //     {
+    //         LOG_WARNING(logger, "[SPEAR] THE READ MODULE IS BUSY. TRY LATER.");
+    //         return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+    //     }
 
-        LOG_INFO(logger,"SEND MSG : %s",payload);
+    //     LOG_INFO(logger,"SEND MSG : %s",payload);
 
-        Send(payload);
-        delay(80);
-        return validateSetService();
-    }
+    //     Send(payload);
+    //     delay(80);
+    //     return validateSetService();
+    // }
 
     Status SPEAR::validateSetService()
     {
@@ -703,10 +717,8 @@ namespace muffin {
         char buffer[size] = {'\0'};
 
         Status ret = Receive(timeout, size, buffer);
-        LOG_DEBUG(logger, "SPEAR RxD: %s", buffer);
         if (ret != Status::Code::GOOD)
-        {   
-            LOG_DEBUG(logger, "ret: %s", ret.c_str());
+        {
             xSemaphoreGive(xSemaphoreSPEAR);
             return ret;
         }
@@ -721,21 +733,21 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
             
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::JARVIS_SETUP))
         {
@@ -766,7 +778,7 @@ namespace muffin {
         
         JarvisJson["c"] = static_cast<uint8_t>(spear_cmd_e::DAQ_POLL);
         JsonObject body = JarvisJson["b"].to<JsonObject>();
-        body["1"] = daq->Link == jarvis::prt_e::PORT_2 ? static_cast<uint8_t>(cfg_type_e::LINK1) : static_cast<uint8_t>(cfg_type_e::LINK2);
+        body["1"] = daq->Link == jvs::prt_e::PORT_2 ? static_cast<uint8_t>(cfg_type_e::LINK1) : static_cast<uint8_t>(cfg_type_e::LINK2);
         body["2"] = daq->SlaveID;
         body["3"] = static_cast<uint8_t>(daq->Area);
         body["4"] = daq->Address;
@@ -781,10 +793,14 @@ namespace muffin {
         const uint8_t payloadSize = measureJson(JarvisJson) + 1;
         char payload[payloadSize];
         memset(payload, 0, payloadSize);
-
         serializeJson(JarvisJson, payload, payloadSize);
-        LOG_DEBUG(logger,"SEND MSG : %s",payload);
 
+        while (Serial2.available())
+        {
+            Serial2.read();
+            delay(1);
+        }
+        
         Send(payload);
 
         const uint16_t timeout = 3000;
@@ -808,33 +824,33 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
             
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::DAQ_POLL))
         {
             LOG_ERROR(logger, "INVALID CODE: 0x%02X != 0x%02X", 
                 doc["c"].as<uint8_t>(), static_cast<uint8_t>(spear_cmd_e::DAQ_POLL));
-             xSemaphoreGive(xSemaphoreSPEAR);
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
 
         if (doc["s"].as<uint32_t>() != static_cast<uint32_t>(Status::Code::GOOD))
         {
             LOG_ERROR(logger, "BAD STATUS CODE: 0x%02X", doc["s"].as<uint32_t>());
-             xSemaphoreGive(xSemaphoreSPEAR);
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
         JsonObject response = doc["r"].as<JsonObject>();
@@ -847,9 +863,9 @@ namespace muffin {
         }
 
         bool isValid = true;
-        isValid &= daq->Link == static_cast<jarvis::prt_e>(response["1"].as<uint8_t>());
+        isValid &= daq->Link == static_cast<jvs::prt_e>(response["1"].as<uint8_t>());
         isValid &= daq->SlaveID == response["2"].as<uint8_t>();
-        isValid &= daq->Area == static_cast<jarvis::mb_area_e>(response["3"].as<uint8_t>());
+        isValid &= daq->Area == static_cast<jvs::mb_area_e>(response["3"].as<uint8_t>());
         isValid &= daq->Address == response["4"].as<uint16_t>();
         isValid &= daq->Quantity == response["5"].as<uint16_t>();
 
@@ -886,8 +902,6 @@ namespace muffin {
         sprintf(command, "{\"c\":49,\"b\":{\"1\":%u,\"2\":%u,\"3\":%u,\"4\":%u,\"5\":%u}}", 
             static_cast<uint8_t>(msg.Link), msg.SlaveID, static_cast<uint8_t>(msg.Area), msg.Address, msg.Value);
         Send(command);
-
-        LOG_INFO(logger,"REMOTE SEND MSG : %s",command);
         
         const uint16_t timeout = 2000;
         const uint8_t size = 64;
@@ -911,21 +925,21 @@ namespace muffin {
             return ret;
         }
 
-        if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
-        {
-            LOG_INFO(logger,"Sign on request service !");
-            Send("{\"c\":1,\"s\":0}");
+        // if (doc["c"].as<uint8_t>() == static_cast<uint8_t>(spear_cmd_e::SIGN_ON_REQUEST))
+        // {
+        //     LOG_INFO(logger,"Sign on request service !");
+        //     Send("{\"c\":1,\"s\":0}");
 
-            xSemaphoreGive(xSemaphoreSPEAR);
+        //     xSemaphoreGive(xSemaphoreSPEAR);
 
-            ret = resendSetService();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
-            }
-            xSemaphoreGive(xSemaphoreSPEAR);
-            return ret;
-        }
+        //     ret = resendSetService();
+        //     if (ret != Status::Code::GOOD)
+        //     {
+        //         LOG_ERROR(logger,"RESEND SETSERVICE ERROR! CORD : %s", ret.c_str());
+        //     }
+        //     xSemaphoreGive(xSemaphoreSPEAR);
+        //     return ret;
+        // }
         
         if (doc["c"].as<uint8_t>() != static_cast<uint8_t>(spear_cmd_e::REMOTE_CONTROL))
         {
@@ -952,7 +966,6 @@ namespace muffin {
         }
         else
         {
-            LOG_INFO(logger, "Modbus State: %u", modbusState);
             xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::GOOD);
         }

@@ -13,191 +13,214 @@
 
 
 
+#include <string.h>
+
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "Topic.h"
 
 
 
 namespace muffin { namespace mqtt {
 
-#if defined(DEBUG)
-    bool gIsTopicCreated = false;
-#endif
-
-    bool Topic::CreateTopic(const std::string& macAddress)
+    void Topic::Init()
     {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) Topic(macAddress);
-            if (mInstance == nullptr)
-            {
-                return false;
-            }
-            
-        #if defined(DEBUG)
-            mLastWill               = "scautr/modlink/status/network/will";
-            mJarvisRequest          = "mfm/" + macAddress;
-            mJarvisResponse         = "mfm/resp/" + macAddress;
-            mRemoteControlRequest   = "scautr/req/" + macAddress;
-            mRemoteControlResponse  = "scautr/resp/" + macAddress;
-            mDaqIntput              = "scautr/equipment/daq/input";
-            mDaqOutput              = "scautr/equipment/daq/output";
-            mDaqParam               = "scautr/equipment/param";
-            mAlarm                  = "scautr/equipment/status/alarm";
-            mError                  = "scautr/equipment/status/error";
-            mPush                   = "progix/push";
-            mOperation              = "scautr/equipment/status/operation";
-            mUptime                 = "progix/dashboard/ut";
-            mFinishedGoods          = "progix/dashboard/fg";
-            mFotaConfig             = "fota/config";
-            mFotaUpdate             = "fota/update/" + macAddress;
-            mFotaStatus             = "fota/status";
-        #else
-            mLastWill               = "scautr/modlink/status/network/will";
-            mJarvisRequest          = "mfm/" + macAddress;
-            mJarvisResponse         = "mfm/resp/" + macAddress;
-            mRemoteControlRequest   = "scautr/req/" + macAddress;
-            mRemoteControlResponse  = "scautr/resp/" + macAddress;
-            mDaqIntput              = "scautr/equipment/daq/input";
-            mDaqOutput              = "scautr/equipment/daq/output";
-            mDaqParam               = "scautr/equipment/param";
-            mAlarm                  = "scautr/equipment/status/alarm";
-            mError                  = "scautr/equipment/status/error";
-            mPush                   = "progix/push";
-            mOperation              = "scautr/equipment/status/operation";
-            mUptime                 = "progix/dashboard/ut";
-            mFinishedGoods          = "progix/dashboard/fg";
-            mFotaConfig             = "fota/config";
-            mFotaUpdate             = "fota/update/" + macAddress;
-            mFotaStatus             = "fota/status";
-        #endif
-        }
+        snprintf(
+            mFotaUpdate,
+            sizeof(mFotaUpdate),
+            "fota/update/%s",
+            macAddress.GetEthernet()
+        );
 
-        return true;
+        snprintf(
+            mJarvisRequest,
+            sizeof(mJarvisRequest),
+            "mfm/%s",
+            macAddress.GetEthernet()
+        );
 
-    #if defined(DEBUG)
-        ASSERT((gIsTopicCreated == false), "DO NOT CREATE TOPIC TWICE UNLESS YOU HAVE TO");
-        gIsTopicCreated = true;
-    #endif
+        snprintf(
+            mJarvisResponse,
+            sizeof(mJarvisResponse),
+            "mfm/resp/%s",
+            macAddress.GetEthernet()
+        );
 
+        snprintf(
+            mJarvisInterfaceRequest,
+            sizeof(mJarvisInterfaceRequest),
+            "mfm/if/%s",
+            macAddress.GetEthernet()
+        );
+
+        snprintf(
+            mJarvisInterfaceResponse,
+            sizeof(mJarvisInterfaceResponse),
+            "mfm/if/resp/%s",
+            macAddress.GetEthernet()
+        );
+
+        snprintf(
+            mRemoteControlRequest,
+            sizeof(mRemoteControlRequest),
+            "scautr/req/%s",
+            macAddress.GetEthernet()
+        );
+
+        snprintf(
+            mRemoteControlResponse,
+            sizeof(mRemoteControlResponse),
+            "scautr/resp/%s",
+            macAddress.GetEthernet()
+        );
     }
-    
-    Topic::Topic(const std::string& macAddress)
-    {
-    }
-    
-    Topic::~Topic()
-    {
-    }
-    
+     
     const char* Topic::ToString(const topic_e topicCode)
     {
         switch (topicCode)
         {
         case topic_e::LAST_WILL:
-            return mLastWill.c_str();
+            return mLastWill;
+
         case topic_e::JARVIS_REQUEST:
-            return mJarvisRequest.c_str();
+            return mJarvisRequest;
+            
         case topic_e::JARVIS_RESPONSE:
-            return mJarvisResponse.c_str();
+            return mJarvisResponse;
+
+        case topic_e::JARVIS_INTERFACE_REQUEST:
+            return mJarvisInterfaceRequest;
+            
+        case topic_e::JARVIS_INTERFACE_RESPONSE:
+            return mJarvisInterfaceResponse;
+
+        case topic_e::JARVIS_STATUS:
+            return mJarvisStatus;
+            
         case topic_e::REMOTE_CONTROL_REQUEST:
-            return mRemoteControlRequest.c_str();
+            return mRemoteControlRequest;
+            
         case topic_e::REMOTE_CONTROL_RESPONSE:
-            return mRemoteControlResponse.c_str();
+            return mRemoteControlResponse;
+            
         case topic_e::DAQ_INPUT:
-            return mDaqIntput.c_str();
+            return mDaqIntput;
+            
         case topic_e::DAQ_OUTPUT:
-            return mDaqOutput.c_str();
+            return mDaqOutput;
+            
         case topic_e::DAQ_PARAM:
-            return mDaqParam.c_str();
+            return mDaqParam;
+            
         case topic_e::ALARM:
-            return mAlarm.c_str();
+            return mAlarm;
+            
         case topic_e::ERROR:
-            return mError.c_str();
+            return mError;
+            
         case topic_e::PUSH:
-            return mPush.c_str();
+            return mPush;
+            
         case topic_e::OPERATION:
-            return mOperation.c_str();
+            return mOperation;
+            
         case topic_e::UPTIME:
-            return mUptime.c_str();
+            return mUptime;
+            
         case topic_e::FINISHEDGOODS:
-            return mFinishedGoods.c_str();
+            return mFinishedGoods;
+            
         case topic_e::FOTA_CONFIG:
-            return mFotaConfig.c_str();
+            return mFotaConfig;
+            
         case topic_e::FOTA_UPDATE:
-            return mFotaUpdate.c_str();
+            return mFotaUpdate;
+            
         case topic_e::FOTA_STATUS:
-            return mFotaStatus.c_str();
+            return mFotaStatus;
+            
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));
             return nullptr;
         }
     }
 
-    std::pair<bool, topic_e> Topic::ToCode(const std::string& topicString)
+    std::pair<bool, topic_e> Topic::ToCode(const char* topicString)
     {
-        if (topicString == mJarvisRequest)
+        if (strcmp(topicString, mJarvisRequest) == 0)
         {
             return std::make_pair(true, topic_e::JARVIS_REQUEST);
         }
-        else if (topicString == mJarvisResponse)
+        else if (strcmp(topicString, mJarvisResponse) == 0)
         {
             return std::make_pair(true, topic_e::JARVIS_RESPONSE);
         }
-        else if (topicString == mRemoteControlRequest)
+        else if (strcmp(topicString, mJarvisInterfaceRequest) == 0)
+        {
+            return std::make_pair(true, topic_e::JARVIS_INTERFACE_REQUEST);
+        }
+        else if (strcmp(topicString, mJarvisInterfaceResponse) == 0)
+        {
+            return std::make_pair(true, topic_e::JARVIS_INTERFACE_RESPONSE);
+        }
+        else if (strcmp(topicString, mJarvisStatus) == 0)
+        {
+            return std::make_pair(true, topic_e::JARVIS_STATUS);
+        }
+        else if (strcmp(topicString, mRemoteControlRequest) == 0)
         {
             return std::make_pair(true, topic_e::REMOTE_CONTROL_REQUEST);
         }
-        else if (topicString == mLastWill)
+        else if (strcmp(topicString, mLastWill) == 0)
         {
             return std::make_pair(true, topic_e::LAST_WILL);
         }
-        else if (topicString == mDaqIntput)
+        else if (strcmp(topicString, mDaqIntput) == 0)
         {
             return std::make_pair(true, topic_e::DAQ_INPUT);
         }
-        else if (topicString == mDaqOutput)
+        else if (strcmp(topicString, mDaqOutput) == 0)
         {
             return std::make_pair(true, topic_e::DAQ_OUTPUT);
         }
-        else if (topicString == mDaqParam)
+        else if (strcmp(topicString, mDaqParam) == 0)
         {
             return std::make_pair(true, topic_e::DAQ_PARAM);
         }
-        else if (topicString == mAlarm)
+        else if (strcmp(topicString, mAlarm) == 0)
         {
             return std::make_pair(true, topic_e::ALARM);
         }
-        else if (topicString == mError)
+        else if (strcmp(topicString, mError) == 0)
         {
             return std::make_pair(true, topic_e::ERROR);
         }
-        else if (topicString == mPush)
+        else if (strcmp(topicString, mPush) == 0)
         {
             return std::make_pair(true, topic_e::PUSH);
         }
-        else if (topicString == mOperation)
+        else if (strcmp(topicString, mOperation) == 0)
         {
             return std::make_pair(true, topic_e::OPERATION);
         }
-        else if (topicString == mUptime)
+        else if (strcmp(topicString, mUptime) == 0)
         {
             return std::make_pair(true, topic_e::UPTIME);
         }
-        else if (topicString == mFinishedGoods)
+        else if (strcmp(topicString, mFinishedGoods) == 0)
         {
             return std::make_pair(true, topic_e::FINISHEDGOODS);
         }
-        else if (topicString == mFotaConfig)
+        else if (strcmp(topicString, mFotaConfig) == 0)
         {
             return std::make_pair(true, topic_e::FOTA_CONFIG);
         }
-        else if (topicString == mFotaUpdate)
+        else if (strcmp(topicString, mFotaUpdate) == 0)
         {
             return std::make_pair(true, topic_e::FOTA_UPDATE);
         }
-        else if (topicString == mFotaStatus)
+        else if (strcmp(topicString, mFotaStatus) == 0)
         {
             return std::make_pair(true, topic_e::FOTA_STATUS);
         }
@@ -208,22 +231,5 @@ namespace muffin { namespace mqtt {
     }
 
 
-    Topic* Topic::mInstance = nullptr;
-    std::string Topic::mLastWill;
-    std::string Topic::mJarvisRequest;
-    std::string Topic::mJarvisResponse;
-    std::string Topic::mRemoteControlRequest;
-    std::string Topic::mRemoteControlResponse;
-    std::string Topic::mDaqIntput;
-    std::string Topic::mDaqOutput;
-    std::string Topic::mDaqParam;
-    std::string Topic::mAlarm;
-    std::string Topic::mError;
-    std::string Topic::mPush;
-    std::string Topic::mOperation;
-    std::string Topic::mUptime;
-    std::string Topic::mFinishedGoods;
-    std::string Topic::mFotaConfig;
-    std::string Topic::mFotaUpdate;
-    std::string Topic::mFotaStatus;
+    Topic topic;
 }}

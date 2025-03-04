@@ -15,11 +15,13 @@
 
 #include "Common/Logger/Logger.h"
 #include "Common/Assert.h"
+#include "IM/Custom/Constants.h"
 #include "Processor.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/Include/Message.h"
 #include "Protocol/MQTT/Include/Topic.h"
-
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "IM/Custom/Constants.h"
 
 
 namespace muffin {
@@ -98,7 +100,7 @@ namespace muffin {
      */
     Processor::Processor()
         : mSerial(HardwareSerial(1))
-        , mRxBufferSize(1042*8)
+        , mRxBufferSize(10*KILLOBYTE)
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)
         , mBaudRate(baudrate_e::BDR_115200)
@@ -151,7 +153,7 @@ namespace muffin {
             BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
                 wrapUrcHandleTask, 
                 "UrcHandleTask", 
-                3 * 1024, 
+                4*KILLOBYTE, 
                 this, 
                 0, 
                 &xHandle, 
@@ -225,7 +227,7 @@ namespace muffin {
 
     int16_t Processor::Read()
     {
-        if (xSemaphoreTake(xSemaphore, 10)  != pdTRUE)
+        if (xSemaphoreTake(xSemaphore, 100)  != pdTRUE)
         {
             LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER.");
             return -1;
@@ -279,13 +281,24 @@ namespace muffin {
     
     void Processor::implementUrcHandleTask()
     {
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 6 * 1000;
-    #endif
+        uint32_t statusReportMillis = millis(); 
 
         while (true)
         {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+        #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[CatM1ProcessorTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::CATM1_PROCESSOR_TASK, RemainedStackSize);
+            }
+
             if (mHasOTA == true)
             {
                 while (mSerial.available() > 0)
@@ -313,19 +326,13 @@ namespace muffin {
                 parseQIND();
                 parseAPPRDY();
                 parseQMTRECV();
-                // parseQMTSTAT(&rxd);
+                parseQMTSTAT();
 
                 xSemaphoreGive(xSemaphore);
                 vTaskDelay(mTaskInterval / portTICK_PERIOD_MS);
             }
 
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                LOG_DEBUG(logger, "[TASK: CatM1::Processor] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                checkRemainedStackMillis = millis();
-            }
-        #endif
+        
         }
     }
 
@@ -416,7 +423,6 @@ namespace muffin {
         }
         
         std::vector<uint8_t> vectorRxD = mRxBuffer.ReadBetweenPatterns(urcQMTRECV, "}\"\r\n");
-        LOG_DEBUG(logger, "vectorRxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
         std::vector<std::string> vectorToken;
         std::string currentToken;
         bool isFirstToken = true;
@@ -488,7 +494,6 @@ namespace muffin {
         if (vectorToken.size() != 4 || vectorToken[2].length() < 2 || vectorToken[3].length() < 2)
         {
             LOG_ERROR(logger, "RxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
-            ASSERT(false, "RxD: %s", std::string(vectorRxD.begin(), vectorRxD.end()).c_str());
             return;
         }
     
@@ -502,7 +507,7 @@ namespace muffin {
          * @todo 소켓과 메시지 식별자 정보의 처리도 추가해야 합니다.
          * @todo 올바르지 않은 토픽인 경우에 서버에 이를 알리는 방법을 고민해야 합니다.
          */
-        const auto retTopic = mqtt::Topic::ToCode(vectorToken[2]);
+        const auto retTopic = mqtt::topic.ToCode(vectorToken[2].c_str());
         if (retTopic.first == false)
         {
             LOG_ERROR(logger, "INVALID TOPIC: %s", vectorToken[2]);
@@ -512,36 +517,35 @@ namespace muffin {
         const mqtt::topic_e topicCode = retTopic.second;
         const std::string payload = vectorToken[3];
         mqtt::Message message(topicCode, payload);
-        mqtt::CIA::Store(message);
+        mqtt::cia.Store(message);
         // void triggerCallbackQMTRECV();
     }
 
-/*
-    void Processor::parseQMTSTAT(std::string* rxd)
+    void Processor::parseQMTSTAT()
     {
-        assert(rxd != nullptr);
-
-        if (rxd->find(urcQMTSTAT) == std::string::npos)
-        {
+        if (mRxBuffer.HasPattern(urcQMTSTAT) == false)
+        {   
             return;
         }
 
-        const size_t posStart  = rxd->find(urcQMTSTAT) + urcQMTSTAT.length();
-        const size_t delimiter = rxd->rfind(",", posStart + 1);
-        LOG_DEBUG(logger, "QMTSTAT URC: %s", rxd->substr(posStart, delimiter - posStart + 1).c_str());
+        std::vector<uint8_t> vectorRxD = mRxBuffer.ReadBetweenPatterns(urcQMTSTAT, "\r\n");
+        const std::string data(vectorRxD.begin(), vectorRxD.end());
+        
+        LOG_INFO(logger,"rxd : %s",data.c_str());
 
-        if (delimiter == std::string::npos)
+        size_t idx = data.find(',');
+        if (idx == std::string::npos)
         {
-            LOG_ERROR(logger, "INVALID MQTT LINK LAYER URC RECEIVED");
-            rxd->erase(rxd->find(urcQMTSTAT), urcQMTSTAT.length());
-            LOG_DEBUG(logger, "REM: %s", rxd->c_str());
-
-            assert(delimiter != std::string::npos);
+            LOG_ERROR(logger,"INVALID RESPONSE");
             return;
         }
+        std::string socketIdStr = data.substr(idx - 1, 1);
+        std::string errorCodeStr = data.substr(idx + 1, 1);
+        
+        const uint8_t socketID = std::stoi(socketIdStr);
+        const uint8_t errorCode = std::stoi(errorCodeStr);   
 
-        const uint8_t socketID  = std::stoi(rxd->substr(delimiter - 1, 1));
-        const uint8_t errorCode = std::stoi(rxd->substr(delimiter + 1, 1));
+        LOG_INFO(logger,"soketID : %u , errorCode : %u",socketID,errorCode);
 
         switch (errorCode)
         {
@@ -567,12 +571,12 @@ namespace muffin {
             LOG_ERROR(logger, "THE LINK IS NOT ALIVE OR BROKER UNAVAILABLE");
             break;
         default:
-            LOG_ERROR(logger, "PROCESSOR ERROR: UNDEFINED ERROR CODE: %d", errorCode);
-            return;
+            LOG_ERROR(logger, "PROCESSOR ERROR: UNDEFINED ERROR CODE: %u", errorCode);
+            break;
         }
-        // triggerCallbackQMTSTAT(socketID, errorCode);
+
+        triggerCallbackQMTSTAT(socketID, errorCode);
     }
-*/
 
     void Processor::RegisterCallbackRDY(const std::function<void()>& cb)
     {
@@ -597,6 +601,11 @@ namespace muffin {
     void Processor::RegisterCallbackAPPRDY(const std::function<void()>& cb)
     {
         mCallbackAPPRDY = cb;
+    }
+
+    void Processor::RegisterCallbackQMTSTAT(const std::function<void(uint8_t, uint8_t)>& cb)
+    {
+        mCallbackQMTSTAT = cb;
     }
 
     void Processor::triggerCallbackRDY()
@@ -675,16 +684,17 @@ namespace muffin {
     //     }
     // }
 
-    // void Processor::triggerCallbackQMTSTAT(const uint8_t socketID, 
-    //                                        const uint8_t errorCode)
-    // {
-    //     if (mCallbackQMTSTAT)
-    //     {
-    //         mCallbackQMTSTAT(socketID, errorCode);
-    //     }
-    //     else
-    //     {
-    //         assert(mCallbackQMTSTAT);
-    //     }
-    // }
+    void Processor::triggerCallbackQMTSTAT(const uint8_t socketID, 
+                                           const uint8_t errorCode)
+    {
+        if (mCallbackQMTSTAT != nullptr)
+        {
+            mCallbackQMTSTAT(socketID, errorCode);
+        }
+        else
+        {
+            LOG_ERROR(logger, "CALLBACK IS NOT REGISTERED");
+            assert(mCallbackQMTSTAT);
+        }
+    }
 }
