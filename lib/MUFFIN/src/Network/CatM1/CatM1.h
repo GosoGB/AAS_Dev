@@ -116,6 +116,8 @@ namespace muffin {
         static void onEventPinStatusFalling(void* pvParameter, uint32_t ulParameter);
         static void IRAM_ATTR handlePinStatusISR();
 
+    private:
+        bool mIsSyncNTP = false;
     public:
         Processor mProcessor;
     

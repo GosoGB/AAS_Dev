@@ -77,18 +77,25 @@ namespace muffin {
 
         size_t length = 0;
         const uint32_t startedMillis = millis();
-
-        while ((millis() - startedMillis) < timeoutMillis)
+    
+        while ((millis() - startedMillis) < timeoutMillis) 
         {
-            if (Serial2.available() < (HEAD_SIZE + TAIL_SIZE))
+            if (Serial2.available() >= HEAD_SIZE) 
             {
-                const uint32_t elapsedMillis = millis() - startedMillis;
-                const uint32_t remainedMillis = timeoutMillis - elapsedMillis;
-                delay(remainedMillis > 50 ? 50 : remainedMillis);
-                continue;
+                break;
             }
+            delay(10);
+        }
 
-            while (Serial2.available())
+        if (Serial2.available() < HEAD_SIZE) 
+        {
+            LOG_ERROR(logger, "TIMEOUT WAITING FOR HEADER");
+            return Status(Status::Code::BAD_TIMEOUT);
+        }
+
+        while (length < HEAD_SIZE && (millis() - startedMillis) < timeoutMillis) 
+        {
+            if (Serial2.available()) 
             {
                 int rxd = Serial2.read();
                 if (rxd == -1)
@@ -96,50 +103,62 @@ namespace muffin {
                     continue;
                 }
                 payload[length++] = rxd;
-                if (payload[length - 1] == 0x03)
+            }
+        }
+        
+        // 헤더 검증
+        if (payload[0] != STX) 
+        {
+            LOG_ERROR(logger, "INVALID START BYTE : 0x%02X", payload[0]);
+            return Status(Status::Code::BAD_DATA_LOST);
+        }
+        // 헤더에서 payload 길이(2바이트)를 추출
+        const uint16_t receivedPayloadLength = ((uint16_t)payload[1] << 8) | payload[2];
+        // 전체 패킷 길이: 헤더 + payload + (체크섬 + ETX)
+        const uint16_t totalExpectedLength = HEAD_SIZE + receivedPayloadLength + TAIL_SIZE;
+    
+        // 전체 패킷 수신
+        while ((millis() - startedMillis) < timeoutMillis && length < totalExpectedLength) 
+        {
+            if (Serial2.available()) 
+            {
+                int rxd = Serial2.read();
+                if (rxd == -1)
                 {
-                    goto RECEIVED_ETX;
+                    continue;
                 }
+                payload[length++] = rxd;
             }
         }
 
-        if (length == 0)
+        if (length < totalExpectedLength)
         {
-            LOG_ERROR(logger,"TIMEOUT");
+            LOG_ERROR(logger, "TIMEOUT WAITING FOR FULL PACKET, EXPECTED %d BYTES, RECEIVED %d BYTES", totalExpectedLength, length);
             return Status(Status::Code::BAD_TIMEOUT);
         }
-        else
+    
+        if (payload[length - 1] != ETX) 
         {
-            return Status(Status::Code::BAD_DATA_LOST);
-        }
-
-    RECEIVED_ETX:
-        if (payload[0] != STX || payload[length - 1] != ETX)
-        {
-            return Status(Status::Code::BAD_DATA_LOST);
-        }
-        
-        const uint16_t calculatedLength = length - HEAD_SIZE - TAIL_SIZE;
-        const uint16_t receivedLength   = ((uint16_t)payload[1] << 8) | payload[2];
-        if (calculatedLength != receivedLength)
-        {
+            LOG_ERROR(logger, "MISSING ETX. FOUND: 0x%02X", payload[length - 1]);
             return Status(Status::Code::BAD_DATA_LOST);
         }
         
         const uint8_t receivedChecksum = payload[length - 2];
-        length = receivedLength;
-        
-        for (uint16_t i = 0; i < length; ++i)
+    
+        // 실제 payload 데이터 추출 (헤더 제거)
+        for (uint16_t i = 0; i < receivedPayloadLength; ++i) 
         {
             payload[i] = payload[HEAD_SIZE + i];
         }
-        payload[length] = '\0';
-
+        payload[receivedPayloadLength] = '\0';
+    
         const uint8_t calculatedChecksum = calculateChecksum(payload);
-        if (calculatedChecksum != receivedChecksum)
+        if (calculatedChecksum != receivedChecksum) 
         {
+            LOG_ERROR(logger, "CHECKSUM ERROR: calculated 0x%02X, received 0x%02X", calculatedChecksum, receivedChecksum);
             return Status(Status::Code::BAD_DATA_LOST);
         }
+        
         return Status(Status::Code::GOOD);
     }
 
@@ -824,14 +843,14 @@ namespace muffin {
         {
             LOG_ERROR(logger, "INVALID CODE: 0x%02X != 0x%02X", 
                 doc["c"].as<uint8_t>(), static_cast<uint8_t>(spear_cmd_e::DAQ_POLL));
-             xSemaphoreGive(xSemaphoreSPEAR);
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
 
         if (doc["s"].as<uint32_t>() != static_cast<uint32_t>(Status::Code::GOOD))
         {
             LOG_ERROR(logger, "BAD STATUS CODE: 0x%02X", doc["s"].as<uint32_t>());
-             xSemaphoreGive(xSemaphoreSPEAR);
+            xSemaphoreGive(xSemaphoreSPEAR);
             return Status(Status::Code::BAD);
         }
         JsonObject response = doc["r"].as<JsonObject>();

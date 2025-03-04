@@ -55,6 +55,7 @@
         __LINE__, fmt,                          \
         ##__VA_ARGS__);
 
+#if defined(DEBUG)
 #define LOG_DEBUG(_logger, fmt, ...)            \
     _logger.Log(                                \
         muffin::log_level_e::LOG_LEVEL_DEBUG,   \
@@ -72,7 +73,10 @@
         __FUNCTION__,                           \
         __LINE__, fmt,                          \
         ##__VA_ARGS__);
-
+#else
+    #define LOG_DEBUG(_logger, fmt, ...)((void(0)))
+    #define LOG_VERBOSE(_logger, fmt, ...)((void(0)))
+#endif
 
 
 namespace muffin {

@@ -78,7 +78,7 @@ namespace muffin { namespace im {
             uint32_t prev = ESP.getFreeHeap();
             LOG_DEBUG(logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
             
-            void* block = memoryPool.Allocate(799);
+            void* block = memoryPool.Allocate(320);
             Node* node = new(block) Node(cin);
             mMapNode.emplace(node->GetNodeID(), node);
 

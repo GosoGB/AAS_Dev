@@ -240,6 +240,12 @@ namespace muffin {
 
     Status CatM1::SyncNTP()
     {
+        if (mIsSyncNTP)
+        {
+            LOG_INFO(logger,"Already Synchronized with NTP server");
+            return Status(Status::Code::GOOD);
+        }
+        
         const std::string command = "AT+QLTS=1";
         const std::string expected = "+QLTS: ";
         const uint32_t timeoutMillis = 300;
@@ -250,6 +256,7 @@ namespace muffin {
         if (ret == Status::Code::BAD_TOO_MANY_OPERATIONS)
         {
             LOG_WARNING(logger, "THE MODEM IS BUSY. TRY LATER");
+            mIsSyncNTP = false;
             return ret;
         }
 
@@ -284,6 +291,7 @@ namespace muffin {
         if (ss.fail())
         {
             LOG_ERROR(logger, "FAILED TO PARSE TIME INFO: %s", rxd.c_str());
+            mIsSyncNTP = false;
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
 
@@ -292,6 +300,7 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET SYSTEM TIME: %s", ret.c_str());
+            mIsSyncNTP = false;
             return ret;
         }
         
@@ -300,10 +309,12 @@ namespace muffin {
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
+            mIsSyncNTP = false;
             return ret;
         }
 
         LOG_INFO(logger, "Synchronized with NTP in timezone: %s", tz.c_str());
+        mIsSyncNTP = true;
         return Status(Status::Code::GOOD);
     }
 
