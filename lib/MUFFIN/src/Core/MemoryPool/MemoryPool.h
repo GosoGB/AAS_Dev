@@ -4,10 +4,10 @@
  * 
  * @brief 
  * 
- * @date 2024-12-29
- * @version 1.2.0
+ * @date 2025-02-04
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -30,6 +30,7 @@ namespace muffin {
     public:
         void* Allocate(const size_t size);
         void  Deallocate(void* block, const size_t size);
+        void  Reset();
     private:
         const size_t mBlockSize;
         const size_t mBlockCount;

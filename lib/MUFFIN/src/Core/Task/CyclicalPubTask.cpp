@@ -28,6 +28,8 @@
 #include "Protocol/MQTT/CDO.h"
 #include "IM/Node/Node.h"
 #include "IM/Node/NodeStore.h"
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "IM/Custom/Constants.h"
 
 
 namespace muffin {
@@ -57,7 +59,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             cyclicalsMSGTask,      // Function to be run inside of the task
             "cyclicalsMSGTask",    // The identifier of this task for men
-            4096,			       // Stack memory size to allocate
+            4*KILLOBYTE,			       // Stack memory size to allocate
             &pollingInterval,      // Task parameters to be passed to the function
             0,				       // Task Priority for scheduling
             &xTaskMonitorHandle,   // The identifier of this task for machines
@@ -94,15 +96,27 @@ namespace muffin {
 
     void cyclicalsMSGTask(void* pvParameter)
     {
+        uint32_t statusReportMillis = millis(); 
+
         uint16_t publishInterval = *(uint16_t*) pvParameter;
         time_t currentTimestamp = GetTimestamp();
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 5 * 1000;
-    #endif
 
         while (true)
         {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
+        #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[CyclicalsMSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::CYCLICALS_MSG_TASK, RemainedStackSize);
+            }
+            
             if (GetTimestamp() - currentTimestamp < publishInterval)
             {
                 vTaskDelay(100 / portTICK_PERIOD_MS); 
@@ -122,23 +136,15 @@ namespace muffin {
                 if (ret.first == true)
                 {
                     JSON json;
-                    const std::string payload = json.Serialize(ret.second);
+                    const size_t size = UINT8_MAX;
+                    char payload[size] = {'\0'};
+                    json.Serialize(ret.second, size, payload);
                     mqtt::Message message(ret.second.Topic, payload);
-
-                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                    cdo.Store(message);
+                    mqtt::cdo.Store(message);
                 }
             }
             
-            
             vTaskDelay(100 / portTICK_PERIOD_MS); 
-        #ifdef DEBUG
-            if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-            {
-                LOG_DEBUG(logger, "[TASK: CyclicalMsg] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-                checkRemainedStackMillis = millis();
-            }
-        #endif
         }
     }
 

@@ -23,7 +23,7 @@
 
 #include "DataFormat/JSON/JSON.h"
 #include "IM/Node/NodeStore.h"
-#include "Jarvis/Config/Information/Production.h"
+#include "JARVIS/Config/Information/Production.h"
 
 
 
@@ -49,7 +49,7 @@ namespace muffin {
         static ProductionInfo* mInstance;
     
     public:
-        void Config(jarvis::config::Production* cin);
+        void Config(jvs::config::Production* cin);
         void Clear();
     private:
         std::pair<bool, std::string> mNodeIdTotal;

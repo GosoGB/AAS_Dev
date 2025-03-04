@@ -4,13 +4,13 @@
  * 
  * @brief 시간 정보를 생성, 관리, 교환하기 위한 기능을 선언
  * 
- * @date 2024-08-31
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
  * @todo Need to check if timezone is valid at 
  * the interface between the fw and the cloud.
- * 
- * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -84,10 +84,4 @@ namespace muffin {
      * @return std::string datetime
      */
     std::string Convert2Datetime(const time_t timestamp);
-
-    namespace jarvis {
-        enum class ServerNetworkInterfaceCardEnum;  // forward declaration
-        typedef ServerNetworkInterfaceCardEnum snic_e; // typedef for convenience
-    }
-    Status SyncWithNTP(const jarvis::snic_e snic);
 }

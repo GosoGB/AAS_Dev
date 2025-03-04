@@ -17,7 +17,7 @@
 
 #include <vector>
 #include <stdint-gcc.h>
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 namespace muffin {
@@ -134,9 +134,9 @@ namespace muffin {
 
     typedef struct SpearDaqMessageType
     {
-        jarvis::prt_e Link;
+        jvs::prt_e Link;
         uint8_t SlaveID;
-        jarvis::mb_area_e Area;
+        jvs::mb_area_e Area;
         uint16_t Address;
         uint16_t Quantity;
         std::vector<int32_t> PolledValuesVector;
@@ -145,9 +145,9 @@ namespace muffin {
     typedef struct SpearRemoteControlMessageType
     {
         resp_head_t Head;
-        jarvis::prt_e Link;
+        jvs::prt_e Link;
         uint8_t SlaveID;
-        jarvis::mb_area_e Area;
+        jvs::mb_area_e Area;
         uint16_t Address;
         uint16_t Value;
     } spear_remote_control_msg_t;

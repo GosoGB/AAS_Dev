@@ -28,7 +28,7 @@ extern "C" {
 
 /**
  * @note 원 라이브러리의 Modbus 메모리 영역 값이 MACRO로 선언되어 있어서
- *       jarvis::mb_area_e 안의 COILS 값과 충돌되기 때문에 수정하였습니다.
+ *       jvs::mb_area_e 안의 COILS 값과 충돌되기 때문에 수정하였습니다.
  */
 static constexpr uint8_t COILS = 0;
 static constexpr uint8_t DISCRETE_INPUTS = 1;

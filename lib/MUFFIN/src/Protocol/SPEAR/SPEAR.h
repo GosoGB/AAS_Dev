@@ -4,14 +4,16 @@
  * 
  * @brief SPEAR 프로토콜 클래스를 선언합니다.
  * 
- * @date 2024-12-24
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
 
+
+#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 #pragma once
 
@@ -22,11 +24,10 @@
 #include "freertos/semphr.h"
 #include "Common/Status.h"
 #include "Include/TypeDefinitions.h"
-#include "Jarvis/Include/Base.h"
+#include "JARVIS/Include/Base.h"
 #include "Protocol/Modbus/Include/AddressTable.h"
 
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 namespace muffin {
 
@@ -61,10 +62,10 @@ namespace muffin {
      * @brief JarvisServiceSets
      */
     public:
-        Status SetJarvisLinkConfig(jarvis::config::Base* cin, const jarvis::cfg_key_e type);
-        Status SetJarvisProtocolConfig(const std::set<jarvis::prt_e> link);
+        Status SetJarvisLinkConfig(jvs::config::Base* cin, const jvs::cfg_key_e type);
+        Status SetJarvisProtocolConfig(const std::set<jvs::prt_e> link);
     private:
-        Status setJarvisRs485Config(jarvis::config::Base* cin);
+        Status setJarvisRs485Config(jvs::config::Base* cin);
         Status validateSetService();
     public:
         Status resendSetService();

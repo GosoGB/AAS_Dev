@@ -28,7 +28,7 @@
 #include <sys/_stdint.h>
 
 #include "Common/Status.h"
-#include "Jarvis/Config/Interfaces/Rs485.h"
+#include "JARVIS/Config/Interfaces/Rs485.h"
 
 
 
@@ -49,7 +49,7 @@ namespace muffin {
         static RS485* mInstance;
 
     public:
-        void Config(jarvis::config::Rs485* config);
+        void Config(jvs::config::Rs485* config);
     public:
         void begin();
         void begin(const uint32_t baudrate);

@@ -19,6 +19,8 @@
 #include "Common/Time/TimeUtils.h"
 #include "DeprecableAlarm.h"
 #include "Protocol/MQTT/CDO.h"
+#include "IM/Custom/Constants.h"
+#include "IM/Custom/Device/DeviceStatus.h"
 
 #include "Common/Convert/ConvertClass.h"
 
@@ -48,7 +50,7 @@ namespace muffin {
     {
     }
     
-    void AlarmMonitor::Add(jarvis::config::Alarm* cin)
+    void AlarmMonitor::Add(jvs::config::Alarm* cin)
     {
         mVectorConfig.emplace_back(*cin);
 
@@ -100,7 +102,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             wrapImplTask,  // Function to be run inside of the task
             "implTask",    // The identifier of this task for men
-            4 * 1024,	   // Stack memory size to allocate
+            4 * KILLOBYTE,	   // Stack memory size to allocate
             this,	       // Task parameters to be passed to the function
             0,		       // Task Priority for scheduling
             &xHandle,      // The identifier of this task for machines
@@ -148,19 +150,23 @@ namespace muffin {
 
     void AlarmMonitor::implTask()
     {
-    #ifdef DEBUG
-        uint32_t checkRemainedStackMillis = millis();
-        const uint16_t remainedStackCheckInterval = 6 * 1000;
-    #endif
+        uint32_t statusReportMillis = millis(); 
 
         while (true)
         {
-#ifdef DEBUG
-    if (millis() - checkRemainedStackMillis > remainedStackCheckInterval)
-    {
-        checkRemainedStackMillis = millis();
-    }
-#endif
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
+        #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[MornitorAlarmTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::MORNITOR_ALARM_TASK, RemainedStackSize);
+            }
 
             for (auto& cin : mVectorConfig)
             {
@@ -186,20 +192,20 @@ namespace muffin {
 
                     switch (cin.GetType().second)
                     {
-                    case jarvis::alarm_type_e::ONLY_LCL:
+                    case jvs::alarm_type_e::ONLY_LCL:
                         pubLclToScautr(cin, reference.second->VariableNode);
                         strategyLCL(cin, datum, reference.second->VariableNode);
                         break;
-                    case jarvis::alarm_type_e::ONLY_UCL:
+                    case jvs::alarm_type_e::ONLY_UCL:
                         pubUclToScautr(cin, reference.second->VariableNode);
                         strategyUCL(cin, datum, reference.second->VariableNode);
                         break;
-                    case jarvis::alarm_type_e::LCL_AND_UCL:
+                    case jvs::alarm_type_e::LCL_AND_UCL:
                         pubLclToScautr(cin, reference.second->VariableNode);
                         pubUclToScautr(cin, reference.second->VariableNode);
                         strategyLclAndUcl(cin, datum, reference.second->VariableNode);
                         break;
-                    case jarvis::alarm_type_e::CONDITION:
+                    case jvs::alarm_type_e::CONDITION:
                         strategyCondition(cin, datum, reference.second->VariableNode);
                         break;
                     default:
@@ -213,15 +219,15 @@ namespace muffin {
         }
     }
 
-    void AlarmMonitor::strategyLCL(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         const float lcl = cin.GetLCL().second;
         const float value = convertToFloat(datum);
-        const jarvis::alarm_type_e type = jarvis::alarm_type_e::ONLY_LCL;
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::ONLY_LCL || cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_LCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_LCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
 
         const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
         const bool isAlarmCondition = value < lcl;
@@ -250,15 +256,15 @@ namespace muffin {
         }
     }
 
-    void AlarmMonitor::strategyUCL(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyUCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         const float ucl = cin.GetUCL().second;
         const float value = convertToFloat(datum);
-        const jarvis::alarm_type_e type = jarvis::alarm_type_e::ONLY_UCL;
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::ONLY_UCL || cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_UCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_UCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
 
         const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
         const bool isAlarmCondition = value > ucl;
@@ -287,11 +293,11 @@ namespace muffin {
         }
     }
 
-    void AlarmMonitor::strategyLclAndUcl(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyLclAndUcl(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE BOTH LOWER AND UPPER CONTROL LIMITS");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE BOTH LOWER AND UPPER CONTROL LIMITS");
 
         const float ucl = cin.GetUCL().second;
         const float lcl = cin.GetLCL().second;
@@ -306,14 +312,14 @@ namespace muffin {
         {
             if (isLclCondition == true)
             {
-                activateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node);
             }
         }
         else
         {
             if (isLclCondition == false)
             {
-                deactivateAlarm(jarvis::alarm_type_e::ONLY_LCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin);
             }
         }
 
@@ -321,48 +327,48 @@ namespace muffin {
         {
             if (isUclCondition == true)
             {
-                activateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node);
             }
         }
         else
         {
             if (isUclCondition == false)
             {
-                deactivateAlarm(jarvis::alarm_type_e::ONLY_UCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin);
             }
 
         }
     }
 
-    void AlarmMonitor::strategyCondition(const jarvis::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    void AlarmMonitor::strategyCondition(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
-        ASSERT((cin.GetType().second == jarvis::alarm_type_e::CONDITION), "ALARM TYPE MUST BE CONDITION TYPE");
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::CONDITION), "ALARM TYPE MUST BE CONDITION TYPE");
 
         int16_t value = 0;
         bool hasValue = false;
         switch (datum.DataType)
         {
-        case jarvis::dt_e::BOOLEAN:
+        case jvs::dt_e::BOOLEAN:
             value = static_cast<int16_t>(datum.Value.Boolean);
             hasValue = true;
             break;
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             value = static_cast<int16_t>(datum.Value.Int8);
             hasValue = true;
             break;
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             value = static_cast<int16_t>(datum.Value.Int16);
             hasValue = true;
             break;
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             value = static_cast<int16_t>(datum.Value.UInt8);
             hasValue = true;
             break;
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             value = static_cast<int16_t>(datum.Value.UInt16);
             hasValue = true;
             break;
-        case jarvis::dt_e::STRING:
+        case jvs::dt_e::STRING:
             {
                 const auto mappingRules = node.GetMappingRules();
                 for (auto& pair : mappingRules)
@@ -385,7 +391,6 @@ namespace muffin {
             LOG_ERROR(logger, "NO VALUE AVAILABLE FOR CONDITION TYPE ALARM");
             return;
         }
-        
 
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::string alarmUID;
@@ -416,7 +421,7 @@ namespace muffin {
         {
             if (isCondition == true)
             {
-                activateAlarm(jarvis::alarm_type_e::CONDITION, cin, node);
+                activateAlarm(jvs::alarm_type_e::CONDITION, cin, node);
             }
             else
             {
@@ -427,15 +432,32 @@ namespace muffin {
         {
             if (isCondition == true)
             {
-                return;
+                if (node.RetrieveCount() > 1)
+                {
+                    im::var_data_t history = node.RetrieveHistory(2).back();
+                    const std::string currentValue   = std::string(datum.Value.String.Data);
+                    const std::string previousValue  = std::string(history.Value.String.Data);
+                    
+                    if (previousValue != currentValue)
+                    {
+                        for (auto& condition : vectorCondition)
+                        {
+                            if ((static_cast<int16_t>(history.Value.UInt16) == condition) &&
+                                (static_cast<int16_t>(datum.Value.UInt16)   != condition))
+                            {
+                                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
+                            }
+                        }
+                    }
+                }
             }
             else
             {
-                deactivateAlarm(jarvis::alarm_type_e::CONDITION, cin);
+                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
             }
         }
     }
-
+    
     bool AlarmMonitor::isActiveAlarm(const std::string& uid)
     {
         for (auto& alarmInfo : mVectorAlarmInfo)
@@ -451,33 +473,33 @@ namespace muffin {
 
     float AlarmMonitor::convertToFloat(const im::var_data_t& datum)
     {
-        ASSERT((datum.DataType != jarvis::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jarvis::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         /**
          * @todo double 타입을 처리할 수 있도록 코드를 수정해야 합니다.
          */
         switch (datum.DataType)
         {
-        case jarvis::dt_e::INT8:
+        case jvs::dt_e::INT8:
             return static_cast<float>(datum.Value.Int8);
-        case jarvis::dt_e::UINT8:
+        case jvs::dt_e::UINT8:
             return static_cast<float>(datum.Value.UInt8);
-        case jarvis::dt_e::INT16:
+        case jvs::dt_e::INT16:
             return static_cast<float>(datum.Value.Int16);
-        case jarvis::dt_e::UINT16:
+        case jvs::dt_e::UINT16:
             return static_cast<float>(datum.Value.UInt16);
-        case jarvis::dt_e::INT32:
+        case jvs::dt_e::INT32:
             return static_cast<float>(datum.Value.Int32);
-        case jarvis::dt_e::UINT32:
+        case jvs::dt_e::UINT32:
             return static_cast<float>(datum.Value.UInt32);
-        case jarvis::dt_e::INT64:
+        case jvs::dt_e::INT64:
             return static_cast<float>(datum.Value.Int64);
-        case jarvis::dt_e::UINT64:
+        case jvs::dt_e::UINT64:
             return static_cast<float>(datum.Value.UInt64);
-        case jarvis::dt_e::FLOAT32:
+        case jvs::dt_e::FLOAT32:
             return static_cast<float>(datum.Value.Float32);
-        case jarvis::dt_e::FLOAT64:
+        case jvs::dt_e::FLOAT64:
             return static_cast<float>(datum.Value.Float64);
         default:
             return 0.0f;
@@ -556,7 +578,7 @@ namespace muffin {
         return std::string(returnUUID).substr(0, 12);
     }
     
-    void AlarmMonitor::activateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin, const im::Variable& node)
+    void AlarmMonitor::activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node)
     {
         alarm_struct_t alarm;
         push_struct_t push;
@@ -570,17 +592,17 @@ namespace muffin {
 
         switch (type)
         {
-        case jarvis::alarm_type_e::ONLY_LCL:
+        case jvs::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
             alarm.Name = node.GetDisplayName() + " 하한 도달";
             push.Name = node.GetDisplayName() + " 하한 도달";
             break;
-        case jarvis::alarm_type_e::ONLY_UCL:
+        case jvs::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
             alarm.Name = node.GetDisplayName() + " 상한 초과";
             push.Name = node.GetDisplayName() + " 상한 초과";
             break;
-        case jarvis::alarm_type_e::CONDITION:
+        case jvs::alarm_type_e::CONDITION:
             {
                 im::NodeStore& nodeStore = im::NodeStore::GetInstance();
                 for (auto& nodeRef : nodeStore)
@@ -602,34 +624,36 @@ namespace muffin {
         
 
         JSON json;
-        const std::string payload = json.Serialize(alarm);
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(alarm, size, payload);
         const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
         mqtt::Message AlarmMessage(topic, payload);
         
-        const std::string pushPayload = json.Serialize(push);
+        memset(payload, '\0', size);
+        json.Serialize(push, size, payload);
         const mqtt::topic_e pushTopic = push.Topic;
-        mqtt::Message pushMessage(pushTopic, pushPayload);
+        mqtt::Message pushMessage(pushTopic, payload);
 
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(AlarmMessage);
-        cdo.Store(pushMessage);
+        mqtt::cdo.Store(AlarmMessage);
+        mqtt::cdo.Store(pushMessage);
 
         mVectorAlarmInfo.emplace_back(alarm);
     }
 
-    void AlarmMonitor::deactivateAlarm(const jarvis::alarm_type_e type, const jarvis::config::Alarm cin)
+    void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin)
     {
         std::string uid;
 
         switch (type)
         {
-        case jarvis::alarm_type_e::ONLY_LCL:
+        case jvs::alarm_type_e::ONLY_LCL:
             uid = cin.GetLclAlarmUID().second;
             break;
-        case jarvis::alarm_type_e::ONLY_UCL:
+        case jvs::alarm_type_e::ONLY_UCL:
             uid = cin.GetUclAlarmUID().second;
             break;
-        case jarvis::alarm_type_e::CONDITION:
+        case jvs::alarm_type_e::CONDITION:
             {
                 im::NodeStore& nodeStore = im::NodeStore::GetInstance();
                 for (auto& node : nodeStore)
@@ -652,12 +676,12 @@ namespace muffin {
         alarm.AlarmType = "finish";
 
         JSON json;
-        const std::string payload = json.Serialize(alarm);
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(alarm, size, payload);
         const mqtt::topic_e topic = alarm.Uid.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
         mqtt::Message message(topic, payload);
-
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        cdo.Store(message);
+        mqtt::cdo.Store(message);
     }
 
     std::pair<bool,std::vector<std::string>> AlarmMonitor::GetUclUid()
@@ -795,32 +819,24 @@ namespace muffin {
 
     void AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
-        fs::File file = esp32FS.Open("/jarvis/config.json");
-        std::string payload;
-        std::string resultPayload;
-        while (file.available() > 0)
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
         {
-            payload += file.read();
+            return;
         }
-
-        file.close();
-
+        
         JSON json;
         JsonDocument doc;
-        json.Deserialize(payload, &doc);
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
         JsonArray alarms = doc["cnt"]["alarm"];
         for (JsonObject alarm : alarms)
         {
             if (alarm["nodeId"].as<std::string>() == nodeid)
             {
                 alarm["ucl"] = ucl;
-                serializeJson(doc, resultPayload);
-                file = esp32FS.Open("/jarvis/config.json", "w", true);
-                for (size_t i = 0; i < resultPayload.length(); ++i)
-                {
-                    file.write(resultPayload[i]);
-                }
+                file = esp32FS.Open(JARVIS_PATH, "w", true);
+                serializeJson(doc, file);
                 file.close();
             }
         }
@@ -828,38 +844,33 @@ namespace muffin {
 
     void AlarmMonitor::updateFlashLclValue(std::string nodeid, float lcl)
     {
-        ESP32FS& esp32FS = ESP32FS::GetInstance();
-        fs::File file = esp32FS.Open("/jarvis/config.json");
-        std::string payload;
-        std::string resultPayload;
-        while (file.available() > 0)
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
         {
-            payload += file.read();
+            return;
         }
-        file.close();
-
+        
         JSON json;
         JsonDocument doc;
-        json.Deserialize(payload, &doc);
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
+        LOG_WARNING(logger, "[BEFORE] Remained Heap: %u Bytes", ESP.getFreeHeap());
         JsonArray alarms = doc["cnt"]["alarm"];
         for (JsonObject alarm : alarms)
         {
             if (alarm["nodeId"].as<std::string>() == nodeid)
             {
                 alarm["lcl"] = lcl;
-                serializeJson(doc, resultPayload);
-
-                file = esp32FS.Open("/jarvis/config.json", "w", true);
-                for (size_t i = 0; i < resultPayload.length(); ++i)
-                {
-                    file.write(resultPayload[i]);
-                }
+      
+                file = esp32FS.Open(JARVIS_PATH, "w", true);
+                serializeJson(doc, file);
                 file.close();
+                LOG_WARNING(logger, "[AFTER] Remained Heap: %u Bytes", ESP.getFreeHeap());
             }
         }
     }
 
-    void AlarmMonitor::pubLclToScautr(jarvis::config::Alarm& cin, const im::Variable& node)
+    void AlarmMonitor::pubLclToScautr(jvs::config::Alarm& cin, const im::Variable& node)
     {
         float lcl = cin.GetLCL().second;
         if (lcl != cin.mPreviousLCL)
@@ -873,19 +884,20 @@ namespace muffin {
             param.Value = node.FloatConvertToStringForLimitValue(lcl);
 
             JSON json;
-            const std::string payload = json.Serialize(param);
+            const size_t size = UINT8_MAX;
+            char payload[size] = {'\0'};
+            json.Serialize(param, size, payload);
+            
             const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
             mqtt::Message message(topic, payload);
-
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            cdo.Store(message);
+            mqtt::cdo.Store(message);
 
             cin.mPreviousLCL = lcl;
         }
         
     }
 
-    void AlarmMonitor::pubUclToScautr(jarvis::config::Alarm& cin, const im::Variable& node)
+    void AlarmMonitor::pubUclToScautr(jvs::config::Alarm& cin, const im::Variable& node)
     {
         float ucl = cin.GetUCL().second;
         if (ucl != cin.mPreviousUCL)
@@ -899,13 +911,13 @@ namespace muffin {
             param.Value = node.FloatConvertToStringForLimitValue(ucl);
 
             JSON json;
-            const std::string payload = json.Serialize(param);
+            const size_t size = UINT8_MAX;
+            char payload[size] = {'\0'};
+            json.Serialize(param, size, payload);
+
             const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
             mqtt::Message message(topic, payload);
-
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            cdo.Store(message);
-
+            mqtt::cdo.Store(message);
             cin.mPreviousUCL = ucl;
         }
     }

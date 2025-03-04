@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "TypeDefinitions.h"
 
 
@@ -43,6 +43,6 @@ namespace muffin { namespace modbus {
         datum_t RetrieveInputRegister(const uint16_t address) const;
         datum_t RetrieveHoldingRegister(const uint16_t address) const;
     private:
-        std::map<jarvis::mb_area_e, std::vector<datum_t>> mMapDatumByArea;
+        std::map<jvs::mb_area_e, std::vector<datum_t>> mMapDatumByArea;
     };
 }}

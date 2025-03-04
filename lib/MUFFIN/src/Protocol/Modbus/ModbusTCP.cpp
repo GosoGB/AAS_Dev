@@ -28,10 +28,9 @@
 
 namespace muffin {
 
-    WiFiClient wifiClient;
-    ModbusTCPClient modbusTCPClient(wifiClient);
 
     ModbusTCP::ModbusTCP()
+    : mModbusTCPClient(mWifiClient)
     {
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
@@ -45,10 +44,10 @@ namespace muffin {
     #endif
     }
 
-    Status ModbusTCP::Config(jarvis::config::ModbusTCP* config)
+    Status ModbusTCP::Config(jvs::config::ModbusTCP* config)
     {
         addNodeReferences(config->GetSlaveID().second, config->GetNodes().second);
-        mServerIP = config->GetIPv4().second;
+        mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
         return Status(Status::Code::GOOD);
     }
@@ -82,7 +81,7 @@ namespace muffin {
                 return ret;
             }
 
-            const jarvis::mb_area_e area = reference->VariableNode.GetModbusArea();
+            const jvs::mb_area_e area = reference->VariableNode.GetModbusArea();
             const AddressRange range = createAddressRange(reference->VariableNode.GetAddress().Numeric, reference->VariableNode.GetQuantity());
     
             ret = mAddressTable.Update(slaveID, area, range);
@@ -106,7 +105,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        const jarvis::mb_area_e area = node.VariableNode.GetModbusArea();
+        const jvs::mb_area_e area = node.VariableNode.GetModbusArea();
         const AddressRange range = createAddressRange(node);
 
         ret = mAddressTable.Remove(slaveID, area, range);
@@ -182,16 +181,16 @@ namespace muffin {
                 
                 switch (area)
                 {
-                case jarvis::mb_area_e::COILS:
+                case jvs::mb_area_e::COILS:
                     ret = pollCoil(slaveID, addressSetToPoll);
                     break;
-                case jarvis::mb_area_e::DISCRETE_INPUT:
+                case jvs::mb_area_e::DISCRETE_INPUT:
                     ret = pollDiscreteInput(slaveID, addressSetToPoll);
                     break;
-                case jarvis::mb_area_e::INPUT_REGISTER:
+                case jvs::mb_area_e::INPUT_REGISTER:
                     ret = pollInputRegister(slaveID, addressSetToPoll);
                     break;
-                case jarvis::mb_area_e::HOLDING_REGISTER:
+                case jvs::mb_area_e::HOLDING_REGISTER:
                     ret = pollHoldingRegister(slaveID, addressSetToPoll);
                     break;
                 default:
@@ -234,7 +233,7 @@ namespace muffin {
             {
                 const uint16_t address  = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
-                const jarvis::mb_area_e area = node->VariableNode.GetModbusArea();
+                const jvs::mb_area_e area = node->VariableNode.GetModbusArea();
 
                 modbus::datum_t datum;
                 datum.Address = address;
@@ -244,7 +243,7 @@ namespace muffin {
                 std::vector<im::poll_data_t> vectorPolledData;
                 im::poll_data_t polledData;
                 polledData.StatusCode = Status::Code::GOOD;
-                polledData.AddressType = jarvis::adtp_e::NUMERIC;
+                polledData.AddressType = jvs::adtp_e::NUMERIC;
                 polledData.Address.Numeric = address;
                 polledData.Timestamp = timestampInMillis;
 
@@ -254,10 +253,10 @@ namespace muffin {
                  */
                 switch (area)
                 {
-                case jarvis::mb_area_e::COILS:
+                case jvs::mb_area_e::COILS:
                     datum = mPolledDataTable.RetrieveCoil(slaveID, address);
                     goto BIT_MEMORY;
-                case jarvis::mb_area_e::DISCRETE_INPUT:
+                case jvs::mb_area_e::DISCRETE_INPUT:
                     datum = mPolledDataTable.RetrieveDiscreteInput(slaveID, address);
                 BIT_MEMORY:
                     if (datum.IsOK == false)
@@ -270,28 +269,28 @@ namespace muffin {
                         polledData.StatusCode = Status::Code::GOOD;
                         polledData.Value.Boolean = datum.Value == 1 ? true : false;
                     }
-                    polledData.ValueType = jarvis::dt_e::BOOLEAN;
+                    polledData.ValueType = jvs::dt_e::BOOLEAN;
                     vectorPolledData.emplace_back(polledData);
                     node->VariableNode.Update(vectorPolledData);
                     break;
-                case jarvis::mb_area_e::INPUT_REGISTER:
+                case jvs::mb_area_e::INPUT_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveInputRegister(slaveID, address + i);
                         polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
-                        polledData.ValueType = jarvis::dt_e::UINT16;
+                        polledData.ValueType = jvs::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;
                         vectorPolledData.emplace_back(polledData);
                     }
                     goto REGISTER_MEMORY;
-                case jarvis::mb_area_e::HOLDING_REGISTER:
+                case jvs::mb_area_e::HOLDING_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveHoldingRegister(slaveID, address + i);
                         polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
-                        polledData.ValueType = jarvis::dt_e::UINT16;
+                        polledData.ValueType = jvs::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;
                         vectorPolledData.emplace_back(polledData);
                     }
@@ -317,10 +316,10 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            modbusTCPClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -337,7 +336,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = modbusTCPClient.read();
+                const int8_t value = mModbusTCPClient.read();
                 
                 switch (value)
                 {
@@ -364,10 +363,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            modbusTCPClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -385,7 +384,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = modbusTCPClient.read();
+                const int8_t value = mModbusTCPClient.read();
                 switch (value)
                 {
                 case 1:
@@ -412,10 +411,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            modbusTCPClient.requestFrom(1, INPUT_REGISTERS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -433,7 +432,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = modbusTCPClient.read();
+                const int32_t value = mModbusTCPClient.read();
                 
                 if (value == -1)
                 {
@@ -461,10 +460,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            modbusTCPClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
+            mModbusTCPClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = modbusTCPClient.lastError();
-            // modbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient.lastError();
+            // mModbusTCPClient.clearError();
 
             // if (lastError != nullptr)
             // {
@@ -482,7 +481,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = modbusTCPClient.read();
+                const int32_t value = mModbusTCPClient.read();
                 
                 // LOG_WARNING(logger, "[HOLDING REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
@@ -502,22 +501,22 @@ namespace muffin {
         return ret;
     }
 
-    modbus::datum_t ModbusTCP::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jarvis::mb_area_e area)
+    modbus::datum_t ModbusTCP::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area)
     {
         modbus::datum_t data;
         data.IsOK = false;
         switch (area)
         {
-        case jarvis::mb_area_e::COILS :
+        case jvs::mb_area_e::COILS :
             data = mPolledDataTable.RetrieveCoil(slaveID,address);
             break;
-        case jarvis::mb_area_e::DISCRETE_INPUT :
+        case jvs::mb_area_e::DISCRETE_INPUT :
             data = mPolledDataTable.RetrieveDiscreteInput(slaveID,address);
             break;
-        case jarvis::mb_area_e::INPUT_REGISTER :
+        case jvs::mb_area_e::INPUT_REGISTER :
             data = mPolledDataTable.RetrieveInputRegister(slaveID,address);
             break;
-        case jarvis::mb_area_e::HOLDING_REGISTER :
+        case jvs::mb_area_e::HOLDING_REGISTER :
             data = mPolledDataTable.RetrieveHoldingRegister(slaveID,address);
             break;
         default:

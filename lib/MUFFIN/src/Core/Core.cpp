@@ -3,12 +3,12 @@
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
- * @brief MUFFIN 프레임워크 내부의 핵심 기능을 제공하는 클래스를 정의합니다.
+ * @brief MUFFIN 프레임워크를 초기화 기능을 제공하는 클래스를 정의합니다.
  * 
- * @date 2024-12-28
- * @version 1.0.0
+ * @date 2025-01-20
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -17,906 +17,762 @@
 #include <esp_system.h>
 #include <Preferences.h>
 
-#include "Jarvis/Jarvis.h"
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Core.h"
 #include "Core/Task/ModbusTask.h"
-#include "Device/DeviceStatus.h"
-#include "DataFormat/JSON/JSON.h"
+
+#include "DataFormat/CSV/CSV.h"
+
+#include "IM/Custom/Device/DeviceStatus.h"
+#include "JARVIS/JARVIS.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
+#include "IM/Custom/Constants.h"
+#include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 #include "IM/EA/DeprecableOperationTime.h"
 #include "IM/EA/DeprecableProductionInfo.h"
-#include "IM/FirmwareVersion/FirmwareVersion.h"
 #include "IM/Node/NodeStore.h"
-#include "Initializer/Initializer.h"
+
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/SPEAR/SPEAR.h"
 #include "Storage/ESP32FS/ESP32FS.h"
-#include "Task/MqttTask.h"
 #include "Task/JarvisTask.h"
-#include "Task/UpdateTask.h"
 #include "Task/CyclicalPubTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
-#include "Jarvis/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Config/Operation/Operation.h"
 #include "IM/Node/Include/TypeDefinitions.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
+#include "Protocol/HTTP/CatHTTP/CatHTTP.h"
+#include "Protocol/HTTP/Include/TypeDefinitions.h"
+#include "Protocol/HTTP/IHTTP.h"
+#include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 
+#include "ServiceSets/FirmwareUpdateServiceSet/FirmwareUpdateService.h"
+#include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
+#include "ServiceSets/HttpServiceSet/StartHttpClientService.h"
+#include "ServiceSets/JarvisServiceSet/ApplyOperationService.h"
+#include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
+#include "ServiceSets/JarvisServiceSet/ValidateConfigService.h"
+#include "ServiceSets/MqttServiceSet/StartMqttClientService.h"
+#include "ServiceSets/MqttServiceSet/MqttTaskService.h"
+
+#include "CLI/CLI.h"
+#include "Network/CatM1/CatM1.h"
 
 
 namespace muffin {
 
-    std::vector<muffin::jarvis::config::ModbusRTU> mVectorModbusRTU;
-    std::vector<muffin::jarvis::config::ModbusTCP> mVectorModbusTCP;
-    muffin::jarvis::config::Ethernet mEthernet;
-    bool s_HasJarvisCommand = false;
-    bool s_HasFotaCommand = false;
-    
-    Core* Core::CreateInstance() noexcept
+    std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
+    std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
+
+    void listDir(const char* dirname, const uint8_t levels)
     {
-
-        if (mInstance == nullptr)
+        File root = esp32FS.Open(dirname);
+        if (!root)
         {
-            logger.Init();
-            DeviceStatus* deviceStatus = DeviceStatus::CreateInstanceOrNULL();
-            deviceStatus->SetFirmwareVersion(
-                mcu_type_e::MCU_ESP32, 
-                FW_VERSION_ESP32.GetSemanticVersion(), 
-                FW_VERSION_ESP32.GetVersionCode()
-            );
-            LOG_INFO(logger, "[ESP32] Semantic Version: %s,  Version Code: %u",
-                FW_VERSION_ESP32.GetSemanticVersion(),
-                FW_VERSION_ESP32.GetVersionCode());
-
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
-            
-            const uint8_t MAX_TRIAL_COUNT = 3;
-            uint8_t trialCount = 0;
-    
-            while (spear.Init() != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "NO SIGN-ON REQUEST FROM ATmega2560. WILL RESTART MEGA2560.");
-                spear.Reset();
-                if (trialCount == MAX_TRIAL_COUNT)
-                {
-                    break;
-                }
-                trialCount++;
-            }
-            
-            
-            if (spear.VersionEnquiryService() != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO VERSION SERVICE FROM THE MEGA2560");
-            }
-
-            deviceStatus->SetFirmwareVersion(
-                mcu_type_e::MCU_ATmega2560, 
-                FW_VERSION_MEGA2560.GetSemanticVersion(), 
-                FW_VERSION_MEGA2560.GetVersionCode()
-            );
-
-            LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
-                FW_VERSION_MEGA2560.GetSemanticVersion(),
-                FW_VERSION_MEGA2560.GetVersionCode());
-        #endif
-        
-            mInstance = new(std::nothrow) Core();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FATAL ERROR OCCURED: FAILED TO ALLOCATE MEMORY FOR MUFFIN CORE");
-                esp_restart();
-            }
+            Serial.println("FAILED TO OPEN ROOT DIRECTORY");
+            return;
         }
 
-        return mInstance;
+        if (!root.isDirectory())
+        {
+            return;
+        }
+    
+        File file = root.openNextFile();
+        while (file)
+        {
+            if (file.isDirectory())
+            {
+                Serial.print("  DIR : ");
+                Serial.println(file.path());
+                if (levels)
+                {
+                    listDir(file.path(), levels - 1);
+                }
+            }
+            else
+            {
+                Serial.print("    FILE: ");
+                Serial.print(file.name());
+                Serial.print("\tSIZE: ");
+                Serial.println(file.size());
+            }
+            
+            file = root.openNextFile();
+        }
     }
 
-    Core& Core::GetInstance() noexcept
+    /**
+     * @todo Ver.1.3 미만 펌웨어가 없다면 본 함수는 삭제할 예정임
+     */
+    void replaceDeprecatedPaths()
     {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstance\" IN ADVANCE");
-        return *mInstance;
+        listDir("/", 2);
+        LOG_DEBUG(logger, "Remained Flash Memory: %u Bytes", esp32FS.GetTotalBytes() - esp32FS.GetUsedBytes());
+
+        if (esp32FS.DoesExist(DEPRECATED_INIT_FILE_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_INIT_FILE_PATH, INIT_FILE_PATH);
+            esp32FS.RemoveDirectory("/init");
+        }
+
+        bool hasJarvisPath = false;
+        if (esp32FS.DoesExist(DEPRECATED_JARVIS_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_JARVIS_PATH, JARVIS_PATH);
+            hasJarvisPath = true;
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_JARVIS_PATH_FETCHED) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_JARVIS_PATH_FETCHED, JARVIS_PATH_FETCHED);
+            hasJarvisPath = true;
+        }
+
+        if (hasJarvisPath == true)
+        {
+            esp32FS.RemoveDirectory("/jarvis");
+        }
+        
+        bool hasUpdatePath = false;
+        if (esp32FS.DoesExist(DEPRECATED_OTA_REQUEST_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_OTA_REQUEST_PATH, OTA_REQUEST_PATH);
+            hasUpdatePath = true;
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_OTA_CHUNK_PATH_ESP32) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_OTA_CHUNK_PATH_ESP32, OTA_CHUNK_PATH_ESP32);
+            hasUpdatePath = true;
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_OTA_CHUNK_PATH_MEGA) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_OTA_CHUNK_PATH_MEGA, OTA_CHUNK_PATH_MEGA);
+            hasUpdatePath = true;
+        }
+
+        if (hasUpdatePath == true)
+        {
+            esp32FS.RemoveDirectory("/ota");
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_LWIP_HTTP_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Rename(DEPRECATED_LWIP_HTTP_PATH, LWIP_HTTP_PATH);
+            esp32FS.RemoveDirectory("/http");
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_SPEAR_LINK1_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Remove(DEPRECATED_SPEAR_LINK1_PATH);
+            esp32FS.RemoveDirectory("/spear/link1");
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_SPEAR_LINK2_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Remove(DEPRECATED_SPEAR_LINK2_PATH);
+            esp32FS.RemoveDirectory("/spear/link2");
+        }
+        
+        if (esp32FS.DoesExist(DEPRECATED_SPEAR_PRTCL_PATH) == Status::Code::GOOD)
+        {
+            esp32FS.Remove(DEPRECATED_SPEAR_PRTCL_PATH);
+            esp32FS.RemoveDirectory("/spear/protocol");
+            esp32FS.RemoveDirectory("/spear");
+        }
+
+        listDir("/", 2);
+        LOG_DEBUG(logger, "Remained Flash Memory: %u Bytes", esp32FS.GetTotalBytes() - esp32FS.GetUsedBytes());
     }
 
     void Core::Init()
     {
-        Preferences nvs;
-        nvs.begin("jarvis");
-        s_HasJarvisCommand = nvs.getBool("jarvisFlag",false);
-        nvs.end();
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+        settimeofday(&tv, NULL);
 
-        nvs.begin("fota");
-        s_HasFotaCommand = nvs.getBool("fotaFlag",false);
-        nvs.end();
-
-        /**
-         * @todo Reset 사유에 따라 자동으로 초기화 하는 기능의 개발이 필요합니다.
-         * @details JARVIS 설정으로 인해 런타임에 크래시 같은 문제가 있을 수 있습니다.
-         *          이러한 경우에는 계속해서 반복적으로 MODLINK가 리셋되는 현상이 발생할
-         *          수 있습니다. 따라서 reset 사유를 확인하여 JARVIS 설정을 초기화 하는
-         *          기능이 필요합니다. 단, 다른 부서와의 협의가 선행되어야 합니다.
-         */
-        DeviceStatus& deviceStatus = DeviceStatus::GetInstance();
-        deviceStatus.SetResetReason(esp_reset_reason());
-
-        Initializer initializer;
-        initializer.StartOrCrash();
-
-
-        /**
-         * @todo 설정이 정상적이지 않을 때 어떻게 처리할 것인지 결정해야 합니다.
-         * @details 현재는 설정에 실패했을 때, 최대 5번까지 다시 시도하게 되어 있습니다.
-         *          설정에 성공했다면 루프를 빠져나가게 됩니다.
-         */
-        for (uint8_t i = 0; i < MAX_RETRY_COUNT; ++i)
-        {
-            Status ret = initializer.Configure();
-            if (ret == Status::Code::GOOD)
-            {
-                LOG_INFO(logger, "MUFFIN is configured and ready to go!");
-                break;
-            }
-            
-            if ((i + 1) == MAX_RETRY_COUNT)
-            {
-                LOG_ERROR(logger, "FAILED TO CONFIGURE MUFFIN: %s", ret.c_str());
-                esp_restart();
-            }
-            else
-            {
-                LOG_WARNING(logger, "[TRIAL: #%u] CONFIGURATION WAS UNSUCCESSFUL: %s", i, ret.c_str());
-            }
-            vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
-        }
-
-        StartTaskMQTT();
-        if (s_HasJarvisCommand == false)
-        {
-            StartUpdateTask();
-        }
-        
-    }
-
-    void Core::RouteMqttMessage(const mqtt::Message& message)
-    {
-        const mqtt::topic_e topic = message.GetTopicCode();
-        const std::string payload = message.GetPayload();
-
-        switch (topic)
-        {
-        /**
-         * @todo 현재 CIA 개체에 저장된 메시지를 Peek() 하는 게 아니라 Retrieve()로
-         *       가져오기 때문에 startJarvisTask()가 실패하는 경우 해당 메시지는
-         *       소실되게 됩니다. 따라서 요청이 사라지지 않게 보완하는 작업이 필요합니다.
-         */
-        case mqtt::topic_e::JARVIS_REQUEST:
-            saveJarvisFlag(payload);
-            return;
-        case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
-            startRemoteControll(payload);
-            break;
-        case mqtt::topic_e::FOTA_UPDATE:
-            saveFotaFlag(payload);
-            break;
-        default:
-            ASSERT(false, "UNDEFINED ERROR: MAY BE NEWLY DEFINED TOPIC OR AN UNEXPECTED ERROR");
-            break;
-        }
-        
-        // mqtt::CatMQTT& catMqtt = mqtt::CatMQTT::GetInstance();
-    }
-
-    void Core::saveFotaFlag(const std::string& payload)
-    {
-        Preferences nvs;
-        nvs.begin("fota");
-        nvs.putBool("fotaFlag",true);
-        nvs.putString("fotaPayload",payload.c_str());
-        nvs.end();
-
-        LOG_WARNING(logger,"ESP RESET!");
+        logger.Init();
     #if defined(MODLINK_T2) || defined(MODLINK_B)
-        spear.Reset();
-    #endif
-        ESP.restart();
-    }
-
-    void Core::saveJarvisFlag(const std::string& payload)
-    {
-        bool isError = false;
-        jarvis_struct_t messageConfig;
-        JSON json;
-        JsonDocument doc;
-        Status retJSON = json.Deserialize(payload, &doc);
-#ifdef DEBUG
-//LOG_DEBUG(logger, "[TASK: JARVIS][DECODE MQTT] Stack Remaind: %u Bytes", uxTaskGetStackHighWaterMark(NULL));
-#endif
-        if (retJSON != Status::Code::GOOD)
+        CommandLineInterface commandLineInterface;
+        if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
-            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-            switch (retJSON.ToCode())
-            {
-            case Status::Code::BAD_END_OF_STREAM:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_COMMUNICATION);
-                messageConfig.Description   = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
-                isError = true;
-                break;
-            case Status::Code::BAD_NO_DATA:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE);
-                messageConfig.Description   = "PAYLOAD EMPTY";
-                isError = true;
-                break;
-            case Status::Code::BAD_DATA_ENCODING_INVALID:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_DECODING_ERROR);
-                messageConfig.Description   = "PAYLOAD INVALID ENCODING";
-                isError = true;
-                break;
-            case Status::Code::BAD_OUT_OF_MEMORY:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_OUT_OF_MEMORY);
-                messageConfig.Description   = "PAYLOAD OUT OF MEMORY";
-                isError = true;
-                break;
-            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_DECODING_CAPACITY_EXCEEDED);
-                messageConfig.Description   = "PAYLOAD EXCEEDED NESTING LIMIT";
-                isError = true;
-                break;
-            case Status::Code::BAD_UNEXPECTED_ERROR:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                messageConfig.Description   = "UNDEFINED CONDITION";
-                isError = true;
-                break;
-            default:
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_UNEXPECTED_ERROR);
-                messageConfig.Description   = "UNDEFINED CONDITION";
-                isError = true;
-                break;
-            }
-        }
-
-        ASSERT((retJSON == Status::Code::GOOD), "JARVIS REQUEST MESSAGE MUST BE A VALID JSON FORMAT");
-        const auto retVersion = Convert.ToJarvisVersion(doc["ver"].as<std::string>());
-        if ((retVersion.first.ToCode() != Status::Code::GOOD) || (retVersion.second > jarvis::prtcl_ver_e::VERSEOIN_2))
-        {
-            LOG_ERROR(logger, "VERSION ERROR: %s , VERSION : %u", retVersion.first.c_str(),static_cast<uint8_t>(retVersion.second));
-            messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD_INVALID_VERSION);
-            messageConfig.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
-            isError = true;
-        }
-        ASSERT((retVersion.second == jarvis::prtcl_ver_e::VERSEOIN_2), "ONLY JARVIS PROTOCOL VERSION 1 IS SUPPORTED");
-        if (doc.containsKey("rqi") == true)
-        {
-            const char* rqi = doc["rqi"].as<const char*>();
-            if (rqi == nullptr || strlen(rqi) == 0)
-            {
-                messageConfig.ResponseCode  = Convert.ToUInt16(jarvis::rsc_e::BAD);
-                messageConfig.Description   = "INVALID REQUEST ID: CANNOT BE NULL OR EMPTY";
-                isError = true;
-            }
-            ASSERT((rqi != nullptr || strlen(rqi) != 0), "REQUEST ID CANNOT BE NULL OR EMPTY");
-        }
-
-        if (isError)
-        {
-            messageConfig.SourceTimestamp  = GetTimestampInMillis();
-            JSON json;
-            std::string payload = json.Serialize(messageConfig);
-
-            mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
-            Status ret = cdo.Store(message);
+            init_cfg_t initConfig;
+            Status ret = readInitConfig(&initConfig);
             if (ret != Status::Code::GOOD)
             {
-                /**
-                 * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
-                 */
-                LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO LOAD INIT CONFIG FILE");
+                std::abort();
             }
-            return;
+            initConfig.ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::CLI_USER_CONFIG_CHANGE);
+            ret = writeInitConfig(initConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+            
+            delay(2000);
+            spear.Reset();
+            esp_restart();
         }
-        
-        
-        Preferences nvs;
-        nvs.begin("jarvis");
-        nvs.putBool("jarvisFlag",true);
-        nvs.end();
+    #endif 
+        LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
+        LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
+            FW_VERSION_ESP32.GetSemanticVersion(),
+            FW_VERSION_ESP32.GetVersionCode());
 
-        LOG_WARNING(logger,"ESP RESET!");
     #if defined(MODLINK_T2) || defined(MODLINK_B)
-        spear.Reset();
+        {
+            uint8_t trialCount = 0;    
+            while (spear.Init() != Status::Code::GOOD)
+            {
+                if (trialCount == MAX_RETRY_COUNT)
+                {
+                    LOG_ERROR(logger, "FAILED TO GET SIGN-ON REQUEST FROM ATmega2560");
+                    goto SPEAR_FAILED;
+                }
+                spear.Reset();
+                ++trialCount;
+            }
+            
+            if (spear.VersionEnquiryService() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO QUERY VERSION OF THE ATmega2560");
+                goto SPEAR_FAILED;
+            }
+            goto SPEAR_SUCCEDED;
+            
+        SPEAR_FAILED:
+            LOG_ERROR(logger, "FAILED TO INITIALIZE SPEAR");
+        SPEAR_SUCCEDED:
+            LOG_INFO(logger, "[MEGA2560] Semantic Version: %s,  Version Code: %u",
+                FW_VERSION_MEGA2560.GetSemanticVersion(),
+                FW_VERSION_MEGA2560.GetVersionCode());
+        }
     #endif
-        ESP.restart();
-    }
 
-    void Core::startJarvisTask()
-    {
-        jarvis_task_params* pvParameters = new(std::nothrow) jarvis_task_params();
-        if (pvParameters == nullptr)
-        {
-            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR TASK PARAMETERS");
-            return;
-        }
-        
-        pvParameters->Callback = onJarvisValidationResult;
-
-        /**
-         * @todo 스택 오버플로우를 방지하기 위해서 JARVIS 설정 정보 크기에 따라서 태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
-         * @todo 실행 도중에 태스크를 시작하면 필요한만큼의 스택을 할당할 수 없습니다. 그 외에도 태스크를 실행시키는 데 실패할 수 있습니다.
-         *       이러한 경우에는 서버로 오류 메시지를 보낼 수 있도록 코드를 추가로 개발해야 합니다.
-         */
-        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            ProcessJarvisRequestTask,   // Function to be run inside of the task
-            "ProcessJarvisRequestTask", // The identifier of this task for men
-            8 * KILLOBYTE,              // Stack memory size to allocate
-            pvParameters,	            // Task parameters to be passed to the function
-            0,				            // Task Priority for scheduling
-            NULL,                       // The identifier of this task for machines
-            0				            // Index of MCU core where the function to run
-        );
-
-        /**
-         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
-         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
-         */
-        jarvis::rsc_e rsc;
-        std::string description;
-        switch (taskCreationResult)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "The JARVIS task has been started");
-            // return Status(Status::Code::GOOD);
-            return;
-
-        case pdFAIL:
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            rsc = jarvis::rsc_e::BAD;
-            description = "FAILED TO START WITHOUT SPECIFIC REASON";
-            LOG_ERROR(logger, description.c_str());
-            break;
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            // return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            rsc = jarvis::rsc_e::BAD_OUT_OF_MEMORY;
-            description = "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK";
-            LOG_ERROR(logger, description.c_str());
-            break;
-
-        default:
-            // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            rsc = jarvis::rsc_e::BAD_UNEXPECTED_ERROR;
-            description = "UNKNOWN ERROR: " + Convert.ToString(taskCreationResult);
-            LOG_ERROR(logger, description.c_str());
-            break;
-        }
-
-        jarvis_struct_t messageConfig;
-        messageConfig.ResponseCode     = Convert.ToUInt16(rsc);
-        messageConfig.Description      = description;
-        messageConfig.SourceTimestamp  = GetTimestampInMillis();
-
-        JSON json;
-        std::string payload = json.Serialize(messageConfig);
-
-        mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
-        Status ret = cdo.Store(message);
+        Status ret = esp32FS.Begin(false);
         if (ret != Status::Code::GOOD)
         {
-            /**
-             * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
-             */
-            LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
-            return;
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO MOUNT ESP32 FILE SYSTEM");
+            std::abort();
         }
-    }
+        LOG_INFO(logger, "File system: %s", ret.c_str());
+        replaceDeprecatedPaths();
 
-    void Core::startRemoteControll(const std::string& payload)
-    {
-        JSON json;
-        remote_controll_struct_t messageconfig;
-        std::string serializedPayload;
-        JsonDocument doc;
-        Status retJSON = json.Deserialize(payload, &doc);
-        std::string Description;
-
-    
-        if (retJSON != Status::Code::GOOD)
+        init_cfg_t initConfig;
+        ret = readInitConfig(&initConfig);
+        if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-
-            switch (retJSON.ToCode())
-            {
-            case Status::Code::BAD_END_OF_STREAM:
-                Description = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
-                break;
-            case Status::Code::BAD_NO_DATA:
-                Description ="PAYLOAD EMPTY";
-                break;
-            case Status::Code::BAD_DATA_ENCODING_INVALID:
-                Description = "PAYLOAD INVALID ENCODING";
-                break;
-            case Status::Code::BAD_OUT_OF_MEMORY:
-                Description = "PAYLOAD OUT OF MEMORY";
-                break;
-            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                Description = "PAYLOAD EXCEEDED NESTING LIMIT";
-                break;
-            case Status::Code::BAD_UNEXPECTED_ERROR:
-                Description = "UNDEFINED CONDITION";
-                break;
-            default:
-                Description = "UNDEFINED CONDITION";
-                break;
-            }
-            
-            messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-            messageconfig.ResponseCode    = "900 :" + Description;
-
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return;
-        }
-        
-        /**
-         * @todo JSON Message에 대해 Validator 구현해야함
-         */
-        JsonArray request = doc["req"].as<JsonArray>();
-        messageconfig.RequestData = request;
-        messageconfig.ID = doc["id"].as<std::string>();
-        std::vector<std::pair<std::string, std::string>> remoteData;
-        for (JsonObject obj : request)
-        {
-            std::string uid = obj["uid"].as<std::string>(); 
-            std::string value = obj["val"].as<std::string>(); 
-            
-            remoteData.emplace_back(uid, value); 
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO LOAD INIT CONFIG FILE");
+            std::abort();
         }
 
+        deviceStatus.SetReconfigurationCode(static_cast<reconfiguration_code_e>(initConfig.ReconfigCode));
 
-        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-        std::pair<bool,std::vector<std::string>> retUCL;
-        std::pair<bool,std::vector<std::string>> retLCL;
-        retUCL = alarmMonitor.GetUclUid();
-        retLCL = alarmMonitor.GetLclUid();
-
-        if (retUCL.first == true)
+        if (isResetByPanic() == true)
         {
-            for (auto& uclUid : retUCL.second )
+            LOG_INFO(logger,"PanicResetCount : %d ",initConfig.PanicResetCount);
+            if (++initConfig.PanicResetCount == MAX_RETRY_COUNT)
             {
-                if (uclUid == remoteData.at(0).first)
+                ret = esp32FS.Remove(JARVIS_PATH);
+                deviceStatus.SetReconfigurationCode(reconfiguration_code_e::FIRMWARE_DEFAULT_RECOVERY);
+                initConfig.ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::FIRMWARE_DEFAULT_RECOVERY);
+            // #if !defined(DEBUG)
+            // ---------------------------------------------------------------------
+            // |  @todo #1  JARVIS 설정 초기화 사유를 <INIT_FILE_PATH>에 저장해야 함  |
+            // |  @todo #2  mfm/status 토픽에 설정값에 변화가 있었다고 알려줘야 함     |
+            // ---------------------------------------------------------------------
+            // #endif
+                if (ret == Status::Code::BAD_DEVICE_FAILURE)
                 {
-                   bool result = alarmMonitor.ConvertUCL(uclUid,remoteData.at(0).second);
-                   if (result)
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "200";                
-                        
-                   }
-                   else
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "900";
-                   }
-
-                    serializedPayload = json.Serialize(messageconfig);
-                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                    Status ret = cdo.Store(message);
-                    if (ret != Status::Code::GOOD)
-                    {
-                        /**
-                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                         * 
-                         */
-                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-                    }
-                    return ;
-                   
+                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO REMOVE JARVIS CONFIG");
+                    std::abort();
                 }
-                
             }
-            
-        }
-        
-        if (retLCL.first == true)
-        {
-            for (auto& lclUid : retLCL.second )
+
+            ret = writeInitConfig(initConfig);
+            if (ret == Status::Code::BAD_ENCODING_ERROR)
             {
-                if (lclUid == remoteData.at(0).first)
-                {
-                   bool result = alarmMonitor.ConvertLCL(lclUid,remoteData.at(0).second);
-                   if (result)
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "200";
-                   }
-                   else
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "900";
-                   }
-
-                    serializedPayload = json.Serialize(messageconfig);
-                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-                    Status ret = cdo.Store(message);
-                    if (ret != Status::Code::GOOD)
-                    {
-                        /**
-                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                         * 
-                         */
-                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-                    }
-                    return ;
-                }
-                
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO ENCODE INIT CONFIG");
+                std::abort();
             }
-            
-        }
-
-         /**
-         * @todo 스카우터,프로직스 기준으로 제어명령은 한개밖에 들어오지 않아 고정으로 설정해두었음 remoteData.at(0), 추후 변경시 수정해야함
-         */
-
-
-        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-        
-        std::pair<Status, im::Node*> ret = nodeStore.GetNodeReferenceUID(remoteData.at(0).first);
-        std::pair<Status, uint16_t> retConvertModbus = std::make_pair(Status(Status::Code::UNCERTAIN),0);
-        
-        if (ret.first != Status::Code::GOOD)
-        {
-            messageconfig.SourceTimestamp   = GetTimestampInMillis();
-            messageconfig.ResponseCode  = "900 : UNDEFINED UID : " + remoteData.at(0).first;
-
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
-            if (ret != Status::Code::GOOD)
+            else if (ret == Status::Code::BAD_DEVICE_FAILURE)
             {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO WRITE INIT CONFIG");
+                std::abort();
             }
-            return ;
-        }
-        retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
-        if (retConvertModbus.first != Status::Code::GOOD)
-        {
-            messageconfig.SourceTimestamp = GetTimestampInMillis();
-            messageconfig.ResponseCode    = "900 : " + retConvertModbus.first.ToString();
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return;
+
+            LOG_INFO(logger, "JARVIS config has been reset due to panic reset");
         }
         else
         {
-            uint8_t writeResult = 0;
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-            if (mVectorModbusTCP.size() != 0)
+            if(initConfig.PanicResetCount != 0)
             {
-                for (auto& TCP : mVectorModbusTCP)
+                initConfig.PanicResetCount = 0;
+                ret = writeInitConfig(initConfig);
+                if (ret == Status::Code::BAD_ENCODING_ERROR)
                 {
-                    for (auto& modbusTCP : ModbusTcpVector)
-                    {
-                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
-                        {
-                            continue;
-                        }
-                        
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {   
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-                                    jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-                        
-                                    if (retBit.first == true)
-                                    {
-                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto ERROR_RESPONSE;
-                                    }
-                                    modbusTCPClient.end();
-
-                                    modbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort());
-                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
-                                    switch (modbusArea)
-                                    {
-                                    case jarvis::mb_area_e::COILS:
-                                        writeResult = modbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jarvis::mb_area_e::HOLDING_REGISTER:
-                                        writeResult = modbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
-                                        break;
-                                    }
-
-                                    xSemaphoreGive(xSemaphoreModbusTCP);
-                                    break;
-                                }
-                                
-                            }
-                            
-                        }
-                    }
-                    
+                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO ENCODE INIT CONFIG");
+                    std::abort();
                 }
-            }
-    #endif
-
-            if (mVectorModbusRTU.size() != 0)
-            {
-                for (auto& RTU : mVectorModbusRTU)
+                else if (ret == Status::Code::BAD_DEVICE_FAILURE)
                 {
-                    for (auto& modbusRTU : ModbusRtuVector)
-                    {
-                        if (RTU.GetPort().second != modbusRTU.mPort)
-                        {
-                            continue;
-                        }
-
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-
-                                    jarvis::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jarvis::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
-                        
-                                    if (retBit.first == true)
-                                    {
-                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                #if defined(MODLINK_L) || defined(MODLINK_ML10)
-                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto ERROR_RESPONSE;
-                                    }
-
-                                    switch (modbusArea)
-                                    {
-                                    case jarvis::mb_area_e::COILS:
-                                        writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jarvis::mb_area_e::HOLDING_REGISTER:
-                                        writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
-                                        break;
-                                    }
-
-                                    LOG_INFO(logger,"제어 결과 : %s",writeResult == 1 ? "성공" : "실패");
-                                    xSemaphoreGive(xSemaphoreModbusRTU);
-                                #else
-                                    spear_remote_control_msg_t msg;
-                                    msg.Link = modbusRTU.mPort;
-                                    msg.SlaveID = retSlaveID.second;
-                                    msg.Area = modbusArea;
-                                    msg.Address = modbusAddress.Numeric;
-                                    msg.Value = retConvertModbus.second;
-                                    
-                                    Status result = spear.ExecuteService(msg);
-                                    if (result == Status(Status::Code::GOOD))
-                                    {
-                                        writeResult = 1;
-                                    }
-                                #endif
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    LOG_ERROR(logger, "FATAL ERROR: FAILED TO WRITE INIT CONFIG");
+                    std::abort();
                 }
-            }
+
+                LOG_INFO(logger, "JARVIS config has been reset due to panic reset");
+            }   
+        }
+
+        if (esp32FS.DoesExist(JARVIS_PATH) == Status::Code::BAD_NOT_FOUND)
+        {
+            LOG_INFO(logger, "No JARVIS config found");
             
-ERROR_RESPONSE:
-            if (writeResult == 1)
+            ret = createDefaultJARVIS();
+            if (ret == Status::Code::BAD_DEVICE_FAILURE)
             {
-                messageconfig.ResponseCode = "200";
+                LOG_ERROR(logger, "FAILED TO CREATE DEAULT JARVIS CONFIG");
+                std::abort();
+            }
+
+            LOG_INFO(logger, "Created default JARVIS config");
+        }
+        
+        ret = loadJarvisConfig();
+        if (ret == Status::Code::BAD_DATA_LOST)
+        {
+            LOG_ERROR(logger, "FAILED TO LOAD JARVIS CONFIG: %s", ret.c_str());
+            std::abort();
+        }
+        else if (ret == Status::Code::UNCERTAIN)
+        {
+            LOG_WARNING(logger, "JARVIS CONFIG MIGHT NOT WORK");
+        }
+        
+        do
+        {
+            ret = ApplyOperationService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = InitHttpService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            if (initConfig.HasPendingUpdate == true)
+            {
+                break;
+            }
+
+            ret = InitMqttClientService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = ConnectMqttClientService();
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+            ret = StartMqttTaskService(initConfig, &muffin::Core::writeInitConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                goto RETRY;
+            }
+
+        RETRY:
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+            
+        } while (ret != Status::Code::GOOD);
+
+
+        if (initConfig.HasPendingJARVIS == true)
+        {
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, before unloading", ESP.getFreeHeap());
+            unloadJarvisConfig();
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, after unloading", ESP.getFreeHeap());
+
+            initConfig.HasPendingJARVIS = false;
+            initConfig.ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_CONFIG_CHANGE);
+            ret = writeInitConfig(initConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+
+            ret = FetchConfigService();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO FETCH JARVIS: %s", ret.c_str());
+                esp32FS.Remove(JARVIS_PATH_FETCHED);
+                std::abort();
+            }
+
+            jarvis_struct_t response;
+            ret = ValidateConfigService(&response);
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger, "Fetched JARVIS config is valid");
+                esp32FS.Remove(JARVIS_PATH);
+                esp32FS.Rename(JARVIS_PATH_FETCHED, JARVIS_PATH);
             }
             else
             {
-                messageconfig.ResponseCode = "900 : UNEXPECTED ERROR";
-            }
-            messageconfig.SourceTimestamp  = GetTimestampInMillis();
-            serializedPayload = json.Serialize(messageconfig);
-
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-            Status ret = cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return;
-        }
-    }
-
-    void Core::onJarvisValidationResult(jarvis::ValidationResult result)
-    {
-        if (result.GetRSC() >= jarvis::rsc_e::BAD)
-        {
-            jarvis_struct_t messageConfig;
-            messageConfig.ResponseCode     = Convert.ToUInt16(result.GetRSC());
-            messageConfig.Description      = result.GetDescription();
-            messageConfig.SourceTimestamp  = GetTimestampInMillis();
-
-            std::vector<jarvis::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
-            for (auto& key : vectorKeyWithNG)
-            {
-                messageConfig.Config.emplace_back(Convert.ToString(key));
+                LOG_INFO(logger, "Fetched JARVIS config is invalid");
+                esp32FS.Remove(JARVIS_PATH_FETCHED);
             }
 
-            JSON json;
-            std::string payload = json.Serialize(messageConfig);
-
-            mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-            mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-
-            Status ret = cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 flash 메모리에 저장하는 것과 같은 방법을 적용하여 실패에 강건하도록 코드를 작성해야 합니다.
-                 */
-                LOG_ERROR(logger, "FAIL TO STORE JARVIS RESPONSE MESSAGE INTO CDO: %s", ret.c_str());
-                return;
-            }
-
-            return;
-        }
-
-
-        /**
-         * @todo 설정 값 적용한 다음에 문제가 없으면 결과 값을 전송하도록 순서를 변경해야 합니다.
-         */
-        JSON json;
-        jarvis_struct_t messageConfig;
-
-        messageConfig.ResponseCode     = Convert.ToUInt16(result.GetRSC());
-        messageConfig.Description      = result.GetDescription();
-        messageConfig.SourceTimestamp  = GetTimestampInMillis();
-
-        std::vector<jarvis::cfg_key_e> vectorKeyWithNG = result.RetrieveKeyWithNG();
-
-        for (auto& key : vectorKeyWithNG)
-        {
-           messageConfig.Config.emplace_back(Convert.ToString(key));
-        }
-
-        std::string payload = json.Serialize(messageConfig);
-        mqtt::Message message(mqtt::topic_e::JARVIS_RESPONSE, payload);
-        mqtt::CDO& cdo = mqtt::CDO::GetInstance();
-        Status ret = cdo.Store(message);
-        if (ret != Status::Code::GOOD)
-        {
-             /**
-             * @todo Store 실패시 falsh 메모리에 저장하는 방법
-             * 
-             */
-            LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-        }
-
-        {
-            LOG_INFO(logger, "JARVIS configuration is valid. Proceed to save and apply");
-            std::string jarvisPayload;
-            RetrieveJarvisRequestPayload(&jarvisPayload);
-
-            ESP32FS& esp32FS = ESP32FS::GetInstance();
-            /** 
-             * @todo string이 아니라 enum class와 ConvertClass를 사용하도록 코드를 수정해야 합니다.
-             */
-            File file = esp32FS.Open("/jarvis/config.json", "w", true);
-
+            PublishResponseJARVIS(response);
             /**
-             * @todo 성능 향상을 위해 속도가 더 빠른 buffered IO 방식으로 코드를 수정해야 합니다.
+             * @todo 발행 실패 시 무한루프에 빠지게 되는 로직을 수정할 것
+             *       타임아웃을 걸어두면 좋을 거 같음
              */
-            for (size_t i = 0; i < jarvisPayload.length(); ++i)
-            {
-                file.write(jarvisPayload[i]);
-            }
-
-            /**
-             * @todo 저장 성공 유무를 확인할 수 있는 기능을 추가해야 합니다.
-             */
-            file.close();
-
-            // 혹시라도 MFM RESPONSE를 서버로 못보내고 리셋이 될 수도 있나?
-            while (cdo.Count() > 0)
+            while (mqtt::cdo.Count() != 0)
             {
                 delay(1);
             }
+            
         #if defined(MODLINK_T2) || defined(MODLINK_B)
             spear.Reset();
         #endif 
-            ESP.restart();
+            esp_restart();
         }
-        /**
-         * @todo 설정 정보가 올바르게 설정되었는지 확인하는 기능을 추가해야 합니다.
-         * 2025-01-02 설정값 저장 후 리셋하기 때문에 아래 코드는 실행되지않음, 우선 주석처리
+        
+        if (initConfig.HasPendingUpdate == true)
+        {
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, before unloading", ESP.getFreeHeap());
+            unloadJarvisConfig();
+            LOG_DEBUG(logger, "Remained Heap: %u Bytes, after unloading", ESP.getFreeHeap());
+
+            initConfig.HasPendingUpdate = false;
+            ret = writeInitConfig(initConfig);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+
+            ret = FirmwareUpdateService();
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger, "Updated successfully");
+            }
+            else
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE: %s", ret.c_str());
+            }
+            
+        #if defined(MODLINK_T2) || defined(MODLINK_B)
+            spear.Reset();
+        #endif 
+            esp_restart();
+        }
+
+        esp32FS.Remove(LWIP_HTTP_PATH);
+        
         ApplyJarvisTask();
-         */
-        // ApplyJarvisTask();
+        PublishFirmwareStatusMessageService();
+        PublishStatusEventMessageService(&initConfig);
     }
 
-    void Core::startOTA(const std::string& payload)
+    Status Core::readInitConfig(init_cfg_t* output)
     {
-        StartManualFirmwareUpdate(payload);
+        ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
+
+        Status ret = esp32FS.DoesExist(INIT_FILE_PATH);
+        LOG_INFO(logger, "Init config file: %s", ret.c_str());
+
+        if (ret == Status::Code::BAD_NOT_FOUND)
+        {
+            output->PanicResetCount   = 0;
+            output->HasPendingJARVIS  = 0;
+            output->HasPendingUpdate  = 0;
+            output->ReconfigCode      = 0;
+
+            ret = writeInitConfig(*output);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO WRITE DEFAULT INIT CONFIG");
+                esp32FS.Remove(INIT_FILE_PATH);
+                return ret;
+            }
+
+            LOG_INFO(logger, "Created DEFAULT init config file");
+            return Status(Status::Code::GOOD);
+        }
+        
+        File file = esp32FS.Open(INIT_FILE_PATH, "r", "false");
+        if (file == false)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: FAILED TO OPEN INIT CONFIG FILE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        const size_t size = file.size() + 1;
+        char buffer[size] = {'\0'};
+        file.readBytes(buffer, size);
+        
+        CSV csv;
+        ret = csv.Decode(buffer, output);
+        if (ret == Status::Code::BAD_NO_DATA)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: EMPTY INIT CONFIG");
+            return ret;
+        }
+        else if (ret == Status::Code::BAD_DATA_LOST)
+        {
+            LOG_ERROR(logger, "FATAL ERROR: CORRUPTED INIT CONFIG");
+            return ret;
+        }
+        else if (ret == Status::Code::UNCERTAIN_DATA_SUBNORMAL)
+        {
+            LOG_WARNING(logger, "INIT CONFIG: BUFFER OVERFLOW");
+        }
+
+        if (output->HasPendingJARVIS == false)
+        {
+            if (esp32FS.DoesExist(JARVIS_PATH_FETCHED) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(JARVIS_PATH_FETCHED);
+            }
+        }
+        
+        if (output->HasPendingUpdate == false)
+        {
+            if (esp32FS.DoesExist(OTA_CHUNK_PATH_MEGA) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(OTA_CHUNK_PATH_MEGA);
+            }
+
+            if (esp32FS.DoesExist(OTA_CHUNK_PATH_ESP32) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(OTA_CHUNK_PATH_ESP32);
+            }
+
+            if (esp32FS.DoesExist(OTA_REQUEST_PATH) == Status::Code::GOOD)
+            {
+                esp32FS.Remove(OTA_REQUEST_PATH);
+            }
+        }
+
+        return ret;
     }
 
-    Core* Core::mInstance = nullptr;
-    jarvis::ValidationResult Core::mJarvisValidationResult;
+    Status Core::writeInitConfig(const init_cfg_t& config)
+    {
+        const uint8_t size = 20;
+        char buffer[size] = {'\0'};
+
+        CSV csv;
+        Status ret = csv.Encode(config, size, buffer);
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        
+        File file = esp32FS.Open(INIT_FILE_PATH, "w", true);
+        if (file == false)
+        {
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+
+        file.write(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
+        file.flush();
+        file.close();
+        
+        char readback[size] = {'\0'};
+        file = esp32FS.Open(INIT_FILE_PATH, "r", false);
+        if (file == false)
+        {
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+
+        file.readBytes(readback, size);
+        file.close();
+
+        if (strcmp(buffer, readback) != 0)
+        {
+            ret = Status::Code::BAD_DEVICE_FAILURE;
+            return ret;
+        }
+        
+        ret = Status::Code::GOOD;
+        return ret;
+    }
+
+    bool Core::isResetByPanic()
+    {
+        const esp_reset_reason_t resetReason = esp_reset_reason();
+        deviceStatus.SetResetReason(resetReason);
+        return resetReason == ESP_RST_PANIC;
+    }
+
+    Status Core::createDefaultJARVIS()
+    {
+        File file = esp32FS.Open(JARVIS_PATH, "w", true);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        JsonDocument doc;
+        doc["ver"] = "v1";
+
+        JsonObject cnt = doc["cnt"].to<JsonObject>();
+        cnt["rs232"].to<JsonArray>();
+        cnt["rs485"].to<JsonArray>();
+        cnt["wifi"].to<JsonArray>();
+        cnt["eth"].to<JsonArray>();
+        cnt["mbrtu"].to<JsonArray>();
+        cnt["mbtcp"].to<JsonArray>();
+        cnt["node"].to<JsonArray>();
+        cnt["alarm"].to<JsonArray>();
+        cnt["optime"].to<JsonArray>();
+        cnt["prod"].to<JsonArray>();
+
+        JsonArray catm1 = cnt["catm1"].to<JsonArray>();
+        JsonObject _catm1 = catm1.add<JsonObject>();
+        _catm1["md"]    = "LM5";
+        _catm1["ctry"]  = "KR";
+
+        JsonArray op     = cnt["op"].to<JsonArray>();
+        JsonObject _op   = op.add<JsonObject>();
+        _op["snic"]      = "lte";
+        _op["exp"]       = true;
+        _op["intvPoll"]  =  1;
+        _op["intvSrv"]   = 60;
+        _op["rst"]       = false;
+
+        const size_t size = measureJson(doc) + 1;
+        char buffer[size] = {'\0'};
+        serializeJson(doc, buffer, size);
+        doc.clear();
+
+        file.write(reinterpret_cast<uint8_t*>(buffer), size);
+        file.flush();
+        file.close();
+
+        char readback[size] = {'\0'};
+        file = esp32FS.Open(JARVIS_PATH);
+        file.readBytes(readback, size);
+        file.close();
+
+        if (strcmp(buffer, readback) != 0)
+        {
+            esp32FS.Remove(JARVIS_PATH);
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+    Status Core::loadJarvisConfig()
+    {
+        ASSERT((esp32FS.DoesExist(JARVIS_PATH) == Status::Code::GOOD), "JARVIS CONFIG MUST EXIST");
+
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        JSON json;
+        JsonDocument doc;
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
+
+        if (ret != Status::Code::GOOD)
+        {
+            esp32FS.Remove(JARVIS_PATH);
+            return ret;
+        }
+        
+        jarvis = new(std::nothrow) JARVIS();
+        if (jarvis == nullptr)
+        {
+            ret = Status::Code::BAD_OUT_OF_MEMORY;
+            return ret;
+        }
+        
+        jvs::ValidationResult result = jarvis->Validate(doc);
+        doc.clear();
+
+        if (result.GetRSC() >= jvs::rsc_e::BAD)
+        {
+            ret = Status::Code::BAD_DATA_LOST;
+        }
+        if (result.GetRSC() >= jvs::rsc_e::UNCERTAIN)
+        {
+            ret = Status::Code::UNCERTAIN;
+        }
+
+        return ret;
+    }
+
+    void Core::unloadJarvisConfig()
+    {
+        for (auto it = jarvis->begin(); it != jarvis->end(); ++it)
+        {
+            if (it->second.size() == 0)
+            {
+                continue;
+            }
+
+            for (auto _it = it->second.begin(); _it != std::prev(it->second.end()); ++_it)
+            {
+                auto item = _it.operator*();
+                delete item;
+            }
+
+            it->second.clear();
+        }
+
+        jarvis->Clear();
+    }
+
+    void Core::PublishStatusEventMessageService(init_cfg_t* output)
+    {
+        const std::string payload =  deviceStatus.ToStringEvent();
+        mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
+        mqtt::cdo.Store(message);
+
+        if (output->ReconfigCode != static_cast<uint8_t>(reconfiguration_code_e::NONE))
+        {
+            output->HasPendingJARVIS = false;
+            output->HasPendingUpdate = false;
+            output->ReconfigCode = static_cast<uint8_t>(reconfiguration_code_e::NONE);
+            deviceStatus.SetReconfigurationCode(reconfiguration_code_e::NONE);
+            Status ret = writeInitConfig(*output);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO UPDATE JARVIS FLAG: %s", ret.c_str());
+                std::abort();
+            }
+        }
+    }
+
+    Core core;
 }

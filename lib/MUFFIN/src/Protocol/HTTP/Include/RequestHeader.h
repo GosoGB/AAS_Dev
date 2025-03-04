@@ -58,6 +58,7 @@ namespace muffin { namespace http {
         Status SetVersion(const std::string& version);
         Status UpdateParamter(const std::string& parameter);
     public:
+        const http_scheme_e& GetScheme() const;
         const std::string& GetAccept() const;
         const std::string& GetAcceptEncoding() const;
         const std::string& GetCacheControl() const;

@@ -4,10 +4,10 @@
  * 
  * @brief 시간 정보를 생성, 관리, 교환하기 위한 기능을 정의
  * 
- * @date 2024-10-29
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -19,7 +19,7 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "Network/CatM1/CatM1.h"
 #include "TimeUtils.h"
 
@@ -31,7 +31,8 @@ namespace muffin {
      * @brief Map containing relations between timezone with  POSIX timezone string.
      */
     std::map<const std::string, const std::string> MapPTZS = {
-        {"America/New_York", "EST5EDT,M3.2.0,M11.1.0"},     // 미국 동부 표준시
+        {"UTC","UTC0"},
+		{"America/New_York", "EST5EDT,M3.2.0,M11.1.0"},     // 미국 동부 표준시
         {"America/Chicago", "CST6CDT,M3.2.0,M11.1.0"},      // 미국 중부 표준시
         {"America/Denver", "MST7MDT,M3.2.0,M11.1.0"},       // 미국 산지 표준시
         {"America/Los_Angeles", "PST8PDT,M3.2.0,M11.1.0"},  // 미국 태평양 표준시
@@ -166,34 +167,5 @@ namespace muffin {
 		char dateTime[20] = {0};
 		strftime(dateTime, 20, "%Y-%m-%dT%H:%M:%S", localTime);
 		return std::string(dateTime);
-	}
-
-    Status SyncWithNTP(const jarvis::snic_e snic)
-	{
-		switch (snic)
-		{
-		case jarvis::snic_e::LTE_CatM1:
-			{
-				CatM1& catM1 = CatM1::GetInstance();
-				return catM1.SyncWithNTP();
-			}
-/* MFM Ver.1.2.0 이후에 구현해야 합니다.
-	#if defined(MODLINK_T2) || defined(MODLINK_B)
-		case jarvis::snic_e::Ethernet,:
-			{
-				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-			}
-    #elif defined(MODLINK_B)
-		case jarvis::snic_e::Ethernet,:
-			{
-				return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-			}
-        case jarvis::snic_e::WiFi4,:
-			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);`
-	#endif
-*/
-		default:
-			return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-		}
 	}
 }

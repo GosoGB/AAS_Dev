@@ -26,7 +26,7 @@
 
 #include "Common/Status.h"
 #include "Include/TypeDefinitions.h"
-#include "Jarvis/Config/Information/Node.h"
+#include "JARVIS/Config/Information/Node.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
 #include "DataFormat/JSON/JSON.h"
 
@@ -39,7 +39,7 @@ namespace muffin { namespace im {
         Variable(const std::string& nodeID, const std::string& UID);
         virtual ~Variable();
     public:
-        void Init(const jarvis::config::Node* cin);
+        void Init(const jvs::config::Node* cin);
     public:
         void Update(const std::vector<poll_data_t>& polledData);
         std::pair<Status,uint16_t> ConvertModbusData(std::string& data);
@@ -47,7 +47,7 @@ namespace muffin { namespace im {
         void implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData);
         void removeOldestHistory();
         void flattenToByteArray(const std::vector<poll_data_t>& polledData, std::vector<uint8_t>* outputFlattenVector);
-        void castByteVector(const jarvis::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
+        void castByteVector(const jvs::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
         void applyBitIndex(var_data_t& variableData);
         void applyMappingRules(var_data_t& variableData);
         void applyNumericScale(var_data_t& variableData);
@@ -66,14 +66,14 @@ namespace muffin { namespace im {
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
     public:
-        jarvis::addr_u GetAddress() const;
+        jvs::addr_u GetAddress() const;
         uint8_t GetQuantity() const;
         uint16_t GetBitIndex() const;
-        jarvis::mb_area_e GetModbusArea() const;
+        jvs::mb_area_e GetModbusArea() const;
         std::map<std::uint16_t, std::string> GetMappingRules() const { return mMapMappingRules.second; }
         std::string GetDisplayName() const { return mDeprecableDisplayName; }
         std::string GetDisplayUnit() const { return mDeprecableDisplayUnit; }
-        std::pair<bool, jarvis::scl_e> GetNumericScale() const { return mNumericScale; }
+        std::pair<bool, jvs::scl_e> GetNumericScale() const { return mNumericScale; }
         bool GetHasAttributeEvent() const { return mHasAttributeEvent; }
         std::pair<bool, daq_struct_t> CreateDaqStruct();
     private:
@@ -87,19 +87,19 @@ namespace muffin { namespace im {
         // virtual void strategySingleDataType() override;
         // void strategySingleDataType();
     private:
-        jarvis::adtp_e mAddressType;
-        jarvis::addr_u mAddress;
-        std::vector<jarvis::dt_e> mVectorDataTypes;
+        jvs::adtp_e mAddressType;
+        jvs::addr_u mAddress;
+        std::vector<jvs::dt_e> mVectorDataTypes;
         bool mHasAttributeEvent;
         std::string mDeprecableDisplayName;
         std::string mDeprecableDisplayUnit;
-        std::pair<bool, jarvis::mb_area_e> mModbusArea;
+        std::pair<bool, jvs::mb_area_e> mModbusArea;
         std::pair<bool, uint8_t> mBitIndex;
         std::pair<bool, uint8_t> mAddressQuantity;
-        std::pair<bool, jarvis::scl_e> mNumericScale;
+        std::pair<bool, jvs::scl_e> mNumericScale;
         std::pair<bool, float> mNumericOffset;
         std::pair<bool, std::map<std::uint16_t, std::string>> mMapMappingRules;
-        std::pair<bool, std::vector<jarvis::DataUnitOrder>> mVectorDataUnitOrders;
+        std::pair<bool, std::vector<jvs::DataUnitOrder>> mVectorDataUnitOrders;
         std::pair<bool, std::string> mFormatString;
 
         // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
@@ -107,7 +107,7 @@ namespace muffin { namespace im {
     private:
         const std::string mNodeID;
         const std::string mDeprecableUID;
-        jarvis::dt_e mDataType;
+        jvs::dt_e mDataType;
         std::deque<var_data_t> mDataBuffer;
         static uint32_t mSamplingIntervalInMillis;
         uint8_t mMaxHistorySize = 2;

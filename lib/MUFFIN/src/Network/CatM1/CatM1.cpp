@@ -4,10 +4,10 @@
  * 
  * @brief LTE Cat.M1 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -27,44 +27,18 @@
 
 namespace muffin {
 
-    CatM1* CatM1::mInstance = nullptr;
     CatM1::state_e CatM1::mState = CatM1::state_e::NOT_INITIALIZED_YET;
     std::bitset<8> CatM1::mInitFlags;
     std::bitset<6> CatM1::mConnFlags;
     uint32_t CatM1::mLastInterruptMillis = 0;
 
 
-    CatM1* CatM1::CreateInstanceOrNULL()
-    {
-        if (mInstance == nullptr)
-        {
-            mInstance = new(std::nothrow) CatM1();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMROY FOR CatM1");
-                return mInstance;
-            }
-        }
-        
-        return mInstance;
-    }
-
-    CatM1& CatM1::GetInstance() noexcept
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-        return *mInstance;
-    }
-
     CatM1::CatM1()
         : xSemaphore(NULL)
-        , mConfig(std::make_pair(false, jarvis::config::CatM1()))
+        , mConfig(std::make_pair(false, jvs::config::CatM1()))
     {
         mInitFlags.reset();
         mConnFlags.reset();
-    }
-
-    CatM1::~CatM1()
-    {
     }
 
     Status CatM1::Init()
@@ -89,6 +63,7 @@ namespace muffin {
             mProcessor.RegisterCallbackCPIN(std::bind(&CatM1::onEventCPIN, this, std::placeholders::_1));
             mProcessor.RegisterCallbackQIND(std::bind(&CatM1::onEventQIND, this));
             mProcessor.RegisterCallbackAPPRDY(std::bind(&CatM1::onEventAPPRDY, this));
+            mProcessor.RegisterCallbackQMTSTAT(std::bind(&CatM1::onEventQMTSTAT, this, std::placeholders::_1, std::placeholders::_2));
             mInitFlags.set(init_flags_e::URC_CALLBACK);
         }
 
@@ -116,18 +91,18 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    Status CatM1::Config(jarvis::config::Base* config)
+    Status CatM1::Config(jvs::config::Base* config)
     {
         assert(config != nullptr);
-        assert(config->GetCategory() == jarvis::cfg_key_e::LTE_CatM1);
+        assert(config->GetCategory() == jvs::cfg_key_e::LTE_CatM1);
 
-        mConfig = std::make_pair(true, *static_cast<jarvis::config::CatM1*>(config));
+        mConfig = std::make_pair(true, *static_cast<jvs::config::CatM1*>(config));
 
-        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jvs::md_e::LM5)
         {
             digitalWrite(mPinReset, HIGH);
         }
-        else if (mConfig.second.GetModel().second == jarvis::md_e::LCM300)
+        else if (mConfig.second.GetModel().second == jvs::md_e::LCM300)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -207,7 +182,7 @@ namespace muffin {
      */
     Status CatM1::Disconnect()
     {
-        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jvs::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
         }
@@ -258,25 +233,28 @@ namespace muffin {
         return IPAddress(0,0,0,0);
     }
 
-    std::pair<bool, jarvis::config::CatM1> CatM1::RetrieveConfig() const
-    {
-        return mConfig;
-    }
-
     CatM1::state_e CatM1::GetState() const
     {
         return mState;
     }
 
-    Status CatM1::SyncWithNTP()
+    Status CatM1::SyncNTP()
     {
+        const std::string defaultTZ = "UTC";
+        Status ret = SetTimezone(defaultTZ);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
+            return ret;
+        }
+        
         const std::string command = "AT+QLTS=1";
         const std::string expected = "+QLTS: ";
         const uint32_t timeoutMillis = 300;
         const uint32_t startMillis = millis();
         std::string rxd;
 
-        Status ret = mProcessor.Write(command);
+        ret = mProcessor.Write(command);
         if (ret == Status::Code::BAD_TOO_MANY_OPERATIONS)
         {
             LOG_WARNING(logger, "THE MODEM IS BUSY. TRY LATER");
@@ -344,7 +322,7 @@ namespace muffin {
     
     std::pair<Status, size_t> CatM1::TakeMutex()
     {
-        if (xSemaphoreTake(xSemaphore, 5000)  != pdTRUE)
+        if (xSemaphoreTake(xSemaphore, 2000)  != pdTRUE)
         {
             LOG_WARNING(logger, "FAILED TO TAKE MUTEX FOP LTE Cat.M1. TRY LATER.");
             return std::make_pair(Status(Status::Code::BAD_TOO_MANY_OPERATIONS), mMutexHandle);
@@ -663,7 +641,7 @@ namespace muffin {
 
     void CatM1::resetModule()
     {
-        if (mConfig.second.GetModel().second == jarvis::md_e::LM5)
+        if (mConfig.second.GetModel().second == jvs::md_e::LM5)
         {
             digitalWrite(mPinReset, LOW);
             delay(110);
@@ -765,6 +743,12 @@ namespace muffin {
         }
     }
 
+    void CatM1::onEventQMTSTAT(const uint8_t socketID, const uint8_t errorCode)
+    {
+        LOG_INFO(logger, "Callback: BROKER DISCONNECTED");
+        mState = state_e::CatM1_DISCONNECTED;
+    }
+
     void CatM1::onEventQIND()
     {
         LOG_INFO(logger, "Callback: SMS functionality is initialized");
@@ -787,4 +771,64 @@ namespace muffin {
             mState = state_e::SUCCEDDED_TO_START;
         }
     }
+
+    Status CatM1::GetSignalQuality(catm1_report_t* _struct)
+    {
+        const std::string command = "AT+QCSQ";
+        const std::string expected = "OK";
+        const uint32_t timeoutMillis = 300;
+        const uint32_t startMillis = millis();
+        std::string rxd;
+
+        Status ret = mProcessor.Write(command);
+        if (ret == Status::Code::BAD_TOO_MANY_OPERATIONS)
+        {
+            LOG_WARNING(logger, "THE MODEM IS BUSY. TRY LATER");
+            return ret;
+        }
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (mProcessor.GetAvailableBytes() > 0)
+            {
+                rxd += mProcessor.Read();
+            }
+            
+            if (rxd.find(expected) != std::string::npos)
+            {
+                goto FOUND_EXPECTED_RESPONSE;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        return Status(Status::Code::BAD_NO_COMMUNICATION);
+
+    FOUND_EXPECTED_RESPONSE:
+
+        size_t idxRSSI = rxd.find(",") + 1;
+        size_t idxRSRP = rxd.find(",", idxRSSI) + 1;
+        size_t idxSINR = rxd.find(",", idxRSRP) + 1;
+        size_t idxRSRQ = rxd.find(",", idxSINR) + 1;
+
+        if ( idxRSSI == 0 || idxRSRP == 0 || idxSINR == 0 || idxRSRQ == 0 )
+        {
+            LOG_ERROR(logger,"Failed to get signal quality report due to invalid response \n");
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        _struct->Enabled = true;
+        _struct->RSSI = std::stoi(rxd.substr(idxRSSI, idxRSRP - idxRSSI - 1));
+        _struct->RSRP = std::stoi(rxd.substr(idxRSRP, idxSINR - idxRSRP - 1));
+        _struct->SINR = std::stoi(rxd.substr(idxSINR, idxRSRQ - idxSINR - 1));
+        _struct->SINR = 0.2 * _struct->SINR - 20;
+        _struct->RSRQ = std::stoi(rxd.substr(idxRSRQ));
+
+        return Status(Status::Code::GOOD);
+    }
+
+
+    CatM1* catM1 = nullptr;
 }

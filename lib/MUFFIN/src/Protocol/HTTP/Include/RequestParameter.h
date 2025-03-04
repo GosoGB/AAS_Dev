@@ -33,6 +33,7 @@ namespace muffin { namespace http {
         std::string ToString() const;
     public:
         void Add(const std::string& key, const std::string& value);
+        void Replace(const std::string& key, const std::string& value);
     private:
         std::map<std::string, std::string> mMapParameters;
     };    

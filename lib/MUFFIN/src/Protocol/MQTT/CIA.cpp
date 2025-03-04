@@ -4,10 +4,10 @@
  * 
  * @brief MQTT 브로커로부터 수신한 메시지를 집적하여 관리하는 클래스를 선언합니다.
  * 
- * @date 2024-10-30
- * @version 1.0.0
+ * @date 2025-01-22
+ * @version 1.2.2
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -21,40 +21,20 @@
 
 namespace muffin { namespace mqtt {
 
-    CIA* CIA::CreateInstanceOrNULL()
-    {
-        if (mInstance == nullptr)
-        {
-            mQueueHandle = xQueueCreate(MAX_QUEUE_LENGTH, MESSAGE_SIZE);
-            if (mQueueHandle == NULL)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MESSAGE QUEUE");
-                return mInstance;
-            }
-
-            mInstance = new(std::nothrow) CIA();
-            if (mInstance == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR MQTT CIA");
-                return mInstance;
-            }
-        }
-
-        return mInstance;
-    }
-
-    CIA& CIA::GetInstance()
-    {
-        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
-        return *mInstance;
-    }
-
     CIA::CIA()
     {
+        mQueueHandle = xQueueCreate(MAX_QUEUE_LENGTH, MESSAGE_SIZE);
+        if (mQueueHandle == NULL)
+        {
+            std::cerr << "\n\n\033[31m" << "FAILED TO ALLOCATE MEMORY FOR MESSAGE QUEUE" << std::endl;
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            std::abort();
+        }
     }
     
     CIA::~CIA()
     {
+        vQueueDelete(mQueueHandle);
     }
 
     uint8_t CIA::Count()
@@ -123,6 +103,5 @@ namespace muffin { namespace mqtt {
     }
 
 
-    CIA* CIA::mInstance = nullptr;
-    QueueHandle_t CIA::mQueueHandle = NULL;
+    CIA cia;
 }}

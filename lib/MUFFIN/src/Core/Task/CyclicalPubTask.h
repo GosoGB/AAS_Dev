@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <sys/_stdint.h>
+
 
 
 namespace muffin {

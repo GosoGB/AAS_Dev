@@ -71,7 +71,7 @@ namespace muffin { namespace http {
         header += "\r\n";
         return header;
     }
-
+    
     std::string RequestHeader::GetURL() const
     {
         return ConvertSchemeToString(mScheme) + mHost + ":" + std::to_string(mPort) + mPath;
@@ -202,5 +202,10 @@ namespace muffin { namespace http {
     const std::string& RequestHeader::GetVersion() const
     {
         return mVersion;
+    }
+
+    const http_scheme_e& RequestHeader::GetScheme() const
+    {
+        return mScheme;
     }
 }}
