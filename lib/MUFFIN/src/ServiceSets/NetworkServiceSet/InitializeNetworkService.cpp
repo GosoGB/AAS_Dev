@@ -51,7 +51,7 @@
          #if defined(DEBUG)
              if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
          #else
-             if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
          #endif
              {
                  statusReportMillis = millis();
