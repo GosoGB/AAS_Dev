@@ -4,10 +4,10 @@
  * 
  * @brief Ethernet 인터페이스 설정 정보를 관리하는 클래스를 선언합니다.
  * 
- * @date 2025-01-24
- * @version 1.2.2
+ * @date 2024-10-07
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -18,19 +18,18 @@
 #include <IPAddress.h>
 
 #include "Common/Status.h"
-#include "Common/DataStructure/bitset.h"
-#include "JARVIS/Include/Base.h"
-#include "JARVIS/Include/TypeDefinitions.h"
+#include "Jarvis/Include/Base.h"
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
 
     class Ethernet : public Base
     {
     public:
         Ethernet();
-        virtual ~Ethernet() override {}
+        virtual ~Ethernet() override;
     public:
         Ethernet& operator=(const Ethernet& obj);
         bool operator==(const Ethernet& obj) const;
@@ -50,18 +49,12 @@ namespace muffin { namespace jvs { namespace config {
         std::pair<Status, IPAddress> GetDNS1() const;
         std::pair<Status, IPAddress> GetDNS2() const;
     private:
-        typedef enum class SetFlagEnum
-            : uint8_t
-        {
-            DHCP     = 0,
-            IPv4     = 1,
-            SUBNET   = 2,
-            GATEWAY  = 3,
-            DNS_1    = 4,
-            DNS_2    = 5,
-            TOP      = 6
-        } set_flag_e;
-        bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
+        bool mIsEnableDhcpSet = false;
+        bool mIsStaticIPv4Set = false;
+        bool mIsSubnetmaskSet = false;
+        bool mIsGatewaySet    = false;
+        bool mIsDNS1Set       = false;
+        bool mIsDNS2Set       = false;
     private:
         bool mEnableDHCP;
         IPAddress mStaticIPv4;
@@ -70,7 +63,4 @@ namespace muffin { namespace jvs { namespace config {
         IPAddress mDNS1;
         IPAddress mDNS2;
     };
-
-
-    extern Ethernet* ethernet;
 }}}

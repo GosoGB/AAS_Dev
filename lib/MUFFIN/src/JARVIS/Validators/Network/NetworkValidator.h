@@ -4,10 +4,10 @@
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2025-01-24
- * @version 1.2.2
+ * @date 2024-10-07
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -23,24 +23,24 @@
 #include <WiFiSTA.h>
 
 #include "Common/Status.h"
-#include "JARVIS/Include/Base.h"
-#include "JARVIS/Include/TypeDefinitions.h"
+#include "Jarvis/Include/Base.h"
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jvs {
+namespace muffin { namespace jarvis {
 
     class NetworkValidator
     {
     public:
-        NetworkValidator() {}
-        virtual ~NetworkValidator() {}
+        NetworkValidator();
+        virtual ~NetworkValidator();
     private:
         using cin_vector = std::vector<config::Base*>;
     public:
-        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
-        std::pair<rsc_e, std::string> validateEthernet(const JsonArray array);
+        std::pair<rsc_e, std::string> validateEthernet(const JsonArray array, cin_vector* outVector);
         rsc_e validateMandatoryKeysEthernet(const JsonObject json);
         rsc_e validateMandatoryValuesEthernet(const JsonObject json);
     private:
@@ -63,5 +63,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::string> convertToClientCertificate(JsonVariant crt);
         std::pair<rsc_e, std::string> convertToClientKey(JsonVariant key);
         std::pair<rsc_e, IPAddress> convertToIPv4(JsonVariant ip, const bool& isSubnetmask);
+   
+     
     };
 }}

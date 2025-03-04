@@ -4,21 +4,31 @@
  * 
  * @brief LTE Cat.M1 모듈 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2025-01-24
- * @version 1.2.2
+ * @date 2024-10-07
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
 
 
-#include "CatM1.h"
 #include "Common/Assert.h"
+#include "Common/Logger/Logger.h"
+#include "CatM1.h"
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
+
+    CatM1::CatM1()
+        : Base(cfg_key_e::LTE_CatM1)
+    {
+    }
+
+    CatM1::~CatM1()
+    {
+    }
 
     CatM1& CatM1::operator=(const CatM1& obj)
     {
@@ -27,15 +37,13 @@ namespace muffin { namespace jvs { namespace config {
             mModel   = obj.mModel;
             mCountry = obj.mCountry;
         }
+        
         return *this;
     }
 
     bool CatM1::operator==(const CatM1& obj) const
     {
-        return (
-            (mModel == obj.mModel)  &&
-            (mCountry == obj.mCountry)
-        );
+        return mModel == obj.mModel && mCountry == obj.mCountry;
     }
 
     bool CatM1::operator!=(const CatM1& obj) const
@@ -46,12 +54,12 @@ namespace muffin { namespace jvs { namespace config {
     void CatM1::SetModel(const md_e model)
     {
         mModel = model;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::MODEL));
+        isModelSet = true;
     }
 
     void CatM1::SetCounty(const ctry_e country)
     {
-        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODEL)) == true), "MODEL MUST BE SET BEFOREHAND");
+        ASSERT((isModelSet == true), "MODEL MUST BE SET BEFOREHAND");
         ASSERT(
             (
                 [&]()
@@ -69,12 +77,12 @@ namespace muffin { namespace jvs { namespace config {
         );
 
         mCountry = country;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::COUNTRY));
+        isCountrySet = true;
     }
 
     std::pair<Status, md_e> CatM1::GetModel() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODEL)))
+        if (isModelSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mModel);
         }
@@ -86,7 +94,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, ctry_e> CatM1::GetCountry() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::COUNTRY)))
+        if (isCountrySet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mCountry);
         }
@@ -95,7 +103,4 @@ namespace muffin { namespace jvs { namespace config {
             return std::make_pair(Status(Status::Code::BAD), mCountry);
         }
     }
-
-
-    CatM1* catM1 = nullptr;
 }}}

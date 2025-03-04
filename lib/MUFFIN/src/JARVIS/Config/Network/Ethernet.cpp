@@ -4,36 +4,30 @@
  * 
  * @brief Ethernet 인터페이스 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2025-01-24
- * @version 1.2.2
+ * @date 2024-10-07
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
 
 
 #include "Common/Assert.h"
+#include "Common/Logger/Logger.h"
 #include "Ethernet.h"
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
 
     Ethernet::Ethernet()
         : Base(cfg_key_e::ETHERNET)
     {
-        ASSERT(
-            (
-                mStaticIPv4 == INADDR_NONE &&
-                mSubnetmask == INADDR_NONE &&
-                mGateway    == INADDR_NONE &&
-                mDNS1       == INADDR_NONE &&
-                mDNS2       == INADDR_NONE
-            ), "IP ADDRESSES MUST BE 0.0.0.0"
-        );
+    }
 
-        mSetFlags.reset();
+    Ethernet::~Ethernet()
+    {
     }
 
     Ethernet& Ethernet::operator=(const Ethernet& obj)
@@ -47,6 +41,7 @@ namespace muffin { namespace jvs { namespace config {
             mDNS1       = obj.mDNS1;
             mDNS2       = obj.mDNS2;
         }
+
         return *this;
     }
 
@@ -71,20 +66,32 @@ namespace muffin { namespace jvs { namespace config {
     {
         ASSERT(
             (
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::IPv4))     == false &&
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::SUBNET))   == false &&
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::GATEWAY))  == false &&
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::DNS_1))    == false &&
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::DNS_2))    == false
-            ), "STATIC IPv4 CANNOT BE SET PRIOR TO DHCP"
+                mIsStaticIPv4Set == false &&
+                mIsSubnetmaskSet == false &&
+                mIsGatewaySet    == false &&
+                mIsDNS1Set       == false &&
+                mIsDNS2Set       == false
+            ), "INVALID PRECONDITION: CANNOT SET STATIC IPv4 PRIOR TO DHCP"
         );
 
         mEnableDHCP = enableDHCP;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DHCP));
+        mIsEnableDhcpSet = true;
+
+        ASSERT(
+            (
+                mStaticIPv4 == INADDR_NONE &&
+                mSubnetmask == INADDR_NONE &&
+                mGateway    == INADDR_NONE &&
+                mDNS1       == INADDR_NONE &&
+                mDNS2       == INADDR_NONE
+            ), "INVALID POSTCONDITION: IPv4 ADDRESSES MUST BE DEFAULT VALUE WHICH IS 0.0.0.0"
+        );
     }
 
     void Ethernet::SetStaticIPv4(const IPAddress& staticIPv4)
     {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
         ASSERT(
             (
                 staticIPv4 != IPAddress(0, 0, 0, 0)        ||
@@ -95,19 +102,15 @@ namespace muffin { namespace jvs { namespace config {
             ),
             "INVALID IPv4 ADDRESS"
         );
-        ASSERT(
-            (
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::DHCP)) == true &&
-                mEnableDHCP == false
-            ), "DHCP MUST BE SET TO FALSE"
-        );
 
         mStaticIPv4 = staticIPv4;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::IPv4));
+        mIsStaticIPv4Set = true;
     }
 
     void Ethernet::SetSubnetmask(const IPAddress& subnetmask)
     {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
         ASSERT(
             (
                 subnetmask != IPAddress(0, 0, 0, 0)        ||
@@ -115,21 +118,18 @@ namespace muffin { namespace jvs { namespace config {
                 subnetmask != IPAddress(192, 0, 2, 0)      ||
                 subnetmask != IPAddress(203, 0, 113, 0)    ||
                 subnetmask != IPAddress(255, 255, 255, 255)
-            ), "INVALID IPv4 ADDRESS"
-        );
-        ASSERT(
-            (
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::DHCP)) == true &&
-                mEnableDHCP == false
-            ), "DHCP MUST BE SET TO FALSE"
+            ),
+            "INVALID IPv4 ADDRESS"
         );
 
         mSubnetmask = subnetmask;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::SUBNET));
+        mIsSubnetmaskSet = true;
     }
 
     void Ethernet::SetGateway(const IPAddress& gateway)
     {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
         ASSERT(
             (
                 gateway != IPAddress(0, 0, 0, 0)        ||
@@ -137,21 +137,18 @@ namespace muffin { namespace jvs { namespace config {
                 gateway != IPAddress(192, 0, 2, 0)      ||
                 gateway != IPAddress(203, 0, 113, 0)    ||
                 gateway != IPAddress(255, 255, 255, 255)
-            ), "INVALID IPv4 ADDRESS"
-        );
-        ASSERT(
-            (
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::DHCP)) == true &&
-                mEnableDHCP == false
-            ), "DHCP MUST BE SET TO FALSE"
+            ),
+            "INVALID IPv4 ADDRESS"
         );
 
         mGateway = gateway;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::GATEWAY));
+        mIsGatewaySet = true;
     }
 
     void Ethernet::SetDNS1(const IPAddress& dns1)
     {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
         ASSERT(
             (
                 dns1 != IPAddress(0, 0, 0, 0)        ||
@@ -159,21 +156,18 @@ namespace muffin { namespace jvs { namespace config {
                 dns1 != IPAddress(192, 0, 2, 0)      ||
                 dns1 != IPAddress(203, 0, 113, 0)    ||
                 dns1 != IPAddress(255, 255, 255, 255)
-            ), "INVALID IPv4 ADDRESS"
-        );
-        ASSERT(
-            (
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::DHCP)) == true &&
-                mEnableDHCP == false
-            ), "DHCP MUST BE SET TO FALSE"
+            ),
+            "INVALID IPv4 ADDRESS"
         );
 
         mDNS1 = dns1;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DNS_1));
+        mIsDNS1Set = true;
     }
 
     void Ethernet::SetDNS2(const IPAddress& dns2)
     {
+        ASSERT((mIsEnableDhcpSet == true), "DHCP ENABLEMENT MUST BE SET BEFOREHAND");
+        ASSERT((mEnableDHCP == false), "DHCP MUST BE TURNED OFF TO SET STATIC IPv4");
         ASSERT(
             (
                 dns2 != IPAddress(0, 0, 0, 0)        ||
@@ -181,22 +175,17 @@ namespace muffin { namespace jvs { namespace config {
                 dns2 != IPAddress(192, 0, 2, 0)      ||
                 dns2 != IPAddress(203, 0, 113, 0)    ||
                 dns2 != IPAddress(255, 255, 255, 255)
-            ), "INVALID IPv4 ADDRESS"
-        );
-        ASSERT(
-            (
-                mSetFlags.test(static_cast<uint8_t>(set_flag_e::DHCP)) == true &&
-                mEnableDHCP == false
-            ), "DHCP MUST BE SET TO FALSE"
+            ),
+            "INVALID IPv4 ADDRESS"
         );
 
         mDNS2 = dns2;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DNS_2));
+        mIsDNS2Set = true;
     }
 
     std::pair<Status, bool> Ethernet::GetDHCP() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DHCP)))
+        if (mIsEnableDhcpSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mEnableDHCP);
         }
@@ -208,7 +197,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, IPAddress> Ethernet::GetStaticIPv4() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::IPv4)))
+        if (mIsStaticIPv4Set)
         {
             return std::make_pair(Status(Status::Code::GOOD), mStaticIPv4);
         }
@@ -220,7 +209,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, IPAddress> Ethernet::GetSubnetmask() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::SUBNET)))
+        if (mIsSubnetmaskSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mSubnetmask);
         }
@@ -232,7 +221,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, IPAddress> Ethernet::GetGateway() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::GATEWAY)))
+        if (mIsGatewaySet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mGateway);
         }
@@ -244,7 +233,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, IPAddress> Ethernet::GetDNS1() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DNS_1)))
+        if (mIsDNS1Set)
         {
             return std::make_pair(Status(Status::Code::GOOD), mDNS1);
         }
@@ -256,7 +245,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, IPAddress> Ethernet::GetDNS2() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DNS_2)))
+        if (mIsDNS2Set)
         {
             return std::make_pair(Status(Status::Code::GOOD), mDNS2);
         }
@@ -265,7 +254,4 @@ namespace muffin { namespace jvs { namespace config {
             return std::make_pair(Status(Status::Code::BAD), mDNS2);
         }
     }
-
-
-    Ethernet* ethernet = nullptr;
 }}}

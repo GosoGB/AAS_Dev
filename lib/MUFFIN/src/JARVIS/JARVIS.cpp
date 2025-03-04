@@ -1,13 +1,13 @@
 /**
- * @file JARVIS.cpp
+ * @file Jarvis.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief MODLINK 설정을 담당하는 JARVIS 클래스를 선언합니다.
  * 
- * @date 2025-01-21
- * @version 1.2.2
+ * @date 2024-10-30
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright (c) Edgecross Inc. 2024
  */
 
 
@@ -28,44 +28,73 @@
 #include "Config/Operation/Operation.h"
 #include "Config/Protocol/ModbusRTU.h"
 #include "Config/Protocol/ModbusTCP.h"
-#include "JARVIS/JARVIS.h"
+#include "Jarvis.h"
 #include "Validators/Validator.h"
 
 
 
 namespace muffin {
 
-    jvs::ValidationResult JARVIS::Validate(JsonDocument& json)
+    Jarvis* Jarvis::CreateInstanceOrNULL()
     {
-        jvs::Validator validator;
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) Jarvis();
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FATAL ERROR: FAILED TO ALLOCATE MEMORY FOR JARVIS");
+                return mInstance;
+            }
+        }
+        
+        return mInstance;
+    }
+
+    Jarvis& Jarvis::GetInstance()
+    {
+        ASSERT((mInstance != nullptr), "NO INSTANCE CREATED: CALL FUNCTION \"CreateInstanceOrNULL\" IN ADVANCE");
+        return *mInstance;
+    }
+
+    Jarvis::Jarvis()
+    {
+    }
+    
+    Jarvis::~Jarvis()
+    {
+    }
+
+    jarvis::ValidationResult Jarvis::Validate(JsonDocument& json)
+    {
+        jarvis::Validator validator;
         return validator.Inspect(json, &mMapCIN);
     }
 
-    void JARVIS::Clear()
+    void Jarvis::Clear()
     {
         mMapCIN.clear();
     }
     
-    std::map<jvs::cfg_key_e, std::vector<jvs::config::Base*>>::iterator JARVIS::begin()
-    {  
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator Jarvis::begin()
+    {
         return mMapCIN.begin();
     }
 
-    std::map<jvs::cfg_key_e, std::vector<jvs::config::Base*>>::iterator JARVIS::end()
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::iterator Jarvis::end()
     {
         return mMapCIN.end();
     }
 
-    std::map<jvs::cfg_key_e, std::vector<jvs::config::Base*>>::const_iterator JARVIS::begin() const
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::const_iterator Jarvis::begin() const
     {
         return mMapCIN.cbegin();
     }
 
-    std::map<jvs::cfg_key_e, std::vector<jvs::config::Base*>>::const_iterator JARVIS::end() const
+    std::map<jarvis::cfg_key_e, std::vector<jarvis::config::Base*>>::const_iterator Jarvis::end() const
     {
         return mMapCIN.cend();
     }
 
 
-    JARVIS* jarvis = nullptr;
+    Jarvis* Jarvis::mInstance = nullptr;
 }

@@ -4,10 +4,10 @@
  * 
  * @brief Operation 설정 정보를 관리하는 클래스를 정의합니다.
  * 
- * @date 2025-01-23
- * @version 1.2.2
+ * @date 2024-10-08
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -19,7 +19,16 @@
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
+
+    Operation::Operation()
+        : Base(cfg_key_e::OPERATION)
+    {
+    }
+
+    Operation::~Operation()
+    {
+    }
 
     Operation& Operation::operator=(const Operation& obj)
     {
@@ -31,6 +40,7 @@ namespace muffin { namespace jvs { namespace config {
             mIntervalServer     = obj.mIntervalServer;
             mIntervalPolling    = obj.mIntervalPolling;
         }
+        
         return *this;
     }
 
@@ -53,24 +63,19 @@ namespace muffin { namespace jvs { namespace config {
     void Operation::SetPlanExpired(const bool planExpired)
     {
         mPlanExpired = planExpired;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::SERVICE_PLAN));
+        mIsPlanExpiredSet = true;
     }
 
     void Operation::SetFactoryReset(const bool factoryReset)
     {
         mFactoryReset = factoryReset;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::FACTORY_RESET));
+        mIsFactoryResetSet = true;
     }
 
     void Operation::SetServerNIC(const snic_e snic)
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::SERVICE_NIC)) == true)
-        {
-            return;
-        }
-        
         mServerNIC = snic;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::SERVICE_NIC));
+        mIsServerNicSet = true;
     }
 
     void Operation::SetIntervalServer(const uint16_t interval)
@@ -78,7 +83,7 @@ namespace muffin { namespace jvs { namespace config {
         ASSERT((interval > 0), "INTERVAL CANNOT BE SET TO 0");
 
         mIntervalServer = interval;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::PUB_INTERVAL));
+        mIsIntervalServerSet = true;
     }
 
     void Operation::SetIntervalPolling(const uint16_t interval)
@@ -86,12 +91,12 @@ namespace muffin { namespace jvs { namespace config {
         ASSERT((interval > 0), "INTERVAL CANNOT BE SET TO 0");
 
         mIntervalPolling = interval;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DAQ_INTERVAL));
+        mIsIntervalPollingSet = true;
     }
 
     std::pair<Status, bool> Operation::GetPlanExpired() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::SERVICE_PLAN)))
+        if (mIsPlanExpiredSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mPlanExpired);
         }
@@ -103,7 +108,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, bool> Operation::GetFactoryReset() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::FACTORY_RESET)))
+        if (mIsFactoryResetSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mFactoryReset);
         }
@@ -115,7 +120,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, snic_e> Operation::GetServerNIC() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::SERVICE_NIC)))
+        if (mIsServerNicSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mServerNIC);
         }
@@ -127,7 +132,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, uint16_t> Operation::GetIntervalServer() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::PUB_INTERVAL)))
+        if (mIsIntervalServerSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mIntervalServer);
         }
@@ -139,7 +144,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, uint16_t> Operation::GetIntervalPolling() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DAQ_INTERVAL)))
+        if (mIsIntervalPollingSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mIntervalPolling);
         }
@@ -148,7 +153,4 @@ namespace muffin { namespace jvs { namespace config {
             return std::make_pair(Status(Status::Code::BAD), mIntervalPolling);
         }
     }
-
-
-    Operation operation;
 }}}

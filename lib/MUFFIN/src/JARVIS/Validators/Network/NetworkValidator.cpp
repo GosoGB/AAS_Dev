@@ -4,10 +4,10 @@
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2025-01-24
- * @version 1.2.2
+ * @date 2024-10-07
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -16,26 +16,35 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "JARVIS/Config/Network/CatM1.h"
-#include "JARVIS/Config/Network/Ethernet.h"
-#include "JARVIS/Config/Network/WiFi4.h"
+#include "Jarvis/Config/Network/CatM1.h"
+#include "Jarvis/Config/Network/Ethernet.h"
+#include "Jarvis/Config/Network/WiFi4.h"
 #include "NetworkValidator.h"
 
 
 
-namespace muffin { namespace jvs {
+namespace muffin { namespace jarvis {
 
-    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN)
+    NetworkValidator::NetworkValidator()
+    {
+    }
+    
+    NetworkValidator::~NetworkValidator()
+    {
+    }
+
+    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
+        ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
 
         switch (key)
         {
         case cfg_key_e::ETHERNET:
-            return validateEthernet(arrayCIN);
+            return validateEthernet(arrayCIN, outVector);
         case cfg_key_e::WIFI4:
-            return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, "Wi-Fi IS NOT SUPPORTED IN THE CURRENT VERSION");
+            return validateWiFi4(arrayCIN, outVector);
         default:
             return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "UNDEFINED CONFIG KEY FOR NETWORK INTERFACE");
         };
@@ -408,20 +417,15 @@ namespace muffin { namespace jvs {
      *        이는 설정 형식 자체의 오류는 아니며, 일부는 적용되기 때문에
      *        상태 코드로 오류가 아닌 경고를 반환하는 것이 적합합니다.
      */
-    std::pair<rsc_e, std::string> NetworkValidator::validateEthernet(const JsonArray array)
+    std::pair<rsc_e, std::string> NetworkValidator::validateEthernet(const JsonArray array, cin_vector* outVector)
     {
         if (array.size() != 1)
         {
-            /**
-             * @todo MT11 모델은 Ethernet 인터페이스가 두 개 이상이 될 수 있습니다.
-             *       따라서 MT11부터 본 함수의 로직은 MODLINK 모델에 따라 다르게 
-             *       동작할 수 있도록 수정되어야 합니다.
-             */
             ASSERT((array.size() == 1), "ETHERNET CONFIG CANNOT BE GREATER THAN 1");
             return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, "INVALID ETHERNET CONFIG: ONLY ONE ETHERNET MODULE CAN BE CONFIGURED");
         }
 
-        JsonObject cin = array[0].as<JsonObject>();
+        JsonObject cin = array[0];
         rsc_e rsc = validateMandatoryKeysEthernet(cin);
         if (rsc != rsc_e::GOOD)
         {
@@ -434,22 +438,23 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc, "INVALID ETHERNET: MANDATORY KEY'S VALUE CANNOT BE NULL");
         }
         
-        config::ethernet = new(std::nothrow) config::Ethernet();
-        if (config::ethernet == nullptr)
+        const bool DHCP = cin["dhcp"].as<bool>();
+        
+        config::Ethernet* ethernet = new(std::nothrow) config::Ethernet();
+        if (ethernet == nullptr)
         {
             return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR CIN: ETHERNET");
         }
-
-        const bool DHCP = cin["dhcp"].as<bool>();
-        config::ethernet->SetDHCP(DHCP);
+        
+        ethernet->SetDHCP(DHCP);
 
         if (DHCP == false)
         {
-            const auto retIP    = convertToIPv4(cin["ip"].as<JsonVariant>(),   false);
-            const auto retSVM   = convertToIPv4(cin["snm"].as<JsonVariant>(),  true);
-            const auto retGTW   = convertToIPv4(cin["gtw"].as<JsonVariant>(),  false);
-            const auto retDNS1  = convertToIPv4(cin["dns1"].as<JsonVariant>(), false);
-            const auto retDNS2  = convertToIPv4(cin["dns2"].as<JsonVariant>(), false);
+            const auto retIP    = convertToIPv4(cin["ip"].as<JsonVariant>(),false);
+            const auto retSVM   = convertToIPv4(cin["snm"].as<JsonVariant>(),true);
+            const auto retGTW   = convertToIPv4(cin["gtw"].as<JsonVariant>(),false);
+            const auto retDNS1  = convertToIPv4(cin["dns1"].as<JsonVariant>(),false);
+            const auto retDNS2  = convertToIPv4(cin["dns2"].as<JsonVariant>(),false);
 
             if (retIP.first != rsc_e::GOOD)
             {
@@ -476,11 +481,23 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, "INVALID ETHERNET DNS2");
             }
 
-            config::ethernet->SetStaticIPv4(retIP.second);
-            config::ethernet->SetSubnetmask(retSVM.second);
-            config::ethernet->SetGateway(retGTW.second);
-            config::ethernet->SetDNS1(retDNS1.second);
-            config::ethernet->SetDNS2(retDNS2.second);
+            ethernet->SetStaticIPv4(retIP.second);
+            ethernet->SetSubnetmask(retSVM.second);
+            ethernet->SetGateway(retGTW.second);
+            ethernet->SetDNS1(retDNS1.second);
+            ethernet->SetDNS2(retDNS2.second);
+        }
+    
+
+        rsc = emplaceCIN(static_cast<config::Base*>(ethernet), outVector);
+        if (rsc != rsc_e::GOOD)
+        {
+            if (ethernet != nullptr)
+            {
+                delete ethernet;
+                ethernet = nullptr;
+            }
+            return std::make_pair(rsc, "FAILED TO EMPLACE: ETHERNET CONFIG INSTANCE");
         }
 
         return std::make_pair(rsc_e::GOOD, "GOOD");

@@ -19,12 +19,12 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "JARVIS/Include/Base.h"
-#include "JARVIS/Include/TypeDefinitions.h"
+#include "Jarvis/Include/Base.h"
+#include "Jarvis/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jvs {
+namespace muffin { namespace jarvis {
 
     class ModbusValidator
     {

@@ -4,10 +4,10 @@
  * 
  * @brief MODLINK 동작과 관련된 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2025-01-23
- * @version 1.2.2
+ * @date 2024-10-12
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -15,50 +15,76 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "JARVIS/Config/Operation/Operation.h"
-#include "JARVIS/Validators/Operation/OperationValidator.h"
+#include "Jarvis/Config/Operation/Operation.h"
+#include "OperationValidator.h"
 
 
 
-namespace muffin { namespace jvs {
+namespace muffin { namespace jarvis {
 
-    std::pair<rsc_e, std::string> OperationValidator::Inspect(const JsonArray arrayCIN)
+    OperationValidator::OperationValidator()
+    {
+    }
+    
+    OperationValidator::~OperationValidator()
+    {
+    }
+    
+    std::pair<rsc_e, std::string> OperationValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
     {
         ASSERT((arrayCIN.isNull() == false), "INPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
+        ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
 
         JsonObject json = arrayCIN[0].as<JsonObject>();
         rsc_e rsc = validateMandatoryKeys(json);
         if (rsc != rsc_e::GOOD)
         {
-            return std::make_pair(rsc, "INVALID OPERATION: MANDATORY KEY CANNOT BE MISSING");
+            return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY CANNOT BE MISSING");
         }
 
         rsc = validateMandatoryValues(json);
         if (rsc != rsc_e::GOOD)
         {
-            return std::make_pair(rsc, "INVALID OPERATION: MANDATORY KEY'S VALUE CANNOT BE NULL");
+            return std::make_pair(rsc, "INVALID OPERATION : MANDATORY KEY'S VALUE CANNOT BE NULL");
         }
         
-        const bool isExpired            = json["exp"].as<bool>();
-        const bool hasFactoryReset      = json["rst"].as<bool>();
-        const char* serviceNetwork      = json["snic"].as<const char*>();
-        const uint16_t pollingInverval  = json["intvPoll"].as<uint16_t>();
-        const uint16_t publishInverval  = json["intvSrv"].as<uint16_t>();
+        const bool isExpired    = json["exp"].as<bool>();
+        const uint16_t pollingInverval = json["intvPoll"].as<uint16_t>();
+        const uint16_t serverInverval  = json["intvSrv"].as<uint16_t>();
+        const bool factoryReset = json["rst"].as<bool>();
 
-        const auto retSNIC = convertToServerNIC(serviceNetwork);
+        const std::string snic = json["snic"].as<std::string>();
+        const auto retSNIC = convertToServerNIC(snic);
         if (retSNIC.first != rsc_e::GOOD)
         {
-            char buffer[64] = {'\0'};
-            snprintf(buffer, sizeof(buffer), "INVALID SERVER NETWORK INTERFACE: %s", serviceNetwork);
-            return std::make_pair(rsc, buffer);
+            const std::string message = "INVALID SERVER NETWORK INTERFACE: " + snic;
+            return std::make_pair(rsc, message);
+        }
+        
+        config::Operation* operation = new(std::nothrow) config::Operation();
+        if (operation == nullptr)
+        {
+            return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR OPERATION CONFIG");
         }
 
-        config::operation.SetPlanExpired(isExpired);
-        config::operation.SetFactoryReset(hasFactoryReset);
-        config::operation.SetServerNIC(retSNIC.second);
-        config::operation.SetIntervalPolling(pollingInverval);
-        config::operation.SetIntervalServer(publishInverval);
+        operation->SetPlanExpired(isExpired);
+        operation->SetIntervalPolling(pollingInverval);
+        operation->SetIntervalServer(serverInverval);
+        operation->SetFactoryReset(factoryReset);
+        operation->SetServerNIC(retSNIC.second);
+
+
+        rsc = emplaceCIN(static_cast<config::Base*>(operation), outVector);
+        if (rsc != rsc_e::GOOD)
+        {
+            if (operation != nullptr)
+            {
+                delete operation;
+                operation = nullptr;
+            }
+            return std::make_pair(rsc, "FAILED TO EMPLACE: OPERATION CONFIG INSTANCE");
+        }
 
         if (arrayCIN.size() > 1)
         {
@@ -92,14 +118,11 @@ namespace muffin { namespace jvs {
     rsc_e OperationValidator::validateMandatoryValues(const JsonObject json)
     {
         bool isValid = true;
-        
         isValid &= json["snic"].isNull()            == false;
         isValid &= json["exp"].isNull()             == false;
         isValid &= json["intvPoll"].isNull()        == false;
         isValid &= json["intvSrv"].isNull()         == false;
         isValid &= json["rst"].isNull()             == false;
-
-        isValid &= json["snic"].is<const char*>()   == true;
         isValid &= json["exp"].is<bool>()           == true;
         isValid &= json["intvPoll"].is<uint16_t>()  == true;
         isValid &= json["intvSrv"].is<uint16_t>()   == true;
@@ -115,19 +138,40 @@ namespace muffin { namespace jvs {
         }
     }
 
-    std::pair<rsc_e, snic_e> OperationValidator::convertToServerNIC(const char* snic)
+    rsc_e OperationValidator::emplaceCIN(config::Base* cin, cin_vector* outVector)
     {
-        if (strcmp(snic, "lte") == 0)
+        ASSERT((cin != nullptr), "INPUT PARAMETER <cin> CANNOT BE A NULL POINTER");
+
+        try
+        {
+            outVector->emplace_back(cin);
+            return rsc_e::GOOD;
+        }
+        catch(const std::bad_alloc& e)
+        {
+            LOG_ERROR(logger, "%s", e.what());
+            return rsc_e::BAD_OUT_OF_MEMORY;
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "%s", e.what());
+            return rsc_e::BAD_UNEXPECTED_ERROR;
+        }
+    }
+
+    std::pair<rsc_e, snic_e> OperationValidator::convertToServerNIC(const std::string& nic)
+    {
+        if (nic == "lte")
         {
             return std::make_pair(rsc_e::GOOD, snic_e::LTE_CatM1);
         }
     #if defined(MODLINK_T2) || defined(MODLINK_B)
-        else if (strcmp(snic, "eth") == 0)
+        else if (nic == "eth")
         {
             return std::make_pair(rsc_e::GOOD, snic_e::Ethernet);
         }
     #elif defined(MODLINK_B)
-        else if (strcmp(snic, "wifi") == 0)
+        else if (nic == "wifi")
         {
             return std::make_pair(rsc_e::GOOD, snic_e::WiFi4);
         }

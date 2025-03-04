@@ -17,7 +17,7 @@
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
 
     Base::Base(const cfg_key_e category)
         : mCategory(category)

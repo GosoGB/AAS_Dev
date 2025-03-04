@@ -21,7 +21,7 @@
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
 
     WiFi4::WiFi4()
         : Base(cfg_key_e::WIFI4)

@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
 
     ModbusTCP::ModbusTCP()
         : Base(cfg_key_e::MODBUS_TCP)
@@ -99,6 +99,8 @@ namespace muffin { namespace jvs { namespace config {
 
     void ModbusTCP::SetSlaveID(const uint8_t sid)
     {
+        ASSERT((0 < sid && sid < 248), "INVALID SLAVED ID: %u", sid);
+
         mSlaveID = sid;
         mIsSlaveIdSet = true;
     }

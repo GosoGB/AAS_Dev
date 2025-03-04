@@ -23,7 +23,7 @@
 
 
 
-namespace muffin { namespace jvs {
+namespace muffin { namespace jarvis {
 
     MetaDataValidator::MetaDataValidator()
         : mHasNoError(false)

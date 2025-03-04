@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jvs { namespace config {
+namespace muffin { namespace jarvis { namespace config {
 
     Production::Production()
         : Base(cfg_key_e::PRODUCTION_INFO)

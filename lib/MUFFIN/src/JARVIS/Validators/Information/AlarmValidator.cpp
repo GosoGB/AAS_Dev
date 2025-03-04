@@ -21,7 +21,7 @@
 
 
 
-namespace muffin { namespace jvs {  
+namespace muffin { namespace jarvis {  
 
     AlarmValidator::AlarmValidator()
     {

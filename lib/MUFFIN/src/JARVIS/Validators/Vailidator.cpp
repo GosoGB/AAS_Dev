@@ -4,10 +4,10 @@
  * 
  * @brief JARVIS 설정 정보의 유효성을 검사하기 위한 모듈 클래스를 정의합니다.
  * 
- * @date 2025-01-23
- * @version 1.2.2
+ * @date 2024-10-15
+ * @version 1.0.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
+ * @copyright Copyright Edgecross Inc. (c) 2024
  */
 
 
@@ -16,39 +16,36 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
-#include "JARVIS/Config/Interfaces/Rs232.h"
-#include "JARVIS/Config/Interfaces/Rs485.h"
-#include "JARVIS/Validators/Information/AlarmValidator.h"
-#include "JARVIS/Validators/Information/NodeValidator.h"
-#include "JARVIS/Validators/Information/OperationTimeValidator.h"
-#include "JARVIS/Validators/Information/ProductionInfoValidator.h"
-#include "JARVIS/Validators/Interfaces/SerialPortValidator.h"
-#include "JARVIS/Validators/MetaDataValidator.h"
-#include "JARVIS/Validators/Network/LteValidator.h"
-#include "JARVIS/Validators/Network/NetworkValidator.h"
-#include "JARVIS/Validators/Operation/OperationValidator.h"
-#include "JARVIS/Validators/Protocol/ModbusValidator.h"
+#include "Jarvis/Config/Interfaces/Rs232.h"
+#include "Jarvis/Config/Interfaces/Rs485.h"
+#include "Jarvis/Validators/Information/AlarmValidator.h"
+#include "Jarvis/Validators/Information/NodeValidator.h"
+#include "Jarvis/Validators/Information/OperationTimeValidator.h"
+#include "Jarvis/Validators/Information/ProductionInfoValidator.h"
+#include "Jarvis/Validators/Interfaces/SerialPortValidator.h"
+#include "Jarvis/Validators/MetaDataValidator.h"
+#include "Jarvis/Validators/Network/LteValidator.h"
+#include "Jarvis/Validators/Network/NetworkValidator.h"
+#include "Jarvis/Validators/Operation/OperationValidator.h"
+#include "Jarvis/Validators/Protocol/ModbusValidator.h"
 #include "Validator.h"
 
 
  
-namespace muffin { namespace jvs {
+namespace muffin { namespace jarvis {
+
+    Validator::Validator()
+    {
+    }
+
+    Validator::~Validator()
+    {
+    }
 
     ValidationResult Validator::Inspect(JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN)
     {
         ASSERT((mapCIN != nullptr), "OUTPUT PARAMETER <mapCIN> CANNOT BE A NULL POINTER");
         ASSERT((mapCIN->size() == 0), "OUTPUT PARAMETER <mapCIN> MUST BE EMPTY");
-
-        for (auto& pair : *mapCIN)
-        {
-            for (auto& cin : pair.second)
-            {
-                delete cin;
-            }
-            pair.second.clear();
-        }
-        mapCIN->clear();
-
 
         ValidationResult result;
 
@@ -125,17 +122,17 @@ namespace muffin { namespace jvs {
                     break;
                 case cfg_key_e::WIFI4:
                 case cfg_key_e::ETHERNET:
-                    ret = validateNicLAN(key, cinArray);
+                    ret = validateNicLAN(key, cinArray, &outputVector);
                     break;
                 case cfg_key_e::LTE_CatM1:
-                    ret = validateNicLTE(key, cinArray);
+                    ret = validateNicLTE(key, cinArray, &outputVector);
                     break;
                 case cfg_key_e::MODBUS_RTU:
                 case cfg_key_e::MODBUS_TCP:
                     ret = validateModbus(key, cinArray, &outputVector);
                     break;
                 case cfg_key_e::OPERATION:
-                    ret = validateOperation(cinArray);
+                    ret = validateOperation(cinArray, &outputVector);
                     break;
                 case cfg_key_e::NODE:
                     ret = validateNode(cinArray, &outputVector);
@@ -172,7 +169,8 @@ namespace muffin { namespace jvs {
             }
         }
     
-        return createInspectionReport();
+        result = createInspectionReport();
+        return result;
     }
 
     /**
@@ -409,16 +407,22 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json)
+    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
     {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
         NetworkValidator validator;
-        return validator.Inspect(key, json);
+        return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNicLTE(const cfg_key_e key, const JsonArray json)
+    std::pair<rsc_e, std::string> Validator::validateNicLTE(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
     {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
         LteValidator validator;
-        return validator.Inspect(key, json);
+        return validator.Inspect(key, json, outputVector);
     }
 
     std::pair<rsc_e, std::string> Validator::validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
@@ -430,10 +434,13 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateOperation(const JsonArray json)
+    std::pair<rsc_e, std::string> Validator::validateOperation(const JsonArray json, cin_vector* outputVector)
     {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
         OperationValidator validator;
-        return validator.Inspect(json);
+        return validator.Inspect(json, outputVector);
     }
 
     std::pair<rsc_e, std::string> Validator::validateNode(const JsonArray json, cin_vector* outputVector)

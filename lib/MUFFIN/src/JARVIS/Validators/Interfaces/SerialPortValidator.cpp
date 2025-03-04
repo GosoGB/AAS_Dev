@@ -18,12 +18,12 @@
 #include "Common/Logger/Logger.h"
 #include "Common/Convert/ConvertClass.h"
 #include "SerialPortValidator.h"
-#include "JARVIS/Config/Interfaces/Rs232.h"
-#include "JARVIS/Config/Interfaces/Rs485.h"
+#include "Jarvis/Config/Interfaces/Rs232.h"
+#include "Jarvis/Config/Interfaces/Rs485.h"
 
 
 
-namespace muffin { namespace jvs {
+namespace muffin { namespace jarvis {
 
     SerialPortValidator::SerialPortValidator()
     {
