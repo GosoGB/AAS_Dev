@@ -65,6 +65,7 @@ namespace muffin { namespace im {
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
     public:
+        const char* GetNodeID() const { return mNodeID.c_str(); }
         jvs::addr_u GetAddress() const;
         uint8_t GetQuantity() const;
         uint16_t GetBitIndex() const;

@@ -421,15 +421,17 @@ namespace muffin {
                 if (node.RetrieveCount() > 1)
                 {
                     im::var_data_t history = node.RetrieveHistory(2).back();
-                    const std::string currentValue   = std::string(datum.Value.String.Data);
-                    const std::string previousValue  = std::string(history.Value.String.Data);
+                    /**
+                     * @todo JARVIS 설정값을 참조하여 설정된 데이터 타입에 맞게 계산을 수행하도록 수정해야 함
+                     */
+                    const uint16_t currentValue   = datum.Value.UInt16;
+                    const uint16_t previousValue  = history.Value.UInt16;
                     
                     if (previousValue != currentValue)
                     {
                         for (auto& condition : vectorCondition)
                         {
-                            if ((static_cast<int16_t>(history.Value.UInt16) == condition) &&
-                                (static_cast<int16_t>(datum.Value.UInt16)   != condition))
+                            if ((history.Value.UInt16 == condition) && (datum.Value.UInt16 != condition))
                             {
                                 deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
                             }

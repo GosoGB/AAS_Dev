@@ -47,7 +47,6 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::string> validateAddressQuantity();
         std::pair<rsc_e, std::string> validateNumericScale();
         std::pair<rsc_e, std::string> validateNumericOffset();
-        std::pair<rsc_e, std::string> validateMappingRules();
         std::pair<rsc_e, std::string> validateDataUnitOrders();
         std::pair<rsc_e, std::string> validateDataTypes();
         std::pair<rsc_e, std::string> validateFormatString();

@@ -167,7 +167,7 @@ namespace muffin { namespace jvs {
             std::pair<rsc_e, std::string> result = validateModbusArea();
             if (result.first != rsc_e::GOOD)
             {
-                LOG_ERROR(logger, "INVALID MODBUS AREA CONFIG:");
+                LOG_ERROR(logger, "INVALID MODBUS AREA CONFIG: %s", result.second.c_str());
                 return result;
             }
             
@@ -197,13 +197,6 @@ namespace muffin { namespace jvs {
             if (result.first != rsc_e::GOOD)
             {
                 LOG_ERROR(logger, "INVALID NUMERIC OFFSET CONFIG");
-                return result;
-            }
-
-            result = validateMappingRules();
-            if (result.first != rsc_e::GOOD)
-            {
-                LOG_ERROR(logger, "INVALID MAPPING RULES CONFIG");
                 return result;
             }
 
@@ -810,43 +803,6 @@ namespace muffin { namespace jvs {
         }
 
         return std::make_pair(rsc_e::GOOD, "GOOD");
-    }
-
-    /**
-     * @return Status
-     *     @li rsc_e::GOOD Mapping Rules 설정이 없거나, 설정 정보가 유효합니다.
-     *     @li Status::Code::BAD_CONFIGURATION_ERROR 다른 Node 속성을 고려했을 때 선결조건 또는 관계가 유효하지 않습니다.
-     */
-    std::pair<rsc_e, std::string> NodeValidator::validateMappingRules()
-    {
-        if (mDataTypes.second.size() != 1)
-        {
-            char message[128] = {'\0'};
-            snprintf(message, 128, "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA TYPES, NODE ID: %s", mNodeID);
-            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
-        }
-
-        if (mDataUnitOrders.first == rsc_e::GOOD)
-        {
-            if (mDataUnitOrders.second.size() != 1)
-            {
-                char message[128] = {'\0'};
-                snprintf(message, 128, "MAPPING RULES CANNOT BE CONFIGURED WITH MORE THAN ONE DATA UNIT ORDERS, NODE ID: %s", mNodeID);
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
-            }
-        }
-        
-        switch (mDataTypes.second.front())
-        {
-            case dt_e::STRING:
-            case dt_e::FLOAT32:
-            case dt_e::FLOAT64:
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "MAPPING RULES CANNOT BE CONFIGURED WITH \"STRING\", \"FP32\" OR \"FP64\" DATA TYPE");
-            default:
-                break;
-        }
-
-        return std::make_pair(rsc_e::GOOD, "GOOD");   
     }
 
     /**
