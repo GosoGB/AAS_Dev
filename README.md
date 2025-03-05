@@ -2,7 +2,7 @@
 ## MUFFIN 프레임워크 Ver.1.3.0 개발 완료
 ### 신규 기능
   - 인터페이스
-    - [MODLINK-T3] LINK1, LINK2 설정 및 RS-485 인터페이스 개발 Modbus TCP 기능은 다음 업데이트에 추가할 예정
+    - [MODLINK-T3] LINK1, LINK2 설정 및 RS-485 인터페이스 개발
     - [MODLINK-T2] 서비스 네트워크 Ethernet 추가
   - CLI 모드
     - [MODLINK-T2,T3] 부팅 후 5초 내 Enter 키 입력 시 CLI 모드로 진입, 서비스 네트워크를 설정 기능 추가
