@@ -15,12 +15,12 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Jarvis/Config/Information/Production.h"
+#include "JARVIS/Config/Information/Production.h"
 #include "ProductionInfoValidator.h"
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     ProductionInfoValidator::ProductionInfoValidator()
     {

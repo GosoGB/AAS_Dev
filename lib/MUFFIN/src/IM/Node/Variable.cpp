@@ -1338,7 +1338,7 @@ namespace muffin { namespace im {
                 }
             }
 
-            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
+            LOG_DEBUG(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
             return std::make_pair(Status(Status::Code::GOOD), Convert.ToUInt16(data));
         }
         else

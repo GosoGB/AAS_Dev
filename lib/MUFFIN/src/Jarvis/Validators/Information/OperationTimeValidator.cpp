@@ -15,12 +15,12 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Jarvis/Config/Information/OperationTime.h"
+#include "JARVIS/Config/Information/OperationTime.h"
 #include "OperationTimeValidator.h"
 
 
 
-namespace muffin { namespace jarvis {    
+namespace muffin { namespace jvs {    
 
     OperationTimeValidator::OperationTimeValidator()
     {

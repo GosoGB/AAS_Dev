@@ -35,6 +35,7 @@ namespace muffin {
         JsonDocument mJarvisJson;
         Status saveJarvisJson();
     private:
-        void printNetworkInfo(const std::string& info);
+        void printCenteredText(const std::string& info, const size_t length);
+        void printLeftAlignedText(const std::string& info, const size_t length);
     };
 }

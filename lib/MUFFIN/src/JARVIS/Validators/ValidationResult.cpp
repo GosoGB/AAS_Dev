@@ -19,7 +19,7 @@
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
     
     ValidationResult::ValidationResult()
     {

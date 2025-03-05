@@ -20,11 +20,11 @@
 #include <set>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     class MetaDataValidator
     {
@@ -43,7 +43,7 @@ namespace muffin { namespace jarvis {
         rsc_e validateContainer(const JsonObject json);
     private:
         /*Protocol Version*/
-        static constexpr uint8_t SUPPORTED_VERSION_LENGTH = 2;
+        static constexpr uint8_t SUPPORTED_VERSION_LENGTH = 3;
         static prtcl_ver_e SUPPORTED_VERSION[SUPPORTED_VERSION_LENGTH];
         prtcl_ver_e mVersion;
         rsc_e mVersionState;

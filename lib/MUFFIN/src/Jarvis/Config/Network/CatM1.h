@@ -4,10 +4,10 @@
  * 
  * @brief LTE Cat.M1 모듈 설정 정보를 관리하는 클래스를 선언합니다.
  * 
- * @date 2024-10-07
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -16,18 +16,19 @@
 #pragma once
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "Common/DataStructure/bitset.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     class CatM1 : public Base
     {
     public:
-        CatM1();
-        virtual ~CatM1() override;
+        CatM1() : Base(cfg_key_e::LTE_CatM1) {}
+        virtual ~CatM1() override {}
     public:
         CatM1& operator=(const CatM1& obj);
         bool operator==(const CatM1& obj) const;
@@ -39,10 +40,19 @@ namespace muffin { namespace jarvis { namespace config {
         std::pair<Status, md_e> GetModel() const;
         std::pair<Status, ctry_e> GetCountry() const;
     private:
-        bool isModelSet   = false;
-        bool isCountrySet = false;
+        typedef enum class SetFlagEnum
+            : uint8_t
+        {
+            MODEL    = 0,
+            COUNTRY  = 1,
+            TOP      = 2
+        } set_flag_e;
+        bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
         md_e mModel;
         ctry_e mCountry;
     };
+
+
+    extern CatM1* catM1;
 }}}

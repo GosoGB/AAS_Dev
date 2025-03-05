@@ -4,10 +4,10 @@
  * 
  * @brief Operation 설정 정보를 관리하는 클래스를 선언합니다.
  * 
- * @date 2024-10-08
- * @version 1.0.0
+ * @date 2025-01-23
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -16,18 +16,19 @@
 #pragma once
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "Common/DataStructure/bitset.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     class Operation : public Base
     {
     public:
-        Operation();
-        virtual ~Operation() override;
+        Operation() : Base(cfg_key_e::OPERATION) {}
+        virtual ~Operation() override {}
     public:
         Operation& operator=(const Operation& obj);
         bool operator==(const Operation& obj) const;
@@ -45,11 +46,16 @@ namespace muffin { namespace jarvis { namespace config {
         std::pair<Status, uint16_t> GetIntervalServer() const;
         std::pair<Status, uint16_t> GetIntervalPolling() const;
     private:
-        bool mIsPlanExpiredSet        = false;
-        bool mIsFactoryResetSet       = false;
-        bool mIsServerNicSet          = false;
-        bool mIsIntervalServerSet     = false;
-        bool mIsIntervalPollingSet    = false;
+        typedef enum class SetFlagEnum : uint8_t
+        {
+            SERVICE_PLAN   = 0,
+            FACTORY_RESET  = 1,
+            SERVICE_NIC    = 2,
+            PUB_INTERVAL   = 3,
+            DAQ_INTERVAL   = 4,
+            TOP            = 5
+        } set_flag_e;
+        bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
         bool mPlanExpired;
         bool mFactoryReset;
@@ -57,4 +63,7 @@ namespace muffin { namespace jarvis { namespace config {
         uint16_t mIntervalServer;
         uint16_t mIntervalPolling;
     };
+
+
+    extern Operation operation;
 }}}

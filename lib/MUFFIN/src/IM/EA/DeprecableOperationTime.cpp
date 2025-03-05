@@ -200,7 +200,7 @@ namespace muffin {
                         if (mStatus != jvs::op_status_e::PROCESSING)
                         {
                             mStatus = jvs::op_status_e::PROCESSING;
-                            publishOperationStauts();
+                            publishOperationStatus();
                         }
                         
                         ++processingTime;
@@ -211,7 +211,7 @@ namespace muffin {
                     if (mStatus != jvs::op_status_e::IDLE)
                     {
                         mStatus = jvs::op_status_e::IDLE;
-                        publishOperationStauts();
+                        publishOperationStatus();
                     }
                 }
 
@@ -552,7 +552,7 @@ namespace muffin {
         mqtt::cdo.Store(message);
     }
 
-    void OperationTime::publishOperationStauts()
+    void OperationTime::publishOperationStatus()
     {
         operation_struct_t status;
 

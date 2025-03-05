@@ -17,11 +17,11 @@
 
 #include <vector>
 
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     class ValidationResult
     {

@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     OperationTime::OperationTime()
         : Base(cfg_key_e::OPERATION_TIME)

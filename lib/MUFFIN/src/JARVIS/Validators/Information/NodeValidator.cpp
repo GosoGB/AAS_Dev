@@ -15,12 +15,12 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Jarvis/Config/Information/Node.h"
+#include "JARVIS/Config/Information/Node.h"
 #include "NodeValidator.h"
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     NodeValidator::NodeValidator()
         : mAddressType(rsc_e::UNCERTAIN, adtp_e::NUMERIC)
@@ -32,7 +32,7 @@ namespace muffin { namespace jarvis {
         , mNumericOffset(rsc_e::UNCERTAIN, 0.0f)
         , mMappingRules(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>())
         , mDataUnitOrders(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>())
-        , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jarvis::dt_e>())
+        , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mPatternUID(std::regex(R"(^(?:[PAE][A-Za-z0-9!@#$%^&*()_+=-]{3}|(?:DI|DO|MD)[A-Za-z0-9!@#$%^&*()_+=-]{2})$)"))
     {
@@ -316,7 +316,7 @@ namespace muffin { namespace jarvis {
             mNumericOffset    = std::make_pair(rsc_e::UNCERTAIN, 0.0f);
             mMappingRules     = std::make_pair(rsc_e::UNCERTAIN, std::map<uint16_t, std::string>());
             mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
-            mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jarvis::dt_e>());
+            mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>());
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
             mUID.clear();
             mDisplayName.clear();
@@ -1030,8 +1030,8 @@ namespace muffin { namespace jarvis {
                     /**
                      * @todo 오류는 아니지만 경고 메시지를 만들어야함
                      */
-                    const std::string message = "";
-                    return std::make_pair(rsc_e::UNCERTAIN_CONFIG_INSTANCE, message);
+                    const std::string message = "TOTAL REGISTER SIZE DOES NOT MATCH DATA TYPE SIZE";
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
                 }
                 else
                 {

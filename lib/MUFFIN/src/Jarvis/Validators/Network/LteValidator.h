@@ -5,10 +5,10 @@
  * 
  * @brief 네트워크에 대한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2024-10-07
- * @version 1.0.0
+ * @date 2025-01-24
+ * @version 1.2.2
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -20,31 +20,26 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     class LteValidator
     {
     public:
-        LteValidator();
-        virtual ~LteValidator();
-    private:
-        using cin_vector = std::vector<config::Base*>;
+        LteValidator() {}
+        virtual ~LteValidator() {}
     public:
-        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN);
     private:
-        std::pair<rsc_e, std::string> validateLteCatM1(const JsonArray array, cin_vector* outVector);
+        std::pair<rsc_e, std::string> validateLteCatM1(const JsonArray array);
         rsc_e validateMandatoryKeysLteCatM1(const JsonObject json);
         rsc_e validateMandatoryValuesLteCatM1(const JsonObject json);
     private:
-        rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
-    private:
-        std::pair<rsc_e, md_e> convertToLteModel(const std::string model);
-        std::pair<rsc_e, ctry_e> convertToLteCountry(const std::string country);
-     
+        std::pair<rsc_e, md_e> convertToLteModel(const char* model);
+        std::pair<rsc_e, ctry_e> convertToLteCountry(const char* country);
     };
 }}

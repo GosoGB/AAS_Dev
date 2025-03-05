@@ -15,11 +15,11 @@
 
 #pragma once
 
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     class Base
     {

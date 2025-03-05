@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     typedef enum class ResponseStatusCodeEnum
         : uint16_t
@@ -237,7 +237,7 @@ namespace muffin { namespace jarvis {
         TTLS  = 2
     } wifi_eap_auth_e;
 
-    typedef enum class ServerNetworkInterfaceCardEnum
+    typedef enum class ServerNetworkInterfaceCardEnum : uint8_t
     {
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         Ethernet,
@@ -247,8 +247,7 @@ namespace muffin { namespace jarvis {
         LTE_CatM1
     } snic_e;
 
-    typedef enum class DataUnitEnum
-        : uint8_t
+    typedef enum class DataUnitEnum : uint8_t
     {
         BYTE   =  8,
         WORD   = 16,

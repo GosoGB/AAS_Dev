@@ -20,12 +20,12 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
-#include "Jarvis/Include/DataUnitOrder.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Include/DataUnitOrder.h"
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     class Node : public Base
     {

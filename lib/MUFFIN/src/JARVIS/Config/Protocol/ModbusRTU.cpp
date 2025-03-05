@@ -20,7 +20,7 @@
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     ModbusRTU::ModbusRTU()
         : Base(cfg_key_e::MODBUS_RTU)
@@ -65,7 +65,6 @@ namespace muffin { namespace jarvis { namespace config {
 
     void ModbusRTU::SetSlaveID(const uint8_t sid)
     {
-        ASSERT((0 < sid && sid < 248), "INVALID SLAVED ID: %u", sid);
         mSlaveID = sid;
         mIsSlaveIdSet = true;
     }

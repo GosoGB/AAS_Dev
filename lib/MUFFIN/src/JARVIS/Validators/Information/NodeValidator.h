@@ -22,13 +22,13 @@
 #include <regex>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
-#include "Jarvis/Include/DataUnitOrder.h"
-#include "Jarvis/Include/TypeDefinitions.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Include/DataUnitOrder.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 
 
 
-namespace muffin { namespace jarvis {
+namespace muffin { namespace jvs {
 
     class NodeValidator
     {

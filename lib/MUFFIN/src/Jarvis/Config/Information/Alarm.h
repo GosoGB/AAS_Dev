@@ -19,11 +19,11 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "Jarvis/Include/Base.h"
+#include "JARVIS/Include/Base.h"
 
 
 
-namespace muffin { namespace jarvis { namespace config {
+namespace muffin { namespace jvs { namespace config {
 
     class Alarm : public Base
     {

@@ -240,7 +240,7 @@ namespace muffin {
         }
         
         const auto version = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
-        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second > jvs::prtcl_ver_e::VERSEOIN_2))
+        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second != jvs::prtcl_ver_e::VERSEOIN_3))
         {
             response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
             response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
@@ -707,7 +707,7 @@ namespace muffin {
                                     if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto ERROR_RESPONSE;
+                                        goto RC_RESPONSE;
                                     }
 
                                     LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
@@ -725,7 +725,8 @@ namespace muffin {
                                     }
 
                                     xSemaphoreGive(xSemaphoreModbusTCP);
-                                    break;
+
+                                    goto RC_RESPONSE;
                                 }
                                 
                             }
@@ -778,7 +779,7 @@ namespace muffin {
                                     if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto ERROR_RESPONSE;
+                                        goto RC_RESPONSE;
                                     }
 
                                     switch (modbusArea)
@@ -794,8 +795,19 @@ namespace muffin {
                                         break;
                                     }
 
-                                    LOG_INFO(logger,"제어 결과 : %s",writeResult == 1 ? "성공" : "실패");
+                                    
+                                    if (writeResult != 1)
+                                    {
+                                        if (ModbusRTUClient.lastError() != nullptr)
+                                        {
+                                            LOG_ERROR(logger,"FAIL TO REMOTE CONTROLL : %s",ModbusRTUClient.lastError());
+                                            ModbusRTUClient.clearError();
+                                        }
+                                    }
+                                    
                                     xSemaphoreGive(xSemaphoreModbusRTU);
+                                    
+                                    goto RC_RESPONSE;
                                 #else
                                     spear_remote_control_msg_t msg;
                                     msg.Link = modbusRTU.mPort;
@@ -818,7 +830,7 @@ namespace muffin {
                 }
             }
             
-ERROR_RESPONSE:
+RC_RESPONSE:
             if (writeResult == 1)
             {
                 messageconfig.ResponseCode = "200";
