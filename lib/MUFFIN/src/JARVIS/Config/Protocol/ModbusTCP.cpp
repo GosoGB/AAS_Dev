@@ -149,19 +149,14 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, uint8_t> ModbusTCP::GetSlaveID() const
     {
-        return std::make_pair(Status(Status::Code::GOOD), 1);
-        /**
-         * @todo 우선 slave ID 1로 고정시켜 두었으나 나중에 입력받아 따로 처리해야 하나?
-         * 
-         */
-        // if (mIsSlaveIdSet)
-        // {
-            // return std::make_pair(Status(Status::Code::GOOD), mSlaveID);
-        // }
-        // else
-        // {
-            // return std::make_pair(Status(Status::Code::BAD), mSlaveID);
-        // }
+        if (mIsSlaveIdSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mSlaveID);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mSlaveID);
+        }
     }
 
     std::pair<Status, std::vector<std::string>> ModbusTCP::GetNodes() const

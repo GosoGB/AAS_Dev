@@ -254,6 +254,8 @@ namespace muffin {
             return "v2";
         case prtcl_ver_e::VERSEOIN_3:
             return "v3";
+        case prtcl_ver_e::VERSEOIN_4:
+            return "v4";
         default:
             ASSERT(
                 (
@@ -360,6 +362,10 @@ namespace muffin {
         else if (input == "v3")
         {
             return std::make_pair(Status(Status::Code::GOOD), prtcl_ver_e::VERSEOIN_3);
+        }
+        else if (input == "v4")
+        {
+            return std::make_pair(Status(Status::Code::GOOD), prtcl_ver_e::VERSEOIN_4);
         }
         else
         {

@@ -5,7 +5,7 @@
  * @brief 네트워크 인터페이스 초기화 함수를 정의합니다.
  * 
  * @date 2025-01-23
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -49,9 +49,9 @@
          while (true)
          {
          #if defined(DEBUG)
-             if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+             if ((millis() - statusReportMillis) > (60 * SECOND_IN_MILLIS))
          #else
-             if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
          #endif
              {
                  statusReportMillis = millis();

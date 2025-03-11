@@ -5,7 +5,7 @@
  * @brief 시간 정보를 생성, 관리, 교환하기 위한 기능을 정의
  * 
  * @date 2025-01-23
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -31,7 +31,8 @@ namespace muffin {
      * @brief Map containing relations between timezone with  POSIX timezone string.
      */
     std::map<const std::string, const std::string> MapPTZS = {
-        {"America/New_York", "EST5EDT,M3.2.0,M11.1.0"},     // 미국 동부 표준시
+        {"UTC","UTC0"},
+		{"America/New_York", "EST5EDT,M3.2.0,M11.1.0"},     // 미국 동부 표준시
         {"America/Chicago", "CST6CDT,M3.2.0,M11.1.0"},      // 미국 중부 표준시
         {"America/Denver", "MST7MDT,M3.2.0,M11.1.0"},       // 미국 산지 표준시
         {"America/Los_Angeles", "PST8PDT,M3.2.0,M11.1.0"},  // 미국 태평양 표준시

@@ -106,7 +106,7 @@ namespace muffin { namespace jvs {
             mResponseDescription = "INVALID VERSION: KEY NOT FOUND";
             return rsc_e::BAD;
         }
-        
+   
         std::smatch matches;
         const std::regex pattern(R"(^v([0-9]+)$)");
         const std::string& strVersion = json["ver"].as<std::string>();
@@ -117,7 +117,6 @@ namespace muffin { namespace jvs {
             mResponseDescription = "INVALID VERSION: UNDEFINED FORMAT";
             return rsc_e::BAD;
         }
-        
         const uint8_t intVersion = Convert.ToUInt8(matches[1].str().c_str());
         switch (intVersion)
         {
@@ -128,7 +127,10 @@ namespace muffin { namespace jvs {
             mContainerLength = 12;
             goto DEFINED_VERSION_FOUND;
         case static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_3):
-            mContainerLength = UINT8_MAX;
+            mContainerLength = 12;
+            goto DEFINED_VERSION_FOUND;
+        case static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_4):
+            mContainerLength = 12;
             goto DEFINED_VERSION_FOUND;
         default:
             goto UNSUPPORTED_VERSION;
@@ -320,6 +322,8 @@ namespace muffin { namespace jvs {
     prtcl_ver_e MetaDataValidator::SUPPORTED_VERSION[SUPPORTED_VERSION_LENGTH] =
     {
         prtcl_ver_e::VERSEOIN_1,
-        prtcl_ver_e::VERSEOIN_2
+        prtcl_ver_e::VERSEOIN_2,
+        prtcl_ver_e::VERSEOIN_3,
+        prtcl_ver_e::VERSEOIN_4
     };
 }}

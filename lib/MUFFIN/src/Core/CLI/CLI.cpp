@@ -2,7 +2,7 @@
  * @file CLI.cpp
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @brief 
- * @version 1.2.2
+ * @version 1.3.1
  * @date 2025-01-23
  * 
  * @copyright Copyright (c) 2025
@@ -32,16 +32,16 @@ namespace muffin {
             if (millis() - previousTime >= 1000) 
             {  
                 previousTime = millis();
-                Serial.print("\r네트워크 설정을 원하시면 엔터 키를 입력하세요.");
+                Serial.print("\rPress the Enter key to configure the network settings.");
                 Serial.print(" ");
                 Serial.print(countdown);
-                Serial.print("초");
+                Serial.print("  Seconds left.");
 
                 countdown--;
                 
                 if (countdown < 0) 
                 {
-                    Serial.print("\r\n시간이 만료되었습니다. 디바이스를 실행 합니다.\r\n");
+                    Serial.print("\r\nTime has expired. Proceeding with device execution.\r\n");
                     delay(1000);
                     return Status(Status::Code::GOOD_NO_DATA);
                 }
@@ -68,7 +68,7 @@ namespace muffin {
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
             JsonDocument doc;
-            doc["ver"] = "v2";
+            doc["ver"] = "v4";
 
             JsonObject cnt = doc["cnt"].to<JsonObject>();
             cnt["rs232"].to<JsonArray>();
@@ -96,13 +96,13 @@ namespace muffin {
             _op["rst"]       = false;
 
             mJarvisJson = doc;
-            Serial.print("+---------------------+------------+-------+\r\n");
-            Serial.print("|             현재 네트워크 정보           |\r\n");
-            Serial.print("+---------------------+------------+-------+\r\n");
-            Serial.print("| 네트워크 인터페이스 |  사용 국가 |  모뎀 |\r\n");
-            Serial.print("+---------------------+------------+-------+\r\n");
-            Serial.print("|         LTE         |     KR     |  LM5  |\r\n");
-            Serial.print("+---------------------+------------+-------+\r\n");
+            Serial.print("+---------------------+------------+----------+\r\n");
+            Serial.print("|         Current Network Information         |\r\n");
+            Serial.print("+---------------------+------------+----------+\r\n");
+            Serial.print("|  Network Interface  |   Country  |   Modem  |\r\n");
+            Serial.print("+---------------------+------------+----------+\r\n");
+            Serial.print("|         LTE         |     KR     |    LM5   |\r\n");
+            Serial.print("+---------------------+------------+----------+\r\n");
         }
         else
         {
@@ -127,17 +127,17 @@ namespace muffin {
                 JsonObject lte = mJarvisJson["cnt"]["catm1"][0].as<JsonObject>();
                 std::string model = lte["md"].as<std::string>();
                 std::string ctry = lte["ctry"].as<std::string>();
-                Serial.print("+---------------------+------------+-------+\r\n");
-                Serial.print("|             현재 네트워크 정보           |\r\n");
-                Serial.print("+---------------------+------------+-------+\r\n");
-                Serial.print("| 네트워크 인터페이스 |  사용 국가 |  모뎀 |\r\n");
-                Serial.print("+---------------------+------------+-------+\r\n");
-                Serial.print("|         LTE         |     ");
-                Serial.print(ctry.c_str());
-                Serial.print("     |  ");
-                Serial.print(model.c_str());
-                Serial.print("  |\r\n");
-                Serial.print("+---------------------+------------+-------+\r\n");
+                Serial.print("+---------------------+------------+----------+\r\n");
+                Serial.print("|         Current Network Information         |\r\n");
+                Serial.print("+---------------------+------------+----------+\r\n");
+                Serial.print("|  Network Interface  |   Country  |   Modem  |\r\n");
+                Serial.print("+---------------------+------------+----------+\r\n");
+                Serial.print("|         LTE         | ");
+                printCenteredText(ctry,12);
+                Serial.print("| ");
+                printCenteredText(model,10);
+                Serial.print("|\r\n");
+                Serial.print("+---------------------+------------+----------+\r\n");
 
             }
             else if(serviceNetwork == "eth")
@@ -145,19 +145,18 @@ namespace muffin {
                 JsonObject eth = mJarvisJson["cnt"]["eth"][0].as<JsonObject>();
                 bool dhcp = eth["dhcp"].as<bool>();
 
-                Serial.print("+-----------------------+--------------------+\r\n");
-                Serial.print("|              현재 네트워크 정보            |\r\n");
-                Serial.print("+-----------------------+--------------------+\r\n");
+                Serial.print("+-----------------------+---------------------+\r\n");
+                Serial.print("|         Current Network Information         |\r\n");
+                Serial.print("+-----------------------+---------------------+\r\n");
 
-                Serial.print("| 네트워크 인터페이스   | ");
-                Serial.print("Ethernet");
-                Serial.print("           |\r\n");
-                Serial.print("+-----------------------+--------------------+\r\n");
+                Serial.print("| Network Interface     | ");
+                Serial.print("Ethernet            |\r\n");
+                Serial.print("+-----------------------+---------------------+\r\n");
 
-                Serial.print("| 고정 IP 사용 여부     | ");
-                Serial.print(dhcp == false ? "사용          " : "사용안함(DHCP)");
-                Serial.print("     |\r\n");
-                Serial.print("+-----------------------+--------------------+\r\n");
+                Serial.print("| Use Static IP         | ");
+                Serial.print(dhcp == false ? "Enabled             " : "Disabled (DHCP)     ");
+                Serial.print("|\r\n");
+                Serial.print("+-----------------------+---------------------+\r\n");
 
                 if (dhcp == false)
                 {
@@ -168,29 +167,29 @@ namespace muffin {
                     std::string dns2 = eth["dns2"].as<std::string>();
                 
                     Serial.print("| IP                    | ");
-                    printNetworkInfo(ip);
-                    Serial.print("|\r\n");
-                    Serial.print("+-----------------------+--------------------+\r\n");
+                    printLeftAlignedText(ip,20);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+---------------------+\r\n");
 
                     Serial.print("| GateWay               | ");
-                    printNetworkInfo(gateway);
-                    Serial.print("|\r\n");
-                    Serial.print("+-----------------------+--------------------+\r\n");
+                    printLeftAlignedText(gateway,20);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+---------------------+\r\n");
 
                     Serial.print("| SubnetMask            | ");
-                    printNetworkInfo(subnet);
-                    Serial.print("|\r\n");
-                    Serial.print("+-----------------------+--------------------+\r\n");
+                    printLeftAlignedText(subnet,20);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+---------------------+\r\n");
 
                     Serial.print("| DNS1                  | ");
-                    printNetworkInfo(dns1);
-                    Serial.print("|\r\n");
-                    Serial.print("+-----------------------+--------------------+\r\n");
+                    printLeftAlignedText(dns1,20);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+---------------------+\r\n");
 
                     Serial.print("| DNS2                  | ");
-                    printNetworkInfo(dns2);
-                    Serial.print("|\r\n");
-                    Serial.print("+-----------------------+--------------------+\r\n");
+                    printLeftAlignedText(dns2,20);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+---------------------+\r\n");
                 }
             
             }
@@ -200,7 +199,7 @@ namespace muffin {
         std::string settingStr;
         while (true)
         {
-            Serial.print("\r\n서비스 네트워크를 선택해 주세요. (1 또는 2)\r\n");
+            Serial.print("\r\nPlease select a service network (1 or 2)\r\n");
             Serial.print("1. LTE \t 2. Ethernet\r\n");
             delay(80);
             settingStr = getSerialInput();
@@ -215,7 +214,7 @@ namespace muffin {
             }
             else 
             {
-                Serial.print("잘못된 입력입니다. 1 또는 2를 입력해주세요.\r\n");
+                Serial.print("\r\nInvalid input. Please enter 1 or 2.\r\n");
             }
         }
     }
@@ -262,7 +261,7 @@ namespace muffin {
 
     Status CommandLineInterface::configureLTE()
     {
-        Serial.print("서비스 네트워크는 LTE로 설정 되었습니다.\r\n");
+        Serial.print("\r\nService network has been set to LTE.\r\n");
         JsonObject op = mJarvisJson["cnt"]["op"][0].as<JsonObject>();
         op["snic"] = "lte";
         JsonObject cnt = mJarvisJson["cnt"].as<JsonObject>();
@@ -277,7 +276,7 @@ namespace muffin {
 
     Status CommandLineInterface::configureEthernet()
     {
-        Serial.print("서비스 네트워크는 Ethernet으로 설정 되었습니다.\r\n");
+        Serial.print("\r\nService network has been set to Ethernet.\r\n");
         JsonObject cnt = mJarvisJson["cnt"].as<JsonObject>();
         cnt.remove("catm1");
         cnt["catm1"].to<JsonArray>();
@@ -293,13 +292,13 @@ namespace muffin {
 
         while (true)
         {
-            Serial.print("DHCP 설정 여부를 입력해주세요 (Y/N)\r\n");
+            Serial.print("\r\nPlease enter whether to enable DHCP (Y/N)\r\n");
             delay(80);
             settingStr = getSerialInput();
 
             if (settingStr == "Y" || settingStr == "y")
             {
-                Serial.print("DHCP로 설정합니다.\r\n");
+                Serial.print("\r\nDHCP is enabled.\r\n");
                 _eth["dhcp"] = true;
                 _eth["ip"]   = nullptr;
                 _eth["snm"]  = nullptr;
@@ -313,83 +312,83 @@ namespace muffin {
                 _eth["dhcp"] = false;
                 std::string staticIP, subnetMask, gateway, dnsServer1, dnsServer2 ;
 
-                Serial.print("고정 IP를 입력해주세요 (예: 192.168.1.100)\r\n");
+                Serial.print("\r\nPlease enter a static IP address (e.g. 192.168.1.100)\r\n");
                 while (true)
                 {
                     staticIP = getSerialInput();
                     if(isValidIpFormat(staticIP))
                     {
-                        Serial.printf("설정 된 IP : %s \r\n",staticIP.c_str());
+                        Serial.printf("\r\nConfigured IP: %s \r\n", staticIP.c_str());
                         _eth["ip"] = staticIP.c_str();
                         break;
                     }
                     else
                     {
-                        Serial.print("유효하지 않은 IP 정보입니다. 다시 입력해 주세요 \r\n");
+                        Serial.print("\r\nInvalid IP address. Please enter again. \r\n");
                     }
                 }
 
-                Serial.print("\r\n서브넷 마스크를 입력해주세요 (예: 255.255.255.0)\r\n");
+                Serial.print("\r\nPlease enter a subnet mask (e.g. 255.255.255.0)\r\n");
                 while (true)
                 {
                     subnetMask = getSerialInput();
                     if(isValidIpFormat(subnetMask, true))
                     {
-                        Serial.printf("설정 된 서브넷 마스크 : %s \r\n",subnetMask.c_str());
+                        Serial.printf("\r\nConfigured Subnet Mask: %s \r\n", subnetMask.c_str());
                         _eth["snm"] = subnetMask.c_str();
                         break;
                     }
                     else
                     {
-                        Serial.print("유효하지 않은 서브넷 마스크 정보입니다. 다시 입력해 주세요 \r\n");
+                        Serial.print("\r\nInvalid subnet mask. Please enter again. \r\n");
                     }
                 }
 
-                Serial.print("\r\n게이트웨이를 입력해주세요 (예: 192.168.1.1)\r\n");
+                Serial.print("\r\nPlease enter a gateway address (e.g. 192.168.1.1)\r\n");
                 while (true)
                 {
                     gateway = getSerialInput();
                     if(isValidIpFormat(gateway))
                     {
-                        Serial.printf("설정 된 게이트웨이 : %s \r\n",gateway.c_str());
+                        Serial.printf("\r\nConfigured Gateway: %s \r\n", gateway.c_str());
                         _eth["gtw"] = gateway.c_str();
                         break;
                     }
                     else
                     {
-                        Serial.print("유효하지 않은 게이트웨이 정보입니다. 다시 입력해 주세요 \r\n");
+                        Serial.print("\r\nInvalid gateway address. Please enter again. \r\n");
                     }
                 }
 
-                Serial.print("\r\nDNS1 서버를 입력해주세요 (예: 8.8.8.8)\r\n");
+                Serial.print("\r\nPlease enter DNS1 server address (e.g. 8.8.8.8)\r\n");
                 while (true)
                 {
                     dnsServer1 = getSerialInput();
                     if(isValidIpFormat(dnsServer1))
                     {
-                        Serial.printf("설정 된 DNS1 서버 : %s \r\n",dnsServer1.c_str());
+                        Serial.printf("\r\nConfigured DNS1 Server: %s \r\n", dnsServer1.c_str());
                         _eth["dns1"] = dnsServer1.c_str();
                         break;
                     }
                     else
                     {
-                        Serial.print("유효하지 않은 DNS1 서버 정보입니다. 다시 입력해 주세요 \r\n");
+                        Serial.print("\r\nInvalid DNS1 server address. Please enter again. \r\n");
                     }
                 }
 
-                Serial.print("\r\nDNS2 서버를 입력해주세요 (예: 8.0.0.8)\r\n");
+                Serial.print("\r\nPlease enter DNS2 server address (e.g. 8.8.8.8)\r\n");
                 while (true)
                 {
                     dnsServer2 = getSerialInput();
                     if(isValidIpFormat(dnsServer2))
                     {
-                        Serial.printf("설정 된 DNS2 서버 : %s \r\n",dnsServer2.c_str());
+                        Serial.printf("\r\nConfigured DNS2 Server: %s \r\n", dnsServer2.c_str());
                         _eth["dns2"] = dnsServer2.c_str();
                         break;
                     }
                     else
                     {
-                        Serial.print("유효하지 않은 DNS2 서버 정보입니다. 다시 입력해 주세요 \r\n");
+                        Serial.print("\r\nInvalid DNS2 server address. Please enter again. \r\n");
                     }
                 }
 
@@ -397,7 +396,7 @@ namespace muffin {
             }
             else 
             {
-                Serial.print("잘못된 입력입니다. Y 또는 N을 입력해주세요.\r\n");
+                Serial.print("\r\nInvalid input. Please enter Y or N.\r\n");
             }
         }
 
@@ -410,7 +409,7 @@ namespace muffin {
         serializeJson(mJarvisJson, file);
         file.close();
 
-        Serial.print("\r\n설정이 모두 저장되었습니다. 디바이스 재부팅을 진행하겠습니다. \r\n\r\n\r\n");
+        Serial.print("\r\nAll settings have been saved. The device will now reboot. \r\n\r\n\r\n");
 
         return Status(Status::Code::GOOD);
     }
@@ -438,12 +437,37 @@ namespace muffin {
         }
     }
 
-    void CommandLineInterface::printNetworkInfo(const std::string& info)
+    void CommandLineInterface::printCenteredText(const std::string& info, const size_t length)
     {
-        size_t buffSize = 20;
-        char buff[20];
+        size_t buffSize = length;
+        char buff[buffSize];
 
-        int inputLen = info.length();
+        size_t inputLen = info.length();
+        size_t totalPadding = buffSize - 1 - inputLen; // 마지막 '\0' 고려
+        size_t leftPadding = totalPadding / 2;
+        size_t rightPadding = totalPadding - leftPadding;
+
+        // 좌측 패딩 추가
+        memset(buff, ' ', leftPadding);
+        
+        // 문자열 복사
+        strncpy(buff + leftPadding, info.c_str(), inputLen);
+
+        // 우측 패딩 추가
+        memset(buff + leftPadding + inputLen, ' ', rightPadding);
+
+        // NULL 문자 추가
+        buff[buffSize - 1] = '\0';
+
+        Serial.print(buff);
+    }
+
+    void CommandLineInterface::printLeftAlignedText(const std::string& info, const size_t length)
+    {
+        size_t buffSize = length;
+        char buff[buffSize];
+
+        size_t inputLen = info.length();
         strncpy(buff, info.c_str(), inputLen);
         for (int i = inputLen; i < buffSize - 1; i++) 
         {

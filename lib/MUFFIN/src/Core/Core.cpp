@@ -6,7 +6,7 @@
  * @brief MUFFIN 프레임워크를 초기화 기능을 제공하는 클래스를 정의합니다.
  * 
  * @date 2025-01-20
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -198,11 +198,6 @@ namespace muffin {
 
     void Core::Init()
     {
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 0;
-        settimeofday(&tv, NULL);
-
         logger.Init();
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         CommandLineInterface commandLineInterface;
@@ -227,8 +222,8 @@ namespace muffin {
             spear.Reset();
             esp_restart();
         }
-        Serial.println("\n\n\n\n");
     #endif 
+        Serial.println(MFM_VERSION);
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),
@@ -502,7 +497,8 @@ namespace muffin {
         ASSERT((output != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
         Status ret = esp32FS.DoesExist(INIT_FILE_PATH);
-        LOG_INFO(logger, "Init file: %s", ret.c_str());
+        LOG_INFO(logger, "Init config file: %s", ret.c_str());
+
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
             output->PanicResetCount   = 0;
@@ -639,7 +635,7 @@ namespace muffin {
         }
 
         JsonDocument doc;
-        doc["ver"] = "v1";
+        doc["ver"] = "v4";
 
         JsonObject cnt = doc["cnt"].to<JsonObject>();
         cnt["rs232"].to<JsonArray>();
@@ -716,7 +712,7 @@ namespace muffin {
             ret = Status::Code::BAD_OUT_OF_MEMORY;
             return ret;
         }
-        
+
         jvs::ValidationResult result = jarvis->Validate(doc);
         doc.clear();
 

@@ -160,9 +160,9 @@ namespace muffin {
         {
 
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (60 * SECOND_IN_MILLIS))
         #else
-            if ((millis() - statusReportMillis) > (300 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif
             {
                 statusReportMillis = millis();
@@ -200,7 +200,7 @@ namespace muffin {
                         if (mStatus != jvs::op_status_e::PROCESSING)
                         {
                             mStatus = jvs::op_status_e::PROCESSING;
-                            publishOperationStauts();
+                            publishOperationStatus();
                         }
                         
                         ++processingTime;
@@ -211,7 +211,7 @@ namespace muffin {
                     if (mStatus != jvs::op_status_e::IDLE)
                     {
                         mStatus = jvs::op_status_e::IDLE;
-                        publishOperationStauts();
+                        publishOperationStatus();
                     }
                 }
 
@@ -482,7 +482,7 @@ namespace muffin {
         mqtt::cdo.Store(message);
     }
 
-    void OperationTime::publishOperationStauts()
+    void OperationTime::publishOperationStatus()
     {
         operation_struct_t status;
 

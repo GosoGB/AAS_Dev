@@ -7,7 +7,7 @@
  * 개발했습니다. 향후 향지에 따라서 별도의 칩셋을 사용한다면 추가 개발이 필요합니다.
  * 
  * @date 2025-01-23
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
@@ -116,8 +116,6 @@ namespace muffin {
         static void onEventPinStatusFalling(void* pvParameter, uint32_t ulParameter);
         static void IRAM_ATTR handlePinStatusISR();
 
-    private:
-        bool mIsSyncNTP = false;
     public:
         Processor mProcessor;
     
