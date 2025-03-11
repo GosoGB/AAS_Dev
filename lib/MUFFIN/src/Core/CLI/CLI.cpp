@@ -68,7 +68,7 @@ namespace muffin {
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
             JsonDocument doc;
-            doc["ver"] = "v4";
+            doc["ver"] = "v3";
 
             JsonObject cnt = doc["cnt"].to<JsonObject>();
             cnt["rs232"].to<JsonArray>();

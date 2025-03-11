@@ -223,7 +223,6 @@ namespace muffin {
             esp_restart();
         }
     #endif 
-        Serial.println(MFM_VERSION);
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),
@@ -635,7 +634,7 @@ namespace muffin {
         }
 
         JsonDocument doc;
-        doc["ver"] = "v4";
+        doc["ver"] = "v3";
 
         JsonObject cnt = doc["cnt"].to<JsonObject>();
         cnt["rs232"].to<JsonArray>();
