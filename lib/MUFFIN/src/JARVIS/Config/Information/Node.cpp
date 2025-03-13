@@ -5,8 +5,8 @@
  * 
  * @brief Node 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2025-02-26
- * @version 1.2.13
+ * @date 2025-03-13
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -35,8 +35,8 @@ namespace muffin { namespace jvs { namespace config {
         if (this != &obj)
         {
             strncpy(mNodeID, obj.mNodeID, sizeof(mNodeID));
+            strncpy(mDeprecableUID, obj.mDeprecableUID, sizeof(mDeprecableUID));
 
-            
             mAddressType            = obj.mAddressType;
             mAddress                = obj.mAddress;
             mModbusArea             = obj.mModbusArea;
@@ -47,7 +47,6 @@ namespace muffin { namespace jvs { namespace config {
             mVectorDataUnitOrders   = obj.mVectorDataUnitOrders;
             mVectorDataTypes        = obj.mVectorDataTypes;
             mFormatString           = obj.mFormatString;
-            mDeprecableUID          = obj.mDeprecableUID;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
         }
         
@@ -303,30 +302,6 @@ namespace muffin { namespace jvs { namespace config {
         mIsNumericOffsetSet = true;
     }
 
-    void Node::SetMappingRules(const std::map<std::uint16_t, std::string>&& mappingRules) noexcept
-    {
-        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
-        ASSERT((mVectorDataTypes.size() == 1), "MAPPING RULES CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
-        ASSERT(
-            (
-                [&]()
-                {
-                    switch (mVectorDataTypes.front())
-                    {
-                    case dt_e::STRING:
-                    case dt_e::FLOAT32:
-                    case dt_e::FLOAT64:
-                        return false;
-                    default:
-                        return true;
-                    }
-                }()
-            ), "MAPPING RULES CANNOT BE APPLIED TO DATA WHICH IS STRING, FP32 OR FP64 TYPE"
-        );
-        ASSERT((mappingRules.size() > 0), "INVALID MAPPING RULES: NO RULE AT ALL");
-        mIsMappingRulesSet = true;
-    }
-
     void Node::SetDataUnitOrders(const std::vector<DataUnitOrder>&& orders) noexcept
     {
         ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
@@ -518,32 +493,18 @@ namespace muffin { namespace jvs { namespace config {
         mIsFormatStringSet = true;
     }
 
-    void Node::SetDeprecableUID(const std::string& uid)
+    void Node::SetDeprecableUID(const char* uid)
     {
-        ASSERT((uid.size() == 4), "UID MUST BE A STRING WITH LEGNTH OF 4");
+        ASSERT((strlen(uid) == 4), "UID MUST BE A STRING WITH LEGNTH OF 4");
         ASSERT(
             (
-                uid.substr(0, 1) == "P"  || 
-                uid.substr(0, 1) == "A"  || 
-                uid.substr(0, 1) == "E"  ||
-                uid.substr(0, 2) == "DI" || 
-                uid.substr(0, 2) == "DO" ||
-                uid.substr(0, 2) == "MD"
+                uid[0] == 'P' || uid[0] == 'A' || uid[0] == 'E' ||
+                strncmp(uid, "DI", 2) || strncmp(uid, "DO", 2) || strncmp(uid, "MD", 2)
             ), "UID MUST START WITH ONE OF PREFIXES, \"P\", \"A\", \"E\", \"DI\", \"DO\", \"MD\""
         );
 
-        mDeprecableUID = uid;
+        strncpy(mDeprecableUID, uid, sizeof(mDeprecableUID));
         mIsDeprecableUidSet = true;
-    }
-
-    void Node::SetDeprecableDisplayName(const std::string& displayName)
-    {
-        mIsDeprecableDisplayNameSet = true;
-    }
-
-    void Node::SetDeprecableDisplayUnit(const std::string& displayUnit)
-    {
-        mIsDeprecableDisplayUnitSet = true;
     }
 
     void Node::SetAttributeEvent(const bool hasEvent)
@@ -552,7 +513,7 @@ namespace muffin { namespace jvs { namespace config {
         mIsAttributeEventSet = true;
     }
 
-    std::pair<Status, std::string> Node::GetNodeID() const
+    std::pair<Status, const char*> Node::GetNodeID() const
     {
         if (mIsNodeIdSet)
         {
@@ -684,7 +645,7 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, std::string> Node::GetDeprecableUID() const
+    std::pair<Status, const char*> Node::GetDeprecableUID() const
     {
         if (mIsDeprecableUidSet)
         {

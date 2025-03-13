@@ -5,8 +5,8 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
- * @date 2025-02-26
- * @version 1.2.13
+ * @date 2025-03-13
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -29,78 +29,37 @@
 
 namespace muffin { namespace im {
 
-    Variable::Variable(const std::string& nodeID, const std::string& UID)
-        : mModbusArea(false, jvs::mb_area_e::COILS)
-        , mBitIndex(false, 0)
-        , mAddressQuantity(false, 1)
-        , mNumericScale(false, jvs::scl_e::NEGATIVE_1)
-        , mNumericOffset(false, 0.0f)
-        , mVectorDataUnitOrders(false, std::vector<jvs::DataUnitOrder>())
-        , mFormatString(false, std::string())
-        , mNodeID(nodeID)
-        , mDeprecableUID(UID)
+    const char* Variable::GetNodeID() const
     {
+        return mCIN->GetNodeID().second;
     }
 
-    void Variable::Init(const jvs::config::Node* cin)
+    jvs::addr_u Variable::GetAddress() const
     {
-        mAddressType              = cin->GetAddressType().second;
-        mAddress                  = cin->GetAddrress().second;
-        mVectorDataTypes          = cin->GetDataTypes().second;
-        mHasAttributeEvent        = cin->GetAttributeEvent().second;
-
-        if (cin->GetModbusArea().first == Status::Code::GOOD)
-        {
-            mModbusArea.first   = true;
-            mModbusArea.second  = cin->GetModbusArea().second;
-        }
-        
-        if (cin->GetBitIndex().first == Status::Code::GOOD)
-        {
-            mBitIndex.first   = true;
-            mBitIndex.second  = cin->GetBitIndex().second;
-        }
-
-        if (cin->GetNumericAddressQuantity().first == Status::Code::GOOD)
-        {
-            mAddressQuantity.first   = true;
-            mAddressQuantity.second  = cin->GetNumericAddressQuantity().second;
-        }
-        
-        if (cin->GetNumericScale().first == Status::Code::GOOD)
-        {
-            mNumericScale.first   = true;
-            mNumericScale.second  = cin->GetNumericScale().second;
-        }
-
-        if (cin->GetNumericOffset().first == Status::Code::GOOD)
-        {
-            mNumericOffset.first   = true;
-            mNumericOffset.second  = cin->GetNumericOffset().second;
-        }
-
-        if (cin->GetDataUnitOrders().first == Status::Code::GOOD)
-        {
-            mVectorDataUnitOrders.first   = true;
-            mVectorDataUnitOrders.second  = cin->GetDataUnitOrders().second;
-        }
-        
-        if (cin->GetFormatString().first == Status::Code::GOOD)
-        {
-            mFormatString.first   = true;
-            mFormatString.second  = cin->GetFormatString().second;
-        }
-    
-        if (mFormatString.first == true)
-        {
-            mDataType = jvs::dt_e::STRING;
-        }
-        else
-        {
-            ASSERT((mVectorDataTypes.size() == 1), "DATA TYPE VECTOR SIZE MUST BE 1 WHEN FORMAT STRING IS DISABLED");
-            mDataType = mVectorDataTypes[0];
-        }
+        return mCIN->GetAddrress().second;
     }
+
+    uint8_t Variable::GetQuantity() const
+    {
+        return mCIN->GetNumericAddressQuantity().second;
+    }
+
+    int16_t Variable::GetBitIndex() const
+    {
+        return mCIN->GetBitIndex().first == Status::Code::GOOD ?
+            mCIN->GetBitIndex().second : 
+            -1;
+    }
+
+    jvs::mb_area_e Variable::GetModbusArea() const
+    {
+        return mCIN->GetModbusArea().second;
+    }
+
+
+
+
+
 
     std::string createFormattedString(const std::string& format, std::vector<casted_data_t>& inputVector)
     {
@@ -454,18 +413,18 @@ namespace muffin { namespace im {
             goto CHECK_EVENT;
         }
 
-        if (mBitIndex.first == true)
+        if (mCIN->GetBitIndex().first == Status::Code::GOOD)
         {
             applyBitIndex(variableData);
             goto CHECK_EVENT;
         }
 
-        if (mNumericScale.first == true)
+        if (mCIN->GetNumericScale().first == Status::Code::GOOD)
         {
             applyNumericScale(variableData);
         }
 
-        if (mNumericOffset.first == true)
+        if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
         {
             applyNumericOffset(variableData);
         }
@@ -494,15 +453,14 @@ namespace muffin { namespace im {
         variableData.IsEventType = variableData.HasNewEvent;
         if (variableData.HasNewEvent == true)
         {
-            if (mDeprecableUID.substr(0, 2) == "DI" ||
-                mDeprecableUID.substr(0, 2) == "DO" ||
-                mDeprecableUID.substr(0, 1) == "P")
+            daq_struct_t daq;
+            strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
+            
+            if (strncmp(daq.UID, "DI", 2) == 0 || strncmp(daq.UID, "DO", 2) == 0 || strncmp(daq.UID, "P", 1) == 0)
             {
-                daq_struct_t daq;
                 daq.SourceTimestamp = variableData.Timestamp;
-                daq.Uid = mDeprecableUID;
-                daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
-                            mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
+                daq.Topic = strncmp(daq.UID, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
+                            strncmp(daq.UID, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
                             mqtt::topic_e::DAQ_PARAM;
     
                 switch (variableData.DataType)
@@ -617,9 +575,9 @@ namespace muffin { namespace im {
 
     void Variable::implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData)
     {
-        if (mVectorDataTypes.size() == 1)
+        if (mCIN->GetDataTypes().second.size() == 1)
         {
-            if (mVectorDataTypes.front() == jvs::dt_e::BOOLEAN)
+            if (mCIN->GetDataTypes().second.front() == jvs::dt_e::BOOLEAN)
             {
                 ASSERT((polledData.size() == 1), "BOOLEAN DATA TYPE IS ONLY APPLIED TO ONLY ONE DATUM POLLED FROM MACHINE");
 
@@ -628,9 +586,9 @@ namespace muffin { namespace im {
                 return;
             }
 
-            if (mVectorDataUnitOrders.first == true)
+            if (mCIN->GetDataUnitOrders().first == Status::Code::GOOD)
             {
-                ASSERT((mVectorDataUnitOrders.second.size() == 1), "ONLY ONE DATA UNIT ORDER IS ALLOWED WHEN SINGULAR DATA TYPE IS PROVIDED");
+                ASSERT((mCIN->GetDataUnitOrders().second.size() == 1), "ONLY ONE DATA UNIT ORDER IS ALLOWED WHEN SINGULAR DATA TYPE IS PROVIDED");
 
                 std::vector<casted_data_t> vectorCastedData;
                 castWithDataUnitOrder(polledData, &vectorCastedData);
@@ -655,7 +613,7 @@ namespace muffin { namespace im {
             std::vector<casted_data_t> vectorCastedData;
             castWithDataUnitOrder(polledData, &vectorCastedData);
 
-            std::string formattedString = createFormattedString(mFormatString.second.c_str(), vectorCastedData);
+            std::string formattedString = createFormattedString(mCIN->GetFormatString().second.c_str(), vectorCastedData);
             variableData->DataType      = jvs::dt_e::STRING;
             variableData->Value.String  = ToMuffinString(formattedString);
             return;
@@ -664,7 +622,7 @@ namespace muffin { namespace im {
     
     void Variable::removeOldestHistory()
     {
-        if (mDataBuffer.size() == mMaxHistorySize)
+        if (mDataBuffer.size() == MAX_HISTORY_SIZE)
         {
             auto it = mDataBuffer.begin();
             if (it->DataType == jvs::dt_e::STRING)
@@ -836,19 +794,19 @@ namespace muffin { namespace im {
         {
         case jvs::dt_e::INT8:
         case jvs::dt_e::UINT8:
-            variableData.Value.Boolean = (variableData.Value.UInt8 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt8 >> mCIN->GetBitIndex().second) & 1;
             break;
         case jvs::dt_e::INT16:
         case jvs::dt_e::UINT16:
-            variableData.Value.Boolean = (variableData.Value.UInt16 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt16 >> mCIN->GetBitIndex().second) & 1;
             break;
         case jvs::dt_e::INT32:
         case jvs::dt_e::UINT32:
-            variableData.Value.Boolean = (variableData.Value.UInt32 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt32 >> mCIN->GetBitIndex().second) & 1;
             break;
         case jvs::dt_e::INT64:
         case jvs::dt_e::UINT64:
-            variableData.Value.Boolean = (variableData.Value.UInt64 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt64 >> mCIN->GetBitIndex().second) & 1;
             break;
         default:
             break;
@@ -987,7 +945,7 @@ namespace muffin { namespace im {
          * @brief 현재는 기계에서 수집한 데이터의 타입이 16비트일 때까지만 구현되어 있습니다.
          *        향후 다른 프로토콜이 필요하므로 나머지 데이터 타입의 처리를 구현해야 합니다.
          */
-        for (auto& dataUnitOrders : mVectorDataUnitOrders.second)
+        for (auto& dataUnitOrders : mCIN->GetDataUnitOrders().second)
         {
             std::vector<uint8_t> vectorFlattened;
             flattenToByteArray(polledData, &vectorFlattened);
@@ -1028,7 +986,7 @@ namespace muffin { namespace im {
             }
 
             casted_data_t castedData;
-            castByteVector(mVectorDataTypes[dataTypeIndex], arrayOrderedBytes, &castedData);
+            castByteVector(mCIN->GetDataTypes().second[dataTypeIndex], arrayOrderedBytes, &castedData);
             outputCastedData->emplace_back(castedData);
             ++dataTypeIndex;
         }
@@ -1040,7 +998,7 @@ namespace muffin { namespace im {
 
         std::vector<uint8_t> vectorFlattened;
         flattenToByteArray(polledData, &vectorFlattened);
-        castByteVector(mVectorDataTypes.front(), vectorFlattened, outputCastedData);
+        castByteVector(mCIN->GetDataTypes().second.front(), vectorFlattened, outputCastedData);
 
         if (mModbusArea.first == true && outputCastedData->ValueType == jvs::dt_e::STRING)
         {
@@ -1133,7 +1091,7 @@ namespace muffin { namespace im {
 
     std::vector<var_data_t> Variable::RetrieveHistory(const size_t numberofHistory) const
     {
-        ASSERT((numberofHistory < mMaxHistorySize + 1), "CANNOT RETRIEVE MORE THAN THE MAXIMUM HITORY SIZE");
+        ASSERT((numberofHistory < MAX_HISTORY_SIZE + 1), "CANNOT RETRIEVE MORE THAN THE MAXIMUM HITORY SIZE");
 
         std::vector<var_data_t> history;
 
@@ -1147,125 +1105,9 @@ namespace muffin { namespace im {
         return history;
     }
 
-    jvs::addr_u Variable::GetAddress() const
-    {
-        return mAddress;
-    }
-
-    uint8_t Variable::GetQuantity() const
-    {
-        return mAddressQuantity.second;
-    }
-
-    uint16_t Variable::GetBitIndex() const
-    {
-        return mBitIndex.second;
-    }
-
-    jvs::mb_area_e Variable::GetModbusArea() const
-    {
-        return mModbusArea.second;
-    }
-
-    std::pair<Status,uint16_t> Variable::ConvertModbusData(std::string& data)
-    {
-        if (data.empty() == true)
-        {
-            return std::make_pair(Status(Status::Code::BAD_NO_DATA), 0);
-        }
-        
-        /**
-         * @brief 현재 단일 레지스터나 비트만 제어 가능함, 추후 Method 개발시 업데이트 예정입니다.
-         * 
-         */
-        if (mAddressQuantity.first == true && mAddressQuantity.second != 1)
-        {
-            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
-            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
-        }
-        
-    
-        if (mVectorDataTypes.at(0) != jvs::dt_e::STRING)
-        {
-            // 서버에서 입력된 value가 문자열인지 판단하는 로직, 더 좋은 방법이 있나?
-            bool decimalFound = false;
-            size_t start = (data[0] == '-') ? 1 : 0;
-            for (size_t i = start; i < data.length(); ++i) 
-            {
-                char c = data[i];
-                if (c == '.') 
-                {
-                    if (decimalFound) 
-                    {
-                        return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
-                    }
-                    decimalFound = true;
-                } 
-                else if (!isdigit(c)) 
-                {
-                    return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
-                }
-            }
-
-            float floatTemp = 0;
-
-            if (mBitIndex.first == true)
-            {
-                if (Convert.ToUInt16(data) > 1)
-                {
-                    LOG_ERROR(logger,"BIT DATA HAS ONLY 1 or 0 VALUE , DATA : %s",data.c_str());
-                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), 0);
-                }
-            }
-
-            if (mNumericOffset.first == true)
-            {
-               floatTemp = Convert.ToFloat(data) - mNumericOffset.second;
-               if (mNumericScale.first == false)
-               {
-                    //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
-                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp));
-               }
-            }
-
-            if (mNumericScale.first == true)
-            {
-                const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-                const double denominator = pow(10, exponent);
-                
-                if (mNumericOffset.first == true)
-                {
-                    floatTemp = (floatTemp / denominator);
-                    uint16_t result = static_cast<uint16_t>(std::ceil(floatTemp));
-                    return std::make_pair(Status(Status::Code::GOOD), result);
-                }
-                else
-                {
-                    float value = Convert.ToFloat(data) / denominator;
-
-                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
-                    return std::make_pair(Status(Status::Code::GOOD), result);
-                }
-            }
-
-            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
-            return std::make_pair(Status(Status::Code::GOOD), Convert.ToUInt16(data));
-        }
-        else
-        {
-            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
-            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
-        }
-    }
-
-    std::pair<bool, uint8_t> Variable::GetBitindex() const
-    {
-        return mBitIndex;
-    }
-    
     std::string Variable::Float32ConvertToString(const float& data) const
     {
-        if (mNumericScale.first == false)
+        if (mCIN->GetNumericScale().first == false)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
@@ -1290,7 +1132,7 @@ namespace muffin { namespace im {
 
     std::string Variable::Float64ConvertToString(const double& data) const
     {
-        if (mNumericScale.first == false)
+        if (mCIN->GetNumericScale().first == false)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
@@ -1315,7 +1157,7 @@ namespace muffin { namespace im {
 
     std::string Variable::FloatConvertToStringForLimitValue(const float& data) const
     {   
-        if (mNumericScale.first == false)
+        if (mCIN->GetNumericScale().first == false)
         {
             if (mDataType == jvs::dt_e::FLOAT32 || mDataType == jvs::dt_e::FLOAT64)
             {
@@ -1349,21 +1191,19 @@ namespace muffin { namespace im {
     std::pair<bool, daq_struct_t> Variable::CreateDaqStruct()
     {
         daq_struct_t daq;
-
         if (RetrieveCount() == 0)
         {
             return std::make_pair(false, daq);
         }
     
         var_data_t variableData = RetrieveData();
-        
         if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
         {
             return std::make_pair(false, daq);
         }
 
         daq.SourceTimestamp = variableData.Timestamp;
-        daq.Uid = mDeprecableUID;
+        daq.UID = mCIN->GetDeprecableUID().second;
         daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
                     mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
                     mqtt::topic_e::DAQ_PARAM;
@@ -1412,6 +1252,99 @@ namespace muffin { namespace im {
 
         return std::make_pair(true, daq);
     }
+
+
+    std::pair<Status, uint16_t> Variable::ConvertModbusData(std::string& data)
+    {
+        if (data.empty() == true)
+        {
+            return std::make_pair(Status(Status::Code::BAD_NO_DATA), 0);
+        }
+        
+        /**
+         * @brief 현재 단일 레지스터나 비트만 제어 가능함, 추후 Method 개발시 업데이트 예정입니다.
+         * 
+         */
+        if (mAddressQuantity.first == true && mAddressQuantity.second != 1)
+        {
+            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
+            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
+        }
+        
+    
+        if (mCIN->GetDataTypes().second.at(0) != jvs::dt_e::STRING)
+        {
+            // 서버에서 입력된 value가 문자열인지 판단하는 로직, 더 좋은 방법이 있나?
+            bool decimalFound = false;
+            size_t start = (data[0] == '-') ? 1 : 0;
+            for (size_t i = start; i < data.length(); ++i) 
+            {
+                char c = data[i];
+                if (c == '.') 
+                {
+                    if (decimalFound) 
+                    {
+                        return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
+                    }
+                    decimalFound = true;
+                } 
+                else if (!isdigit(c)) 
+                {
+                    return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
+                }
+            }
+
+            float floatTemp = 0;
+
+            if (mCIN->GetBitIndex().first == true)
+            {
+                if (Convert.ToUInt16(data) > 1)
+                {
+                    LOG_ERROR(logger,"BIT DATA HAS ONLY 1 or 0 VALUE , DATA : %s",data.c_str());
+                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), 0);
+                }
+            }
+
+            if (mCIN->GetNumericOffset().first == true)
+            {
+               floatTemp = Convert.ToFloat(data) - mNumericOffset.second;
+               if (mCIN->GetNumericScale().first == false)
+               {
+                    //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
+                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp));
+               }
+            }
+
+            if (mCIN->GetNumericScale().first == true)
+            {
+                const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+                const double denominator = pow(10, exponent);
+                
+                if (mCIN->GetNumericOffset().first == true)
+                {
+                    floatTemp = (floatTemp / denominator);
+                    uint16_t result = static_cast<uint16_t>(std::ceil(floatTemp));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
+                }
+                else
+                {
+                    float value = Convert.ToFloat(data) / denominator;
+
+                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
+                }
+            }
+
+            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
+            return std::make_pair(Status(Status::Code::GOOD), Convert.ToUInt16(data));
+        }
+        else
+        {
+            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
+            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
+        }
+    }
+
 
 
     uint32_t Variable::mSamplingIntervalInMillis = 1000;

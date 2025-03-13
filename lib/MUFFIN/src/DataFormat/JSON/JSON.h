@@ -97,7 +97,7 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
-        std::string Uid;
+        char UID[5];
         std::string Value;
     } daq_struct_t;
 
