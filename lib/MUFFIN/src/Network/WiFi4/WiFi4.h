@@ -5,7 +5,7 @@
  * @brief Wi-Fi 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
  * @date 2025-01-20
- * @version 1.2.2
+ * @version 1.3.1
  *  
  * @todo JARVIS 설계 문서에 WPA2 authentication method 속성을 추가로 정의해야 합니다.
  * 그러나 그에 앞서서 각 auth 모드에 따라 사용자로부터 추가로 입력을 받아야 하는 데이터가 

@@ -5,7 +5,7 @@
  * @brief MODLINK 설정을 담당하는 JARVIS 클래스를 선언합니다.
  * 
  * @date 2025-01-21
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

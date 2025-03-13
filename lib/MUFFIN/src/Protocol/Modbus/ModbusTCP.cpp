@@ -300,6 +300,8 @@ namespace muffin {
                 default:
                     break;
                 }
+
+                LOG_DEBUG(muffin::logger, "[NODEID : %s] Remained Heap: %u Bytes", node->GetNodeID().c_str() ,ESP.getFreeHeap());
             }
         }
 

@@ -5,7 +5,7 @@
  * @brief MODLINK 디바이스의 상태 정보를 표현하는 클래스를 선언합니다.
  * 
  * @date 2025-01-15
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -59,7 +59,7 @@ namespace muffin {
 
    typedef struct TaskInfoType
    {
-      std::string TaskName;
+      char TaskName[20];
       size_t TotalStackSize;
       int32_t RemainedStackSize;
    } task_info_t;

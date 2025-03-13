@@ -5,10 +5,10 @@
  * 
  * @brief Node 설정 형식을 표현하는 클래스를 선언합니다.
  * 
- * @date 2024-10-08
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -31,13 +31,13 @@ namespace muffin { namespace jvs { namespace config {
     {
     public:
         Node();
-        virtual ~Node() override;
+        virtual ~Node() override {}
     public:
         Node& operator=(const Node& obj);
         bool operator==(const Node& obj) const;
         bool operator!=(const Node& obj) const;
     public:
-        void SetNodeID(const std::string& nodeID);
+        void SetNodeID(const char* nodeID);
         void SetAddressType(const adtp_e type);
         void SetAddrress(const addr_u address);
         void SetModbusArea(const mb_area_e area);
@@ -62,13 +62,11 @@ namespace muffin { namespace jvs { namespace config {
         std::pair<Status, uint8_t> GetNumericAddressQuantity() const;
         std::pair<Status, scl_e> GetNumericScale() const;
         std::pair<Status, float> GetNumericOffset() const;
-        std::pair<Status, std::map<std::uint16_t, std::string>> GetMappingRules() const;
+        
         std::pair<Status, std::vector<DataUnitOrder>> GetDataUnitOrders() const;
         std::pair<Status, std::vector<dt_e>> GetDataTypes() const;
         std::pair<Status, std::string> GetFormatString() const;
         std::pair<Status, std::string> GetDeprecableUID() const;
-        std::pair<Status, std::string> GetDeprecableDisplayName() const;
-        std::pair<Status, std::string> GetDeprecableDisplayUnit() const;
         std::pair<Status, bool> GetAttributeEvent() const;
     private:
         bool mIsNodeIdSet                   = false;
@@ -88,7 +86,7 @@ namespace muffin { namespace jvs { namespace config {
         bool mIsDeprecableDisplayUnitSet    = false;
         bool mIsAttributeEventSet           = false;
     private:
-        std::string mNodeID;
+        char mNodeID[5];
         adtp_e mAddressType;
         addr_u mAddress;
         mb_area_e mModbusArea;
@@ -96,13 +94,10 @@ namespace muffin { namespace jvs { namespace config {
         uint8_t mAddressQuantity;
         scl_e mNumericScale;
         float mNumericOffset;
-        std::map<std::uint16_t, std::string> mMapMappingRules;
         std::vector<DataUnitOrder> mVectorDataUnitOrders;
         std::vector<dt_e> mVectorDataTypes;
         std::string mFormatString;
         std::string mDeprecableUID;
-        std::string mDeprecableDisplayName;
-        std::string mDeprecableDisplayUnit;
         bool mHasAttributeEvent;
     };
 }}}

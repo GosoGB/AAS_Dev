@@ -4,10 +4,10 @@
  * 
  * @brief 알람 이벤트를 생성하기 위한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
  * 
- * @date 2024-10-12
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -22,14 +22,6 @@
 
 
 namespace muffin { namespace jvs {  
-
-    AlarmValidator::AlarmValidator()
-    {
-    }
-    
-    AlarmValidator::~AlarmValidator()
-    {
-    }
 
     std::pair<rsc_e, std::string> AlarmValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
     {

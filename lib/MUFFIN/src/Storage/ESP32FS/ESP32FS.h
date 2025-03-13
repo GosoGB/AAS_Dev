@@ -5,7 +5,7 @@
  * @brief ESP32 LittleFS 파일 시스템을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
  * 
  * @date 2025-01-24
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @note Arduino 프레임워크의 제약으로 인해 End() 실행 결과를 확인할 수 있는 방법이 없음
  * @todo ESP-IDF 프레임워크로 이전 시 파티션 unregister, unmount 결과 값에 따라 실행 결과를 리턴하게 수정해야 함

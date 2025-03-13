@@ -110,6 +110,7 @@ namespace muffin { namespace jvs {
         VERSEOIN_1 = 1,
         VERSEOIN_2 = 2,
         VERSEOIN_3 = 3,
+        VERSEOIN_4 = 4
     } prtcl_ver_e;
 
     typedef enum class JarvisConfigClassKeyEnum

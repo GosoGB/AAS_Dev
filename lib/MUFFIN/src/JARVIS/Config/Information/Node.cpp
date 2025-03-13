@@ -5,14 +5,16 @@
  * 
  * @brief Node 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2024-10-14
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
- * @copyright Copyright Edgecross Inc. (c) 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
 
+
+#include <string.h>
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
@@ -25,17 +27,16 @@ namespace muffin { namespace jvs { namespace config {
     Node::Node()
         : Base(cfg_key_e::NODE)
     {
-    }
-
-    Node::~Node()
-    {
+        memset(mNodeID, '\0', sizeof(mNodeID));
     }
 
     Node& Node::operator=(const Node& obj)
     {
         if (this != &obj)
         {
-            mNodeID                 = obj.mNodeID;
+            strncpy(mNodeID, obj.mNodeID, sizeof(mNodeID));
+
+            
             mAddressType            = obj.mAddressType;
             mAddress                = obj.mAddress;
             mModbusArea             = obj.mModbusArea;
@@ -43,13 +44,10 @@ namespace muffin { namespace jvs { namespace config {
             mAddressQuantity        = obj.mAddressQuantity;
             mNumericScale           = obj.mNumericScale;
             mNumericOffset          = obj.mNumericOffset;
-            mMapMappingRules        = obj.mMapMappingRules;
             mVectorDataUnitOrders   = obj.mVectorDataUnitOrders;
             mVectorDataTypes        = obj.mVectorDataTypes;
             mFormatString           = obj.mFormatString;
             mDeprecableUID          = obj.mDeprecableUID;
-            mDeprecableDisplayName  = obj.mDeprecableDisplayName;
-            mDeprecableDisplayUnit  = obj.mDeprecableDisplayUnit;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
         }
         
@@ -67,13 +65,10 @@ namespace muffin { namespace jvs { namespace config {
             mAddressQuantity        == obj.mAddressQuantity         &&
             mNumericScale           == obj.mNumericScale            &&
             mNumericOffset          == obj.mNumericOffset           &&
-            mMapMappingRules        == obj.mMapMappingRules         &&
             std::equal(mVectorDataUnitOrders.begin(), mVectorDataUnitOrders.end(), obj.mVectorDataUnitOrders.begin()) &&
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
             mDeprecableUID          == obj.mDeprecableUID           &&
-            mDeprecableDisplayName  == obj.mDeprecableDisplayName   &&
-            mDeprecableDisplayUnit  == obj.mDeprecableDisplayUnit   &&
             mHasAttributeEvent      == obj.mHasAttributeEvent
         );
     }
@@ -83,11 +78,11 @@ namespace muffin { namespace jvs { namespace config {
         return !(*this == obj);
     }
 
-    void Node::SetNodeID(const std::string& nodeID)
+    void Node::SetNodeID(const char* nodeID)
     {
-        ASSERT((nodeID.size() == 4), "NODE ID MUST BE A STRING WITH LEGNTH OF 4");
+        ASSERT((strlen(nodeID) == 4), "NODE ID MUST BE A STRING WITH LEGNTH OF 4");
 
-        mNodeID = nodeID;
+        strncpy(mNodeID, nodeID, sizeof(mNodeID));
         mIsNodeIdSet = true;
     }
 
@@ -329,8 +324,6 @@ namespace muffin { namespace jvs { namespace config {
             ), "MAPPING RULES CANNOT BE APPLIED TO DATA WHICH IS STRING, FP32 OR FP64 TYPE"
         );
         ASSERT((mappingRules.size() > 0), "INVALID MAPPING RULES: NO RULE AT ALL");
-
-        mMapMappingRules = std::move(mappingRules);
         mIsMappingRulesSet = true;
     }
 
@@ -545,13 +538,11 @@ namespace muffin { namespace jvs { namespace config {
 
     void Node::SetDeprecableDisplayName(const std::string& displayName)
     {
-        mDeprecableDisplayName = displayName;
         mIsDeprecableDisplayNameSet = true;
     }
 
     void Node::SetDeprecableDisplayUnit(const std::string& displayUnit)
     {
-        mDeprecableDisplayUnit = displayUnit;
         mIsDeprecableDisplayUnitSet = true;
     }
 
@@ -657,18 +648,6 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, std::map<std::uint16_t, std::string>> Node::GetMappingRules() const
-    {
-        if (mIsMappingRulesSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mMapMappingRules);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mMapMappingRules);
-        }
-    }
-
     std::pair<Status, std::vector<DataUnitOrder>> Node::GetDataUnitOrders() const
     {
         if (mIsDataUnitOrdersSet)
@@ -714,30 +693,6 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mDeprecableUID);
-        }
-    }
-
-    std::pair<Status, std::string> Node::GetDeprecableDisplayName() const
-    {
-        if (mIsDeprecableDisplayNameSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mDeprecableDisplayName);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mDeprecableDisplayName);
-        }
-    }
-
-    std::pair<Status, std::string> Node::GetDeprecableDisplayUnit() const
-    {
-        if (mIsDeprecableDisplayUnitSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mDeprecableDisplayUnit);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mDeprecableDisplayUnit);
         }
     }
 

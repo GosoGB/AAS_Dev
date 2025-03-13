@@ -2,7 +2,7 @@
  * @file CLI.h
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @brief 
- * @version 1.2.2
+ * @version 1.3.1
  * @date 2025-01-23
  * 
  * @copyright Copyright (c) 2025
@@ -35,6 +35,7 @@ namespace muffin {
         JsonDocument mJarvisJson;
         Status saveJarvisJson();
     private:
-        void printNetworkInfo(const std::string& info);
+        void printCenteredText(const std::string& info, const size_t length);
+        void printLeftAlignedText(const std::string& info, const size_t length);
     };
 }

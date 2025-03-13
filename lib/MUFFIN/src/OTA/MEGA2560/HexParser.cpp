@@ -5,7 +5,7 @@
  * @brief Intel Hex 형식의 데이터를 파싱 하는 클래스를 정의합니다.
  * 
  * @date 2025-02-06
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024-2025
  */

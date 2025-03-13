@@ -5,7 +5,7 @@
  * @brief
  *
  * @date 2025-02-04
- * @version 1.2.2
+ * @version 1.3.1
  *
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -75,5 +75,5 @@ namespace muffin
     }
 
 
-    MemoryPool memoryPool(320, 50);
+    MemoryPool memoryPool(320, 80);
 }

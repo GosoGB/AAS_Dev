@@ -5,14 +5,14 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 선언합니다.
  * 
- * @date 2024-11-01
- * @version 1.0.0
+ * @date 2025-02-26
+ * @version 1.2.13
  * 
  * @todo 현재는 모든 데이터 수집 주기가 동일하기 때문에 샘플링 인터벌 변수를
  *       static 키워드를 사용해 선언하였습니다. 다만 향후에 노드 별로 수집
  *       주기가 달라진다면 static 키워드를 제거해야 합니다.
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -37,7 +37,7 @@ namespace muffin { namespace im {
     {
     public:
         Variable(const std::string& nodeID, const std::string& UID);
-        virtual ~Variable();
+        virtual ~Variable() {}
     public:
         void Init(const jvs::config::Node* cin);
     public:
@@ -49,7 +49,6 @@ namespace muffin { namespace im {
         void flattenToByteArray(const std::vector<poll_data_t>& polledData, std::vector<uint8_t>* outputFlattenVector);
         void castByteVector(const jvs::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData);
         void applyBitIndex(var_data_t& variableData);
-        void applyMappingRules(var_data_t& variableData);
         void applyNumericScale(var_data_t& variableData);
         void applyNumericOffset(var_data_t& variableData);
         bool isEventOccured(var_data_t& variableData);
@@ -66,13 +65,11 @@ namespace muffin { namespace im {
         var_data_t RetrieveData() const;
         std::vector<var_data_t> RetrieveHistory(const size_t numberOfHistory) const;
     public:
+        const char* GetNodeID() const { return mNodeID.c_str(); }
         jvs::addr_u GetAddress() const;
         uint8_t GetQuantity() const;
         uint16_t GetBitIndex() const;
         jvs::mb_area_e GetModbusArea() const;
-        std::map<std::uint16_t, std::string> GetMappingRules() const { return mMapMappingRules.second; }
-        std::string GetDisplayName() const { return mDeprecableDisplayName; }
-        std::string GetDisplayUnit() const { return mDeprecableDisplayUnit; }
         std::pair<bool, jvs::scl_e> GetNumericScale() const { return mNumericScale; }
         bool GetHasAttributeEvent() const { return mHasAttributeEvent; }
         std::pair<bool, daq_struct_t> CreateDaqStruct();
@@ -87,18 +84,15 @@ namespace muffin { namespace im {
         // virtual void strategySingleDataType() override;
         // void strategySingleDataType();
     private:
-        jvs::adtp_e mAddressType;
         jvs::addr_u mAddress;
-        std::vector<jvs::dt_e> mVectorDataTypes;
+        jvs::adtp_e mAddressType;
         bool mHasAttributeEvent;
-        std::string mDeprecableDisplayName;
-        std::string mDeprecableDisplayUnit;
+        std::vector<jvs::dt_e> mVectorDataTypes;
         std::pair<bool, jvs::mb_area_e> mModbusArea;
         std::pair<bool, uint8_t> mBitIndex;
         std::pair<bool, uint8_t> mAddressQuantity;
         std::pair<bool, jvs::scl_e> mNumericScale;
         std::pair<bool, float> mNumericOffset;
-        std::pair<bool, std::map<std::uint16_t, std::string>> mMapMappingRules;
         std::pair<bool, std::vector<jvs::DataUnitOrder>> mVectorDataUnitOrders;
         std::pair<bool, std::string> mFormatString;
 

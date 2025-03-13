@@ -6,7 +6,7 @@
  * @brief MQTT 브로커로부터 수신한 메시지를 집적하여 관리하는 클래스를 선언합니다.
  * 
  * @date 2025-01-22
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -59,6 +59,7 @@ namespace muffin { namespace mqtt {
         }
         else
         {
+            delete movedMessage;
             return Status(Status::Code::BAD);
         }
     }
@@ -74,13 +75,10 @@ namespace muffin { namespace mqtt {
         {
             Message message = std::move(*pMessage);
             delete pMessage;
-            pMessage = nullptr;
             return std::make_pair(Status(Status::Code::GOOD), message);
         }
         else
         {
-            delete pMessage;
-            pMessage = nullptr;
             return std::make_pair(Status(Status::Code::BAD), Message());
         }
     }
@@ -99,8 +97,6 @@ namespace muffin { namespace mqtt {
         }
         else
         {
-            delete pMessage;
-            pMessage = nullptr;
             return std::make_pair(Status(Status::Code::BAD), Message());
         }
     }

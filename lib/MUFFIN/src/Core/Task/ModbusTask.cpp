@@ -51,7 +51,7 @@ namespace muffin {
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (60 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif
@@ -65,7 +65,6 @@ namespace muffin {
             }
 
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
-            
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
@@ -82,7 +81,6 @@ namespace muffin {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
             #endif
-
             }
         }
     }
@@ -169,7 +167,7 @@ namespace muffin {
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (60 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif

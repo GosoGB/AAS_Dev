@@ -5,7 +5,7 @@
  * @brief JSON 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 선언합니다.
  * 
  * @date 2025-02-10
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  * 
@@ -97,9 +97,7 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
-        std::string Name;
         std::string Uid;
-        std::string Unit;
         std::string Value;
     } daq_struct_t;
 
@@ -109,9 +107,9 @@ namespace muffin {
         std::string AlarmType;
         uint64_t AlarmStartTime;
         int64_t AlarmFinishTime;
-        std::string Name;
         std::string Uid;
         std::string UUID;
+        std::string Value;
     } alarm_struct_t;
 
     typedef struct OperationStruct
@@ -125,7 +123,8 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
-        std::string Name;
+        std::string Uid;
+        std::string Value;
     } push_struct_t;
 
     typedef struct ProgixStruct

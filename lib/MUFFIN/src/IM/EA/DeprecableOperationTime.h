@@ -78,6 +78,6 @@ namespace muffin {
     private:
         jvs::op_status_e mStatus = jvs::op_status_e::TURN_OFF;
     private:
-        void publishOperationStauts();
+        void publishOperationStatus();
     };
 }

@@ -5,7 +5,7 @@
  * @brief 펌웨어 버전 정보를 표현하는 클래스를 정의합니다.
  * 
  * @date 2025-01-14
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024
  */

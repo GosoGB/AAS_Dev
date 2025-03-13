@@ -6,7 +6,7 @@
  * @brief MUFFIN 프레임워크를 초기화 기능을 제공하는 클래스를 정의합니다.
  * 
  * @date 2025-01-20
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -198,11 +198,6 @@ namespace muffin {
 
     void Core::Init()
     {
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 0;
-        settimeofday(&tv, NULL);
-
         logger.Init();
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         CommandLineInterface commandLineInterface;
@@ -639,7 +634,7 @@ namespace muffin {
         }
 
         JsonDocument doc;
-        doc["ver"] = "v1";
+        doc["ver"] = "v3";
 
         JsonObject cnt = doc["cnt"].to<JsonObject>();
         cnt["rs232"].to<JsonArray>();
@@ -716,7 +711,7 @@ namespace muffin {
             ret = Status::Code::BAD_OUT_OF_MEMORY;
             return ret;
         }
-        
+
         jvs::ValidationResult result = jarvis->Validate(doc);
         doc.clear();
 

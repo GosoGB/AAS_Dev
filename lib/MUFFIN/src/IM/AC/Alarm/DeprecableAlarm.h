@@ -66,8 +66,8 @@ namespace muffin {
         float convertToFloat(const im::var_data_t& datum);
         alarm_struct_t retrieveActiveAlarm(const std::string& uid);
         std::string createAlarmUUID();
-        void activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node);
-        void deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin);
+        void activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node, const std::string& value);
+        void deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const std::string& value);
 
     private:
         void pubLclToScautr( jvs::config::Alarm& cin, const im::Variable& node);

@@ -6,7 +6,7 @@
  * @brief 펌웨어 업데이트 정보를 파싱하는 서비스를 정의합니다.
  * 
  * @date 2025-01-20
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

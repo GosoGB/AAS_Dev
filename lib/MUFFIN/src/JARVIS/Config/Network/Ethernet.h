@@ -5,7 +5,7 @@
  * @brief Ethernet 인터페이스 설정 정보를 관리하는 클래스를 선언합니다.
  * 
  * @date 2025-01-24
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

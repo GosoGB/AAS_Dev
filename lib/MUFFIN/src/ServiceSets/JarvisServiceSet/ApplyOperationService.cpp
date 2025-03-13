@@ -5,7 +5,7 @@
  * @brief Operation 설정 개체를 적용하는 함수를 정의합니다.
  * 
  * @date 2025-01-23
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

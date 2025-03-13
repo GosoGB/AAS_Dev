@@ -155,7 +155,7 @@ namespace muffin {
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (60 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif
@@ -167,7 +167,7 @@ namespace muffin {
                 
                 deviceStatus.SetTaskRemainedStack(task_name_e::MORNITOR_ALARM_TASK, RemainedStackSize);
             }
-
+            
             for (auto& cin : mVectorConfig)
             {
                 const std::string nodeId = cin.GetNodeID().second;
@@ -214,7 +214,6 @@ namespace muffin {
                 }
             }
 
-
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
@@ -236,7 +235,7 @@ namespace muffin {
         {
             if (isAlarmCondition == true)
             {
-                activateAlarm(type, cin, node);
+                activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
             else
             {
@@ -251,7 +250,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(type, cin);
+                deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
             }
         }
     }
@@ -273,7 +272,7 @@ namespace muffin {
         {
             if (isAlarmCondition == true)
             {
-                activateAlarm(type, cin, node);
+                activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
             else
             {
@@ -288,7 +287,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(type, cin);
+                deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
             }
         }
     }
@@ -312,14 +311,15 @@ namespace muffin {
         {
             if (isLclCondition == true)
             {
-                activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
         }
         else
         {
+            
             if (isLclCondition == false)
             {
-                deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node.FloatConvertToStringForLimitValue(value));
             }
         }
 
@@ -327,14 +327,14 @@ namespace muffin {
         {
             if (isUclCondition == true)
             {
-                activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
         }
         else
         {
             if (isUclCondition == false)
             {
-                deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node.FloatConvertToStringForLimitValue(value));
             }
 
         }
@@ -367,20 +367,6 @@ namespace muffin {
         case jvs::dt_e::UINT16:
             value = static_cast<int16_t>(datum.Value.UInt16);
             hasValue = true;
-            break;
-        case jvs::dt_e::STRING:
-            {
-                const auto mappingRules = node.GetMappingRules();
-                for (auto& pair : mappingRules)
-                {
-                    const std::string strValue = std::string(datum.Value.String.Data);
-                    if (pair.second == strValue)
-                    {
-                        value = static_cast<int16_t>(pair.first);
-                        hasValue = true;
-                    }
-                }
-            }
             break;
         default:
             break;
@@ -421,7 +407,7 @@ namespace muffin {
         {
             if (isCondition == true)
             {
-                activateAlarm(jvs::alarm_type_e::CONDITION, cin, node);
+                activateAlarm(jvs::alarm_type_e::CONDITION, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
             else
             {
@@ -435,17 +421,19 @@ namespace muffin {
                 if (node.RetrieveCount() > 1)
                 {
                     im::var_data_t history = node.RetrieveHistory(2).back();
-                    const std::string currentValue   = std::string(datum.Value.String.Data);
-                    const std::string previousValue  = std::string(history.Value.String.Data);
+                    /**
+                     * @todo JARVIS 설정값을 참조하여 설정된 데이터 타입에 맞게 계산을 수행하도록 수정해야 함
+                     */
+                    const uint16_t currentValue   = datum.Value.UInt16;
+                    const uint16_t previousValue  = history.Value.UInt16;
                     
                     if (previousValue != currentValue)
                     {
                         for (auto& condition : vectorCondition)
                         {
-                            if ((static_cast<int16_t>(history.Value.UInt16) == condition) &&
-                                (static_cast<int16_t>(datum.Value.UInt16)   != condition))
+                            if ((history.Value.UInt16 == condition) && (datum.Value.UInt16 != condition))
                             {
-                                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
+                                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(previousValue));
                             }
                         }
                     }
@@ -453,7 +441,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
+                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(value));
             }
         }
     }
@@ -578,29 +566,29 @@ namespace muffin {
         return std::string(returnUUID).substr(0, 12);
     }
     
-    void AlarmMonitor::activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node)
+    void AlarmMonitor::activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node, const std::string& value)
     {
         alarm_struct_t alarm;
         push_struct_t push;
         push.SourceTimestamp = GetTimestampInMillis();
         push.Topic = mqtt::topic_e::PUSH;
-
+        push.Value = value;
+        
         alarm.Topic = mqtt::topic_e::ALARM;
         alarm.AlarmType = "start";
         alarm.AlarmStartTime = GetTimestampInMillis();
         alarm.AlarmFinishTime = -1;
-
+        alarm.Value = value;
+        
         switch (type)
         {
         case jvs::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
-            alarm.Name = node.GetDisplayName() + " 하한 도달";
-            push.Name = node.GetDisplayName() + " 하한 도달";
+            push.Uid = cin.GetLclAlarmUID().second;
             break;
         case jvs::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
-            alarm.Name = node.GetDisplayName() + " 상한 초과";
-            push.Name = node.GetDisplayName() + " 상한 초과";
+            push.Uid = cin.GetUclAlarmUID().second;
             break;
         case jvs::alarm_type_e::CONDITION:
             {
@@ -610,8 +598,7 @@ namespace muffin {
                     if (cin.GetNodeID().second == nodeRef.first)
                     {
                         alarm.Uid = nodeRef.second->GetUID();
-                        alarm.Name = std::string(node.RetrieveData().Value.String.Data);
-                        push.Name = std::string(node.RetrieveData().Value.String.Data);
+                        push.Uid = nodeRef.second->GetUID();
                         break;
                     }
                 }
@@ -641,7 +628,7 @@ namespace muffin {
         mVectorAlarmInfo.emplace_back(alarm);
     }
 
-    void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin)
+    void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const std::string& value)
     {
         std::string uid;
 
@@ -674,6 +661,7 @@ namespace muffin {
 
         alarm.AlarmFinishTime = GetTimestampInMillis();
         alarm.AlarmType = "finish";
+        alarm.Value = value;
 
         JSON json;
         const size_t size = UINT8_MAX;
@@ -878,9 +866,7 @@ namespace muffin {
             daq_struct_t param;
 
             param.SourceTimestamp = GetTimestampInMillis();
-            param.Name = node.GetDisplayName() + " 하한 값";
             param.Uid = cin.GetLclUID().second;
-            param.Unit = node.GetDisplayUnit();
             param.Value = node.FloatConvertToStringForLimitValue(lcl);
 
             JSON json;
@@ -905,9 +891,7 @@ namespace muffin {
             daq_struct_t param;
 
             param.SourceTimestamp = GetTimestampInMillis();
-            param.Name = node.GetDisplayName() + " 상한 값";
             param.Uid = cin.GetUclUID().second;
-            param.Unit = node.GetDisplayUnit();
             param.Value = node.FloatConvertToStringForLimitValue(ucl);
 
             JSON json;
