@@ -59,7 +59,7 @@ namespace muffin {
 
    typedef struct TaskInfoType
    {
-      std::string TaskName;
+      char TaskName[20];
       size_t TotalStackSize;
       int32_t RemainedStackSize;
    } task_info_t;

@@ -410,7 +410,10 @@ namespace muffin { namespace im {
             }
         }
 
-        return oss.str();
+        std::string result = oss.str();
+        oss.str("");
+        oss.clear();
+        return result;
     }
 
     void Variable::Update(const std::vector<poll_data_t>& polledData)
@@ -554,7 +557,6 @@ namespace muffin { namespace im {
             }
         }
 
-
     EMPLACE_DATA:
         try
         {
@@ -667,8 +669,9 @@ namespace muffin { namespace im {
             auto it = mDataBuffer.begin();
             if (it->DataType == jvs::dt_e::STRING)
             {
-                delete it->Value.String.Data;
-                it->Value.String.Data = nullptr;
+                // delete it->Value.String.Data;
+                // it->Value.String.Data = nullptr;
+                memset(it->Value.String.Data, '\0', sizeof(it->Value.String.Data));
             }
             mDataBuffer.pop_front();
         }
@@ -1106,14 +1109,9 @@ namespace muffin { namespace im {
     string_t Variable::ToMuffinString(const std::string& stdString)
     {
         string_t string;
-        string.Length = stdString.length();
-        string.Data = new char[string.Length + 1];
-        memset(string.Data, '\0', (string.Length + 1));
-
-        for (size_t i = 0; i < string.Length; ++i)
-        {
-            string.Data[i] = stdString[i];
-        }
+        string.Length = std::min(stdString.length(), sizeof(string.Data) - 1); // 🔹 최대 길이 제한
+        strncpy(string.Data, stdString.c_str(), string.Length);
+        string.Data[string.Length] = '\0';  // 🔹 문자열 종료 추가
 
         return string;
     }

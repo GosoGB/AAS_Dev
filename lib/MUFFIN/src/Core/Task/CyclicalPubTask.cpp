@@ -42,15 +42,7 @@ namespace muffin {
         {
             LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
             return;
-        }
-
-        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-        std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
-        
-        if (cyclicalNodeVector.empty())
-        {
-            return;
-        }
+        }    
         
         /**
          * @todo 스택 오버플로우를 방지하기 위해서 MQTT 메시지 크기에 따라서
@@ -96,6 +88,13 @@ namespace muffin {
 
     void cyclicalsMSGTask(void* pvParameter)
     {
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
+        if (cyclicalNodeVector.empty())
+        {
+            StopCyclicalsMSGTask();
+        }
+
         uint32_t statusReportMillis = millis(); 
 
         uint16_t publishInterval = *(uint16_t*) pvParameter;
@@ -124,10 +123,6 @@ namespace muffin {
             }
 
             currentTimestamp = GetTimestamp();
-
-            im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-            std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
-            
             for (auto& node : cyclicalNodeVector)
             {
                 std::pair<bool, daq_struct_t> ret;
@@ -143,7 +138,6 @@ namespace muffin {
                     mqtt::cdo.Store(message);
                 }
             }
-            
             vTaskDelay(100 / portTICK_PERIOD_MS); 
         }
     }

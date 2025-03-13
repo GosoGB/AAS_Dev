@@ -167,7 +167,7 @@ namespace muffin {
                 
                 deviceStatus.SetTaskRemainedStack(task_name_e::MORNITOR_ALARM_TASK, RemainedStackSize);
             }
-
+            
             for (auto& cin : mVectorConfig)
             {
                 const std::string nodeId = cin.GetNodeID().second;
@@ -214,7 +214,6 @@ namespace muffin {
                 }
             }
 
-
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
@@ -236,7 +235,7 @@ namespace muffin {
         {
             if (isAlarmCondition == true)
             {
-                activateAlarm(type, cin, node);
+                activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
             else
             {
@@ -251,7 +250,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(type, cin);
+                deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
             }
         }
     }
@@ -273,7 +272,7 @@ namespace muffin {
         {
             if (isAlarmCondition == true)
             {
-                activateAlarm(type, cin, node);
+                activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
             else
             {
@@ -288,7 +287,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(type, cin);
+                deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
             }
         }
     }
@@ -312,14 +311,15 @@ namespace muffin {
         {
             if (isLclCondition == true)
             {
-                activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
         }
         else
         {
+            
             if (isLclCondition == false)
             {
-                deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node.FloatConvertToStringForLimitValue(value));
             }
         }
 
@@ -327,14 +327,14 @@ namespace muffin {
         {
             if (isUclCondition == true)
             {
-                activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node);
+                activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
         }
         else
         {
             if (isUclCondition == false)
             {
-                deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin);
+                deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node.FloatConvertToStringForLimitValue(value));
             }
 
         }
@@ -407,7 +407,7 @@ namespace muffin {
         {
             if (isCondition == true)
             {
-                activateAlarm(jvs::alarm_type_e::CONDITION, cin, node);
+                activateAlarm(jvs::alarm_type_e::CONDITION, cin, node, node.FloatConvertToStringForLimitValue(value));
             }
             else
             {
@@ -433,7 +433,7 @@ namespace muffin {
                         {
                             if ((history.Value.UInt16 == condition) && (datum.Value.UInt16 != condition))
                             {
-                                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
+                                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(previousValue));
                             }
                         }
                     }
@@ -441,7 +441,7 @@ namespace muffin {
             }
             else
             {
-                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
+                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(value));
             }
         }
     }
@@ -566,25 +566,29 @@ namespace muffin {
         return std::string(returnUUID).substr(0, 12);
     }
     
-    void AlarmMonitor::activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node)
+    void AlarmMonitor::activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node, const std::string& value)
     {
         alarm_struct_t alarm;
         push_struct_t push;
         push.SourceTimestamp = GetTimestampInMillis();
         push.Topic = mqtt::topic_e::PUSH;
-
+        push.Value = value;
+        
         alarm.Topic = mqtt::topic_e::ALARM;
         alarm.AlarmType = "start";
         alarm.AlarmStartTime = GetTimestampInMillis();
         alarm.AlarmFinishTime = -1;
-
+        alarm.Value = value;
+        
         switch (type)
         {
         case jvs::alarm_type_e::ONLY_LCL:
             alarm.Uid = cin.GetLclAlarmUID().second;
+            push.Uid = cin.GetLclAlarmUID().second;
             break;
         case jvs::alarm_type_e::ONLY_UCL:
             alarm.Uid = cin.GetUclAlarmUID().second;
+            push.Uid = cin.GetUclAlarmUID().second;
             break;
         case jvs::alarm_type_e::CONDITION:
             {
@@ -594,6 +598,7 @@ namespace muffin {
                     if (cin.GetNodeID().second == nodeRef.first)
                     {
                         alarm.Uid = nodeRef.second->GetUID();
+                        push.Uid = nodeRef.second->GetUID();
                         break;
                     }
                 }
@@ -623,7 +628,7 @@ namespace muffin {
         mVectorAlarmInfo.emplace_back(alarm);
     }
 
-    void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin)
+    void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const std::string& value)
     {
         std::string uid;
 
@@ -656,6 +661,7 @@ namespace muffin {
 
         alarm.AlarmFinishTime = GetTimestampInMillis();
         alarm.AlarmType = "finish";
+        alarm.Value = value;
 
         JSON json;
         const size_t size = UINT8_MAX;

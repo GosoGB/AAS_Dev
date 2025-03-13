@@ -53,39 +53,39 @@ namespace muffin {
       mWiFiStatusReport.RSSI     = INT16_MIN;
    #endif
 
-        mTaskResources[0].TaskName          = "MqttTask";
+        strcpy(mTaskResources[0].TaskName, "MqttTask");
         mTaskResources[0].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[0].RemainedStackSize = -1;
 
-        mTaskResources[1].TaskName          = "cyclicalsMSGTask";
+        strcpy(mTaskResources[1].TaskName, "cyclicalsMSGTask");
         mTaskResources[1].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[1].RemainedStackSize = -1;
 
-        mTaskResources[2].TaskName          = "ModbusRtuTask";
+        strcpy(mTaskResources[2].TaskName, "ModbusRtuTask");
         mTaskResources[2].TotalStackSize    = 5 * KILLOBYTE;
         mTaskResources[2].RemainedStackSize = -1;
 
-        mTaskResources[3].TaskName          = "ModbusTcpTask";
+        strcpy(mTaskResources[3].TaskName, "ModbusTcpTask");
         mTaskResources[3].TotalStackSize    = 5 * KILLOBYTE;
         mTaskResources[3].RemainedStackSize = -1;
 
-        mTaskResources[4].TaskName          = "MornitorAlarmTask";
+        strcpy(mTaskResources[4].TaskName, "MornitorAlarmTask");
         mTaskResources[4].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[4].RemainedStackSize = -1;
 
-        mTaskResources[5].TaskName          = "OpTimeTask";
+        strcpy(mTaskResources[5].TaskName, "OpTimeTask");
         mTaskResources[5].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[5].RemainedStackSize = -1;
 
-        mTaskResources[6].TaskName          = "ProductionInfoTask";
+        strcpy(mTaskResources[6].TaskName, "ProductionInfoTask");
         mTaskResources[6].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[6].RemainedStackSize = -1;
 
-        mTaskResources[7].TaskName          = "CatM1ProcessorTask";
+        strcpy(mTaskResources[7].TaskName, "CatM1ProcessorTask");
         mTaskResources[7].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[7].RemainedStackSize = -1;
 
-        mTaskResources[8].TaskName          = "CatM1ConnectedTask";
+        strcpy(mTaskResources[8].TaskName, "CatM1ConnectedTask");
         mTaskResources[8].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[8].RemainedStackSize = -1;
 
@@ -204,7 +204,6 @@ namespace muffin {
     void DeviceStatus::SetReportCatM1(const catm1_report_t report)
     {
         mCatM1StatusReport = report;
-        
     }
 #endif
 

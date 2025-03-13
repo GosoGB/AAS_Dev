@@ -130,6 +130,7 @@ namespace muffin {
         doc["ts"]     = msg.SourceTimestamp;
         doc["uid"]    = msg.Uid;
         doc["value"]  = msg.Value;
+        doc["mfmVer"] = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
     }
@@ -140,12 +141,14 @@ namespace muffin {
         
         JsonDocument doc;
 
-        doc["mac"]   = macAddress.GetEthernet();
-        doc["tp"]    = msg.AlarmType;
-        doc["ts"]    = msg.AlarmStartTime;
-        doc["tf"]    = msg.AlarmFinishTime;
-        doc["uid"]   = msg.Uid;
-        doc["id"]    = msg.UUID;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["tp"]     = msg.AlarmType;
+        doc["ts"]     = msg.AlarmStartTime;
+        doc["tf"]     = msg.AlarmFinishTime;
+        doc["uid"]    = msg.Uid;
+        doc["id"]     = msg.UUID;
+        doc["mfmVer"] = ESP32_FW_VERSION;
+        doc["value"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }
@@ -159,6 +162,7 @@ namespace muffin {
         doc["mac"]     = macAddress.GetEthernet();
         doc["ts"]      = msg.SourceTimestamp;
         doc["status"]  = msg.Status;
+        doc["mfmVer"] = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
     }
@@ -182,8 +186,11 @@ namespace muffin {
         
         JsonDocument doc;
 
-        doc["mac"]   = macAddress.GetEthernet();
-        doc["ts"]    = msg.SourceTimestamp;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["uid"]    = msg.Uid;
+        doc["ts"]     = msg.SourceTimestamp;
+        doc["mfmVer"] = ESP32_FW_VERSION;
+        doc["value"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }

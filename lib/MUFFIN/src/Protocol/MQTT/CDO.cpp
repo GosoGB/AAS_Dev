@@ -59,6 +59,7 @@ namespace muffin { namespace mqtt {
         }
         else
         {
+            delete movedMessage;
             return Status(Status::Code::BAD);
         }
     }
@@ -74,13 +75,10 @@ namespace muffin { namespace mqtt {
         {
             Message message = std::move(*pMessage);
             delete pMessage;
-            pMessage = nullptr;
             return std::make_pair(Status(Status::Code::GOOD), message);
         }
         else
         {
-            delete pMessage;
-            pMessage = nullptr;
             return std::make_pair(Status(Status::Code::BAD), Message());
         }
     }
@@ -99,8 +97,6 @@ namespace muffin { namespace mqtt {
         }
         else
         {
-            delete pMessage;
-            pMessage = nullptr;
             return std::make_pair(Status(Status::Code::BAD), Message());
         }
     }

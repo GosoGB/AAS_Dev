@@ -65,7 +65,6 @@ namespace muffin {
             }
 
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
-            
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
@@ -82,7 +81,6 @@ namespace muffin {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
             #endif
-
             }
         }
     }

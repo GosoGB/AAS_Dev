@@ -109,6 +109,7 @@ namespace muffin {
         int64_t AlarmFinishTime;
         std::string Uid;
         std::string UUID;
+        std::string Value;
     } alarm_struct_t;
 
     typedef struct OperationStruct
@@ -122,6 +123,8 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
+        std::string Uid;
+        std::string Value;
     } push_struct_t;
 
     typedef struct ProgixStruct

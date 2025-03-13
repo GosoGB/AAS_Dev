@@ -45,10 +45,14 @@ namespace muffin { namespace im {
         STRING   = 11
     } data_type_e;
 
+    /**
+     * @todo  //최대 255자 임시용!!!!!!!!! @김주성
+     * 
+     */
     typedef struct MuffinStringType
     {
         size_t Length;
-        char* Data;
+        char Data[256]; 
     } string_t;
 
     typedef union VariableDataValueUnion
