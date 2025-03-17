@@ -75,11 +75,6 @@ namespace muffin {
             {
                 applyNodeCIN(pair.second);
                 s_HasNode = true;
-
-                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                {
-                    delete *it;
-                }
                 break;
             }
         }

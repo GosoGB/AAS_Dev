@@ -736,6 +736,11 @@ namespace muffin {
                 continue;
             }
 
+            if (it->first == jvs::cfg_key_e::NODE)
+            {
+                continue;
+            }
+
             for (auto _it = it->second.begin(); _it != std::prev(it->second.end()); ++_it)
             {
                 auto item = _it.operator*();
