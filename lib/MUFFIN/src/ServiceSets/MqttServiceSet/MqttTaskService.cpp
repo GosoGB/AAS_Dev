@@ -693,13 +693,13 @@ namespace muffin {
                                     }
                                     jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
                                     jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
                         
-                                    if (retBit.first == true)
+                                    if (retBit != -1)
                                     {
                                         modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
                                         LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
                                         LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
                                     }
                                     
