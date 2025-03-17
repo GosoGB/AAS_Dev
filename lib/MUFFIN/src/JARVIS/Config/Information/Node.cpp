@@ -579,6 +579,10 @@ namespace muffin { namespace jvs { namespace config {
         {
             return std::make_pair(Status(Status::Code::GOOD), mAddressQuantity);
         }
+        else if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::BIT_INDEX)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
+        }
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mAddressQuantity);
