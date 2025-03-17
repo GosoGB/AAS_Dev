@@ -120,7 +120,7 @@ namespace muffin {
         return payload;
     }
 
-    void JSON::Serialize(const daq_struct_t& msg, const uint16_t size, char output[])
+    void JSON::Serialize(const json_datum_t& msg, const uint16_t size, char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
 
@@ -135,16 +135,16 @@ namespace muffin {
         serializeJson(doc, output, size);
     }
 
-    void JSON::Serialize(const alarm_struct_t& msg, const uint16_t size, char output[])
+    void JSON::Serialize(const json_alarm_t& msg, const uint16_t size, char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
         
         JsonDocument doc;
 
         doc["mac"]    = macAddress.GetEthernet();
-        doc["tp"]     = msg.AlarmType;
-        doc["ts"]     = msg.AlarmStartTime;
-        doc["tf"]     = msg.AlarmFinishTime;
+        doc["tp"]     = msg.Type;
+        doc["ts"]     = msg.TimeStarted;
+        doc["tf"]     = msg.TimeFinished;
         doc["uid"]    = msg.UID;
         doc["id"]     = msg.UUID;
         doc["mv"]     = ESP32_FW_VERSION;

@@ -93,24 +93,24 @@ namespace muffin {
         JsonArray RequestData;
     } remote_controll_struct_t;
 
-    typedef struct DaqStruct
+    typedef struct JsonDatumType
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
         char UID[5];
         std::string Value;
-    } daq_struct_t;
+    } json_datum_t;
 
-    typedef struct AlarmStruct
+    typedef struct JsonAlarmType
     {
         mqtt::topic_e Topic;
-        std::string AlarmType;
-        uint64_t AlarmStartTime;
-        int64_t AlarmFinishTime;
-        std::string Uid;
+        std::string Type;
+        uint64_t TimeStarted;
+        int64_t TimeFinished;
+        std::string UID;
         std::string UUID;
         std::string Value;
-    } alarm_struct_t;
+    } json_alarm_t;
 
     typedef struct OperationStruct
     {
@@ -123,7 +123,7 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
-        std::string Uid;
+        std::string UID;
         std::string Value;
     } push_struct_t;
 
@@ -146,8 +146,8 @@ namespace muffin {
         size_t Serialize(const fota_status_t& _struct, const size_t size, char output[]);
 
     public:
-        void Serialize(const daq_struct_t& msg, const uint16_t size, char output[]);
-        void Serialize(const alarm_struct_t& msg, const uint16_t size, char output[]);
+        void Serialize(const json_datum_t& msg, const uint16_t size, char output[]);
+        void Serialize(const json_alarm_t& msg, const uint16_t size, char output[]);
         void Serialize(const operation_struct_t& msg, const uint16_t size, char output[]);
         void Serialize(const progix_struct_t& msg, const uint16_t size, char output[]);
         void Serialize(const push_struct_t& msg, const uint16_t size, char output[]);
@@ -171,9 +171,9 @@ namespace muffin {
     // private:
     //     std::string serializeScautrRemoteControllResponse(const remote_controll_struct_t& _struct);
     // private:
-    //     std::string serializeDaqInput(const daq_struct_t& _struct);
-    //     std::string serializeDaqOutput(const daq_struct_t& _struct);
-    //     std::string serializeDaqParam(const daq_struct_t& _struct);
+    //     std::string serializeDaqInput(const json_datum_t& _struct);
+    //     std::string serializeDaqOutput(const json_datum_t& _struct);
+    //     std::string serializeDaqParam(const json_datum_t& _struct);
     // private:
     //     std::string serializeScautrAlarm(const remote_controll_struct_t& _struct);
     //     std::string serializeScautrError(const remote_controll_struct_t& _struct);

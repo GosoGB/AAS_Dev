@@ -32,6 +32,7 @@ namespace muffin { namespace im {
     public:
         const char* GetNodeID() const;
         const char* GetUID() const;
+        bool HasAttributeEvent() const;
     public:
         Variable VariableNode;
         Method MethodNode;

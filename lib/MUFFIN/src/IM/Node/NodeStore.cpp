@@ -141,7 +141,7 @@ namespace muffin { namespace im {
 
         for (auto& node : mMapNode)
         {
-            if(node.second->VariableNode.GetHasAttributeEvent() == false)
+            if (node.second->HasAttributeEvent() == false)
             {
                 cyclicalNodeVector.emplace_back(node.second);
             }

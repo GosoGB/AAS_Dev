@@ -22,8 +22,8 @@
 namespace muffin { namespace im {
 
     Node::Node(const jvs::config::Node* cin)
-        : mCIN(cin)
-        , VariableNode(cin)
+        : VariableNode(cin)
+        , mCIN(cin)
     {
     }
 
@@ -35,5 +35,10 @@ namespace muffin { namespace im {
     const char* Node::GetUID() const
     {
         return mCIN->GetDeprecableUID().second;
+    }
+
+    bool Node::HasAttributeEvent() const
+    {
+        return mCIN->GetAttributeEvent().second;
     }
 }}

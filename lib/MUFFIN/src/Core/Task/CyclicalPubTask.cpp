@@ -125,7 +125,7 @@ namespace muffin {
             currentTimestamp = GetTimestamp();
             for (auto& node : cyclicalNodeVector)
             {
-                std::pair<bool, daq_struct_t> ret;
+                std::pair<bool, json_datum_t> ret;
                 ret = node->VariableNode.CreateDaqStruct();
 
                 if (ret.first == true)

@@ -19,6 +19,7 @@
 #include <map>
 #include <vector>
 
+#include "Common/DataStructure/bitset.h"
 #include "Common/Status.h"
 #include "JARVIS/Include/Base.h"
 #include "JARVIS/Include/DataUnitOrder.h"
@@ -65,22 +66,24 @@ namespace muffin { namespace jvs { namespace config {
         std::pair<Status, const char*> GetDeprecableUID() const;
         std::pair<Status, bool> GetAttributeEvent() const;
     private:
-        /**
-         * @todo bitset 구조로 변경 시 80개 노드 기준 1KB 가량 절감 가능
-         */
-        bool mIsNodeIdSet                   = false;
-        bool mIsAddressTypeSet              = false;
-        bool mIsAddressSet                  = false;
-        bool mIsModbusAreaSet               = false;
-        bool mIsBitIndexSet                 = false;
-        bool mIsAddressQuantitySet          = false;
-        bool mIsNumericScaleSet             = false;
-        bool mIsNumericOffsetSet            = false;
-        bool mIsDataUnitOrdersSet           = false;
-        bool mIsDataTypesSet                = false;
-        bool mIsFormatStringSet             = false;
-        bool mIsDeprecableUidSet            = false;
-        bool mIsAttributeEventSet           = false;
+        typedef enum class SetFlagEnum : uint8_t
+        {
+            NODE_ID             =  0,
+            ADDRESS_TYPE        =  1,
+            ADDRESS             =  2,
+            MODBUS_AREA         =  3,
+            BIT_INDEX           =  4,
+            ADDRESS_QUANTITY    =  5,
+            NUMERIC_SCALE       =  6,
+            NUMERIC_OFFSET      =  7,
+            DATA_UNIT_ORDERS    =  8,
+            DATA_TYPE           =  9,
+            FORMAT_STRING       = 10,
+            DEPRECABLE_UID      = 11,
+            ATTRIBUTE_EVENT     = 12,
+            TOP                 = 13
+        } set_flag_e;
+        bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
         char mNodeID[5];
         adtp_e mAddressType;

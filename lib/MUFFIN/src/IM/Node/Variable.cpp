@@ -29,6 +29,67 @@
 
 namespace muffin { namespace im {
 
+/*
+    void logData(const var_data_t& data)
+    {
+        switch (data.DataType)
+        {
+        case jvs::dt_e::BOOLEAN:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
+            break;
+        case jvs::dt_e::INT8:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
+            break;
+        case jvs::dt_e::UINT8:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
+            break;
+        case jvs::dt_e::INT16:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
+            break;
+        case jvs::dt_e::UINT16:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
+            break;
+        case jvs::dt_e::INT32:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
+            break;
+        case jvs::dt_e::UINT32:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
+            break;
+        case jvs::dt_e::INT64:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
+            break;
+        case jvs::dt_e::UINT64:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
+            break;
+        case jvs::dt_e::FLOAT32:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
+            break;
+        case jvs::dt_e::FLOAT64:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
+            break;
+        case jvs::dt_e::STRING:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
+            break;
+        default:
+            break;
+        }
+    }
+*/
+
+    Variable::Variable(const jvs::config::Node* cin)
+        : mCIN(cin)
+    {
+        if (mCIN->GetFormatString().first == Status::Code::GOOD)
+        {
+            mDataType = jvs::dt_e::STRING;
+        }
+        else
+        {
+            ASSERT((mCIN->GetDataTypes().second.size() == 1), "DATA TYPE VECTOR SIZE MUST BE 1 WHEN FORMAT STRING IS DISABLED");
+            mDataType = mCIN->GetDataTypes().second[0];
+        }
+    }
+
     const char* Variable::GetNodeID() const
     {
         return mCIN->GetNodeID().second;
@@ -453,7 +514,7 @@ namespace muffin { namespace im {
         variableData.IsEventType = variableData.HasNewEvent;
         if (variableData.HasNewEvent == true)
         {
-            daq_struct_t daq;
+            json_datum_t daq;
             strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
             
             if (strncmp(daq.UID, "DI", 2) == 0 || strncmp(daq.UID, "DO", 2) == 0 || strncmp(daq.UID, "P", 1) == 0)
@@ -527,52 +588,6 @@ namespace muffin { namespace im {
         }
     }
 
-    void Variable::logData(const var_data_t& data)
-    {
-        // switch (data.DataType)
-        // {
-        // case jvs::dt_e::BOOLEAN:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
-        //     break;
-        // case jvs::dt_e::INT8:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
-        //     break;
-        // case jvs::dt_e::UINT8:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
-        //     break;
-        // case jvs::dt_e::INT16:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
-        //     break;
-        // case jvs::dt_e::UINT16:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
-        //     break;
-        // case jvs::dt_e::INT32:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
-        //     break;
-        // case jvs::dt_e::UINT32:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
-        //     break;
-        // case jvs::dt_e::INT64:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
-        //     break;
-        // case jvs::dt_e::UINT64:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
-        //     break;
-        // case jvs::dt_e::FLOAT32:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
-        //     break;
-        // case jvs::dt_e::FLOAT64:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
-        //     break;
-        // case jvs::dt_e::STRING:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
-        //     break;
-        // default:
-        //     break;
-        // }
-    }
-
-
     void Variable::implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData)
     {
         if (mCIN->GetDataTypes().second.size() == 1)
@@ -631,7 +646,7 @@ namespace muffin { namespace im {
                 // it->Value.String.Data = nullptr;
                 memset(it->Value.String.Data, '\0', sizeof(it->Value.String.Data));
             }
-            mDataBuffer.pop_front();
+            mDataBuffer.erase(it);
         }
     }
     
@@ -817,7 +832,7 @@ namespace muffin { namespace im {
 
     void Variable::applyNumericScale(var_data_t& variableData)
     {
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         const double denominator = pow(10, exponent);
 
         switch (variableData.DataType)
@@ -882,51 +897,51 @@ namespace muffin { namespace im {
         {
         case jvs::dt_e::INT8:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::UINT8:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::INT16:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::UINT16:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::INT32:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::UINT32:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::FLOAT32:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) + mCIN->GetNumericOffset().second;
             break;
 
         case jvs::dt_e::INT64:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) + mCIN->GetNumericOffset().second;
             break;
 
         case jvs::dt_e::UINT64:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) + mCIN->GetNumericOffset().second;
             break;
             
         case jvs::dt_e::FLOAT64:
-            variableData.Value.Float64 = variableData.Value.Float64 + mNumericOffset.second;
+            variableData.Value.Float64 = variableData.Value.Float64 + mCIN->GetNumericOffset().second;
             break;
 
         default:
@@ -978,11 +993,6 @@ namespace muffin { namespace im {
                         arrayOrderedBytes.emplace_back(vectorFlattened[finishByteIndex]);
                     }
                 }
-
-                if (mDeprecableUID == "DI1E")
-                {
-                    //LOG_DEBUG(logger, "[DI1E] 0x%X 0x%X", vectorFlattened[startByteIndex], vectorFlattened[finishByteIndex]);
-                }
             }
 
             casted_data_t castedData;
@@ -1000,7 +1010,8 @@ namespace muffin { namespace im {
         flattenToByteArray(polledData, &vectorFlattened);
         castByteVector(mCIN->GetDataTypes().second.front(), vectorFlattened, outputCastedData);
 
-        if (mModbusArea.first == true && outputCastedData->ValueType == jvs::dt_e::STRING)
+        if ((mCIN->GetModbusArea().first == Status::Code::GOOD) && 
+            (outputCastedData->ValueType == jvs::dt_e::STRING))
         {
             for (size_t i = 0; i < outputCastedData->Value.String.Length - 1; i += 2)
             {
@@ -1011,7 +1022,7 @@ namespace muffin { namespace im {
 
     bool Variable::isEventOccured(var_data_t& variableData)
     {
-        if (mHasAttributeEvent == false)
+        if (mCIN->GetAttributeEvent().second == false)
         {
             // LOG_INFO(logger,"HasAttributeEvent IS FALSE");
             return false;
@@ -1020,7 +1031,7 @@ namespace muffin { namespace im {
         if (mDataBuffer.size() == 0)
         {
             // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
-            if (mInitEvent)
+            if (mInitEvent == true)
             {   
                 mInitEvent = false;
                 return true;
@@ -1107,7 +1118,7 @@ namespace muffin { namespace im {
 
     std::string Variable::Float32ConvertToString(const float& data) const
     {
-        if (mCIN->GetNumericScale().first == false)
+        if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
@@ -1118,7 +1129,7 @@ namespace muffin { namespace im {
 
         }
         
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         int decimalPlaces = static_cast<int>(-exponent);
         
         char format[10];
@@ -1132,7 +1143,7 @@ namespace muffin { namespace im {
 
     std::string Variable::Float64ConvertToString(const double& data) const
     {
-        if (mCIN->GetNumericScale().first == false)
+        if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
@@ -1142,8 +1153,7 @@ namespace muffin { namespace im {
             return std::string(buffer); 
         }
         
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-        
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         int decimalPlaces = static_cast<int>(-exponent);
         
         char format[10];
@@ -1157,7 +1167,7 @@ namespace muffin { namespace im {
 
     std::string Variable::FloatConvertToStringForLimitValue(const float& data) const
     {   
-        if (mCIN->GetNumericScale().first == false)
+        if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             if (mDataType == jvs::dt_e::FLOAT32 || mDataType == jvs::dt_e::FLOAT64)
             {
@@ -1175,7 +1185,7 @@ namespace muffin { namespace im {
             }
         }
         
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         
         int decimalPlaces = static_cast<int>(-exponent);
         
@@ -1188,9 +1198,9 @@ namespace muffin { namespace im {
         return std::string(buffer);
     }
 
-    std::pair<bool, daq_struct_t> Variable::CreateDaqStruct()
+    std::pair<bool, json_datum_t> Variable::CreateDaqStruct()
     {
-        daq_struct_t daq;
+        json_datum_t daq;
         if (RetrieveCount() == 0)
         {
             return std::make_pair(false, daq);
@@ -1203,9 +1213,9 @@ namespace muffin { namespace im {
         }
 
         daq.SourceTimestamp = variableData.Timestamp;
-        daq.UID = mCIN->GetDeprecableUID().second;
-        daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
-                    mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
+        strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
+        daq.Topic = strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
+                    strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
                     mqtt::topic_e::DAQ_PARAM;
 
         switch (variableData.DataType)
@@ -1265,7 +1275,8 @@ namespace muffin { namespace im {
          * @brief 현재 단일 레지스터나 비트만 제어 가능함, 추후 Method 개발시 업데이트 예정입니다.
          * 
          */
-        if (mAddressQuantity.first == true && mAddressQuantity.second != 1)
+        if ((mCIN->GetNumericAddressQuantity().first  == Status::Code::GOOD) &&
+            (mCIN->GetNumericAddressQuantity().second != 1))
         {
             LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
             return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
@@ -1296,7 +1307,7 @@ namespace muffin { namespace im {
 
             float floatTemp = 0;
 
-            if (mCIN->GetBitIndex().first == true)
+            if (mCIN->GetBitIndex().first == Status::Code::GOOD)
             {
                 if (Convert.ToUInt16(data) > 1)
                 {
@@ -1305,22 +1316,22 @@ namespace muffin { namespace im {
                 }
             }
 
-            if (mCIN->GetNumericOffset().first == true)
+            if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
             {
-               floatTemp = Convert.ToFloat(data) - mNumericOffset.second;
-               if (mCIN->GetNumericScale().first == false)
+               floatTemp = Convert.ToFloat(data) - mCIN->GetNumericOffset().second;
+               if (mCIN->GetNumericScale().first == Status::Code::BAD)
                {
                     //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
                     return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp));
                }
             }
 
-            if (mCIN->GetNumericScale().first == true)
+            if (mCIN->GetNumericScale().first == Status::Code::GOOD)
             {
-                const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+                const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
                 const double denominator = pow(10, exponent);
                 
-                if (mCIN->GetNumericOffset().first == true)
+                if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
                 {
                     floatTemp = (floatTemp / denominator);
                     uint16_t result = static_cast<uint16_t>(std::ceil(floatTemp));

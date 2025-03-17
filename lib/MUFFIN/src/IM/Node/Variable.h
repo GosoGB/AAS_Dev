@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <deque>
 #include <sys/_stdint.h>
 #include <vector>
 
@@ -36,7 +35,7 @@ namespace muffin { namespace im {
     class Variable
     {
     public:
-        Variable(const jvs::config::Node* cin) : mCIN(cin) {}
+        Variable(const jvs::config::Node* cin);
         ~Variable() {}
     public:
         const char* GetNodeID() const;
@@ -44,8 +43,6 @@ namespace muffin { namespace im {
         uint8_t GetQuantity() const;
         int16_t GetBitIndex() const;
         jvs::mb_area_e GetModbusArea() const;
-    private:
-        const jvs::config::Node* const mCIN;
 
     public:
         void Update(const std::vector<poll_data_t>& polledData);
@@ -59,7 +56,6 @@ namespace muffin { namespace im {
         void applyNumericOffset(var_data_t& variableData);
         bool isEventOccured(var_data_t& variableData);
         string_t ToMuffinString(const std::string& stdString);
-        void logData(const var_data_t& data);
         std::string Float32ConvertToString(const float& data) const;
         std::string Float64ConvertToString(const double& data) const;
 
@@ -74,38 +70,23 @@ namespace muffin { namespace im {
     public:
         /* Convert Remote Control Request To Modbus Format */
         std::pair<Status, uint16_t> ConvertModbusData(std::string& data);
-
-
-
     public:
-        std::pair<bool, daq_struct_t> CreateDaqStruct();
+        std::pair<bool, json_datum_t> CreateDaqStruct();
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
         void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);
 
-
-
     private:
         // virtual void strategySingleDataType() override;
         // void strategySingleDataType();
-    private:
-        // jvs::addr_u mAddress;
-        // jvs::adtp_e mAddressType;
-        // bool mHasAttributeEvent;
-        // std::vector<jvs::dt_e> mVectorDataTypes;
-        // std::pair<bool, jvs::mb_area_e> mModbusArea;
-        // std::pair<bool, uint8_t> mBitIndex;
-        // std::pair<bool, uint8_t> mAddressQuantity;
-        // std::pair<bool, jvs::scl_e> mNumericScale;
-        // std::pair<bool, float> mNumericOffset;
-        // std::pair<bool, std::vector<jvs::DataUnitOrder>> mVectorDataUnitOrders;
-        // std::pair<bool, std::string> mFormatString;
 
-        // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
-        // bool mInitEvent = true;
     private:
-        std::deque<var_data_t> mDataBuffer;
-        static uint32_t mSamplingIntervalInMillis;
+        // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
+        bool mInitEvent = true;
+        jvs::dt_e mDataType;
+        std::vector<var_data_t> mDataBuffer;
+        const jvs::config::Node* const mCIN;
         static const uint8_t MAX_HISTORY_SIZE = 2;
+        static uint32_t mSamplingIntervalInMillis;
     };
 }}

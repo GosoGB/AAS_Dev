@@ -82,7 +82,7 @@ namespace muffin { namespace jvs { namespace config {
         ASSERT((strlen(nodeID) == 4), "NODE ID MUST BE A STRING WITH LEGNTH OF 4");
 
         strncpy(mNodeID, nodeID, sizeof(mNodeID));
-        mIsNodeIdSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::NODE_ID));
     }
 
     void Node::SetAddressType(const adtp_e type)
@@ -91,7 +91,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mIsModbusAreaSet == true && type != adtp_e::NUMERIC)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true && type != adtp_e::NUMERIC)
                     {
                         return false;
                     }
@@ -104,36 +104,36 @@ namespace muffin { namespace jvs { namespace config {
         );
 
         mAddressType = type;
-        mIsAddressTypeSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ADDRESS_TYPE));
     }
 
     void Node::SetAddrress(const addr_u address)
     {
-        ASSERT((mIsAddressTypeSet == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_TYPE)) == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
 
         mAddress = address;
-        mIsAddressSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ADDRESS));
     }
 
     void Node::SetModbusArea(const mb_area_e area)
     {
-        ASSERT((mIsAddressTypeSet == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_TYPE)) == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
         ASSERT((mAddressType == adtp_e::NUMERIC), "ADDRESS TYPE MUST BE SET TO NUMERIC");
 
         mModbusArea = area;
-        mIsModbusAreaSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::MODBUS_AREA));
     }
 
     void Node::SetBitIndex(const uint8_t index)
     {
         // 데이터 타입 유효성 검사
-        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_TYPE)) == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() == 1), "BIT INDEX CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
         ASSERT(
             (
                 [&]()
                 {
-                    if (mIsDataUnitOrdersSet == true)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_UNIT_ORDERS)) == true)
                     {
                         if (mVectorDataUnitOrders.size() != 1)
                         {
@@ -146,17 +146,17 @@ namespace muffin { namespace jvs { namespace config {
         );
 
         // 함께 설정 불가능한 Node 속성에 대한 유효성 검사
-        ASSERT((mIsAddressQuantitySet  == false), "BIT INDEX CAN ONLY BE APPLIED WHEN ADDRESS QUANTITY IS DISABLED");
-        ASSERT((mIsNumericScaleSet     == false), "BIT INDEX CAN ONLY BE APPLIED WHEN NUMERIC SCALING IS DISABLED");
-        ASSERT((mIsNumericOffsetSet    == false), "BIT INDEX CAN ONLY BE APPLIED WHEN NUMERIC OFFSET IS DISABLED");
-        ASSERT((mIsFormatStringSet     == false), "BIT INDEX CAN ONLY BE APPLIED WHEN FORMAT STRING IS DISABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_QUANTITY)) == false), "BIT INDEX CAN ONLY BE APPLIED WHEN ADDRESS QUANTITY IS DISABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::NUMERIC_SCALE))    == false), "BIT INDEX CAN ONLY BE APPLIED WHEN NUMERIC SCALING IS DISABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::NUMERIC_OFFSET))   == false), "BIT INDEX CAN ONLY BE APPLIED WHEN NUMERIC OFFSET IS DISABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::FORMAT_STRING))    == false), "BIT INDEX CAN ONLY BE APPLIED WHEN FORMAT STRING IS DISABLED");
 
         // Modbus 메모리 영역 유효성 검사
         ASSERT(
             (
                 [&]()
                 {
-                    if (mIsModbusAreaSet == true)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
                     {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
                         if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
                         {
@@ -223,19 +223,19 @@ namespace muffin { namespace jvs { namespace config {
         );
         
         mBitIndex = index;
-        mIsBitIndexSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::BIT_INDEX));
     }
 
     void Node::SetNumericAddressQuantity(const uint8_t quantity)
     {
-        ASSERT((mIsAddressTypeSet == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_TYPE)) == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
         ASSERT((mAddressType == adtp_e::NUMERIC), "ADDRESS TYPE MUST BE NUMERIC");
-        ASSERT((mIsBitIndexSet == false), "NUMERIC ADDRESS QUANTITY CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::BIT_INDEX)) == false), "NUMERIC ADDRESS QUANTITY CANNOT BE SET WHEN BIT INDEX IS ENABLED");
         ASSERT(
             (
                 [&]()
                 {
-                    if (mIsModbusAreaSet == true)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
                     {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
                         if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
                         {
@@ -249,12 +249,12 @@ namespace muffin { namespace jvs { namespace config {
         ASSERT((quantity != 0), "NUMERIC ADDRESS QUANTITY CANNOT BE SET TO 0");
 
         mAddressQuantity = quantity;
-        mIsAddressQuantitySet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ADDRESS_QUANTITY));
     }
 
     void Node::SetNumericScale(const scl_e scale)
     {
-        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_TYPE)) == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() == 1), "NUMERIC SCALE CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
         ASSERT(
             (
@@ -271,15 +271,15 @@ namespace muffin { namespace jvs { namespace config {
                 }()
             ), "NUMERIC SCALE CANNOT BE APPLIED TO DATA WHICH IS STRING OR BOOLEAN TYPE"
         );
-        ASSERT((mIsBitIndexSet == false), "NUMERIC SCALE CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::BIT_INDEX)) == false), "NUMERIC SCALE CANNOT BE SET WHEN BIT INDEX IS ENABLED");
 
         mNumericScale = scale;
-        mIsNumericScaleSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::NUMERIC_SCALE));
     }
 
     void Node::SetNumericOffset(const float offset)
     {
-        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_TYPE)) == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() == 1), "NUMERIC OFFSET CAN ONLY BE APPLIED WHEN THERE IS ONLY ONE DATA TYPE");
         ASSERT(
             (
@@ -296,21 +296,21 @@ namespace muffin { namespace jvs { namespace config {
                 }()
             ), "NUMERIC OFFSET CANNOT BE APPLIED TO DATA WHICH IS STRING OR BOOLEAN TYPE"
         );
-        ASSERT((mIsBitIndexSet == false), "NUMERIC OFFSET CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::BIT_INDEX)) == false), "NUMERIC OFFSET CANNOT BE SET WHEN BIT INDEX IS ENABLED");
 
         mNumericOffset = offset;
-        mIsNumericOffsetSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::NUMERIC_OFFSET));
     }
 
     void Node::SetDataUnitOrders(const std::vector<DataUnitOrder>&& orders) noexcept
     {
-        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_TYPE)) == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() > 0), "DATA UNIT ORDERS CANNOT BE APPLIED WHEN THERE IS NO DATA TYPE");
         ASSERT(
             (
                 [&]()
                 {
-                    if (mIsModbusAreaSet == true)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
                     {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
                         if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
                         {
@@ -324,7 +324,7 @@ namespace muffin { namespace jvs { namespace config {
         ASSERT((orders.size() == mVectorDataTypes.size()), "DATA UNIT ORDERS AND DATA TYPES MUST BE EQUAL IN LENGTH");
 
         mVectorDataUnitOrders = std::move(orders);
-        mIsDataUnitOrdersSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DATA_UNIT_ORDERS));
     }
 
     void Node::SetDataTypes(const std::vector<dt_e>&& dt) noexcept
@@ -333,7 +333,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mIsModbusAreaSet == true)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
                     {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
                         if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
                         {
@@ -351,17 +351,17 @@ namespace muffin { namespace jvs { namespace config {
                 }()
             ), "DATA TYPES CAN ONLY BE SET WHEN MODBUS MEMORY AREA IS SET TO REGISTERS"
         );
-        ASSERT((mIsBitIndexSet == false), "DATA TYPES CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::BIT_INDEX)) == false), "DATA TYPES CANNOT BE SET WHEN BIT INDEX IS ENABLED");
 
         mVectorDataTypes = std::move(dt);
-        mIsDataTypesSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DATA_TYPE));
     }
 
     void Node::SetFormatString(const std::string& format)
     {
         // 속성 간 의존성 검사
-        ASSERT((mIsBitIndexSet == false), "FORMAT STRING CANNOT BE SET WHEN BIT INDEX IS ENABLED");
-        ASSERT((mIsDataTypesSet == true), "DATA TYPE MUST BE SET BEFOREHAND");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::BIT_INDEX)) == false), "FORMAT STRING CANNOT BE SET WHEN BIT INDEX IS ENABLED");
+        ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_TYPE)) == true), "DATA TYPE MUST BE SET BEFOREHAND");
         ASSERT((mVectorDataTypes.size() > 0), "DATA TYPE CANNOT BE EMPTY ARRAY");
         
         // 데이터 타입 유효성 검사
@@ -369,7 +369,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mIsModbusAreaSet == true)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
                     {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
                         if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
                         {
@@ -490,7 +490,7 @@ namespace muffin { namespace jvs { namespace config {
         ASSERT((format.size() != 0), "FORMAT STRING CANNOT BE AN EMPTY STRING");
 
         mFormatString = format;
-        mIsFormatStringSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::FORMAT_STRING));
     }
 
     void Node::SetDeprecableUID(const char* uid)
@@ -504,18 +504,18 @@ namespace muffin { namespace jvs { namespace config {
         );
 
         strncpy(mDeprecableUID, uid, sizeof(mDeprecableUID));
-        mIsDeprecableUidSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DEPRECABLE_UID));
     }
 
     void Node::SetAttributeEvent(const bool hasEvent)
     {
         mHasAttributeEvent = hasEvent;
-        mIsAttributeEventSet = true;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ATTRIBUTE_EVENT));
     }
 
     std::pair<Status, const char*> Node::GetNodeID() const
     {
-        if (mIsNodeIdSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_ID)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mNodeID);
         }
@@ -527,7 +527,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, adtp_e> Node::GetAddressType() const
     {
-        if (mIsAddressTypeSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_TYPE)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mAddressType);
         }
@@ -539,7 +539,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, addr_u> Node::GetAddrress() const
     {
-        if (mIsAddressSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mAddress);
         }
@@ -551,7 +551,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, mb_area_e> Node::GetModbusArea() const
     {
-        if (mIsModbusAreaSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mModbusArea);
         }
@@ -563,7 +563,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, uint8_t> Node::GetBitIndex() const
     {
-        if (mIsBitIndexSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::BIT_INDEX)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mBitIndex);
         }
@@ -575,7 +575,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, uint8_t> Node::GetNumericAddressQuantity() const
     {
-        if (mIsAddressQuantitySet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_QUANTITY)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mAddressQuantity);
         }
@@ -587,7 +587,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, scl_e> Node::GetNumericScale() const
     {
-        if (mIsNumericScaleSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NUMERIC_SCALE)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mNumericScale);
         }
@@ -599,7 +599,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, float> Node::GetNumericOffset() const
     {
-        if (mIsNumericOffsetSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NUMERIC_OFFSET)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mNumericOffset);
         }
@@ -611,7 +611,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, std::vector<DataUnitOrder>> Node::GetDataUnitOrders() const
     {
-        if (mIsDataUnitOrdersSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_UNIT_ORDERS)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mVectorDataUnitOrders);
         }
@@ -623,7 +623,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, std::vector<dt_e>> Node::GetDataTypes() const
     {
-        if (mIsDataTypesSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DATA_TYPE)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mVectorDataTypes);
         }
@@ -635,7 +635,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, std::string> Node::GetFormatString() const
     {
-        if (mIsFormatStringSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::FORMAT_STRING)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mFormatString);
         }
@@ -647,7 +647,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, const char*> Node::GetDeprecableUID() const
     {
-        if (mIsDeprecableUidSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DEPRECABLE_UID)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mDeprecableUID);
         }
@@ -659,7 +659,7 @@ namespace muffin { namespace jvs { namespace config {
 
     std::pair<Status, bool> Node::GetAttributeEvent() const
     {
-        if (mIsAttributeEventSet)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ATTRIBUTE_EVENT)) == true)
         {
             return std::make_pair(Status(Status::Code::GOOD), mHasAttributeEvent);
         }
