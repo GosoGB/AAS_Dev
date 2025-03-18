@@ -583,6 +583,10 @@ namespace muffin { namespace jvs { namespace config {
         {
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
         }
+        else if (GetModbusArea().second == mb_area_e::COILS || GetModbusArea().second == mb_area_e::DISCRETE_INPUT)
+        {
+            return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
+        }
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mAddressQuantity);

@@ -75,5 +75,5 @@ namespace muffin
     }
 
 
-    MemoryPool memoryPool(320, 80);
+    MemoryPool memoryPool(28, 80);
 }

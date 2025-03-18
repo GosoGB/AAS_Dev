@@ -593,12 +593,13 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            ret = saveResponseBody();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
-                return ret;
-            }
+
+            // ret = saveResponseBody();
+            // if (ret != Status::Code::GOOD)
+            // {
+            //     LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+            //     return ret;
+            // }
 
             File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
@@ -675,12 +676,12 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            ret = saveResponseBody();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
-                return ret;
-            }
+            // ret = saveResponseBody();
+            // if (ret != Status::Code::GOOD)
+            // {
+            //     LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+            //     return ret;
+            // }
 
             File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
@@ -829,28 +830,46 @@ namespace muffin { namespace http {
                 }
             }
         }
-
-        while (client->available() > 0)
+        
+        uint32_t lastReceiveTime = millis();
+        size_t receivedBytes = 0;
+        while (receivedBytes < mContentLength) 
         {
-            if (mFlags.test(static_cast<uint8_t>(flag_e::OCTET)) == false)
+            if (client->available() > 0) 
             {
-                if ((client->available() == 1) && (client->peek() == '0'))
+                lastReceiveTime = millis();
+
+                if (mFlags.test(static_cast<uint8_t>(flag_e::OCTET)) == false)
                 {
-                    client->read();
-                    file.write(0);
-                    break;
+                    if ((client->available() == 1) && (client->peek() == '0'))
+                    {   
+                        file.write(0);
+                        receivedBytes++;
+                        break;
+                    }
+                }
+                file.write(client->read());
+                receivedBytes++;
+            }
+            else
+            {
+                if (millis() - lastReceiveTime > SECOND_IN_MILLIS) 
+                {
+                    LOG_ERROR(logger,"TIMEOUT");
+                    file.write('\0');
+                    file.flush();
+                    file.close();
+                    return Status(Status::Code::BAD);
                 }
             }
-
-            file.write(client->read());
         }
+        
         file.write('\0');
         file.flush();
         file.close();
 
         return Status(Status::Code::GOOD);
     }
-
 
     LwipHTTP* lwipHTTP = nullptr;
 }}
