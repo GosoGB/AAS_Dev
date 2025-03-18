@@ -1123,8 +1123,8 @@ namespace muffin { namespace im {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
              */
-            char buffer[20];    
-            sprintf(buffer, "%0.2f", data);
+            char buffer[20] = {'\0'};     
+            snprintf(buffer,19,"%0.2f", data);
             return std::string(buffer);  
 
         }
@@ -1148,8 +1148,8 @@ namespace muffin { namespace im {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
              */
-            char buffer[32];    
-            sprintf(buffer, "%0.2f", data);
+            char buffer[32]  = {'\0'};    
+            snprintf(buffer, 31,"%0.2f", data);
             return std::string(buffer); 
         }
         
@@ -1174,8 +1174,8 @@ namespace muffin { namespace im {
                 /**
                 * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
                 */
-                char buffer[32];    
-                sprintf(buffer, "%0.2f", data);
+                char buffer[32] = {'\0'};    
+                snprintf(buffer, 31, "%0.2f", data);
                 return std::string(buffer); 
             }
             else
