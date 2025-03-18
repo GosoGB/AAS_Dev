@@ -593,12 +593,13 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            ret = saveResponseBody();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
-                return ret;
-            }
+
+            // ret = saveResponseBody();
+            // if (ret != Status::Code::GOOD)
+            // {
+            //     LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+            //     return ret;
+            // }
 
             File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
@@ -675,12 +676,12 @@ namespace muffin { namespace http {
 
         if ((mRSC % 200) < 100)
         {
-            ret = saveResponseBody();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
-                return ret;
-            }
+            // ret = saveResponseBody();
+            // if (ret != Status::Code::GOOD)
+            // {
+            //     LOG_ERROR(logger, "FAILED TO SAVE RESPONSE BODY: %s", ret.c_str());
+            //     return ret;
+            // }
 
             File file = esp32FS.Open(LWIP_HTTP_PATH, "r", false);
             if (file == false)
@@ -829,7 +830,8 @@ namespace muffin { namespace http {
                 }
             }
         }
-
+        LOG_INFO(logger,"client->available : %u",client->available());
+        LOG_INFO(logger,"mContentLength : %u",mContentLength);
         uint32_t lastReceiveTime = millis();
         size_t receivedBytes = 0;
         while (receivedBytes < mContentLength) 
@@ -855,6 +857,8 @@ namespace muffin { namespace http {
                 if (millis() - lastReceiveTime > SECOND_IN_MILLIS) 
                 {
                     LOG_ERROR(logger,"TIMEOUT");
+                    file.write('\0');
+                    file.flush();
                     file.close();
                     return Status(Status::Code::BAD);
                 }
