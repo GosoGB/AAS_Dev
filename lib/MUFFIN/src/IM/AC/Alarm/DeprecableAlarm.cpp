@@ -424,7 +424,7 @@ namespace muffin {
                     /**
                      * @todo JARVIS 설정값을 참조하여 설정된 데이터 타입에 맞게 계산을 수행하도록 수정해야 함
                      */
-                    const uint16_t currentValue   = datum.Value.UInt16;
+                    const uint16_t currentValue   = static_cast<uint16_t>(value);
                     const uint16_t previousValue  = history.Value.UInt16;
                     
                     if (previousValue != currentValue)
