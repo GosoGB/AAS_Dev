@@ -74,6 +74,9 @@ namespace muffin
         }
     }
 
-
+#if defined(MODLINK_L)
+    MemoryPool memoryPool(28, 160);
+#else   
     MemoryPool memoryPool(28, 80);
+#endif
 }
