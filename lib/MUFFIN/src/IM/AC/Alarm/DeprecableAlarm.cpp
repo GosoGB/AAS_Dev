@@ -344,7 +344,6 @@ namespace muffin {
         ASSERT((cin.GetType().second == jvs::alarm_type_e::CONDITION), "ALARM TYPE MUST BE CONDITION TYPE");
 
         int16_t value = 0;
-        int16_t prevValue = 0;
         bool hasValue = false;
         switch (datum.DataType)
         {
@@ -385,7 +384,6 @@ namespace muffin {
             if (cin.GetNodeID().second == node.first)
             {
                 alarmUID = node.second->GetUID();
-        
                 break;
             }
         }
@@ -430,30 +428,23 @@ namespace muffin {
                     
                     if (previousValue != currentValue)
                     {
-                        bool isBothConditions[2] = { false, false };
                         for (auto& condition : vectorCondition)
                         {
                             if ((history.Value.UInt16 == condition) && (datum.Value.UInt16 != condition))
                             {
                                 deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(previousValue));
                             }
-                            if (value == condition)
-                        }
-
-                        if ((isBothConditions[0] == true) && (isBothConditions[1] == true))
-                        {
-                            deactivateAlarm(jvs::alarm_type_e::CONDITION, cin);
                         }
                     }
                 }
+            }
             else
             {
                 deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(value));
             }
         }
     }
-
-
+    
     bool AlarmMonitor::isActiveAlarm(const std::string& uid)
     {
         for (auto& alarmInfo : mVectorAlarmInfo)
