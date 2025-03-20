@@ -120,7 +120,7 @@ namespace muffin {
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (60 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif

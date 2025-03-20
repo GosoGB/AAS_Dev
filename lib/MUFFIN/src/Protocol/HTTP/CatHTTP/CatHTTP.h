@@ -71,6 +71,7 @@ namespace muffin { namespace http {
         bool mEnableResponseHeaderOutput;
         bool mSetSinkToCatFS;
         std::string mCatFsPath;
+        int32_t mContentLength = 0;
     private:
         typedef enum CatHttpInitializationEnum
             : uint8_t

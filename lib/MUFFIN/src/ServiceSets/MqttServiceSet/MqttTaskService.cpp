@@ -925,7 +925,7 @@ RC_RESPONSE:
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (30 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (600 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3600 * SECOND_IN_MILLIS))
         #endif

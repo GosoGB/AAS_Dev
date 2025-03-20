@@ -198,6 +198,11 @@ namespace muffin {
 
     void Core::Init()
     {
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+        settimeofday(&tv, NULL);
+        
         logger.Init();
     #if defined(MODLINK_T2) || defined(MODLINK_B)
         CommandLineInterface commandLineInterface;
