@@ -4,8 +4,8 @@
  * 
  * @brief MQTT 태스크를 실행하고 정지하는 서비스를 정의합니다.
  * 
- * @date 2025-01-28
- * @version 1.2.2
+ * @date 2025-03-13
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -693,13 +693,13 @@ namespace muffin {
                                     }
                                     jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
                                     jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
                         
-                                    if (retBit.first == true)
+                                    if (retBit != -1)
                                     {
                                         modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
                                         LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
                                         LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
                                     }
                                     
@@ -764,13 +764,13 @@ namespace muffin {
 
                                     jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
                                     jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    std::pair<bool, uint8_t> retBit = ret.second->VariableNode.GetBitindex();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
                         
-                                    if (retBit.first == true)
+                                    if (retBit != -1)
                                     {
                                         modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
                                         LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit.second, retConvertModbus.second);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
                                         LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
                                     }
                                     
@@ -925,7 +925,7 @@ RC_RESPONSE:
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (30 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (600 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3600 * SECOND_IN_MILLIS))
         #endif
@@ -956,10 +956,12 @@ RC_RESPONSE:
                     }
                 }
                 
-
+                
                 const std::string payload =  deviceStatus.ToStringCyclical();
                 mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
                 mqtt::cdo.Store(message);
+
+                
             }
 
             if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
@@ -970,7 +972,6 @@ RC_RESPONSE:
                 }
                 reconnectMillis = millis();
             }
-            
             publishMessages();
             subscribeMessages(params);
             vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);

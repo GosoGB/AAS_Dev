@@ -159,9 +159,11 @@ namespace muffin {
 
             std::vector<uint8_t> data(firstIt, lastIt);
             mBuffer.erase(firstIt, lastIt);
+
         #if defined(DEBUG)
             LOG_DEBUG(logger, "Available: %u Bytes", GetAvailableBytes());
         #endif
+        
             return data;
         }
     };

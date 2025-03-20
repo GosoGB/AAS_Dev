@@ -5,7 +5,7 @@
  * @brief Operation 설정을 따라 서비스 네트워크를 반환하는 서비스를 정의합니다.
  * 
  * @date 2025-01-24
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

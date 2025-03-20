@@ -78,11 +78,12 @@ namespace muffin { namespace im {
             uint32_t prev = ESP.getFreeHeap();
             LOG_DEBUG(logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
             
-            void* block = memoryPool.Allocate(320);
+            void* block = memoryPool.Allocate(28);
             Node* node = new(block) Node(cin);
             mMapNode.emplace(node->GetNodeID(), node);
-
-            LOG_DEBUG(logger, "Node Memory: %u Bytes", prev - ESP.getFreeHeap());
+            
+            LOG_DEBUG(logger, "size of Node Memory: %u Bytes", sizeof(Node));
+            // LOG_DEBUG(logger, "Node Memory: %u Bytes", prev - ESP.getFreeHeap());
             return Status(Status::Code::GOOD);
         }
         catch(const std::bad_alloc& e)
@@ -141,7 +142,7 @@ namespace muffin { namespace im {
 
         for (auto& node : mMapNode)
         {
-            if(node.second->VariableNode.GetHasAttributeEvent() == false)
+            if (node.second->HasAttributeEvent() == false)
             {
                 cyclicalNodeVector.emplace_back(node.second);
             }

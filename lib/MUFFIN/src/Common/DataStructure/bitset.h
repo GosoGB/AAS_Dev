@@ -8,7 +8,7 @@
  *          시퀀스를 저장하는 개체를 제공합니다.
  * 
  * @date 2025-01-14
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

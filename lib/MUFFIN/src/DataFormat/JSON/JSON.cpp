@@ -5,7 +5,7 @@
  * @brief JSON 데이터 포맷 인코딩 및 디코딩을 수행하는 클래스를 정의합니다.
  * 
  * @date 2025-02-10
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -120,7 +120,7 @@ namespace muffin {
         return payload;
     }
 
-    void JSON::Serialize(const daq_struct_t& msg, const uint16_t size, char output[])
+    void JSON::Serialize(const json_datum_t& msg, const uint16_t size, char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
 
@@ -128,27 +128,27 @@ namespace muffin {
 
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
-        doc["name"]   = msg.Name;
-        doc["uid"]    = msg.Uid;
-        doc["unit"]   = msg.Unit;
+        doc["uid"]    = msg.UID;
         doc["value"]  = msg.Value;
+        doc["mv"]     = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
     }
 
-    void JSON::Serialize(const alarm_struct_t& msg, const uint16_t size, char output[])
+    void JSON::Serialize(const json_alarm_t& msg, const uint16_t size, char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
         
         JsonDocument doc;
 
-        doc["mac"]   = macAddress.GetEthernet();
-        doc["tp"]    = msg.AlarmType;
-        doc["ts"]    = msg.AlarmStartTime;
-        doc["tf"]    = msg.AlarmFinishTime;
-        doc["name"]  = msg.Name;
-        doc["uid"]   = msg.Uid;
-        doc["id"]    = msg.UUID;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["tp"]     = msg.Type;
+        doc["ts"]     = msg.TimeStarted;
+        doc["tf"]     = msg.TimeFinished;
+        doc["uid"]    = msg.UID;
+        doc["id"]     = msg.UUID;
+        doc["mv"]     = ESP32_FW_VERSION;
+        doc["value"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }
@@ -162,6 +162,7 @@ namespace muffin {
         doc["mac"]     = macAddress.GetEthernet();
         doc["ts"]      = msg.SourceTimestamp;
         doc["status"]  = msg.Status;
+        doc["mv"]      = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
     }
@@ -185,9 +186,11 @@ namespace muffin {
         
         JsonDocument doc;
 
-        doc["mac"]   = macAddress.GetEthernet();
-        doc["name"]  = msg.Name;
-        doc["ts"]    = msg.SourceTimestamp;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["uid"]    = msg.UID;
+        doc["ts"]     = msg.SourceTimestamp;
+        doc["mv"]     = ESP32_FW_VERSION;
+        doc["value"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }

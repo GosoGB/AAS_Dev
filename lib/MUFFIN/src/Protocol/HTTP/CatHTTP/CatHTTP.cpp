@@ -5,7 +5,7 @@
  * @brief LTE Cat.M1 모듈의 HTTP 프로토콜 클래스를 선언합니다.
  * 
  * @date 2025-01-24
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -106,6 +106,7 @@ namespace muffin { namespace http {
     {
         ASSERT((0 < strlen(header.ToString().c_str()) && strlen(header.ToString().c_str()) < 2049), "INVALID HEADER LENGTH");
         ASSERT((0 < timeout), "INVALID TIMEOUT VALUE");
+        mContentLength = 0;
         header.UpdateParamter(parameter.ToString().c_str());
         Status ret = setRequestURL(mutex, header.GetURL(), timeout);
         if (ret != Status::Code::GOOD)
@@ -194,11 +195,11 @@ namespace muffin { namespace http {
 
         const int32_t rxdCME = Convert.ToInt32(strCME.c_str());
         const http_rsc_e rxdRSC = ConvertInt32ToRSC(Convert.ToInt32(strRSC.c_str()));
-        const int32_t rxdLen = strLen == "" ? 
+        mContentLength = strLen == "" ? 
             -1 : 
             Convert.ToInt32(strLen.c_str());
 
-        if (rxdCME == INT32_MAX || rxdRSC == http_rsc_e::UNDEFINED_RSC || rxdLen == INT32_MAX)
+        if (rxdCME == INT32_MAX || rxdRSC == http_rsc_e::UNDEFINED_RSC || mContentLength == INT32_MAX)
         {
             LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
@@ -207,7 +208,7 @@ namespace muffin { namespace http {
         switch (rxdRSC)
         {
         case http_rsc_e::OK:
-            LOG_INFO(logger, "RSC: %s, ContentLength: %d", ConvertRscToString(rxdRSC), rxdLen);
+            LOG_INFO(logger, "RSC: %s, ContentLength: %d", ConvertRscToString(rxdRSC), mContentLength);
             if (mSetSinkToCatFS == true)
             {
                 goto SINK_TO_CatFS;
@@ -335,11 +336,11 @@ namespace muffin { namespace http {
 
         const int32_t rxdCME = Convert.ToInt32(strCME.c_str());
         const http_rsc_e rxdRSC = ConvertInt32ToRSC(Convert.ToInt32(strRSC.c_str()));
-        const int32_t rxdLen = strLen == "" ? 
+        mContentLength = strLen == "" ? 
             -1 : 
             Convert.ToInt32(strLen.c_str());
 
-        if (rxdCME == INT32_MAX || rxdRSC == http_rsc_e::UNDEFINED_RSC || rxdLen == INT32_MAX)
+        if (rxdCME == INT32_MAX || rxdRSC == http_rsc_e::UNDEFINED_RSC || mContentLength == INT32_MAX)
         {
             LOG_ERROR(logger, "UNKNOWN RESPONSE: %s", rxd.c_str());
             return Status(Status::Code::BAD_UNKNOWN_RESPONSE);
@@ -348,7 +349,7 @@ namespace muffin { namespace http {
         switch (rxdRSC)
         {
         case http_rsc_e::OK:
-            LOG_INFO(logger, "RSC: %s, ContentLength: %d", ConvertRscToString(rxdRSC), rxdLen);
+            LOG_INFO(logger, "RSC: %s, ContentLength: %d", ConvertRscToString(rxdRSC), mContentLength);
             if (mSetSinkToCatFS == true)
             {
                 goto SINK_TO_CatFS;
@@ -545,6 +546,22 @@ namespace muffin { namespace http {
         size_t pos;
         size_t length;
 
+        try
+        {
+            rxd.reserve(mContentLength);
+        }
+        catch(const std::bad_alloc& e)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE DUE TO MEMORY");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE RESPONSE");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+
         Status ret = catM1->Execute(command, mutex);
         if (ret != Status::Code::GOOD)
         {
@@ -557,8 +574,9 @@ namespace muffin { namespace http {
             goto CME_ERROR;
         }
         rxd.clear();
-
+        
         ret = readUntilOKorERROR(timeoutMillis, &rxd);
+        
         if (ret != Status::Code::GOOD)
         {
             goto CME_ERROR;
@@ -987,7 +1005,7 @@ namespace muffin { namespace http {
     Status CatHTTP::readUntilOKorERROR(const uint32_t timeoutMillis, std::string* rxd)
     {
         ASSERT((rxd != nullptr), "OUTPUT PARAMETER MUST NOT BE A NULLPTR");
-        
+
         const uint32_t startMillis = millis();
 
         while (uint32_t(millis() - startMillis) < timeoutMillis)

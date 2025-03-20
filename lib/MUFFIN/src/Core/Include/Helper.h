@@ -4,7 +4,7 @@
  * 
  * @brief Core 모듈 전반에 걸쳐 공통으로 사용할 수 있는 함수를 선언합니다.
  * @date 2025-01-21
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

@@ -46,12 +46,12 @@ namespace muffin { namespace modbus {
             }
             catch(const std::bad_alloc& e)
             {
-                LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID().c_str());
+                LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID());
                 return Status(Status::Code::BAD_OUT_OF_MEMORY);
             }
             catch(const std::exception& e)
             {
-                LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID().c_str());
+                LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID());
                 return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
         }
@@ -59,18 +59,18 @@ namespace muffin { namespace modbus {
         try
         {
             it->second.emplace_back(&node);
-            //LOG_VERBOSE(muffin::logger, "Emplaced Node reference: %s", node.GetNodeID().c_str());
+            //LOG_VERBOSE(muffin::logger, "Emplaced Node reference: %s", node.GetNodeID());
             // printReferenceTable();
             return Status(Status::Code::GOOD);
         }
         catch(const std::bad_alloc& e)
         {
-            LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID().c_str());
+            LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID());
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID().c_str());
+            LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID());
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
     }
@@ -80,7 +80,7 @@ namespace muffin { namespace modbus {
         auto itSlaveID = mMapNodeReferenceBySlave.find(slaveID);
         if (itSlaveID == mMapNodeReferenceBySlave.end())
         {
-            LOG_WARNING(logger, "SLAVE ID OF NODE REFERENCE NOT FOUND: %u, %s", slaveID, node.GetNodeID().c_str());
+            LOG_WARNING(logger, "SLAVE ID OF NODE REFERENCE NOT FOUND: %u, %s", slaveID, node.GetNodeID());
             return Status(Status::Code::GOOD);
         }
 
@@ -90,7 +90,7 @@ namespace muffin { namespace modbus {
             if ((*it)->GetNodeID() == node.GetNodeID())
             {
                 references.erase(it);
-                //LOG_VERBOSE(muffin::logger, "Removed node: %s", node.GetNodeID().c_str());
+                //LOG_VERBOSE(muffin::logger, "Removed node: %s", node.GetNodeID());
                 // printReferenceTable();
                 return Status(Status::Code::GOOD);
             }
@@ -190,7 +190,7 @@ namespace muffin { namespace modbus {
             for (const auto& node : nodes)
             {
                 printCell(cellWidth, slaveID, castedBuffer);
-                printCell(cellWidth, node->GetNodeID().c_str(), castedBuffer);
+                printCell(cellWidth, node->GetNodeID(), castedBuffer);
                 strcat(buffer, "|\n");
             }
         }

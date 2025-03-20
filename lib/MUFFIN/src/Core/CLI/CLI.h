@@ -2,7 +2,7 @@
  * @file CLI.h
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @brief 
- * @version 1.2.2
+ * @version 1.3.1
  * @date 2025-01-23
  * 
  * @copyright Copyright (c) 2025

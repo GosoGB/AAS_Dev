@@ -86,7 +86,7 @@ namespace muffin {
             resetModule();
         }
 
-        LOG_INFO(logger, "Initialized the CatM1 instance");
+        LOG_VERBOSE(logger, "Initialized the CatM1 instance");
         mState = state_e::SUCCEDDED_TO_INITIALIZE;
         return Status(Status::Code::GOOD);
     }

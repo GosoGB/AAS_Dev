@@ -43,7 +43,7 @@ namespace muffin { namespace jvs {
         rsc_e validateContainer(const JsonObject json);
     private:
         /*Protocol Version*/
-        static constexpr uint8_t SUPPORTED_VERSION_LENGTH = 3;
+        static constexpr uint8_t SUPPORTED_VERSION_LENGTH = 4;
         static prtcl_ver_e SUPPORTED_VERSION[SUPPORTED_VERSION_LENGTH];
         prtcl_ver_e mVersion;
         rsc_e mVersionState;

@@ -5,7 +5,7 @@
  * @brief
  *
  * @date 2025-02-04
- * @version 1.2.2
+ * @version 1.3.1
  *
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -74,6 +74,9 @@ namespace muffin
         }
     }
 
-
-    MemoryPool memoryPool(320, 50);
+#if defined(MODLINK_L)
+    MemoryPool memoryPool(28, 160);
+#else   
+    MemoryPool memoryPool(28, 80);
+#endif
 }

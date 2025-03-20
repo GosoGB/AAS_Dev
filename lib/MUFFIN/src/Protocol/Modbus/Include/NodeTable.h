@@ -52,6 +52,9 @@ namespace muffin { namespace modbus {
     #endif
     
     private:
+        /**
+         * @brief 
+         */
         std::map<uint8_t, std::vector<NodeRef*>> mMapNodeReferenceBySlave;
     };
 }}

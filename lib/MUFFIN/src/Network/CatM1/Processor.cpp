@@ -100,7 +100,11 @@ namespace muffin {
      */
     Processor::Processor()
         : mSerial(HardwareSerial(1))
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        , mRxBufferSize(15*KILLOBYTE)
+    #else
         , mRxBufferSize(10*KILLOBYTE)
+    #endif
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)
         , mBaudRate(baudrate_e::BDR_115200)
@@ -286,7 +290,7 @@ namespace muffin {
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (10 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif
@@ -314,11 +318,29 @@ namespace muffin {
                     LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
                     continue;
                 }
-
+                
                 while (mSerial.available() > 0)
                 {
-                    mRxBuffer.Write(mSerial.read());
+                    if (mRxBuffer.GetSize() < mRxBuffer.GetCapacity())
+                    {
+                        mRxBuffer.Write(mSerial.read());
+                    }
+                    else
+                    {
+                        xSemaphoreGive(xSemaphore);
+                        vTaskDelay(100 / portTICK_PERIOD_MS);
+                        if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
+                        {
+                            LOG_WARNING(logger, "THE MODULE IS BUSY. TRY LATER");
+                            continue;
+                        }
+                    }
                 }
+
+                // while (mSerial.available() > 0)
+                // {
+                //     mRxBuffer.Write(mSerial.read());
+                // }
 
                 parseRDY();
                 parseCFUN();

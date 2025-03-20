@@ -5,7 +5,7 @@
  * @brief MUFFIN 프레임워크에서 사용하는 상수를 정의합니다.
  * 
  * @date 2025-02-05
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

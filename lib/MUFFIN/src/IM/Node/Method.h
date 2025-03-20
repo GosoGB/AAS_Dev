@@ -25,7 +25,7 @@ namespace muffin { namespace im {
     {
     public:
         Method();
-        virtual ~Method();
+        ~Method();
     private:
         /* data */
     };

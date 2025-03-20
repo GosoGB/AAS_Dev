@@ -6,7 +6,7 @@
  * @brief MUFFIN에서 사용하는 커스텀 정보 모델 데이터 타입들을 정의합니다.
  * 
  * @date 2025-01-14
- * @version 1.2.2
+ * @version 1.3.1
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

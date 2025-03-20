@@ -5,10 +5,10 @@
  * 
  * @brief 수집한 데이터를 표현하는 Variable Node 클래스를 정의합니다.
  * 
- * @date 2024-11-01
- * @version 1.0.0
+ * @date 2025-03-13
+ * @version 1.3.1
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -29,92 +29,98 @@
 
 namespace muffin { namespace im {
 
-    Variable::Variable(const std::string& nodeID, const std::string& UID)
-        : mModbusArea(false, jvs::mb_area_e::COILS)
-        , mBitIndex(false, 0)
-        , mAddressQuantity(false, 1)
-        , mNumericScale(false, jvs::scl_e::NEGATIVE_1)
-        , mNumericOffset(false, 0.0f)
-        , mMapMappingRules(false, std::map<std::uint16_t, std::string>())
-        , mVectorDataUnitOrders(false, std::vector<jvs::DataUnitOrder>())
-        , mFormatString(false, std::string())
-        , mNodeID(nodeID)
-        , mDeprecableUID(UID)
+/*
+    void logData(const var_data_t& data)
     {
+        switch (data.DataType)
+        {
+        case jvs::dt_e::BOOLEAN:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
+            break;
+        case jvs::dt_e::INT8:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
+            break;
+        case jvs::dt_e::UINT8:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
+            break;
+        case jvs::dt_e::INT16:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
+            break;
+        case jvs::dt_e::UINT16:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
+            break;
+        case jvs::dt_e::INT32:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
+            break;
+        case jvs::dt_e::UINT32:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
+            break;
+        case jvs::dt_e::INT64:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
+            break;
+        case jvs::dt_e::UINT64:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
+            break;
+        case jvs::dt_e::FLOAT32:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
+            break;
+        case jvs::dt_e::FLOAT64:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
+            break;
+        case jvs::dt_e::STRING:
+            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
+            break;
+        default:
+            break;
+        }
     }
+*/
 
-    Variable::~Variable()
+    Variable::Variable(const jvs::config::Node* cin)
+        : mCIN(cin)
     {
-    }
-
-    void Variable::Init(const jvs::config::Node* cin)
-    {
-        mAddressType              = cin->GetAddressType().second;
-        mAddress                  = cin->GetAddrress().second;
-        mVectorDataTypes          = cin->GetDataTypes().second;
-        mHasAttributeEvent        = cin->GetAttributeEvent().second;
-        mDeprecableDisplayName    = cin->GetDeprecableDisplayName().second;
-        mDeprecableDisplayUnit    = cin->GetDeprecableDisplayUnit().second;                
-
-
-        if (cin->GetModbusArea().first == Status::Code::GOOD)
-        {
-            mModbusArea.first   = true;
-            mModbusArea.second  = cin->GetModbusArea().second;
-        }
-        
-        if (cin->GetBitIndex().first == Status::Code::GOOD)
-        {
-            mBitIndex.first   = true;
-            mBitIndex.second  = cin->GetBitIndex().second;
-        }
-
-        if (cin->GetNumericAddressQuantity().first == Status::Code::GOOD)
-        {
-            mAddressQuantity.first   = true;
-            mAddressQuantity.second  = cin->GetNumericAddressQuantity().second;
-        }
-        
-        if (cin->GetNumericScale().first == Status::Code::GOOD)
-        {
-            mNumericScale.first   = true;
-            mNumericScale.second  = cin->GetNumericScale().second;
-        }
-
-        if (cin->GetNumericOffset().first == Status::Code::GOOD)
-        {
-            mNumericOffset.first   = true;
-            mNumericOffset.second  = cin->GetNumericOffset().second;
-        }
-        
-        if (cin->GetMappingRules().first == Status::Code::GOOD)
-        {
-            mMapMappingRules.first   = true;
-            mMapMappingRules.second  = cin->GetMappingRules().second;
-        }
-
-        if (cin->GetDataUnitOrders().first == Status::Code::GOOD)
-        {
-            mVectorDataUnitOrders.first   = true;
-            mVectorDataUnitOrders.second  = cin->GetDataUnitOrders().second;
-        }
-        
-        if (cin->GetFormatString().first == Status::Code::GOOD)
-        {
-            mFormatString.first   = true;
-            mFormatString.second  = cin->GetFormatString().second;
-        }
-    
-        if (mMapMappingRules.first == true || mFormatString.first == true)
+        if (mCIN->GetFormatString().first == Status::Code::GOOD)
         {
             mDataType = jvs::dt_e::STRING;
         }
         else
         {
-            ASSERT((mVectorDataTypes.size() == 1), "DATA TYPE VECTOR SIZE MUST BE 1 WHEN FORMAT STRING IS DISABLED");
-            mDataType = mVectorDataTypes[0];
+            ASSERT((mCIN->GetDataTypes().second.size() == 1), "DATA TYPE VECTOR SIZE MUST BE 1 WHEN FORMAT STRING IS DISABLED");
+            mDataType = mCIN->GetDataTypes().second[0];
         }
     }
+
+    const char* Variable::GetNodeID() const
+    {
+        return mCIN->GetNodeID().second;
+    }
+
+    jvs::addr_u Variable::GetAddress() const
+    {
+        return mCIN->GetAddrress().second;
+    }
+
+    uint8_t Variable::GetQuantity() const
+    {
+        return mCIN->GetNumericAddressQuantity().second;
+    }
+
+    int16_t Variable::GetBitIndex() const
+    {
+        return mCIN->GetBitIndex().first == Status::Code::GOOD ?
+            mCIN->GetBitIndex().second : 
+            -1;
+    }
+
+    jvs::mb_area_e Variable::GetModbusArea() const
+    {
+        return mCIN->GetModbusArea().second;
+    }
+
+
+
+
+
 
     std::string createFormattedString(const std::string& format, std::vector<casted_data_t>& inputVector)
     {
@@ -424,7 +430,10 @@ namespace muffin { namespace im {
             }
         }
 
-        return oss.str();
+        std::string result = oss.str();
+        oss.str("");
+        oss.clear();
+        return result;
     }
 
     void Variable::Update(const std::vector<poll_data_t>& polledData)
@@ -465,29 +474,18 @@ namespace muffin { namespace im {
             goto CHECK_EVENT;
         }
 
-        if (mBitIndex.first == true)
+        if (mCIN->GetBitIndex().first == Status::Code::GOOD)
         {
             applyBitIndex(variableData);
-            if (mMapMappingRules.first == true)
-            {
-                applyMappingRules(variableData);
-                goto CHECK_EVENT;
-            }
             goto CHECK_EVENT;
         }
 
-        if (mMapMappingRules.first == true)
-        {
-            applyMappingRules(variableData);
-            goto CHECK_EVENT;
-        }
-
-        if (mNumericScale.first == true)
+        if (mCIN->GetNumericScale().first == Status::Code::GOOD)
         {
             applyNumericScale(variableData);
         }
 
-        if (mNumericOffset.first == true)
+        if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
         {
             applyNumericOffset(variableData);
         }
@@ -516,17 +514,14 @@ namespace muffin { namespace im {
         variableData.IsEventType = variableData.HasNewEvent;
         if (variableData.HasNewEvent == true)
         {
-            if (mDeprecableUID.substr(0, 2) == "DI" ||
-                mDeprecableUID.substr(0, 2) == "DO" ||
-                mDeprecableUID.substr(0, 1) == "P")
+            json_datum_t daq;
+            strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
+            
+            if (strncmp(daq.UID, "DI", 2) == 0 || strncmp(daq.UID, "DO", 2) == 0 || strncmp(daq.UID, "P", 1) == 0)
             {
-                daq_struct_t daq;
-                daq.Name = mDeprecableDisplayName;
                 daq.SourceTimestamp = variableData.Timestamp;
-                daq.Uid = mDeprecableUID;
-                daq.Unit = mDeprecableDisplayUnit;
-                daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
-                            mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
+                daq.Topic = strncmp(daq.UID, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
+                            strncmp(daq.UID, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
                             mqtt::topic_e::DAQ_PARAM;
     
                 switch (variableData.DataType)
@@ -581,7 +576,6 @@ namespace muffin { namespace im {
             }
         }
 
-
     EMPLACE_DATA:
         try
         {
@@ -594,74 +588,22 @@ namespace muffin { namespace im {
         }
     }
 
-    void Variable::logData(const var_data_t& data)
-    {
-        // switch (data.DataType)
-        // {
-        // case jvs::dt_e::BOOLEAN:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
-        //     break;
-        // case jvs::dt_e::INT8:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
-        //     break;
-        // case jvs::dt_e::UINT8:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
-        //     break;
-        // case jvs::dt_e::INT16:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
-        //     break;
-        // case jvs::dt_e::UINT16:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
-        //     break;
-        // case jvs::dt_e::INT32:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
-        //     break;
-        // case jvs::dt_e::UINT32:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
-        //     break;
-        // case jvs::dt_e::INT64:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
-        //     break;
-        // case jvs::dt_e::UINT64:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
-        //     break;
-        // case jvs::dt_e::FLOAT32:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
-        //     break;
-        // case jvs::dt_e::FLOAT64:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
-        //     break;
-        // case jvs::dt_e::STRING:
-        //     LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
-        //     break;
-        // default:
-        //     break;
-        // }
-    }
-
-
     void Variable::implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData)
     {
-        if (mVectorDataTypes.size() == 1)
+        if (mCIN->GetDataTypes().second.size() == 1)
         {
-            if (mVectorDataTypes.front() == jvs::dt_e::BOOLEAN)
+            if (mCIN->GetDataTypes().second.front() == jvs::dt_e::BOOLEAN)
             {
                 ASSERT((polledData.size() == 1), "BOOLEAN DATA TYPE IS ONLY APPLIED TO ONLY ONE DATUM POLLED FROM MACHINE");
 
                 variableData->DataType = jvs::dt_e::BOOLEAN;
                 variableData->Value.Boolean = polledData.front().Value.Boolean;
-
-                if (mMapMappingRules.first == true)
-                {
-                    applyMappingRules(*variableData);
-                }
-
                 return;
             }
 
-            if (mVectorDataUnitOrders.first == true)
+            if (mCIN->GetDataUnitOrders().first == Status::Code::GOOD)
             {
-                ASSERT((mVectorDataUnitOrders.second.size() == 1), "ONLY ONE DATA UNIT ORDER IS ALLOWED WHEN SINGULAR DATA TYPE IS PROVIDED");
+                ASSERT((mCIN->GetDataUnitOrders().second.size() == 1), "ONLY ONE DATA UNIT ORDER IS ALLOWED WHEN SINGULAR DATA TYPE IS PROVIDED");
 
                 std::vector<casted_data_t> vectorCastedData;
                 castWithDataUnitOrder(polledData, &vectorCastedData);
@@ -686,7 +628,7 @@ namespace muffin { namespace im {
             std::vector<casted_data_t> vectorCastedData;
             castWithDataUnitOrder(polledData, &vectorCastedData);
 
-            std::string formattedString = createFormattedString(mFormatString.second.c_str(), vectorCastedData);
+            std::string formattedString = createFormattedString(mCIN->GetFormatString().second.c_str(), vectorCastedData);
             variableData->DataType      = jvs::dt_e::STRING;
             variableData->Value.String  = ToMuffinString(formattedString);
             return;
@@ -695,15 +637,16 @@ namespace muffin { namespace im {
     
     void Variable::removeOldestHistory()
     {
-        if (mDataBuffer.size() == mMaxHistorySize)
+        if (mDataBuffer.size() == MAX_HISTORY_SIZE)
         {
             auto it = mDataBuffer.begin();
             if (it->DataType == jvs::dt_e::STRING)
             {
-                delete it->Value.String.Data;
-                it->Value.String.Data = nullptr;
+                // delete it->Value.String.Data;
+                // it->Value.String.Data = nullptr;
+                memset(it->Value.String.Data, '\0', sizeof(it->Value.String.Data));
             }
-            mDataBuffer.pop_front();
+            mDataBuffer.erase(it);
         }
     }
     
@@ -866,19 +809,19 @@ namespace muffin { namespace im {
         {
         case jvs::dt_e::INT8:
         case jvs::dt_e::UINT8:
-            variableData.Value.Boolean = (variableData.Value.UInt8 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt8 >> mCIN->GetBitIndex().second) & 1;
             break;
         case jvs::dt_e::INT16:
         case jvs::dt_e::UINT16:
-            variableData.Value.Boolean = (variableData.Value.UInt16 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt16 >> mCIN->GetBitIndex().second) & 1;
             break;
         case jvs::dt_e::INT32:
         case jvs::dt_e::UINT32:
-            variableData.Value.Boolean = (variableData.Value.UInt32 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt32 >> mCIN->GetBitIndex().second) & 1;
             break;
         case jvs::dt_e::INT64:
         case jvs::dt_e::UINT64:
-            variableData.Value.Boolean = (variableData.Value.UInt64 >> mBitIndex.second) & 1;
+            variableData.Value.Boolean = (variableData.Value.UInt64 >> mCIN->GetBitIndex().second) & 1;
             break;
         default:
             break;
@@ -887,49 +830,9 @@ namespace muffin { namespace im {
         variableData.DataType  = jvs::dt_e::BOOLEAN;
     }
 
-    void Variable::applyMappingRules(var_data_t& variableData)
-    {
-        auto it = mMapMappingRules.second.end();
-
-        switch (variableData.DataType)
-        {
-        case jvs::dt_e::BOOLEAN:
-            it = mMapMappingRules.second.find(variableData.Value.Boolean);
-            break;
-        case jvs::dt_e::INT8:
-        case jvs::dt_e::UINT8:
-            it = mMapMappingRules.second.find(variableData.Value.UInt8);
-            break;
-        case jvs::dt_e::INT16:
-        case jvs::dt_e::UINT16:
-            it = mMapMappingRules.second.find(variableData.Value.UInt16);
-            break;
-        case jvs::dt_e::INT32:
-        case jvs::dt_e::UINT32:
-            it = mMapMappingRules.second.find(variableData.Value.UInt16);
-            break;
-        default:
-            break;
-        }
-        // ASSERT((it != mMapMappingRules.second.end()), "END ITERATOR IS NOT ALLOWED WHEN APPLYING MAPPING RULES");
-        
-        if (it == mMapMappingRules.second.end())
-        {
-            variableData.DataType = jvs::dt_e::STRING;
-            variableData.Value.String = ToMuffinString("UNDEFINED : " + std::to_string(variableData.Value.UInt16));
-        }
-        else
-        {
-            variableData.DataType = jvs::dt_e::STRING;
-            variableData.Value.String = ToMuffinString(it->second);
-        }
-        
-        
-    }
-
     void Variable::applyNumericScale(var_data_t& variableData)
     {
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         const double denominator = pow(10, exponent);
 
         switch (variableData.DataType)
@@ -994,51 +897,51 @@ namespace muffin { namespace im {
         {
         case jvs::dt_e::INT8:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int8) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::UINT8:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt8) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::INT16:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.Int16) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::UINT16:
             variableData.DataType = jvs::dt_e::FLOAT32;
-            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) + mNumericOffset.second;
+            variableData.Value.Float32 = static_cast<float>(variableData.Value.UInt16) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::INT32:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int32) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::UINT32:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt32) + mCIN->GetNumericOffset().second;
             break;
         
         case jvs::dt_e::FLOAT32:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Float32) + mCIN->GetNumericOffset().second;
             break;
 
         case jvs::dt_e::INT64:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.Int64) + mCIN->GetNumericOffset().second;
             break;
 
         case jvs::dt_e::UINT64:
             variableData.DataType = jvs::dt_e::FLOAT64;
-            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) + mNumericOffset.second;
+            variableData.Value.Float64 = static_cast<double>(variableData.Value.UInt64) + mCIN->GetNumericOffset().second;
             break;
             
         case jvs::dt_e::FLOAT64:
-            variableData.Value.Float64 = variableData.Value.Float64 + mNumericOffset.second;
+            variableData.Value.Float64 = variableData.Value.Float64 + mCIN->GetNumericOffset().second;
             break;
 
         default:
@@ -1057,7 +960,7 @@ namespace muffin { namespace im {
          * @brief 현재는 기계에서 수집한 데이터의 타입이 16비트일 때까지만 구현되어 있습니다.
          *        향후 다른 프로토콜이 필요하므로 나머지 데이터 타입의 처리를 구현해야 합니다.
          */
-        for (auto& dataUnitOrders : mVectorDataUnitOrders.second)
+        for (auto& dataUnitOrders : mCIN->GetDataUnitOrders().second)
         {
             std::vector<uint8_t> vectorFlattened;
             flattenToByteArray(polledData, &vectorFlattened);
@@ -1090,15 +993,10 @@ namespace muffin { namespace im {
                         arrayOrderedBytes.emplace_back(vectorFlattened[finishByteIndex]);
                     }
                 }
-
-                if (mDeprecableUID == "DI1E")
-                {
-                    //LOG_DEBUG(logger, "[DI1E] 0x%X 0x%X", vectorFlattened[startByteIndex], vectorFlattened[finishByteIndex]);
-                }
             }
 
             casted_data_t castedData;
-            castByteVector(mVectorDataTypes[dataTypeIndex], arrayOrderedBytes, &castedData);
+            castByteVector(mCIN->GetDataTypes().second[dataTypeIndex], arrayOrderedBytes, &castedData);
             outputCastedData->emplace_back(castedData);
             ++dataTypeIndex;
         }
@@ -1110,9 +1008,10 @@ namespace muffin { namespace im {
 
         std::vector<uint8_t> vectorFlattened;
         flattenToByteArray(polledData, &vectorFlattened);
-        castByteVector(mVectorDataTypes.front(), vectorFlattened, outputCastedData);
+        castByteVector(mCIN->GetDataTypes().second.front(), vectorFlattened, outputCastedData);
 
-        if (mModbusArea.first == true && outputCastedData->ValueType == jvs::dt_e::STRING)
+        if ((mCIN->GetModbusArea().first == Status::Code::GOOD) && 
+            (outputCastedData->ValueType == jvs::dt_e::STRING))
         {
             for (size_t i = 0; i < outputCastedData->Value.String.Length - 1; i += 2)
             {
@@ -1123,7 +1022,7 @@ namespace muffin { namespace im {
 
     bool Variable::isEventOccured(var_data_t& variableData)
     {
-        if (mHasAttributeEvent == false)
+        if (mCIN->GetAttributeEvent().second == false)
         {
             // LOG_INFO(logger,"HasAttributeEvent IS FALSE");
             return false;
@@ -1132,7 +1031,7 @@ namespace muffin { namespace im {
         if (mDataBuffer.size() == 0)
         {
             // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
-            if (mInitEvent)
+            if (mInitEvent == true)
             {   
                 mInitEvent = false;
                 return true;
@@ -1179,14 +1078,9 @@ namespace muffin { namespace im {
     string_t Variable::ToMuffinString(const std::string& stdString)
     {
         string_t string;
-        string.Length = stdString.length();
-        string.Data = new char[string.Length + 1];
-        memset(string.Data, '\0', (string.Length + 1));
-
-        for (size_t i = 0; i < string.Length; ++i)
-        {
-            string.Data[i] = stdString[i];
-        }
+        string.Length = std::min(stdString.length(), sizeof(string.Data) - 1); // 🔹 최대 길이 제한
+        strncpy(string.Data, stdString.c_str(), string.Length);
+        string.Data[string.Length] = '\0';  // 🔹 문자열 종료 추가
 
         return string;
     }
@@ -1195,7 +1089,6 @@ namespace muffin { namespace im {
     // {
     //     ;
     // }
-
 
     size_t Variable::RetrieveCount() const
     {
@@ -1209,7 +1102,7 @@ namespace muffin { namespace im {
 
     std::vector<var_data_t> Variable::RetrieveHistory(const size_t numberofHistory) const
     {
-        ASSERT((numberofHistory < mMaxHistorySize + 1), "CANNOT RETRIEVE MORE THAN THE MAXIMUM HITORY SIZE");
+        ASSERT((numberofHistory < MAX_HISTORY_SIZE + 1), "CANNOT RETRIEVE MORE THAN THE MAXIMUM HITORY SIZE");
 
         std::vector<var_data_t> history;
 
@@ -1223,150 +1116,20 @@ namespace muffin { namespace im {
         return history;
     }
 
-    jvs::addr_u Variable::GetAddress() const
-    {
-        return mAddress;
-    }
-
-    uint8_t Variable::GetQuantity() const
-    {
-        return mAddressQuantity.second;
-    }
-
-    uint16_t Variable::GetBitIndex() const
-    {
-        return mBitIndex.second;
-    }
-
-    jvs::mb_area_e Variable::GetModbusArea() const
-    {
-        return mModbusArea.second;
-    }
-
-    std::pair<Status,uint16_t> Variable::ConvertModbusData(std::string& data)
-    {
-        if (data.empty() == true)
-        {
-            return std::make_pair(Status(Status::Code::BAD_NO_DATA), 0);
-        }
-        
-        /**
-         * @brief 현재 단일 레지스터나 비트만 제어 가능함, 추후 Method 개발시 업데이트 예정입니다.
-         * 
-         */
-        if (mAddressQuantity.first == true && mAddressQuantity.second != 1)
-        {
-            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
-            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
-        }
-        
-    
-        if (mVectorDataTypes.at(0) != jvs::dt_e::STRING)
-        {
-            // 서버에서 입력된 value가 문자열인지 판단하는 로직, 더 좋은 방법이 있나?
-            bool decimalFound = false;
-            size_t start = (data[0] == '-') ? 1 : 0;
-            for (size_t i = start; i < data.length(); ++i) 
-            {
-                char c = data[i];
-                if (c == '.') 
-                {
-                    if (decimalFound) 
-                    {
-                        return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
-                    }
-                    decimalFound = true;
-                } 
-                else if (!isdigit(c)) 
-                {
-                    return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
-                }
-            }
-
-            float floatTemp = 0;
-            
-            if (mMapMappingRules.first == true)
-            {
-                auto it = mMapMappingRules.second.find(Convert.ToUInt16(data));
-                if (it != mMapMappingRules.second.end()) 
-                {
-                    return std::make_pair(Status(Status::Code::GOOD), it->first);
-                } 
-                else
-                {
-                    LOG_ERROR(logger,"NO MATCHING KEY DATA IN MAPPING RULES, DATA : %s",data.c_str());
-                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), it->first);
-                }
-            }
-
-            if (mBitIndex.first == true)
-            {
-                if (Convert.ToUInt16(data) > 1)
-                {
-                    LOG_ERROR(logger,"BIT DATA HAS ONLY 1 or 0 VALUE , DATA : %s",data.c_str());
-                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), 0);
-                }
-            }
-
-            if (mNumericOffset.first == true)
-            {
-               floatTemp = Convert.ToFloat(data) - mNumericOffset.second;
-               if (mNumericScale.first == false)
-               {
-                    //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
-                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp));
-               }
-            }
-
-            if (mNumericScale.first == true)
-            {
-                const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-                const double denominator = pow(10, exponent);
-                
-                if (mNumericOffset.first == true)
-                {
-                    floatTemp = (floatTemp / denominator);
-                    uint16_t result = static_cast<uint16_t>(std::ceil(floatTemp));
-                    return std::make_pair(Status(Status::Code::GOOD), result);
-                }
-                else
-                {
-                    float value = Convert.ToFloat(data) / denominator;
-
-                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
-                    return std::make_pair(Status(Status::Code::GOOD), result);
-                }
-            }
-
-            LOG_DEBUG(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
-            return std::make_pair(Status(Status::Code::GOOD), Convert.ToUInt16(data));
-        }
-        else
-        {
-            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
-            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
-        }
-    }
-
-    std::pair<bool, uint8_t> Variable::GetBitindex() const
-    {
-        return mBitIndex;
-    }
-    
     std::string Variable::Float32ConvertToString(const float& data) const
     {
-        if (mNumericScale.first == false)
+        if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
              */
-            char buffer[20];    
-            sprintf(buffer, "%0.2f", data);
+            char buffer[20] = {'\0'};     
+            snprintf(buffer,19,"%0.2f", data);
             return std::string(buffer);  
 
         }
         
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         int decimalPlaces = static_cast<int>(-exponent);
         
         char format[10];
@@ -1380,18 +1143,17 @@ namespace muffin { namespace im {
 
     std::string Variable::Float64ConvertToString(const double& data) const
     {
-        if (mNumericScale.first == false)
+        if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
              */
-            char buffer[32];    
-            sprintf(buffer, "%0.2f", data);
+            char buffer[32]  = {'\0'};    
+            snprintf(buffer, 31,"%0.2f", data);
             return std::string(buffer); 
         }
         
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
-        
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         int decimalPlaces = static_cast<int>(-exponent);
         
         char format[10];
@@ -1405,15 +1167,15 @@ namespace muffin { namespace im {
 
     std::string Variable::FloatConvertToStringForLimitValue(const float& data) const
     {   
-        if (mNumericScale.first == false)
+        if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             if (mDataType == jvs::dt_e::FLOAT32 || mDataType == jvs::dt_e::FLOAT64)
             {
                 /**
                 * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
                 */
-                char buffer[32];    
-                sprintf(buffer, "%0.2f", data);
+                char buffer[32] = {'\0'};    
+                snprintf(buffer, 31, "%0.2f", data);
                 return std::string(buffer); 
             }
             else
@@ -1423,7 +1185,7 @@ namespace muffin { namespace im {
             }
         }
         
-        const int8_t exponent = static_cast<int8_t>(mNumericScale.second);
+        const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         
         int decimalPlaces = static_cast<int>(-exponent);
         
@@ -1436,28 +1198,24 @@ namespace muffin { namespace im {
         return std::string(buffer);
     }
 
-    std::pair<bool, daq_struct_t> Variable::CreateDaqStruct()
+    std::pair<bool, json_datum_t> Variable::CreateDaqStruct()
     {
-        daq_struct_t daq;
-
+        json_datum_t daq;
         if (RetrieveCount() == 0)
         {
             return std::make_pair(false, daq);
         }
     
         var_data_t variableData = RetrieveData();
-        
         if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
         {
             return std::make_pair(false, daq);
         }
 
-        daq.Name = mDeprecableDisplayName;
         daq.SourceTimestamp = variableData.Timestamp;
-        daq.Uid = mDeprecableUID;
-        daq.Unit = mDeprecableDisplayUnit;
-        daq.Topic = mDeprecableUID.substr(0, 2) == "DI" ? mqtt::topic_e::DAQ_INPUT  :
-                    mDeprecableUID.substr(0, 2) == "DO" ? mqtt::topic_e::DAQ_OUTPUT :
+        strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
+        daq.Topic = strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
+                    strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
                     mqtt::topic_e::DAQ_PARAM;
 
         switch (variableData.DataType)
@@ -1504,6 +1262,100 @@ namespace muffin { namespace im {
 
         return std::make_pair(true, daq);
     }
+
+
+    std::pair<Status, uint16_t> Variable::ConvertModbusData(std::string& data)
+    {
+        if (data.empty() == true)
+        {
+            return std::make_pair(Status(Status::Code::BAD_NO_DATA), 0);
+        }
+        
+        /**
+         * @brief 현재 단일 레지스터나 비트만 제어 가능함, 추후 Method 개발시 업데이트 예정입니다.
+         * 
+         */
+        if ((mCIN->GetNumericAddressQuantity().first  == Status::Code::GOOD) &&
+            (mCIN->GetNumericAddressQuantity().second != 1))
+        {
+            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
+            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
+        }
+        
+    
+        if (mCIN->GetDataTypes().second.at(0) != jvs::dt_e::STRING)
+        {
+            // 서버에서 입력된 value가 문자열인지 판단하는 로직, 더 좋은 방법이 있나?
+            bool decimalFound = false;
+            size_t start = (data[0] == '-') ? 1 : 0;
+            for (size_t i = start; i < data.length(); ++i) 
+            {
+                char c = data[i];
+                if (c == '.') 
+                {
+                    if (decimalFound) 
+                    {
+                        return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
+                    }
+                    decimalFound = true;
+                } 
+                else if (!isdigit(c)) 
+                {
+                    return std::make_pair(Status(Status::Code::BAD_TYPE_MISMATCH), 0);
+                }
+            }
+
+            float floatTemp = 0;
+
+            if (mCIN->GetBitIndex().first == Status::Code::GOOD)
+            {
+                if (Convert.ToUInt16(data) > 1)
+                {
+                    LOG_ERROR(logger,"BIT DATA HAS ONLY 1 or 0 VALUE , DATA : %s",data.c_str());
+                    return std::make_pair(Status(Status::Code::BAD_NO_DATA_AVAILABLE), 0);
+                }
+            }
+
+            if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
+            {
+               floatTemp = Convert.ToFloat(data) - mCIN->GetNumericOffset().second;
+               if (mCIN->GetNumericScale().first == Status::Code::BAD)
+               {
+                    //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
+                    return std::make_pair(Status(Status::Code::GOOD), static_cast<uint16_t>(floatTemp));
+               }
+            }
+
+            if (mCIN->GetNumericScale().first == Status::Code::GOOD)
+            {
+                const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
+                const double denominator = pow(10, exponent);
+                
+                if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
+                {
+                    floatTemp = (floatTemp / denominator);
+                    uint16_t result = static_cast<uint16_t>(std::ceil(floatTemp));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
+                }
+                else
+                {
+                    float value = Convert.ToFloat(data) / denominator;
+
+                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
+                    return std::make_pair(Status(Status::Code::GOOD), result);
+                }
+            }
+
+            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
+            return std::make_pair(Status(Status::Code::GOOD), Convert.ToUInt16(data));
+        }
+        else
+        {
+            LOG_ERROR(logger, "ASCII DATA IS NOT SUPPORTED YET");
+            return std::make_pair(Status(Status::Code::BAD_SERVICE_UNSUPPORTED), 0);
+        }
+    }
+
 
 
     uint32_t Variable::mSamplingIntervalInMillis = 1000;

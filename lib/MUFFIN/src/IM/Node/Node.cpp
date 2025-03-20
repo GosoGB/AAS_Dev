@@ -4,10 +4,10 @@
  * 
  * @brief 정보 모델의 기본 단위인 Node 클래스를 정의합니다.
  * 
- * @date 2024-09-26
- * @version 1.0.0
+ * @date 2025-03-13
+ * @version 1.3.1
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -22,24 +22,23 @@
 namespace muffin { namespace im {
 
     Node::Node(const jvs::config::Node* cin)
-        : mNodeID(cin->GetNodeID().second)
-        , mDeprecableUID(cin->GetDeprecableUID().second)
-        , VariableNode(mNodeID, mDeprecableUID)
-    {
-        VariableNode.Init(cin);
-    }
-
-    Node::~Node()
+        : VariableNode(cin)
+        , mCIN(cin)
     {
     }
 
-    const std::string& Node::GetNodeID() const
+    const char* Node::GetNodeID() const
     {
-        return mNodeID;
+        return mCIN->GetNodeID().second;
     }
 
-    const std::string& Node::GetUID() const
+    const char* Node::GetUID() const
     {
-        return mDeprecableUID;
+        return mCIN->GetDeprecableUID().second;
+    }
+
+    bool Node::HasAttributeEvent() const
+    {
+        return mCIN->GetAttributeEvent().second;
     }
 }}
