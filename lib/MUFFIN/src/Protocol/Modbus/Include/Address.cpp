@@ -34,7 +34,7 @@ namespace muffin { namespace modbus {
     {
     }
 
-    Status Address::Update(const jvs::mb_area_e area, const AddressRange& range)
+    Status Address::Update(const jvs::node_area_e area, const AddressRange& range)
     {
         Status ret(Status::Code::UNCERTAIN);
 
@@ -123,7 +123,7 @@ namespace muffin { namespace modbus {
         return ret;
     }
 
-    Status Address::emplaceAddressRange(const jvs::mb_area_e area, const AddressRange& range, AddressRangeSet* ranges)
+    Status Address::emplaceAddressRange(const jvs::node_area_e area, const AddressRange& range, AddressRangeSet* ranges)
     {
         std::exception exception;
         Status::Code retCode;
@@ -149,7 +149,7 @@ namespace muffin { namespace modbus {
         return Status(retCode);
     }
 
-    Status Address::updateConsecutiveRanges(const jvs::mb_area_e area, AddressRangeSet* ranges)
+    Status Address::updateConsecutiveRanges(const jvs::node_area_e area, AddressRangeSet* ranges)
     {
         ASSERT((ranges != nullptr), "ADDRESS RANGE SET CANNOT BE A NULL POINTER");
         
@@ -237,7 +237,7 @@ namespace muffin { namespace modbus {
         return ret;
     }
 
-    Status Address::Remove(const jvs::mb_area_e area, const AddressRange& range)
+    Status Address::Remove(const jvs::node_area_e area, const AddressRange& range)
     {
         auto& addressRangeSet = mMapAddressByArea.find(area)->second;
         if (addressRangeSet.size() == 0)
@@ -312,14 +312,14 @@ namespace muffin { namespace modbus {
         return Status(Status::Code::GOOD_NO_DATA);
     }
 
-    std::pair<Status, std::set<jvs::mb_area_e>> Address::RetrieveArea() const
+    std::pair<Status, std::set<jvs::node_area_e>> Address::RetrieveArea() const
     {
         std::exception exception;
         Status::Code retCode;
 
         try
         {
-            std::set<jvs::mb_area_e> areas;
+            std::set<jvs::node_area_e> areas;
             for (const auto& pair : mMapAddressByArea)
             {
                 areas.emplace(pair.first);
@@ -338,10 +338,10 @@ namespace muffin { namespace modbus {
         }
         
         LOG_ERROR(logger, "%s", exception.what());
-        return std::make_pair(Status(retCode), std::set<jvs::mb_area_e>());
+        return std::make_pair(Status(retCode), std::set<jvs::node_area_e>());
     }
 
-    const std::set<im::NumericAddressRange>& Address::RetrieveAddressRange(const jvs::mb_area_e area) const
+    const std::set<im::NumericAddressRange>& Address::RetrieveAddressRange(const jvs::node_area_e area) const
     {
         return mMapAddressByArea.find(area)->second;
     }

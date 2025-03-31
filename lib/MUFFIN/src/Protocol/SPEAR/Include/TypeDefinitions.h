@@ -136,7 +136,7 @@ namespace muffin {
     {
         jvs::prt_e Link;
         uint8_t SlaveID;
-        jvs::mb_area_e Area;
+        jvs::node_area_e Area;
         uint16_t Address;
         uint16_t Quantity;
         std::vector<int32_t> PolledValuesVector;
@@ -147,7 +147,7 @@ namespace muffin {
         resp_head_t Head;
         jvs::prt_e Link;
         uint8_t SlaveID;
-        jvs::mb_area_e Area;
+        jvs::node_area_e Area;
         uint16_t Address;
         uint16_t Value;
     } spear_remote_control_msg_t;

@@ -28,6 +28,7 @@
 #include "JARVIS/Validators/Network/NetworkValidator.h"
 #include "JARVIS/Validators/Operation/OperationValidator.h"
 #include "JARVIS/Validators/Protocol/ModbusValidator.h"
+#include "JARVIS/Validators/Protocol/MelsecValidator.h"
 #include "Validator.h"
 
 
@@ -133,6 +134,9 @@ namespace muffin { namespace jvs {
                 case cfg_key_e::MODBUS_RTU:
                 case cfg_key_e::MODBUS_TCP:
                     ret = validateModbus(key, cinArray, &outputVector);
+                    break;
+                case cfg_key_e::MELSEC:
+                    ret = validateMelsec(key, cinArray, &outputVector);
                     break;
                 case cfg_key_e::OPERATION:
                     ret = validateOperation(cinArray);
@@ -430,6 +434,15 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
+    std::pair<rsc_e, std::string> Validator::validateMelsec(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
+        MelsecValidator validator;
+        return validator.Inspect(key, json, outputVector);
+    }
+
     std::pair<rsc_e, std::string> Validator::validateOperation(const JsonArray json)
     {
         OperationValidator validator;
@@ -471,4 +484,5 @@ namespace muffin { namespace jvs {
         ProductionInfoValidator validator;
         return validator.Inspect(json, outputVector);
     }
+
 }}

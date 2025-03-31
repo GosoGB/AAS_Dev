@@ -81,7 +81,7 @@ namespace muffin {
                 return ret;
             }
 
-            const jvs::mb_area_e area = reference->VariableNode.GetModbusArea();
+            const jvs::node_area_e area = reference->VariableNode.GetModbusArea();
             const AddressRange range = createAddressRange(reference->VariableNode.GetAddress().Numeric, reference->VariableNode.GetQuantity());
     
             ret = mAddressTable.Update(slaveID, area, range);
@@ -105,7 +105,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        const jvs::mb_area_e area = node.VariableNode.GetModbusArea();
+        const jvs::node_area_e area = node.VariableNode.GetModbusArea();
         const AddressRange range = createAddressRange(node);
 
         ret = mAddressTable.Remove(slaveID, area, range);
@@ -181,16 +181,16 @@ namespace muffin {
                 
                 switch (area)
                 {
-                case jvs::mb_area_e::COILS:
+                case jvs::node_area_e::COILS:
                     ret = pollCoil(slaveID, addressSetToPoll);
                     break;
-                case jvs::mb_area_e::DISCRETE_INPUT:
+                case jvs::node_area_e::DISCRETE_INPUT:
                     ret = pollDiscreteInput(slaveID, addressSetToPoll);
                     break;
-                case jvs::mb_area_e::INPUT_REGISTER:
+                case jvs::node_area_e::INPUT_REGISTER:
                     ret = pollInputRegister(slaveID, addressSetToPoll);
                     break;
-                case jvs::mb_area_e::HOLDING_REGISTER:
+                case jvs::node_area_e::HOLDING_REGISTER:
                     ret = pollHoldingRegister(slaveID, addressSetToPoll);
                     break;
                 default:
@@ -233,7 +233,7 @@ namespace muffin {
             {
                 const uint16_t address  = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
-                const jvs::mb_area_e area = node->VariableNode.GetModbusArea();
+                const jvs::node_area_e area = node->VariableNode.GetModbusArea();
 
                 modbus::datum_t datum;
                 datum.Address = address;
@@ -253,10 +253,10 @@ namespace muffin {
                  */
                 switch (area)
                 {
-                case jvs::mb_area_e::COILS:
+                case jvs::node_area_e::COILS:
                     datum = mPolledDataTable.RetrieveCoil(slaveID, address);
                     goto BIT_MEMORY;
-                case jvs::mb_area_e::DISCRETE_INPUT:
+                case jvs::node_area_e::DISCRETE_INPUT:
                     datum = mPolledDataTable.RetrieveDiscreteInput(slaveID, address);
                 BIT_MEMORY:
                     if (datum.IsOK == false)
@@ -273,7 +273,7 @@ namespace muffin {
                     vectorPolledData.emplace_back(polledData);
                     node->VariableNode.Update(vectorPolledData);
                     break;
-                case jvs::mb_area_e::INPUT_REGISTER:
+                case jvs::node_area_e::INPUT_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
@@ -284,7 +284,7 @@ namespace muffin {
                         vectorPolledData.emplace_back(polledData);
                     }
                     goto REGISTER_MEMORY;
-                case jvs::mb_area_e::HOLDING_REGISTER:
+                case jvs::node_area_e::HOLDING_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
@@ -501,22 +501,22 @@ namespace muffin {
         return ret;
     }
 
-    modbus::datum_t ModbusTCP::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area)
+    modbus::datum_t ModbusTCP::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area)
     {
         modbus::datum_t data;
         data.IsOK = false;
         switch (area)
         {
-        case jvs::mb_area_e::COILS :
+        case jvs::node_area_e::COILS :
             data = mPolledDataTable.RetrieveCoil(slaveID,address);
             break;
-        case jvs::mb_area_e::DISCRETE_INPUT :
+        case jvs::node_area_e::DISCRETE_INPUT :
             data = mPolledDataTable.RetrieveDiscreteInput(slaveID,address);
             break;
-        case jvs::mb_area_e::INPUT_REGISTER :
+        case jvs::node_area_e::INPUT_REGISTER :
             data = mPolledDataTable.RetrieveInputRegister(slaveID,address);
             break;
-        case jvs::mb_area_e::HOLDING_REGISTER :
+        case jvs::node_area_e::HOLDING_REGISTER :
             data = mPolledDataTable.RetrieveHoldingRegister(slaveID,address);
             break;
         default:

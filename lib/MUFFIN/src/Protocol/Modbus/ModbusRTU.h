@@ -57,7 +57,7 @@ namespace muffin {
     public:
         Status Poll();
         Status PollTemp();
-        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area);
+        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area);
     private:
         Status implementPolling();
         Status updateVariableNodes();

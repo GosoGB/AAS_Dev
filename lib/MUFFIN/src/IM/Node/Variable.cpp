@@ -112,7 +112,7 @@ namespace muffin { namespace im {
             -1;
     }
 
-    jvs::mb_area_e Variable::GetModbusArea() const
+    jvs::node_area_e Variable::GetModbusArea() const
     {
         return mCIN->GetModbusArea().second;
     }

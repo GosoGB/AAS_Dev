@@ -41,7 +41,7 @@ namespace muffin { namespace jvs { namespace config {
         void SetNodeID(const char* nodeID);
         void SetAddressType(const adtp_e type);
         void SetAddrress(const addr_u address);
-        void SetModbusArea(const mb_area_e area);
+        void SetModbusArea(const node_area_e area);
         void SetBitIndex(const uint8_t index);
         void SetNumericAddressQuantity(const uint8_t quantity);
         void SetNumericScale(const scl_e scale);
@@ -55,7 +55,7 @@ namespace muffin { namespace jvs { namespace config {
         std::pair<Status, const char*> GetNodeID() const;
         std::pair<Status, adtp_e> GetAddressType() const;
         std::pair<Status, addr_u> GetAddrress() const;
-        std::pair<Status, mb_area_e> GetModbusArea() const;
+        std::pair<Status, node_area_e> GetModbusArea() const;
         std::pair<Status, uint8_t> GetBitIndex() const;
         std::pair<Status, uint8_t> GetNumericAddressQuantity() const;
         std::pair<Status, scl_e> GetNumericScale() const;
@@ -88,7 +88,7 @@ namespace muffin { namespace jvs { namespace config {
         char mNodeID[5];
         adtp_e mAddressType;
         addr_u mAddress;
-        mb_area_e mModbusArea;
+        node_area_e mModbusArea;
         uint8_t mBitIndex;
         uint8_t mAddressQuantity;
         scl_e mNumericScale;

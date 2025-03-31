@@ -34,13 +34,13 @@ namespace muffin { namespace modbus {
 
     Status PolledData::UpdateCoil(const uint16_t address, const int8_t value)
     {
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::COILS);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::COILS);
         
         if (itArea == mMapDatumByArea.end())
         {   
             try
             {
-                auto result = mMapDatumByArea.emplace(jvs::mb_area_e::COILS, std::vector<datum_t>());
+                auto result = mMapDatumByArea.emplace(jvs::node_area_e::COILS, std::vector<datum_t>());
                 itArea = result.first;
                 ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
             }
@@ -81,7 +81,7 @@ namespace muffin { namespace modbus {
         {
             try
             {
-                mMapDatumByArea[jvs::mb_area_e::COILS].emplace_back(datum);
+                mMapDatumByArea[jvs::node_area_e::COILS].emplace_back(datum);
                 return Status(Status::Code::GOOD);
             }
             catch(const std::bad_alloc& e)
@@ -105,13 +105,13 @@ namespace muffin { namespace modbus {
 
     Status PolledData::UpdateDiscreteInput(const uint16_t address, const int8_t value)
     {
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::DISCRETE_INPUT);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::DISCRETE_INPUT);
         
         if (itArea == mMapDatumByArea.end())
         {   
             try
             {
-                auto result = mMapDatumByArea.emplace(jvs::mb_area_e::DISCRETE_INPUT, std::vector<datum_t>());
+                auto result = mMapDatumByArea.emplace(jvs::node_area_e::DISCRETE_INPUT, std::vector<datum_t>());
                 itArea = result.first;
                 ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
             }
@@ -152,7 +152,7 @@ namespace muffin { namespace modbus {
         {
             try
             {
-                mMapDatumByArea[jvs::mb_area_e::DISCRETE_INPUT].emplace_back(datum);
+                mMapDatumByArea[jvs::node_area_e::DISCRETE_INPUT].emplace_back(datum);
                 return Status(Status::Code::GOOD);
             }
             catch(const std::bad_alloc& e)
@@ -176,13 +176,13 @@ namespace muffin { namespace modbus {
 
     Status PolledData::UpdateInputRegister(const uint16_t address, const int32_t value)
     {
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::INPUT_REGISTER);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::INPUT_REGISTER);
         
         if (itArea == mMapDatumByArea.end())
         {   
             try
             {
-                auto result = mMapDatumByArea.emplace(jvs::mb_area_e::INPUT_REGISTER, std::vector<datum_t>());
+                auto result = mMapDatumByArea.emplace(jvs::node_area_e::INPUT_REGISTER, std::vector<datum_t>());
                 itArea = result.first;
                 ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
             }
@@ -212,7 +212,7 @@ namespace muffin { namespace modbus {
         {
             try
             {
-                mMapDatumByArea[jvs::mb_area_e::INPUT_REGISTER].emplace_back(datum);
+                mMapDatumByArea[jvs::node_area_e::INPUT_REGISTER].emplace_back(datum);
                 return Status(Status::Code::GOOD);
             }
             catch(const std::bad_alloc& e)
@@ -236,13 +236,13 @@ namespace muffin { namespace modbus {
 
     Status PolledData::UpdateHoldingRegister(const uint16_t address, const int32_t value)
     {
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::HOLDING_REGISTER);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::HOLDING_REGISTER);
         
         if (itArea == mMapDatumByArea.end())
         {   
             try
             {
-                auto result = mMapDatumByArea.emplace(jvs::mb_area_e::HOLDING_REGISTER, std::vector<datum_t>());
+                auto result = mMapDatumByArea.emplace(jvs::node_area_e::HOLDING_REGISTER, std::vector<datum_t>());
                 itArea = result.first;
                 ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
             }
@@ -272,7 +272,7 @@ namespace muffin { namespace modbus {
         {
             try
             {
-                mMapDatumByArea[jvs::mb_area_e::HOLDING_REGISTER].emplace_back(datum);
+                mMapDatumByArea[jvs::node_area_e::HOLDING_REGISTER].emplace_back(datum);
                 return Status(Status::Code::GOOD);
             }
             catch(const std::bad_alloc& e)
@@ -298,7 +298,7 @@ namespace muffin { namespace modbus {
     {
         std::vector<datum_t>::const_iterator itDatum;
 
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::COILS);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::COILS);
         if (itArea == mMapDatumByArea.end())
         {
             goto BAD_NO_DATA;
@@ -323,7 +323,7 @@ namespace muffin { namespace modbus {
     {
         std::vector<datum_t>::const_iterator itDatum;
 
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::DISCRETE_INPUT);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::DISCRETE_INPUT);
         if (itArea == mMapDatumByArea.end())
         {
             goto BAD_NO_DATA;
@@ -348,7 +348,7 @@ namespace muffin { namespace modbus {
     {
         std::vector<datum_t>::const_iterator itDatum;
 
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::INPUT_REGISTER);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::INPUT_REGISTER);
         if (itArea == mMapDatumByArea.end())
         {
             goto BAD_NO_DATA;
@@ -373,7 +373,7 @@ namespace muffin { namespace modbus {
     {
         std::vector<datum_t>::const_iterator itDatum;
 
-        auto itArea = mMapDatumByArea.find(jvs::mb_area_e::HOLDING_REGISTER);
+        auto itArea = mMapDatumByArea.find(jvs::node_area_e::HOLDING_REGISTER);
         if (itArea == mMapDatumByArea.end())
         {
             goto BAD_NO_DATA;

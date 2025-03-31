@@ -1,0 +1,51 @@
+/**
+ * @file MelsecValidator.h
+ * @author Kim, Joo-sung (joosung5732@edgecross.ai)
+ * 
+ * @brief 시리얼 포트에 대한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
+ * 
+ * @date 2024-10-06
+ * @version 1.0.0
+ * 
+ * @copyright Copyright Edgecross Inc. (c) 2024
+ */
+
+
+
+
+#pragma once
+
+#include <ArduinoJson.h>
+#include <vector>
+
+#include "Common/Status.h"
+#include "JARVIS/Include/Base.h"
+#include "JARVIS/Include/TypeDefinitions.h"
+
+
+
+namespace muffin { namespace jvs {
+
+    class MelsecValidator
+    {
+    public:
+        MelsecValidator();
+        virtual ~MelsecValidator();
+    private:
+        using cin_vector = std::vector<config::Base*>;
+    public:
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
+    private:
+        std::pair<rsc_e, std::string> validateMelsec(const JsonArray array, cin_vector* outVector);
+        rsc_e validateMandatoryKeysMelsec(const JsonObject json);
+        rsc_e validateMandatoryValuesMelsec(const JsonObject json);
+    private:
+        rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
+    private:
+        std::pair<rsc_e, IPAddress> convertToIPv4(const std::string ip);
+        std::pair<rsc_e, std::vector<std::string>> convertToNodes(const JsonArray nodes);
+        std::pair<rsc_e, ps_e> convertToPlcSeries(const uint8_t plcSeries);
+        std::pair<rsc_e, df_e> convertTodataFormat(const uint8_t dataFormat);
+
+    };
+}}

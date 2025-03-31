@@ -240,7 +240,7 @@ namespace muffin {
         }
         
         const auto version = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
-        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second != jvs::prtcl_ver_e::VERSEOIN_3))
+        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second != jvs::prtcl_ver_e::VERSEOIN_4))
         {
             response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
             response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
@@ -691,7 +691,7 @@ namespace muffin {
                                     {
                                         retSlaveID.second = 0;
                                     }
-                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jvs::node_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
                                     jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
                                     int16_t retBit = ret.second->VariableNode.GetBitIndex();
                         
@@ -713,10 +713,10 @@ namespace muffin {
                                     LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
                                     switch (modbusArea)
                                     {
-                                    case jvs::mb_area_e::COILS:
+                                    case jvs::node_area_e::COILS:
                                         writeResult = modbusTCP.mModbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
                                         break;
-                                    case jvs::mb_area_e::HOLDING_REGISTER:
+                                    case jvs::node_area_e::HOLDING_REGISTER:
                                         writeResult = modbusTCP.mModbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:
@@ -762,7 +762,7 @@ namespace muffin {
                                         retSlaveID.second = 0;
                                     }
 
-                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jvs::node_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
                                     jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
                                     int16_t retBit = ret.second->VariableNode.GetBitIndex();
                         
@@ -784,10 +784,10 @@ namespace muffin {
 
                                     switch (modbusArea)
                                     {
-                                    case jvs::mb_area_e::COILS:
+                                    case jvs::node_area_e::COILS:
                                         writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
                                         break;
-                                    case jvs::mb_area_e::HOLDING_REGISTER:
+                                    case jvs::node_area_e::HOLDING_REGISTER:
                                         writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:

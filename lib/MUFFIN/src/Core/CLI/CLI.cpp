@@ -68,7 +68,7 @@ namespace muffin {
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
             JsonDocument doc;
-            doc["ver"] = "v3";
+            doc["ver"] = "v4";
 
             JsonObject cnt = doc["cnt"].to<JsonObject>();
             cnt["rs232"].to<JsonArray>();
@@ -81,6 +81,7 @@ namespace muffin {
             cnt["alarm"].to<JsonArray>();
             cnt["optime"].to<JsonArray>();
             cnt["prod"].to<JsonArray>();
+            cnt["melsec"].to<JsonArray>();
 
             JsonArray catm1 = cnt["catm1"].to<JsonArray>();
             JsonObject _catm1 = catm1.add<JsonObject>();

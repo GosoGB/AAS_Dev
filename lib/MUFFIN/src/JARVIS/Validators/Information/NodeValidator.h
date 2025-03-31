@@ -69,7 +69,7 @@ namespace muffin { namespace jvs {
         char mNodeID[5];
         std::pair<rsc_e, adtp_e> mAddressType;
         std::pair<rsc_e, addr_u> mAddress;
-        std::pair<rsc_e, mb_area_e> mModbusArea;
+        std::pair<rsc_e, node_area_e> mModbusArea;
         std::pair<rsc_e, uint8_t> mBitIndex;
         std::pair<rsc_e, uint8_t> mAddressQuantity;
         std::pair<rsc_e, scl_e> mNumericScale;

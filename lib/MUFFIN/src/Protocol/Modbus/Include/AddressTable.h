@@ -34,8 +34,8 @@ namespace muffin { namespace modbus {
     private:
         using AddressRange = im::NumericAddressRange;
     public:
-        Status Update(const uint8_t slaveID, const jvs::mb_area_e area, const AddressRange& range);
-        Status Remove(const uint8_t slaveID, const jvs::mb_area_e area, const AddressRange& range);
+        Status Update(const uint8_t slaveID, const jvs::node_area_e area, const AddressRange& range);
+        Status Remove(const uint8_t slaveID, const jvs::node_area_e area, const AddressRange& range);
         void Clear();
     public:
         std::pair<Status, std::set<uint8_t>> RetrieveEntireSlaveID() const;

@@ -25,7 +25,7 @@ namespace muffin { namespace jvs {
     NodeValidator::NodeValidator()
         : mAddressType(rsc_e::UNCERTAIN, adtp_e::NUMERIC)
         , mAddress(rsc_e::UNCERTAIN, addr_u())
-        , mModbusArea(rsc_e::UNCERTAIN, mb_area_e::COILS)
+        , mModbusArea(rsc_e::UNCERTAIN, node_area_e::COILS)
         , mBitIndex(rsc_e::UNCERTAIN, 0)
         , mAddressQuantity(rsc_e::UNCERTAIN, 0)
         , mNumericScale(rsc_e::UNCERTAIN, scl_e::NEGATIVE_1)
@@ -293,7 +293,7 @@ namespace muffin { namespace jvs {
             memset(mNodeID, '\0', sizeof(mNodeID));
             mAddressType      = std::make_pair(rsc_e::UNCERTAIN, adtp_e::NUMERIC);
             mAddress          = std::make_pair(rsc_e::UNCERTAIN, addr_u());
-            mModbusArea       = std::make_pair(rsc_e::UNCERTAIN, mb_area_e::COILS);
+            mModbusArea       = std::make_pair(rsc_e::UNCERTAIN, node_area_e::COILS);
             mBitIndex         = std::make_pair(rsc_e::UNCERTAIN, 0);
             mAddressQuantity  = std::make_pair(rsc_e::UNCERTAIN, 0);
             mNumericScale     = std::make_pair(rsc_e::UNCERTAIN, scl_e::NEGATIVE_1);
@@ -404,7 +404,7 @@ namespace muffin { namespace jvs {
      * @endcode
      */
 
-        if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+        if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
         {
             if (mBitIndex.first == rsc_e::GOOD)
             {
@@ -464,7 +464,7 @@ namespace muffin { namespace jvs {
 
             return std::make_pair(rsc_e::GOOD, "GOOD");
         }
-        else
+        else if (mModbusArea.second == node_area_e::DISCRETE_INPUT || mModbusArea.second == node_area_e::HOLDING_REGISTER)
         {
             if(mBitIndex.first == rsc_e::GOOD)
             {
@@ -482,6 +482,10 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
             
+            return std::make_pair(rsc_e::GOOD, "GOOD");
+        }
+        else
+        {
             return std::make_pair(rsc_e::GOOD, "GOOD");
         }
     }
@@ -547,7 +551,7 @@ namespace muffin { namespace jvs {
 
         if (mModbusArea.first == rsc_e::GOOD)
         {
-            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
@@ -636,7 +640,7 @@ namespace muffin { namespace jvs {
 
             if (mModbusArea.first == rsc_e::GOOD)
             {
-                if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+                if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
                 {
                     char message[128] = {'\0'};
                     snprintf(message, 128, "Address quantity is null by Modbus area config, NODE ID: %s", mNodeID);
@@ -665,7 +669,7 @@ namespace muffin { namespace jvs {
 
         if (mModbusArea.first == rsc_e::GOOD)
         {
-            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
@@ -736,7 +740,7 @@ namespace muffin { namespace jvs {
 
         if (mModbusArea.first == rsc_e::GOOD)
         {
-            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
@@ -794,7 +798,7 @@ namespace muffin { namespace jvs {
 
         if (mModbusArea.first == rsc_e::GOOD)
         {
-            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
@@ -828,7 +832,7 @@ namespace muffin { namespace jvs {
 
         if (mModbusArea.first == rsc_e::GOOD)
         {
-            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "DATA UNIT ORDERS CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
@@ -940,7 +944,7 @@ namespace muffin { namespace jvs {
         
         if (mModbusArea.first == rsc_e::GOOD && mDataUnitOrders.first != rsc_e::GOOD)
         {
-            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
             {
                 if (mDataTypes.second.size() != 1)
                 {
@@ -1051,7 +1055,7 @@ namespace muffin { namespace jvs {
 
         if (mModbusArea.first == rsc_e::GOOD)
         {
-            if (mModbusArea.second == mb_area_e::COILS || mModbusArea.second == mb_area_e::DISCRETE_INPUT)
+            if (mModbusArea.second == node_area_e::COILS || mModbusArea.second == node_area_e::DISCRETE_INPUT)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "FORMAT STRING CANNOT BE CONFIGURED WITH MODBUS AREA \"Coils\" OR \"Discrete Inputs\", NODE ID: %s", mNodeID);
@@ -1389,7 +1393,7 @@ namespace muffin { namespace jvs {
     }
 
     /**
-     * @return std::pair<Status, mb_area_e> 
+     * @return std::pair<Status, node_area_e> 
      *     @li rsc_e::GOOD 설정 값이 올바릅니다.
      *     @li rsc_e::GOOD_NO_DATA 설정 값이 NULL 입니다.
      *     @li Status::Code::BAD_DATA_ENCODING_INVALID 설정 값이 올바르지 않습니다.
@@ -1402,28 +1406,74 @@ namespace muffin { namespace jvs {
             return;
         }
 
-        if (modbusArea.is<uint8_t>() == false)
+        if (modbusArea.is<uint16_t>() == false)
         {
             mModbusArea.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             return;
         }
         
-        switch (modbusArea.as<uint8_t>())
+        switch (modbusArea.as<uint16_t>())
         {
         case 1:
-            mModbusArea.second = mb_area_e::COILS;
+            mModbusArea.second = node_area_e::COILS;
             break;
         case 2:
-            mModbusArea.second = mb_area_e::DISCRETE_INPUT;
+            mModbusArea.second = node_area_e::DISCRETE_INPUT;
             break;
         case 3:
-            mModbusArea.second = mb_area_e::INPUT_REGISTER;
+            mModbusArea.second = node_area_e::INPUT_REGISTER;
             break;
         case 4:
-            mModbusArea.second = mb_area_e::HOLDING_REGISTER;
+            mModbusArea.second = node_area_e::HOLDING_REGISTER;
+            break;
+        case 5:
+            mModbusArea.second = node_area_e::SM;
+            break;
+        case 6:
+            mModbusArea.second = node_area_e::SD;
+            break;
+        case 7:
+            mModbusArea.second = node_area_e::X;
+            break;
+        case 8:
+            mModbusArea.second = node_area_e::Y;
+            break;
+        case 9:
+            mModbusArea.second = node_area_e::M;
+            break;
+        case 10:
+            mModbusArea.second = node_area_e::L;
+            break;
+        case 11:
+            mModbusArea.second = node_area_e::F;
+            break;
+        case 12:
+            mModbusArea.second = node_area_e::V;
+            break;
+        case 13:
+            mModbusArea.second = node_area_e::B;
+            break;
+        case 14:
+            mModbusArea.second = node_area_e::D;
+            break;
+        case 15:
+            mModbusArea.second = node_area_e::W;
+            break;
+        case 16:
+            mModbusArea.second = node_area_e::TS;
+            break;
+        case 17:
+            mModbusArea.second = node_area_e::TC;
+            break;
+        case 18:
+            mModbusArea.second = node_area_e::TN;
+            break;
+        case 19:
+            mModbusArea.second = node_area_e::LTS;
             break;
         default:
             mModbusArea.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            mModbusArea.second = node_area_e::COILS;
             return;
         }
 

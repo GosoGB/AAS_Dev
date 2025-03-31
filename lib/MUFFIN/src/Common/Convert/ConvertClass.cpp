@@ -334,6 +334,10 @@ namespace muffin {
             {
                 return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::PRODUCTION_INFO);
             }
+            else if (input == "melsec")
+            {
+                return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::MELSEC);
+            }
             else
             {
                 LOG_ERROR(logger, "INVALID JARVIS CONFIG INSTANCE KEY: %s", input.c_str());

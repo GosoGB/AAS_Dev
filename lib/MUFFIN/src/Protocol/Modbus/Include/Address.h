@@ -40,15 +40,15 @@ namespace muffin { namespace modbus {
         using AddressRange = im::NumericAddressRange;
         using AddressRangeSet = std::set<AddressRange>;
     public:
-        Status Update(const jvs::mb_area_e area, const AddressRange& range);
-        Status Remove(const jvs::mb_area_e area, const AddressRange& range);
+        Status Update(const jvs::node_area_e area, const AddressRange& range);
+        Status Remove(const jvs::node_area_e area, const AddressRange& range);
     private:
-        Status emplaceAddressRange(const jvs::mb_area_e area, const AddressRange& range, AddressRangeSet* ranges);
-        Status updateConsecutiveRanges(const jvs::mb_area_e area, AddressRangeSet* ranges);
+        Status emplaceAddressRange(const jvs::node_area_e area, const AddressRange& range, AddressRangeSet* ranges);
+        Status updateConsecutiveRanges(const jvs::node_area_e area, AddressRangeSet* ranges);
     public:
-        std::pair<Status, std::set<jvs::mb_area_e>> RetrieveArea() const;
-        const std::set<AddressRange>& RetrieveAddressRange(const jvs::mb_area_e area) const;
+        std::pair<Status, std::set<jvs::node_area_e>> RetrieveArea() const;
+        const std::set<AddressRange>& RetrieveAddressRange(const jvs::node_area_e area) const;
     private:
-        std::map<jvs::mb_area_e, std::set<AddressRange>> mMapAddressByArea;
+        std::map<jvs::node_area_e, std::set<AddressRange>> mMapAddressByArea;
     };
 }}

@@ -67,14 +67,50 @@ namespace muffin { namespace jvs {
         uint32_t Numeric;
     } addr_u;
 
-    typedef enum class ModbusAreaEnum
-        : uint8_t
+    typedef enum class NodeAreaEnum
+        : uint16_t
     {
         COILS            = 1,
         DISCRETE_INPUT   = 2,
         INPUT_REGISTER   = 3,
-        HOLDING_REGISTER = 4
-    } mb_area_e;
+        HOLDING_REGISTER = 4,
+        SM	             = 5,
+        SD	             = 6,	
+        X	             = 7,	
+        Y	             = 8,	
+        M	             = 9,	
+        L	             = 10,	
+        F	             = 11, 
+        V	             = 12,
+        B	             = 13,
+        D	             = 14,
+        W	             = 15,
+        TS	             = 16,
+        TC	             = 17,
+        TN	             = 18,
+        LTS	             = 19,
+        LTC	             = 20,
+        LTN	             = 21,
+        STS	             = 22,
+        STC	             = 23,
+        STN	             = 24,
+        LSTS	         = 25,
+        LSTC	         = 26,
+        LSTN	         = 27,
+        CS	             = 28,
+        CC	             = 29,
+        CN	             = 30,
+        LCS	             = 31,
+        LCC	             = 32,
+        LCN	             = 33,
+        SB	             = 34,
+        SW	             = 35,
+        S	             = 36,
+        DX	             = 37,
+        DY	             = 38,
+        Z	             = 39,
+        LZ	             = 40
+    } node_area_e;
 
     typedef enum class NumericScaleByPowerOfTenEnum
         : int8_t
@@ -127,7 +163,8 @@ namespace muffin { namespace jvs {
         NODE                =  8,
         ALARM               =  9,
         OPERATION_TIME      = 10,
-        PRODUCTION_INFO     = 11
+        PRODUCTION_INFO     = 11,
+        MELSEC              = 12
     } cfg_key_e;
 
     typedef enum class ModlinkSerialPortIndexEnum
@@ -179,6 +216,20 @@ namespace muffin { namespace jvs {
         WIFI4     = 1,
         LTE_CatM1 = 2
     } nic_e;
+
+    typedef enum class MitsubishiPlcSeriesEnum
+        : uint8_t
+    {
+        QL_SERIES  = 0,
+        IQR_SERIES = 1
+    } ps_e;
+
+    typedef enum class MelsecDataFormatEnum
+        : uint8_t
+    {
+        BINARY  = 0,
+        ASCII   = 1
+    } df_e;
 
     typedef enum class AlarmEventTypeEnum
         : uint8_t
@@ -292,4 +343,6 @@ namespace muffin { namespace jvs {
         ERROR,
         TURN_OFF
     } op_status_e;
+
+    
 }}

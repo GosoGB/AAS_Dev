@@ -115,7 +115,7 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::ADDRESS));
     }
 
-    void Node::SetModbusArea(const mb_area_e area)
+    void Node::SetModbusArea(const node_area_e area)
     {
         ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_TYPE)) == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
         ASSERT((mAddressType == adtp_e::NUMERIC), "ADDRESS TYPE MUST BE SET TO NUMERIC");
@@ -157,8 +157,8 @@ namespace muffin { namespace jvs { namespace config {
                 [&]()
                 {
                     if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == node_area_e::COILS || mModbusArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -236,8 +236,8 @@ namespace muffin { namespace jvs { namespace config {
                 [&]()
                 {
                     if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == node_area_e::COILS || mModbusArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -311,8 +311,8 @@ namespace muffin { namespace jvs { namespace config {
                 [&]()
                 {
                     if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == node_area_e::COILS || mModbusArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -334,8 +334,8 @@ namespace muffin { namespace jvs { namespace config {
                 [&]()
                 {
                     if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == node_area_e::COILS || mModbusArea == node_area_e::DISCRETE_INPUT)
                         {
                             if (dt.size() != 1)
                             {
@@ -370,8 +370,8 @@ namespace muffin { namespace jvs { namespace config {
                 [&]()
                 {
                     if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mModbusArea == node_area_e::COILS || mModbusArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -549,7 +549,7 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, mb_area_e> Node::GetModbusArea() const
+    std::pair<Status, node_area_e> Node::GetModbusArea() const
     {
         if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
         {
@@ -583,7 +583,7 @@ namespace muffin { namespace jvs { namespace config {
         {
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
         }
-        else if (GetModbusArea().second == mb_area_e::COILS || GetModbusArea().second == mb_area_e::DISCRETE_INPUT)
+        else if (GetModbusArea().second == node_area_e::COILS || GetModbusArea().second == node_area_e::DISCRETE_INPUT)
         {
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
         }
