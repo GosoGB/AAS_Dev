@@ -112,9 +112,9 @@ namespace muffin { namespace im {
             -1;
     }
 
-    jvs::node_area_e Variable::GetModbusArea() const
+    jvs::node_area_e Variable::GetNodeArea() const
     {
-        return mCIN->GetModbusArea().second;
+        return mCIN->GetNodeArea().second;
     }
 
 
@@ -1010,7 +1010,7 @@ namespace muffin { namespace im {
         flattenToByteArray(polledData, &vectorFlattened);
         castByteVector(mCIN->GetDataTypes().second.front(), vectorFlattened, outputCastedData);
 
-        if ((mCIN->GetModbusArea().first == Status::Code::GOOD) && 
+        if ((mCIN->GetNodeArea().first == Status::Code::GOOD) && 
             (outputCastedData->ValueType == jvs::dt_e::STRING))
         {
             for (size_t i = 0; i < outputCastedData->Value.String.Length - 1; i += 2)

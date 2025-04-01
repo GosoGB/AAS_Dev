@@ -42,7 +42,7 @@ namespace muffin { namespace jvs {
     private:
         rsc_e validateMandatoryKeys(const JsonObject json);
         rsc_e validateMandatoryValues(const JsonObject json);
-        std::pair<rsc_e, std::string> validateModbusArea();
+        std::pair<rsc_e, std::string> validateNodeArea();
         std::pair<rsc_e, std::string> validateBitIndex();
         std::pair<rsc_e, std::string> validateAddressQuantity();
         std::pair<rsc_e, std::string> validateNumericScale();
@@ -57,7 +57,7 @@ namespace muffin { namespace jvs {
     private:
         void convertToAdressType(const uint8_t type);
         void convertToAddress(JsonVariant address);
-        void convertToModbusArea(JsonVariant modbusArea);
+        void convertToNodeArea(JsonVariant nodeArea);
         void convertToBitIndex(JsonVariant bitIndex);
         void convertToAddressQuantity(JsonVariant addressQuantity);
         void convertToNumericScale(JsonVariant numericScale);
@@ -66,10 +66,12 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, dt_e> convertToDataType(const uint8_t dataType);
         void convertToFormatString(const JsonVariant formatString);
     private:
+        bool isBitAddress(const node_area_e area);
+    private:
         char mNodeID[5];
         std::pair<rsc_e, adtp_e> mAddressType;
         std::pair<rsc_e, addr_u> mAddress;
-        std::pair<rsc_e, node_area_e> mModbusArea;
+        std::pair<rsc_e, node_area_e> mNodeArea;
         std::pair<rsc_e, uint8_t> mBitIndex;
         std::pair<rsc_e, uint8_t> mAddressQuantity;
         std::pair<rsc_e, scl_e> mNumericScale;

@@ -81,7 +81,7 @@ namespace muffin {
                 return ret;
             }
 
-            const jvs::node_area_e area = reference->VariableNode.GetModbusArea();
+            const jvs::node_area_e area = reference->VariableNode.GetNodeArea();
             const AddressRange range = createAddressRange(reference->VariableNode.GetAddress().Numeric, reference->VariableNode.GetQuantity());
     
             ret = mAddressTable.Update(slaveID, area, range);
@@ -105,7 +105,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        const jvs::node_area_e area = node.VariableNode.GetModbusArea();
+        const jvs::node_area_e area = node.VariableNode.GetNodeArea();
         const AddressRange range = createAddressRange(node);
 
         ret = mAddressTable.Remove(slaveID, area, range);
@@ -233,7 +233,7 @@ namespace muffin {
             {
                 const uint16_t address  = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
-                const jvs::node_area_e area = node->VariableNode.GetModbusArea();
+                const jvs::node_area_e area = node->VariableNode.GetNodeArea();
 
                 modbus::datum_t datum;
                 datum.Address = address;

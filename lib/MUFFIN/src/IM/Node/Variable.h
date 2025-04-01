@@ -42,7 +42,7 @@ namespace muffin { namespace im {
         jvs::addr_u GetAddress() const;
         uint8_t GetQuantity() const;
         int16_t GetBitIndex() const;
-        jvs::node_area_e GetModbusArea() const;
+        jvs::node_area_e GetNodeArea() const;
 
     public:
         void Update(const std::vector<poll_data_t>& polledData);

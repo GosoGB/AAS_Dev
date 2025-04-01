@@ -691,13 +691,13 @@ namespace muffin {
                                     {
                                         retSlaveID.second = 0;
                                     }
-                                    jvs::node_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
                                     jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
                                     int16_t retBit = ret.second->VariableNode.GetBitIndex();
                         
                                     if (retBit != -1)
                                     {
-                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
+                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
                                         LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
                                         retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
                                         LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
@@ -711,7 +711,7 @@ namespace muffin {
                                     }
 
                                     LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
-                                    switch (modbusArea)
+                                    switch (nodeArea)
                                     {
                                     case jvs::node_area_e::COILS:
                                         writeResult = modbusTCP.mModbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
@@ -720,7 +720,7 @@ namespace muffin {
                                         writeResult = modbusTCP.mModbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
                                         break;
                                     }
 
@@ -762,13 +762,13 @@ namespace muffin {
                                         retSlaveID.second = 0;
                                     }
 
-                                    jvs::node_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
                                     jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
                                     int16_t retBit = ret.second->VariableNode.GetBitIndex();
                         
                                     if (retBit != -1)
                                     {
-                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
+                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
                                         LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
                                         retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
                                         LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
@@ -782,7 +782,7 @@ namespace muffin {
                                         goto RC_RESPONSE;
                                     }
 
-                                    switch (modbusArea)
+                                    switch (nodeArea)
                                     {
                                     case jvs::node_area_e::COILS:
                                         writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
@@ -791,7 +791,7 @@ namespace muffin {
                                         writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
                                         break;
                                     }
 
@@ -812,7 +812,7 @@ namespace muffin {
                                     spear_remote_control_msg_t msg;
                                     msg.Link = modbusRTU.mPort;
                                     msg.SlaveID = retSlaveID.second;
-                                    msg.Area = modbusArea;
+                                    msg.Area = nodeArea;
                                     msg.Address = modbusAddress.Numeric;
                                     msg.Value = retConvertModbus.second;
                                     
