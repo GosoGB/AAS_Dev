@@ -22,18 +22,18 @@ public:
   void setTimeout(unsigned long timeout);
   void setIP(const char *ip);
   void setPort(uint16_t port);
-  bool testConnection();
+
   unsigned long getTimeout();
   bool connectTCP();
   void closeConnection();
   int send(const uint8_t command[], int length);
   int receive(uint8_t response[], int maxLength);
 
+  bool connected = false;
 private:
   const char *_ip;
   uint16_t _port = 1000;
   WiFiClient client;
-  bool connected = false;
   unsigned long _timeout = 100; // in milliseconds
 };
 

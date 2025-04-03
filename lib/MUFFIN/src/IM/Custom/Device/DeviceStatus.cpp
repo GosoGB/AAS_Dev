@@ -89,6 +89,10 @@ namespace muffin {
         mTaskResources[8].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[8].RemainedStackSize = -1;
 
+        strcpy(mTaskResources[9].TaskName, "MelsecTask");
+        mTaskResources[9].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[9].RemainedStackSize = -1;
+
     }
 
     void DeviceStatus::SetResetReason(const esp_reset_reason_t code)
@@ -174,8 +178,11 @@ namespace muffin {
         case task_name_e::CATM1_PROCESSOR_TASK:
             mTaskResources[7].RemainedStackSize = remainedStack;
             break;
-            case task_name_e::CATM1_MONITORING_TASK:
+        case task_name_e::CATM1_MONITORING_TASK:
             mTaskResources[8].RemainedStackSize = remainedStack;
+            break;
+            case task_name_e::MELSEC_TASK:
+            mTaskResources[9].RemainedStackSize = remainedStack;
             break;
         default:
             LOG_ERROR(logger,"NOT DEFINED TAKSNAME : %d",task);

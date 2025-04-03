@@ -1,5 +1,4 @@
-#ifndef MELESC_CONSTANTS_H
-#define MELESC_CONSTANTS_H
+
 
 #include <Arduino.h>
 
@@ -28,7 +27,8 @@ enum MitsuRemoteControlClearMode {
   ALL_CLEAR = 0x03
 };
 
-enum MitsuDeviceType {
+enum MitsuDeviceType 
+{
   SM,
   SD,
   X,
@@ -63,7 +63,8 @@ enum MitsuDeviceType {
   DX,
   DY,
   Z,
-  LZ
+  LZ,
+  S
 };
 
 const char DeviceTypeQL[40][3] = {"SM", "SD", "X*", "Y*", "M*", "L*",
@@ -73,7 +74,7 @@ const char DeviceTypeQL[40][3] = {"SM", "SD", "X*", "Y*", "M*", "L*",
                                   "  ", "  ", "CS", "CC", "CN",
                                   "  ", "  ", "  ", "SB", "SW",
                                   "DX", "DY", "Z*", "  ", "R*",
-                                  "ZR"};
+                                  "ZR","S*"};
 
 const char DeviceTypeiQR[40][5] = {"SM**", "SD**", "X***", "Y***", "M***", "L***",
                                    "F***", "V***", "B***", "D***", "W***",
@@ -82,6 +83,4 @@ const char DeviceTypeiQR[40][5] = {"SM**", "SD**", "X***", "Y***", "M***", "L***
                                    "LSTC", "LSTN", "CS**", "CC**", "CN**",
                                    "LCS*", "LCC*", "LCN*", "SB**", "SW**",
                                    "DX**", "DY**", "Z***", "LZ**", "R***",
-                                   "ZR**"};
-
-#endif // MELESC_CONSTANTS_H
+                                   "ZR**", "S***"};

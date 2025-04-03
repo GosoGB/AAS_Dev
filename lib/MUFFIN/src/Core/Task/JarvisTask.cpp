@@ -20,6 +20,7 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
+#include "Core/Task/MelsecTask.h"
 #include "Core/Task/CyclicalPubTask.h"
 #include "DataFormat/JSON/JSON.h"
 
@@ -40,6 +41,7 @@
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/ModbusTCP.h"
+#include "Protocol/Melsec/Melsec.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
@@ -138,6 +140,13 @@ namespace muffin {
                 break;
             case jvs::cfg_key_e::MODBUS_TCP:
                 applyModbusTcpCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
+                break;
+            case jvs::cfg_key_e::MELSEC:
+                applyMelsecCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
@@ -247,7 +256,7 @@ namespace muffin {
 
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ModbusRtuVector.clear();
-        mVectorModbusRTU.clear();
+        mConfigVectorMbRTU.clear();
         
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
@@ -261,18 +270,17 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
-            mVectorModbusRTU.emplace_back(*cin);
+            mConfigVectorMbRTU.emplace_back(*cin);
             ModbusRtuVector.emplace_back(*modbusRTU);
         }
 
-        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mConfigVectorMbRTU size : %d",mConfigVectorMbRTU.size());
 
-        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
-        StartModbusRtuTask();
+        StartModbusRtuTask(jvs::config::operation.GetIntervalPolling().second);
         StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     #else
         ModbusRtuVector.clear();
-        mVectorModbusRTU.clear();
+        mConfigVectorMbRTU.clear();
         
         std::set<jvs::prt_e> link;
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
@@ -287,11 +295,11 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
-            mVectorModbusRTU.emplace_back(*cin);
+            mConfigVectorMbRTU.emplace_back(*cin);
             ModbusRtuVector.emplace_back(*modbusRTU);
         }
 
-        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mConfigVectorMbRTU size : %d",mConfigVectorMbRTU.size());
         
         size_t count = 0;
         while (count < 5)
@@ -305,7 +313,7 @@ namespace muffin {
             delay(100);
         }
 
-        StartModbusRtuTask();
+        StartModbusRtuTask(jvs::config::operation.GetIntervalPolling().second);
         StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     #endif
         
@@ -328,8 +336,8 @@ namespace muffin {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
         }
+        mConfigVectorMbTCP.clear();
         ModbusTcpVector.clear();
-        mVectorModbusTCP.clear();
         
         for (auto& modbusTCPCIN : vectorModbusTCPCIN)
         {
@@ -341,12 +349,52 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
                 return;
             }
-            mVectorModbusTCP.emplace_back(*cin);
+            mConfigVectorMbTCP.emplace_back(*cin);
             ModbusTcpVector.emplace_back(*modbusTCP);
         }
 
-        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
-        StartModbusTcpTask();
+        StartModbusTcpTask(jvs::config::operation.GetIntervalPolling().second);
         StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
     }
+
+    void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
+    {
+    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
+    #endif
+
+        if (s_HasNode == false)
+        {
+            LOG_WARNING(logger, "NO NODE");
+            return;
+        }
+
+        if (jvs::config::operation.GetPlanExpired().second == true)
+        {
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
+            return;
+        }
+
+        mConfigVectorMelsec.clear();
+        MelsecVector.clear();
+
+        for (auto& melsecCIN : vectorMelsecCIN)
+        {
+            Melsec* melsec = new Melsec();
+            jvs::config::Melsec* cin = static_cast<jvs::config::Melsec*>(melsecCIN);
+            Status ret = melsec->Config(cin);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE MELSEC");
+                return;
+            }
+            mConfigVectorMelsec.emplace_back(*cin);
+            MelsecVector.emplace_back(*melsec);
+        }
+
+        StartMelsecTask(jvs::config::operation.GetIntervalPolling().second);
+        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+
+    }
+
 }

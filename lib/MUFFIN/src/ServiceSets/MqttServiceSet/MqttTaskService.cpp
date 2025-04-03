@@ -24,9 +24,12 @@
 
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
+#include "Core/Task/MelsecTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
+#include "Protocol/Melsec/MelsecMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
+#include "Protocol/Melsec/Melsec.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 
 #include "JARVIS/JARVIS.h"
@@ -668,9 +671,9 @@ namespace muffin {
         {
             uint8_t writeResult = 0;
     #if defined(MODLINK_T2) || defined(MODLINK_B)
-            if (mVectorModbusTCP.size() != 0)
+            if (mConfigVectorMbTCP.size() != 0)
             {
-                for (auto& TCP : mVectorModbusTCP)
+                for (auto& TCP : mConfigVectorMbTCP)
                 {
                     for (auto& modbusTCP : ModbusTcpVector)
                     {
@@ -736,11 +739,74 @@ namespace muffin {
                     
                 }
             }
+
+            if (mConfigVectorMelsec.size() != 0)
+            {
+                for (auto& melsecConfig : mConfigVectorMelsec)
+                {
+                    for (auto& melsec : MelsecVector)
+                    {
+                        if (melsec.GetServerIP() != melsecConfig.GetIPv4().second || melsec.GetServerPort() != melsecConfig.GetPort().second)
+                        {
+                            continue;
+                        }
+                        
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = melsecConfig.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
+                            {
+                                if (nodeId == ret.second->GetNodeID())
+                                {   
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                                    uint8_t nodeQuantity = ret.second->VariableNode.GetQuantity();
+
+                                    if (retBit != -1)
+                                    {
+                                        modbus::datum_t registerData =  melsec.GetAddressValue(1, modbusAddress.Numeric, nodeArea);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }      
+                                    
+                                    writeResult = 0;
+                                    if (xSemaphoreTake(xSemaphoreMelsec, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MELSEC] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    LOG_DEBUG(logger, "[MELSEC] 원격제어 : %u",retConvertModbus.second);
+                                    
+                                    
+                                    if (IsBitArea(nodeArea))
+                                    {
+                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient.writeBit(melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric, retConvertModbus.second);
+                                    }
+                                    else
+                                    {
+                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient.writeWord(melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric,retConvertModbus.second);
+                                    }
+                                    xSemaphoreGive(xSemaphoreMelsec);
+                                    goto RC_RESPONSE;
+                                }
+                                
+                            }
+                            
+                        }
+                    }
+                    
+                }
+            }
     #endif
 
-            if (mVectorModbusRTU.size() != 0)
+            if (mConfigVectorMbRTU.size() != 0)
             {
-                for (auto& RTU : mVectorModbusRTU)
+                for (auto& RTU : mConfigVectorMbRTU)
                 {
                     for (auto& modbusRTU : ModbusRtuVector)
                     {
@@ -1065,5 +1131,64 @@ RC_RESPONSE:
         
         LOG_INFO(logger, "Stopping the MQTT service");
         return Status(Status::Code::GOOD);
+    }
+
+    bool IsBitArea(const jvs::node_area_e area)
+    {
+        switch (area)
+        {
+        case jvs::node_area_e::COILS:
+        case jvs::node_area_e::DISCRETE_INPUT:
+        case jvs::node_area_e::SM:
+        case jvs::node_area_e::X:
+        case jvs::node_area_e::Y:
+        case jvs::node_area_e::M:
+        case jvs::node_area_e::L:
+        case jvs::node_area_e::F:
+        case jvs::node_area_e::V:
+        case jvs::node_area_e::B:
+        case jvs::node_area_e::TS:
+        case jvs::node_area_e::TC:
+        case jvs::node_area_e::LTS:
+        case jvs::node_area_e::LTC:
+        case jvs::node_area_e::STS:
+        case jvs::node_area_e::STC:
+        case jvs::node_area_e::LSTS:
+        case jvs::node_area_e::LSTC:
+        case jvs::node_area_e::CS:
+        case jvs::node_area_e::CC:
+        case jvs::node_area_e::LCS:
+        case jvs::node_area_e::LCC:
+        case jvs::node_area_e::SB:
+        case jvs::node_area_e::S:
+        case jvs::node_area_e::DX:
+        case jvs::node_area_e::DY:
+            return true;
+        case jvs::node_area_e::INPUT_REGISTER:
+        case jvs::node_area_e::HOLDING_REGISTER:
+        case jvs::node_area_e::SD:
+        case jvs::node_area_e::D:
+        case jvs::node_area_e::W:
+        case jvs::node_area_e::TN:
+        case jvs::node_area_e::CN:
+        case jvs::node_area_e::SW:
+        case jvs::node_area_e::Z:
+            return false;
+        /**
+         * @todo DoubleWord 어떻게 처리할 것인지 확인 필요 @김주성 
+         * 
+         */
+        case jvs::node_area_e::LTN:
+        case jvs::node_area_e::STN:
+        case jvs::node_area_e::LSTN:
+        case jvs::node_area_e::LCN:
+        case jvs::node_area_e::LZ:
+            LOG_WARNING(logger,"Double Word")
+            return false;
+        default:
+            LOG_ERROR(logger,"UNDEFINED NODE AREA %d",static_cast<uint16_t>(area));
+            ASSERT((true),"UNDEFINED NODE AREA %d",static_cast<uint16_t>(area));
+            return false;
+        }
     }
 }

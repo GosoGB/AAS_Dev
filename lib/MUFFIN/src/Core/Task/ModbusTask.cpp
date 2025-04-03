@@ -35,17 +35,14 @@ namespace muffin {
     std::vector<ModbusTCP> ModbusTcpVector;
     std::vector<ModbusRTU> ModbusRtuVector;
 
+
     TaskHandle_t xTaskModbusRtuHandle = NULL;
     TaskHandle_t xTaskModbusTcpHandle = NULL;
-    static uint32_t s_PollingIntervalInMillis = 1000;
 
-    void SetPollingInterval(const uint16_t pollingInterval)
-    {
-        s_PollingIntervalInMillis = 1000 * pollingInterval;
-    }
 
-    void implModbusRtuTask(void* pvParameters)
+    void implModbusRtuTask(void* pvParameter)
     {
+        uint32_t pollingIntervalInMillis = (*(uint16_t*)pvParameter) * 1000;
         uint32_t statusReportMillis = millis(); 
 
         while (true)
@@ -64,7 +61,7 @@ namespace muffin {
                 deviceStatus.SetTaskRemainedStack(task_name_e::MODBUS_RTU_TASK, RemainedStackSize);
             }
 
-            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
+            vTaskDelay(pollingIntervalInMillis / portTICK_PERIOD_MS);
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
@@ -85,7 +82,7 @@ namespace muffin {
         }
     }
 
-    void StartModbusRtuTask()
+    void StartModbusRtuTask(uint16_t pollingInterval)
     {
         if (xTaskModbusRtuHandle != NULL)
         {
@@ -101,7 +98,7 @@ namespace muffin {
             implModbusRtuTask,      // Function to be run inside of the task
             "implModbusRtuTask",    // The identifier of this task for men
             5 * KILLOBYTE,          // Stack memory size to allocate
-            NULL,			        // Task parameters to be passed to the function
+            &pollingInterval,			        // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusRtuHandle,  // The identifier of this task for machines
             0				        // Index of MCU core where the function to run
@@ -160,8 +157,9 @@ namespace muffin {
         }
     }
 
-    void implModbusTcpTask(void* pvParameters)
+    void implModbusTcpTask(void* pvParameter)
     {
+        uint32_t pollingIntervalInMillis = (*(uint16_t*)pvParameter) * 1000;
         uint32_t statusReportMillis = millis(); 
 
         while (true)
@@ -201,12 +199,12 @@ namespace muffin {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
             }
-            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);   
+            vTaskDelay(pollingIntervalInMillis / portTICK_PERIOD_MS);   
         }
     }
 
 
-    void StartModbusTcpTask()
+    void StartModbusTcpTask(uint16_t pollingInterval)
     {
         if (xTaskModbusTcpHandle != NULL)
         {
@@ -229,7 +227,7 @@ namespace muffin {
             implModbusTcpTask,      // Function to be run inside of the task
             "implModbusTcpTask",    // The identifier of this task for men
             5 * KILLOBYTE,		    // Stack memory size to allocate
-            NULL,			        // Task parameters to be passed to the function
+            &pollingInterval,// Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusTcpHandle,       // The identifier of this task for machines
             1				        // Index of MCU core where the function to run

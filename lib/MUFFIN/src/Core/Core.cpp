@@ -45,6 +45,7 @@
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
+#include "Protocol/Melsec/MelsecClient.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Operation/Operation.h"
@@ -54,8 +55,6 @@
 #include "Protocol/HTTP/Include/TypeDefinitions.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
-#include "Protocol/Melsec/MelsecProtocol.h"
-#include "Protocol/Melsec/MelsecConstants.h"
 
 #include "ServiceSets/FirmwareUpdateServiceSet/FirmwareUpdateService.h"
 #include "ServiceSets/FirmwareUpdateServiceSet/SendMessageService.h"
@@ -72,8 +71,9 @@
 
 namespace muffin {
 
-    std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
-    std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
+    std::vector<muffin::jvs::config::ModbusRTU> mConfigVectorMbRTU;
+    std::vector<muffin::jvs::config::ModbusTCP> mConfigVectorMbTCP;
+    std::vector<muffin::jvs::config::Melsec> mConfigVectorMelsec;
 
     void listDir(const char* dirname, const uint8_t levels)
     {
@@ -493,42 +493,66 @@ namespace muffin {
 
         esp32FS.Remove(LWIP_HTTP_PATH);
         
-        // ApplyJarvisTask();
+        ApplyJarvisTask();
         PublishFirmwareStatusMessageService();
         PublishStatusEventMessageService(&initConfig);
-        MelsecProtocol plc;
-
-        plc.setDataFormat(MC_BINARY);
-
-        if (!plc.begin("10.11.12.116", 3000, QL_SERIES)) 
-        {
-          LOG_DEBUG(logger,"PLC connection failed");
-          while (1);
-        }
-        bool bits[6];
-        int read = plc.readBits(X, 16, 2, bits);
-
-        if (read == 2) 
-        {
-            for (int i = 0; i < 2; i++) 
-            {
-                LOG_DEBUG(logger,"X%d : %s",16+i,bits[i] ? "ON" :"OFF");
-            }
-        }
         
-        uint16_t buffer[5] = {0};
-        int wordsRead = plc.readWords(W, 10, 5, buffer);
-        if (wordsRead == 5) 
-        {
-            for (size_t i = 0; i < 5; i++)
-            {
-                LOG_DEBUG(logger,"DATA[%d] : %d",i,buffer[i]);
-            }
-        } 
-        else 
-        {
-            LOG_ERROR(logger,"Failed to read words from PLC.");
-        }
+        // MelsecClient plc;
+        // plc.setDataFormat(MC_BINARY);
+
+        // if (!plc.begin("10.11.12.116", 3000, QL_SERIES)) 
+        // {
+        //   LOG_DEBUG(logger,"PLC connection failed");
+        // }
+
+
+        // while (true)
+        // {
+        //     if (plc.Connected())
+        //     {
+        //         LOG_ERROR(logger,"연결 성공");
+
+        //         bool bits[6];
+        //         int read = plc.readBits(M, 160, 2, bits);
+
+        //         if (read == 2) 
+        //         {
+        //             for (int i = 0; i < 2; i++) 
+        //             {
+        //                 LOG_DEBUG(logger,"X%d : %s",16+i,bits[i] ? "ON" :"OFF");
+        //             }
+        //         } 
+
+        //         uint16_t buffer[5] = {0};
+
+        //         int wordsRead = plc.readWords(D,1000, 1, buffer);
+        //         if (wordsRead == 1) 
+        //         {
+        //             for (size_t i = 0; i < 1; i++)
+        //             {
+        //                 LOG_DEBUG(logger,"DATA[%d] : %d",i,buffer[i]);
+        //             }
+        //         } 
+        //         else 
+        //         {
+        //             LOG_ERROR(logger,"Failed to read words from PLC.");
+        //         }
+
+        //         // buffer[0] = 1555;
+        //         // plc.writeWords(W,10,1,buffer);
+        //     }
+        //     else
+        //     {
+        //         LOG_ERROR(logger,"연결 실패");
+        //         if (!plc.begin("10.11.12.116", 3000, QL_SERIES)) 
+        //         {
+        //           LOG_DEBUG(logger,"PLC connection failed");
+        //         }
+        //     }
+        //     delay(5000);
+        // }
+        
+    
 
     }
 

@@ -66,7 +66,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, dt_e> convertToDataType(const uint8_t dataType);
         void convertToFormatString(const JsonVariant formatString);
     private:
-        bool isBitAddress(const node_area_e area);
+        bool isBitArea(const node_area_e area);
     private:
         char mNodeID[5];
         std::pair<rsc_e, adtp_e> mAddressType;

@@ -205,14 +205,13 @@ namespace muffin { namespace modbus {
             for (const auto& area : retrieved.second)
             {
                 const auto& ranges = address.RetrieveAddressRange(area);
-                const char* strArea = area == jvs::node_area_e::COILS          ? "COIL" :
-                                      area == jvs::node_area_e::DISCRETE_INPUT ? "D.I." :
-                                      area == jvs::node_area_e::INPUT_REGISTER ? "I.R." : "H.R.";
+
+                std::string strArea = convertToStr(area);
                 
                 for (const auto& range : ranges)
                 {
                     printCell(cellWidth, slaveID, castedBuffer);
-                    printCell(cellWidth, strArea, castedBuffer);
+                    printCell(cellWidth, strArea.c_str(), castedBuffer);
                     printCell(cellWidth, range.GetStartAddress(), castedBuffer);
                     printCell(cellWidth, range.GetLastAddress(), castedBuffer);
                     printCell(cellWidth, range.GetQuantity(), castedBuffer);
@@ -224,6 +223,96 @@ namespace muffin { namespace modbus {
         strcat(buffer, dashLine);
         LOG_INFO(logger, "Modbus Address Table\n%s\n", buffer);
     }
+    std::string AddressTable::convertToStr(jvs::node_area_e area) const
+    {
+        switch (area)
+        {
+        case jvs::node_area_e::COILS:
+            return "COIL";
+        case jvs::node_area_e::DISCRETE_INPUT:
+            return " DI ";
+        case jvs::node_area_e::SM:
+            return " SM ";
+        case jvs::node_area_e::X:
+            return "  X ";
+        case jvs::node_area_e::Y:
+            return "  Y ";
+        case jvs::node_area_e::M:
+            return "  M ";
+        case jvs::node_area_e::L:
+            return "  L ";
+        case jvs::node_area_e::F:
+            return "  F ";
+        case jvs::node_area_e::V:
+            return "  V ";
+        case jvs::node_area_e::B:
+            return "  B ";
+        case jvs::node_area_e::TS:
+            return " TS ";
+        case jvs::node_area_e::TC:
+            return " TC ";
+        case jvs::node_area_e::LTS:
+            return "LTS ";
+        case jvs::node_area_e::LTC:
+            return "LTC ";
+        case jvs::node_area_e::STS:
+            return "STS ";
+        case jvs::node_area_e::STC:
+            return "STC ";
+        case jvs::node_area_e::LSTS:
+            return "LSTS";
+        case jvs::node_area_e::LSTC:
+            return "LSTC";
+        case jvs::node_area_e::CS:
+            return " CS ";
+        case jvs::node_area_e::CC:
+            return " CC ";
+        case jvs::node_area_e::LCS:
+            return "LCS ";
+        case jvs::node_area_e::LCC:
+            return "LCC ";
+        case jvs::node_area_e::SB:
+            return " SB ";
+        case jvs::node_area_e::S:
+            return "  S ";
+        case jvs::node_area_e::DX:
+            return " DX ";
+        case jvs::node_area_e::DY:
+            return " DY ";
+        case jvs::node_area_e::INPUT_REGISTER:
+            return " IR ";
+        case jvs::node_area_e::HOLDING_REGISTER:
+            return " HR ";
+        case jvs::node_area_e::SD:
+            return " SD ";
+        case jvs::node_area_e::D:
+            return "  D ";
+        case jvs::node_area_e::W:
+            return "  W ";
+        case jvs::node_area_e::TN:
+            return " TN ";
+        case jvs::node_area_e::CN:
+            return " CN ";
+        case jvs::node_area_e::SW:
+            return " SW ";
+        case jvs::node_area_e::Z:
+            return "  Z ";
+        case jvs::node_area_e::LTN:
+            return "LTN ";
+        case jvs::node_area_e::STN:
+            return "STN ";
+        case jvs::node_area_e::LSTN:
+            return "LSTN";
+        case jvs::node_area_e::LCN:
+            return "LCN ";
+        case jvs::node_area_e::LZ:
+            return " LZ ";
+        default:
+            LOG_ERROR(logger,"NODE AREA ERROR !!! :%u",static_cast<uint16_t>(area));
+            return "";
+        }
+    }
+
 #else
 #endif
 }}

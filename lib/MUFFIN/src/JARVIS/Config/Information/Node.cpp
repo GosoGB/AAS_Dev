@@ -583,14 +583,42 @@ namespace muffin { namespace jvs { namespace config {
         {
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
         }
-        else if (GetNodeArea().second == node_area_e::COILS || GetNodeArea().second == node_area_e::DISCRETE_INPUT)
-        {
-            return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
-        }
         else
         {
-            return std::make_pair(Status(Status::Code::BAD), mAddressQuantity);
+            switch (GetNodeArea().second)
+            {
+            case node_area_e::COILS:
+            case node_area_e::DISCRETE_INPUT:
+            case node_area_e::SM:
+            case node_area_e::X:
+            case node_area_e::Y:
+            case node_area_e::M:
+            case node_area_e::L:
+            case node_area_e::F:
+            case node_area_e::V:
+            case node_area_e::B:
+            case node_area_e::TS:
+            case node_area_e::TC:
+            case node_area_e::LTS:
+            case node_area_e::LTC:
+            case node_area_e::STS:
+            case node_area_e::STC:
+            case node_area_e::LSTS:
+            case node_area_e::LSTC:
+            case node_area_e::CS:
+            case node_area_e::CC:
+            case node_area_e::LCS:
+            case node_area_e::LCC:
+            case node_area_e::SB:
+            case node_area_e::S:
+            case node_area_e::DX:
+            case node_area_e::DY:
+                return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
+            default:
+                break;
+            }
         }
+        return std::make_pair(Status(Status::Code::BAD), mAddressQuantity);
     }
 
     std::pair<Status, scl_e> Node::GetNumericScale() const

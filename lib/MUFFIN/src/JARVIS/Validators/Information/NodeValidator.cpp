@@ -372,7 +372,7 @@ namespace muffin { namespace jvs {
         }
     }
 
-    bool NodeValidator::isBitAddress(const node_area_e area)
+    bool NodeValidator::isBitArea(const node_area_e area)
     {
         switch (area)
         {
@@ -464,7 +464,7 @@ namespace muffin { namespace jvs {
      */
 
         
-        if (isBitAddress(mNodeArea.second) == true)
+        if (isBitArea(mNodeArea.second) == true)
         {
             if (mBitIndex.first == rsc_e::GOOD)
             {
@@ -608,7 +608,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitAddress(mNodeArea.second))
+            if (isBitArea(mNodeArea.second))
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -697,7 +697,7 @@ namespace muffin { namespace jvs {
 
             if (mNodeArea.first == rsc_e::GOOD)
             {
-                if (isBitAddress(mNodeArea.second) == true)
+                if (isBitArea(mNodeArea.second) == true)
                 {
                     char message[128] = {'\0'};
                     snprintf(message, 128, "Address quantity is null by Bit area config, NODE ID: %s", mNodeID);
@@ -726,7 +726,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitAddress(mNodeArea.second) == true)
+            if (isBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -797,7 +797,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitAddress(mNodeArea.second) == true)
+            if (isBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -855,7 +855,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitAddress(mNodeArea.second) == true)
+            if (isBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -889,7 +889,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitAddress(mNodeArea.second) == true)
+            if (isBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "DATA UNIT ORDERS CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -1001,7 +1001,7 @@ namespace muffin { namespace jvs {
         
         if (mNodeArea.first == rsc_e::GOOD && mDataUnitOrders.first != rsc_e::GOOD)
         {
-            if (isBitAddress(mNodeArea.second) == true)
+            if (isBitArea(mNodeArea.second) == true)
             {
                 if (mDataTypes.second.size() != 1)
                 {
@@ -1112,7 +1112,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitAddress(mNodeArea.second) == true)
+            if (isBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "FORMAT STRING CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);

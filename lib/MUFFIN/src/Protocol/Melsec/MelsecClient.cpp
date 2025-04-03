@@ -1,41 +1,138 @@
-#include "MelsecProtocol.h"
+#include "MelsecClient.h"
 #include <string.h>
 
 // 기본 ASCII 모드용 기본 헤더 (4E 프레임)
 const String baseHeader = "500000FF03FF00";
 
-MelsecProtocol::MelsecProtocol() 
+MelsecClient::MelsecClient() 
   : _port(0), _ip(nullptr), plcSeries(0), monitoringTimer(0x04), dataFormat(MC_ASCII) {
 }
 
-MelsecProtocol::MelsecProtocol(const char *ip, uint16_t port, MitsuPLCSeries series)
+MelsecClient::MelsecClient(const char *ip, uint16_t port, MitsuPLCSeries series)
   : _port(port), _ip(ip), plcSeries(series), monitoringTimer(0x04), dataFormat(MC_ASCII) {
   tcp.setIP(ip);
   tcp.setPort(port);
 }
 
-bool MelsecProtocol::begin(const char *ip, uint16_t port, MitsuPLCSeries series) {
+bool MelsecClient::begin(const char *ip, uint16_t port, MitsuPLCSeries series) {
   _ip = ip;
   _port = port;
   plcSeries = series;
   tcp.setIP(ip);
   tcp.setPort(port);
-  return tcp.testConnection();
+  return tcp.connectTCP();
 }
 
-bool MelsecProtocol::begin() {
+bool MelsecClient::begin() {
   return begin(_ip, _port, (MitsuPLCSeries)plcSeries);
 }
 
-String MelsecProtocol::sendAndReceive(const String &command) {
-  if (dataFormat == MC_ASCII) {
+bool MelsecClient::Connected() 
+{
+  if (tcp.connected == false)
+  {
+    return false;
+  }
+  
+  
+  if (dataFormat == MC_ASCII)
+  {
+    String cmd = baseHeader;
+
+    // NOP 명령: 모니터링 타이머 + 명령(0C00) + 서브커맨드(0000)
+    // 데이터 길이 = 2(타이머) + 2(커맨드) + 2(서브커맨드) = 6 = 0x0006
+    cmd += "0006";     // Request data length (6 bytes = 12 ASCII chars)
+    cmd += "0010";     // Monitoring timer (0010 = 1000ms)
+    cmd += "0C00";     // Command = 0x000C (NOP)
+    cmd += "0000";     // Subcommand = 0x0000
+
+    String response = sendAndReceive(cmd);
+
+    // 최소 응답 길이 확인 (헤더 + 응답코드까지 22)
+    if (response == "ERROR" || response.length() < 22)
+    {
+      tcp.closeConnection();
+      return false;
+    }
+
+    String endCode = response.substring(34, 38);
+    
+    if (endCode.equalsIgnoreCase("0000")) 
+    {
+      return true;
+    }
+    else
+    {
+      tcp.closeConnection();
+      return false;
+    }
+  }
+  else
+  {
+    uint8_t frame[1024];
+    int index = 0;
+
+    // 1. 서두부 (Subheader ~ Request data length)
+    frame[index++] = 0x50;  // Subheader (ASCII 헤더 기준)
+    frame[index++] = 0x00;
+    frame[index++] = 0x00;  // Network No.
+    frame[index++] = 0xFF;  // PC No.
+    frame[index++] = 0xFF;  // I/O No (LSB)
+    frame[index++] = 0x03;  // I/O No (MSB)
+    frame[index++] = 0x00;  // Unit No.
+
+    // 2. 데이터 길이 (Request Data Length)
+    frame[index++] = 0x06;  // Length LSB
+    frame[index++] = 0x00;  // Length MSB
+
+    // 3. 모니터링 타이머 (1000ms)
+    frame[index++] = 0x10;  // Timer LSB
+    frame[index++] = 0x00;  // Timer MSB
+
+    // 4. 커맨드 (NOP = 0x000C)
+    frame[index++] = 0x0C;  // Command LSB
+    frame[index++] = 0x00;  // Command MSB
+
+    // 5. 서브커맨드
+    frame[index++] = 0x00;  // Subcommand LSB
+    frame[index++] = 0x00;  // Subcommand MSB
+    String response = sendAndReceive(String((char *)frame, index));
+
+    // 최소 응답 길이 확인 (헤더 + 응답코드까지 22)
+    if (response == "ERROR" || response.length() < 22)
+    {
+      tcp.closeConnection();
+      return false;
+    }
+
+    String endCode = response.substring(34, 38);
+    if (endCode.equalsIgnoreCase("0000")) 
+    {
+      return true;
+    }
+    else
+    {
+      tcp.closeConnection();
+      return false;
+    }
+  }
+}
+
+String MelsecClient::sendAndReceive(const String &command) {
+  if (dataFormat == MC_ASCII)
+  {
     return tcp.sendAndReceive(command);
   }
 
   // MC_BINARY 처리
   const uint8_t *data = (const uint8_t *)command.c_str();
   int length = command.length();
-
+  // Serial.print("DATA : ");
+  // for (size_t i = 0; i < length; i++)
+  // {
+    // Serial.printf("%02X",data[i]);
+  // }
+  // Serial.println();
   uint8_t response[1024];
   int respLen = tcp.sendAndReceiveBinary(data, length, response);
 
@@ -48,19 +145,19 @@ String MelsecProtocol::sendAndReceive(const String &command) {
     sprintf(buf, "%02X", response[i]);
     result += String(buf);
   }
-  log_d("result : %s",result.c_str());
+  // log_d("result : %s",result.c_str());
   return result;
 }
 
 
-int MelsecProtocol::sendAndReceive(const String &command, uint16_t buffer[]) {
+int MelsecClient::sendAndReceive(const String &command, uint16_t buffer[]) {
   String resp = sendAndReceive(command);
   if (resp == "ERROR") return 0;
   return hexStringToWords(resp, buffer);
 }
 
 
-String MelsecProtocol::extractBinaryData(const String &response) 
+String MelsecClient::extractBinaryData(const String &response) 
 {
   const int HEADER_SIZE = 11;  // Binary 응답 헤더 길이 (고정)
   if (response.length() <= HEADER_SIZE * 2) return "";
@@ -69,13 +166,13 @@ String MelsecProtocol::extractBinaryData(const String &response)
   return response.substring(HEADER_SIZE * 2);
 }
 
-String MelsecProtocol::extractAsciiData(const String &response) 
+String MelsecClient::extractAsciiData(const String &response) 
 {
   if (response.length() <= 22) return "";
   return response.substring(22);  // 실제 응답 데이터
 }
 
-int MelsecProtocol::hexStringToWords(const String &hexStr, uint16_t buffer[]) {
+int MelsecClient::hexStringToWords(const String &hexStr, uint16_t buffer[]) {
   int wordCount = hexStr.length() / 4;
   String fitted = fitStringToWords(hexStr, wordCount);
   for (int i = 0; i < wordCount; i++) {
@@ -95,7 +192,7 @@ int MelsecProtocol::hexStringToWords(const String &hexStr, uint16_t buffer[]) {
   return wordCount;
 }
 
-int MelsecProtocol::wordsToHexString(const uint16_t data[], int wordCount, String &hexStr) {
+int MelsecClient::wordsToHexString(const uint16_t data[], int wordCount, String &hexStr) {
   hexStr = "";
   char buf[5];
   for (int i = 0; i < wordCount; i++) {
@@ -105,7 +202,7 @@ int MelsecProtocol::wordsToHexString(const uint16_t data[], int wordCount, Strin
   return wordCount;
 }
 
-int MelsecProtocol::wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], int wordCount) {
+int MelsecClient::wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], int wordCount) {
   for (int i = 0; i < wordCount; i++) {
     bytes[i * 2]     = (uint8_t)(words[i] >> 8);
     bytes[i * 2 + 1] = (uint8_t)(words[i] & 0xFF);
@@ -113,7 +210,7 @@ int MelsecProtocol::wordArrayToByteArray(const uint16_t words[], uint8_t bytes[]
   return wordCount * 2;
 }
 
-String MelsecProtocol::fitStringToWords(const String &input, int wordCount) {
+String MelsecClient::fitStringToWords(const String &input, int wordCount) {
   int requiredLength = wordCount * 4;
   String output = input;
   int diff = requiredLength - input.length();
@@ -127,7 +224,7 @@ String MelsecProtocol::fitStringToWords(const String &input, int wordCount) {
   return output;
 }
 
-String MelsecProtocol::stringToHexASCII(const String &input) {
+String MelsecClient::stringToHexASCII(const String &input) {
   String result = "";
   for (size_t i = 0; i < input.length(); i++) {
     char buf[3];
@@ -144,7 +241,53 @@ String MelsecProtocol::stringToHexASCII(const String &input) {
   return inverted;
 }
 
-String MelsecProtocol::batchReadWrite(MitsuDeviceType device, uint32_t address, int count, bool read, bool isBit, const String &dataToWrite) {
+bool MelsecClient::isHexMemory(const MitsuDeviceType type)
+{
+  switch (type)
+  {
+  case X:
+  case Y:
+  case B:
+  case W:
+  case SB:
+  case SW:
+  case DX:
+  case DY:
+    return true;
+  case SM:
+  case M:
+  case L:
+  case F:
+  case V:
+  case TS:
+  case TC:
+  case LTS:
+  case LTC:
+  case STS:
+  case STC:
+  case LSTS:
+  case LSTC:
+  case CS:
+  case CC:
+  case LCS:
+  case LCC:
+  case SD:
+  case D:
+  case TN:
+  case CN:
+  case Z:
+  case LTN:
+  case STN:
+  case LSTN:
+  case LCN:
+  case LZ:
+    return false;
+  default:
+      return false;
+  }
+}
+
+String MelsecClient::batchReadWrite(MitsuDeviceType device, uint32_t address, int count, bool read, bool isBit, const String &dataToWrite) {
   if (dataFormat == MC_ASCII) 
   {
     // 기존 ASCII 코드 유지
@@ -162,11 +305,21 @@ String MelsecProtocol::batchReadWrite(MitsuDeviceType device, uint32_t address, 
       command += String(DeviceTypeQL[device]);
     }
 
-    String addrStr = String(address);
-    while (addrStr.length() < 6) {
-      addrStr = "0" + addrStr;
+    if (isHexMemory(device))
+    {
+      char hexStr[7];  // 6자리 + 널종료
+      sprintf(hexStr, "%06X", address);  // 대문자 HEX, 6자리 고정
+      command += String(hexStr);
     }
-    command += addrStr;
+    else
+    {
+      String addrStr = String(address);
+      while (addrStr.length() < 6) 
+      {
+        addrStr = "0" + addrStr;
+      }
+      command += String(addrStr);
+    }
 
     sprintf(buf, "%.4X", count);
     command += String(buf);
@@ -212,10 +365,23 @@ String MelsecProtocol::batchReadWrite(MitsuDeviceType device, uint32_t address, 
     frame[index++] = 0x00;
   }
 
-  // 3. 디바이스 주소
-  frame[index++] = (uint8_t)(address & 0xFF);
-  frame[index++] = (uint8_t)((address >> 8) & 0xFF);
-  frame[index++] = (uint8_t)((address >> 16) & 0xFF);
+  if (isHexMemory(device))
+  {
+    char buf[16];
+    sprintf(buf, "%X", address);  // HEX 문자열로
+    uint32_t convertedAddress = strtoul(buf, nullptr, 16);  // 다시 10진수로
+    // 3. 디바이스 주소
+    frame[index++] = (uint8_t)(convertedAddress & 0xFF);
+    frame[index++] = (uint8_t)((convertedAddress >> 8) & 0xFF);
+    frame[index++] = (uint8_t)((convertedAddress >> 16) & 0xFF);
+  }
+  else
+  {
+    frame[index++] = (uint8_t)(address & 0xFF);
+    frame[index++] = (uint8_t)((address >> 8) & 0xFF);
+    frame[index++] = (uint8_t)((address >> 16) & 0xFF);
+  }
+
 
   // 4. 디바이스 코드
   frame[index++] = getDeviceCode(device); // 예: M=0x90, D=0xA8 등
@@ -243,16 +409,20 @@ String MelsecProtocol::batchReadWrite(MitsuDeviceType device, uint32_t address, 
   return String((char *)frame, index);  // 실제 전송은 sendAndReceiveBinary에서 처리
 }
 
-bool MelsecProtocol::writeWords(MitsuDeviceType device, uint32_t address, int wordCount, const uint16_t data[])
+bool MelsecClient::writeWords(MitsuDeviceType device, uint32_t address, int wordCount, const uint16_t data[])
 {
   String dataStr = "";
 
-  if (dataFormat == MC_ASCII) {
+  if (dataFormat == MC_ASCII) 
+  {
     // ASCII 모드: 워드를 HEX 문자열로 변환
     wordsToHexString(data, wordCount, dataStr);
-  } else {
+  } 
+  else 
+  {
     // BINARY 모드: 워드를 바이트 배열로 변환 후 HEX로 인코딩
-    for (int i = 0; i < wordCount; i++) {
+    for (int i = 0; i < wordCount; i++) 
+    {
       // 워드는 little-endian (LSB 먼저)
       uint8_t lsb = data[i] & 0xFF;
       uint8_t msb = (data[i] >> 8) & 0xFF;
@@ -272,18 +442,17 @@ bool MelsecProtocol::writeWords(MitsuDeviceType device, uint32_t address, int wo
 }
 
 
-bool MelsecProtocol::writeWord(MitsuDeviceType device, uint32_t address, uint16_t word) {
+bool MelsecClient::writeWord(MitsuDeviceType device, uint32_t address, uint16_t word) {
   return writeWords(device, address, 1, &word);
 }
 
-bool MelsecProtocol::writeBit(MitsuDeviceType device, uint32_t address, uint8_t value) {
-  String data = (value ? "1" : "0");
-  String frame = batchReadWrite(device, address, 1, false, true, data);
-  String resp = sendAndReceive(frame);
-  return (resp != "ERROR");
+bool MelsecClient::writeBit(MitsuDeviceType device, uint32_t address, uint8_t value) {
+  bool data[1];
+  data[0] = value;
+  return writeBits(device, address, 1, data);
 }
 
-bool MelsecProtocol::writeBits(MitsuDeviceType device, uint32_t address, int count, const bool *values)
+bool MelsecClient::writeBits(MitsuDeviceType device, uint32_t address, int count, const bool *values)
 {
   String data = "";
 
@@ -319,7 +488,7 @@ bool MelsecProtocol::writeBits(MitsuDeviceType device, uint32_t address, int cou
 }
 
 
-int MelsecProtocol::readWords(MitsuDeviceType device, uint32_t address, int wordCount, uint16_t buffer[]) 
+int MelsecClient::readWords(MitsuDeviceType device, uint32_t address, int wordCount, uint16_t buffer[]) 
 {
   String frame = batchReadWrite(device, address, wordCount, true);
   String resp = sendAndReceive(frame);
@@ -347,7 +516,7 @@ int MelsecProtocol::readWords(MitsuDeviceType device, uint32_t address, int word
 }
 
 
-int MelsecProtocol::readBits(MitsuDeviceType device, uint32_t address, int count, bool *buffer) 
+int MelsecClient::readBits(MitsuDeviceType device, uint32_t address, int count, bool *buffer) 
 {
   if (dataFormat == MC_ASCII) {
     // 기존 ASCII 경로
@@ -368,8 +537,6 @@ int MelsecProtocol::readBits(MitsuDeviceType device, uint32_t address, int count
   String frame = batchReadWrite(device, address, count, true, true);
   const char *raw = frame.c_str();
   const uint8_t *cmd = (const uint8_t *)raw;
-  log_d("frame : %s",frame.c_str());
-
 
   uint8_t response[256];
   int len = tcp.sendAndReceiveBinary(cmd, frame.length(), response);
@@ -393,42 +560,41 @@ int MelsecProtocol::readBits(MitsuDeviceType device, uint32_t address, int count
     }
 
     buffer[i] = bitVal;
-    log_d("Bit[%d] from byte[0x%02X] = %d", i, byte, bitVal);
   }
 
   return count;
 }
 
-bool MelsecProtocol::run(bool force, MitsuRemoteControlClearMode clearMode) {
+bool MelsecClient::run(bool force, MitsuRemoteControlClearMode clearMode) {
   String resp = moduleControl(RUN, force ? EXECUTE_FORCIBLY : DONT_EXECUTE_FORCIBLY, clearMode);
   return (resp != "ERROR");
 }
 
-bool MelsecProtocol::pause(bool force) {
+bool MelsecClient::pause(bool force) {
   String resp = moduleControl(PAUSE, force ? EXECUTE_FORCIBLY : DONT_EXECUTE_FORCIBLY);
   return (resp != "ERROR");
 }
 
-bool MelsecProtocol::stop() {
+bool MelsecClient::stop() {
   String resp = moduleControl(STOP);
   return (resp != "ERROR");
 }
 
-bool MelsecProtocol::clear() {
+bool MelsecClient::clear() {
   String resp = moduleControl(CLEAR);
   return (resp != "ERROR");
 }
 
-bool MelsecProtocol::reset() {
+bool MelsecClient::reset() {
   String resp = moduleControl(RESET);
   return (resp != "ERROR");
 }
 
-String MelsecProtocol::getCPUModel() {
+String MelsecClient::getCPUModel() {
   return moduleControl(CPU_MODEL);
 }
 
-String MelsecProtocol::getErrorDescription(const String &error) {
+String MelsecClient::getErrorDescription(const String &error) {
   uint16_t codeArray[1];
   hexStringToWords(error, codeArray);
   uint16_t errorCode = codeArray[0];
@@ -477,7 +643,7 @@ String MelsecProtocol::getErrorDescription(const String &error) {
   return "UNKNOWN ERROR";
 }
 
-uint8_t MelsecProtocol::getDeviceCode(MitsuDeviceType device) {
+uint8_t MelsecClient::getDeviceCode(MitsuDeviceType device) {
   switch (device) {
     case M: return 0x90;
     case D: return 0xA8;
@@ -490,10 +656,10 @@ uint8_t MelsecProtocol::getDeviceCode(MitsuDeviceType device) {
   }
 }
 
-uint8_t MelsecProtocol::getMonitoringTimer() {
+uint8_t MelsecClient::getMonitoringTimer() {
   return monitoringTimer;
 }
 
-void MelsecProtocol::setMonitoringTimer(uint8_t time) {
+void MelsecClient::setMonitoringTimer(uint8_t time) {
   monitoringTimer = time;
 }

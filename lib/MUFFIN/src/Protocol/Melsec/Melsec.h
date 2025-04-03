@@ -1,0 +1,84 @@
+/**
+ * @file Melsec.h
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2025-04-01
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
+
+
+
+#pragma once
+
+
+#include <vector>
+
+#include "Common/Status.h"
+#include "Protocol/Modbus/Include/AddressTable.h"
+#include "Protocol/Modbus/Include/NodeTable.h"
+#include "Protocol/Modbus/Include/PolledDataTable.h"
+#include "Protocol/Modbus/Include/TypeDefinitions.h"
+#include "JARVIS/Config/Protocol/Melsec.h"
+#include "JARVIS/Include/TypeDefinitions.h"
+#include "Protocol/Melsec/MelsecClient.h"
+
+
+
+namespace muffin {
+
+    class Melsec
+    {
+    public:
+        Melsec();
+        virtual ~Melsec();
+    private:
+        using AddressRange = im::NumericAddressRange;
+
+
+    public:
+        Status Config(jvs::config::Melsec* config);
+        void Clear();
+        IPAddress GetServerIP();
+        uint16_t GetServerPort();
+        bool Connect();
+        Status Poll();
+    private:
+        Status addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID);
+        im::NumericAddressRange createAddressRange(const uint16_t address, const uint16_t quantity) const;
+        Status implementPolling();
+        Status updateVariableNodes();
+    private:
+        Status bitsRead(const jvs::node_area_e area, const std::set<AddressRange>& addressRangeSet);
+        Status wordsRead(const jvs::node_area_e area, const std::set<AddressRange>& addressRangeSet);
+        bool isBitArea(const jvs::node_area_e area);
+    public:
+        MitsuDeviceType ConvertToDeviceType(const jvs::node_area_e area);
+        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area);
+    
+
+
+
+
+    public:
+        MelsecClient mMelsecClient;
+
+    private:
+        modbus::NodeTable mNodeTable;
+        modbus::AddressTable mAddressTable;
+        modbus::PolledDataTable mPolledDataTable;
+    
+    private:
+        IPAddress mServerIP;
+        uint16_t mServerPort;
+        jvs::ps_e mPlcSeries;
+        jvs::df_e mDataformat;
+    };
+    
+   
+    
+
+}

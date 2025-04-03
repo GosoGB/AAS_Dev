@@ -1,12 +1,7 @@
-#ifndef MELESC_PROTOCOL_H
-#define MELESC_PROTOCOL_H
+
 
 #include <Arduino.h>
-#ifdef ESP32
 #include <WiFi.h>
-#else
-#include <ESP8266WiFi.h>
-#endif
 #include "MelsecConstants.h"
 #include "TCPTransport.h"
 
@@ -15,10 +10,10 @@ enum MCDataFormat {
   MC_ASCII
 };
 
-class MelsecProtocol {
+class MelsecClient {
 public:
-  MelsecProtocol();
-  MelsecProtocol(const char *ip, uint16_t port, MitsuPLCSeries series = QL_SERIES);
+  MelsecClient();
+  MelsecClient(const char *ip, uint16_t port, MitsuPLCSeries series = QL_SERIES);
 
   // Initialize communication with the PLC
   bool begin(const char *ip, uint16_t port, MitsuPLCSeries series = QL_SERIES);
@@ -27,7 +22,7 @@ public:
   // Set communication mode (ASCII or BINARY)
   void setDataFormat(MCDataFormat format) { dataFormat = format; }
   MCDataFormat getDataFormat() { return dataFormat; }
-
+  bool Connected();
   // Write operations
   bool writeWords(MitsuDeviceType device, uint32_t address, int wordCount, const uint16_t data[]);
   bool writeWord(MitsuDeviceType device, uint32_t address, uint16_t word);
@@ -79,9 +74,8 @@ private:
 
   uint8_t getDeviceCode(MitsuDeviceType device);
 
+  bool isHexMemory(const MitsuDeviceType type);
   // Frame generation (기존 방식: 숫자 주소 사용)
   String batchReadWrite(MitsuDeviceType device, uint32_t address, int count, bool read, bool isBit = false, const String &dataToWrite = "");
   String moduleControl(MitsuPLCRemoteControl control, MitsuRemoteControlMode mode = DONT_EXECUTE_FORCIBLY, MitsuRemoteControlClearMode clearMode = DO_NOT_CLEAR);
 };
-
-#endif // MELESC_PROTOCOL_H

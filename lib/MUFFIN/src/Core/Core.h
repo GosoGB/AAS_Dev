@@ -29,6 +29,7 @@
 #include "Protocol/MQTT/Include/Message.h"
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Protocol/ModbusTCP.h"
+#include "JARVIS/Config/Protocol/Melsec.h"
 #include "JARVIS/Config/Network/Ethernet.h"
 #include "JARVIS/Validators/ValidationResult.h"
 
@@ -36,8 +37,9 @@
 
 namespace muffin {
     
-    extern std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
-    extern std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
+    extern std::vector<muffin::jvs::config::ModbusRTU> mConfigVectorMbRTU;
+    extern std::vector<muffin::jvs::config::ModbusTCP> mConfigVectorMbTCP;
+    extern std::vector<muffin::jvs::config::Melsec> mConfigVectorMelsec;
     extern muffin::jvs::config::Ethernet mEthernet; 
     
     
@@ -54,7 +56,6 @@ namespace muffin {
         void unloadJarvisConfig();
         void PublishStatusEventMessageService(init_cfg_t* output);
     };
-
 
     extern Core core;
 }

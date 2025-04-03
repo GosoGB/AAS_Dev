@@ -51,6 +51,7 @@ namespace muffin { namespace jvs { namespace config {
         void SetFormatString(const std::string& format);
         void SetDeprecableUID(const char* uid);
         void SetAttributeEvent(const bool hasEvent);
+    
     public:
         std::pair<Status, const char*> GetNodeID() const;
         std::pair<Status, adtp_e> GetAddressType() const;
