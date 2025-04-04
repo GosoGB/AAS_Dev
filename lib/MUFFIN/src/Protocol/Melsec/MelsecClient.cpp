@@ -55,7 +55,7 @@ bool MelsecClient::Connected()
       return false;
     }
 
-    String endCode = response.substring(34, 38);
+    String endCode = response.substring(response.length() - 4);
     
     if (endCode.equalsIgnoreCase("0000")) 
     {
@@ -105,7 +105,7 @@ bool MelsecClient::Connected()
       return false;
     }
 
-    String endCode = response.substring(34, 38);
+    String endCode = response.substring(response.length() - 4);
     if (endCode.equalsIgnoreCase("0000")) 
     {
       return true;
@@ -150,7 +150,8 @@ String MelsecClient::sendAndReceive(const String &command) {
 }
 
 
-int MelsecClient::sendAndReceive(const String &command, uint16_t buffer[]) {
+int MelsecClient::sendAndReceive(const String &command, uint16_t buffer[]) 
+{
   String resp = sendAndReceive(command);
   if (resp == "ERROR") return 0;
   return hexStringToWords(resp, buffer);

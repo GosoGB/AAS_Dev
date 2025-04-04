@@ -1319,6 +1319,7 @@ namespace muffin { namespace im {
             if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
             {
                floatTemp = Convert.ToFloat(data) - mCIN->GetNumericOffset().second;
+              
                if (mCIN->GetNumericScale().first == Status::Code::BAD)
                {
                     //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
@@ -1340,8 +1341,7 @@ namespace muffin { namespace im {
                 else
                 {
                     float value = Convert.ToFloat(data) / denominator;
-
-                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
+                    uint16_t result = static_cast<uint16_t>(std::round(value));
                     return std::make_pair(Status(Status::Code::GOOD), result);
                 }
             }
