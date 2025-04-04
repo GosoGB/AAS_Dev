@@ -13,9 +13,9 @@ String TCPTransport::sendAndReceive(const String &command) {
 
   String response = "";
   int cmdLen = command.length();
-  log_d("DATA : %s \n\n ",command.c_str());
+  // log_d("DATA : %s \n\n ",command.c_str());
 
-  int written = client.write((const uint8_t *)command.c_str(), cmdLen);
+  client.write((const uint8_t *)command.c_str(), cmdLen);
   unsigned long start = millis();
   while (!client.available() && (millis() - start) < _timeout) {
     delay(1);
@@ -31,7 +31,7 @@ String TCPTransport::sendAndReceive(const String &command) {
     response += (char)resp[i];
   }
 
-  log_d("response : %s",response.c_str());
+  // log_d("response : %s",response.c_str());
   return response;
 }
 

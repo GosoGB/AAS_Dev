@@ -75,7 +75,7 @@ namespace muffin { namespace im {
     {
         try
         {
-            uint32_t prev = ESP.getFreeHeap();
+            // uint32_t prev = ESP.getFreeHeap();
             LOG_DEBUG(logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
             
             void* block = memoryPool.Allocate(28);

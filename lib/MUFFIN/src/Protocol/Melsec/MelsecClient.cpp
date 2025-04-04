@@ -436,7 +436,7 @@ bool MelsecClient::writeWords(MitsuDeviceType device, uint32_t address, int word
   String frame = batchReadWrite(device, address, wordCount, false, false, dataStr);
   String resp = sendAndReceive(frame);
 
-  log_d("writeWords response: %s", resp.c_str());
+  // log_d("writeWords response: %s", resp.c_str());
 
   return (resp != "ERROR");
 }
@@ -482,7 +482,7 @@ bool MelsecClient::writeBits(MitsuDeviceType device, uint32_t address, int count
 
   String frame = batchReadWrite(device, address, count, false, true, data);
   String resp = sendAndReceive(frame);
-  log_d("writeBits response : %s", resp.c_str());
+  // log_d("writeBits response : %s", resp.c_str());
 
   return (resp != "ERROR");
 }

@@ -25,5 +25,4 @@ namespace muffin {
     Status PublishResponseJARVIS(const jarvis_struct_t& response);
     Status StartMqttTaskService(init_cfg_t& config, CallbackUpdateInitConfig callbackJARVIS);
     Status StopMqttTaskService();
-    bool IsBitArea(const jvs::node_area_e area);
 }

@@ -17,7 +17,7 @@
 #include "Common/Logger/Logger.h"
 #include "JARVIS/Config/Information/Node.h"
 #include "NodeValidator.h"
-
+#include "IM/Node/Include/Utility.h"
 
 
 namespace muffin { namespace jvs {
@@ -372,65 +372,6 @@ namespace muffin { namespace jvs {
         }
     }
 
-    bool NodeValidator::isBitArea(const node_area_e area)
-    {
-        switch (area)
-        {
-        case node_area_e::COILS:
-        case node_area_e::DISCRETE_INPUT:
-        case node_area_e::SM:
-        case node_area_e::X:
-        case node_area_e::Y:
-        case node_area_e::M:
-        case node_area_e::L:
-        case node_area_e::F:
-        case node_area_e::V:
-        case node_area_e::B:
-        case node_area_e::TS:
-        case node_area_e::TC:
-        case node_area_e::LTS:
-        case node_area_e::LTC:
-        case node_area_e::STS:
-        case node_area_e::STC:
-        case node_area_e::LSTS:
-        case node_area_e::LSTC:
-        case node_area_e::CS:
-        case node_area_e::CC:
-        case node_area_e::LCS:
-        case node_area_e::LCC:
-        case node_area_e::SB:
-        case node_area_e::S:
-        case node_area_e::DX:
-        case node_area_e::DY:
-            return true;
-        case node_area_e::INPUT_REGISTER:
-        case node_area_e::HOLDING_REGISTER:
-        case node_area_e::SD:
-        case node_area_e::D:
-        case node_area_e::W:
-        case node_area_e::TN:
-        case node_area_e::CN:
-        case node_area_e::SW:
-        case node_area_e::Z:
-            return false;
-        /**
-         * @todo DoubleWord 어떻게 처리할 것인지 확인 필요 @김주성 
-         * 
-         */
-        case node_area_e::LTN:
-        case node_area_e::STN:
-        case node_area_e::LSTN:
-        case node_area_e::LCN:
-        case node_area_e::LZ:
-            LOG_WARNING(logger,"Double Word")
-            return false;
-        default:
-            LOG_ERROR(logger,"UNDEFINED NODE AREA %d",static_cast<uint16_t>(area));
-            ASSERT((true),"UNDEFINED NODE AREA %d",static_cast<uint16_t>(area));
-            return false;
-        }
-    }
-
     /**
      * @return Status
      *     @li rsc_e::GOOD Modbus 메모리 영역 설정이 없거나, 설정 정보가 유효합니다.
@@ -464,7 +405,7 @@ namespace muffin { namespace jvs {
      */
 
         
-        if (isBitArea(mNodeArea.second) == true)
+        if (im::IsBitArea(mNodeArea.second) == true)
         {
             if (mBitIndex.first == rsc_e::GOOD)
             {
@@ -608,7 +549,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitArea(mNodeArea.second))
+            if (im::IsBitArea(mNodeArea.second))
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "BIT INDEX CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -697,7 +638,7 @@ namespace muffin { namespace jvs {
 
             if (mNodeArea.first == rsc_e::GOOD)
             {
-                if (isBitArea(mNodeArea.second) == true)
+                if (im::IsBitArea(mNodeArea.second) == true)
                 {
                     char message[128] = {'\0'};
                     snprintf(message, 128, "Address quantity is null by Bit area config, NODE ID: %s", mNodeID);
@@ -726,7 +667,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitArea(mNodeArea.second) == true)
+            if (im::IsBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -797,7 +738,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitArea(mNodeArea.second) == true)
+            if (im::IsBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC SCALE CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -855,7 +796,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitArea(mNodeArea.second) == true)
+            if (im::IsBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "NUMERIC OFFSET CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -889,7 +830,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitArea(mNodeArea.second) == true)
+            if (im::IsBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "DATA UNIT ORDERS CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);
@@ -1001,7 +942,7 @@ namespace muffin { namespace jvs {
         
         if (mNodeArea.first == rsc_e::GOOD && mDataUnitOrders.first != rsc_e::GOOD)
         {
-            if (isBitArea(mNodeArea.second) == true)
+            if (im::IsBitArea(mNodeArea.second) == true)
             {
                 if (mDataTypes.second.size() != 1)
                 {
@@ -1112,7 +1053,7 @@ namespace muffin { namespace jvs {
 
         if (mNodeArea.first == rsc_e::GOOD)
         {
-            if (isBitArea(mNodeArea.second) == true)
+            if (im::IsBitArea(mNodeArea.second) == true)
             {
                 char message[128] = {'\0'};
                 snprintf(message, 128, "FORMAT STRING CANNOT BE CONFIGURED WITH BIT AREA, NODE ID: %s", mNodeID);

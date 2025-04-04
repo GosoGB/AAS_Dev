@@ -101,7 +101,7 @@ namespace muffin
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implMelsecTask,      // Function to be run inside of the task
             "implMelsecTask",    // The identifier of this task for men
-            5 * KILLOBYTE,          // Stack memory size to allocate
+            8 * KILLOBYTE,          // Stack memory size to allocate
             &pollingInterval, // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskMelsecHandle,  // The identifier of this task for machines
