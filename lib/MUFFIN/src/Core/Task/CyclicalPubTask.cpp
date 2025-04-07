@@ -36,7 +36,61 @@ namespace muffin {
 
     TaskHandle_t xTaskMonitorHandle = NULL;
 
-    void StartTaskCyclicalsMSG(uint16_t pollingInterval)
+    void cyclicalsMSGTask(void* pvParameter)
+    {
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
+        if (cyclicalNodeVector.empty())
+        {
+            StopCyclicalsMSGTask();
+        }
+
+        uint32_t statusReportMillis = millis(); 
+        time_t currentTimestamp = GetTimestamp();
+
+        while (true)
+        {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
+        #endif
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[CyclicalsMSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::CYCLICALS_MSG_TASK, RemainedStackSize);
+            }
+            
+            if (GetTimestamp() - currentTimestamp < s_PublishIntervalInSeconds)
+            {
+                vTaskDelay(100 / portTICK_PERIOD_MS); 
+                continue;
+            }
+
+            currentTimestamp = GetTimestamp();
+            for (auto& node : cyclicalNodeVector)
+            {
+                std::pair<bool, json_datum_t> ret;
+                ret = node->VariableNode.CreateDaqStruct();
+
+                if (ret.first == true)
+                {
+                    JSON json;
+                    const size_t size = UINT8_MAX;
+                    char payload[size] = {'\0'};
+                    json.Serialize(ret.second, size, payload);
+                    mqtt::Message message(ret.second.Topic, payload);
+                    mqtt::cdo.Store(message);
+                }
+            }
+            vTaskDelay(100 / portTICK_PERIOD_MS); 
+        }
+    }
+
+    void StartTaskCyclicalsMSG()
     {
         if (xTaskMonitorHandle != NULL)
         {
@@ -52,7 +106,7 @@ namespace muffin {
             cyclicalsMSGTask,      // Function to be run inside of the task
             "cyclicalsMSGTask",    // The identifier of this task for men
             4*KILLOBYTE,			       // Stack memory size to allocate
-            &pollingInterval,      // Task parameters to be passed to the function
+            NULL,      // Task parameters to be passed to the function
             0,				       // Task Priority for scheduling
             &xTaskMonitorHandle,   // The identifier of this task for machines
             0				       // Index of MCU core where the function to run
@@ -83,62 +137,6 @@ namespace muffin {
             LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
             // return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             break;
-        }
-    }
-
-    void cyclicalsMSGTask(void* pvParameter)
-    {
-        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-        std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
-        if (cyclicalNodeVector.empty())
-        {
-            StopCyclicalsMSGTask();
-        }
-
-        uint32_t statusReportMillis = millis(); 
-
-        uint16_t publishInterval = *(uint16_t*) pvParameter;
-        time_t currentTimestamp = GetTimestamp();
-
-        while (true)
-        {
-        #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
-            {
-                statusReportMillis = millis();
-                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
-
-                LOG_DEBUG(logger, "[CyclicalsMSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
-                
-                deviceStatus.SetTaskRemainedStack(task_name_e::CYCLICALS_MSG_TASK, RemainedStackSize);
-            }
-            
-            if (GetTimestamp() - currentTimestamp < publishInterval)
-            {
-                vTaskDelay(100 / portTICK_PERIOD_MS); 
-                continue;
-            }
-
-            currentTimestamp = GetTimestamp();
-            for (auto& node : cyclicalNodeVector)
-            {
-                std::pair<bool, json_datum_t> ret;
-                ret = node->VariableNode.CreateDaqStruct();
-
-                if (ret.first == true)
-                {
-                    JSON json;
-                    const size_t size = UINT8_MAX;
-                    char payload[size] = {'\0'};
-                    json.Serialize(ret.second, size, payload);
-                    mqtt::Message message(ret.second.Topic, payload);
-                    mqtt::cdo.Store(message);
-                }
-            }
-            vTaskDelay(100 / portTICK_PERIOD_MS); 
         }
     }
 

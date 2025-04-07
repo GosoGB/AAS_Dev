@@ -35,8 +35,6 @@ namespace muffin
 
     void implMelsecTask(void* pvParameter)
     {   
-        uint32_t pollingIntervalInMillis = (*(uint16_t*)pvParameter) * 1000;
-
         uint32_t statusReportMillis = millis(); 
         while (true)
         {
@@ -63,6 +61,10 @@ namespace muffin
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
                         continue;
                     } 
+                    else
+                    {
+                        LOG_INFO(logger,"melsec Client connected");
+                    }
                 }
                 
                 Status ret = melsec.Poll();
@@ -71,11 +73,11 @@ namespace muffin
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
             }
-            vTaskDelay(pollingIntervalInMillis / portTICK_PERIOD_MS);
+            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
         }
     }
 
-    void StartMelsecTask(uint16_t pollingInterval)
+    void StartMelsecTask()
     {
         if (xTaskMelsecHandle != NULL)
         {
@@ -89,7 +91,7 @@ namespace muffin
             LOG_ERROR(logger, "FAILED TO CREATE MELSEC SEMAPHORE");
             return;
         }
-        LOG_INFO(logger,"pollingInterval : %d",pollingInterval);
+        
         /**
          * @todo 스택 오버플로우를 방지하기 위해 태스크의 메모리 사용량에 따라
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
@@ -98,10 +100,10 @@ namespace muffin
             implMelsecTask,      // Function to be run inside of the task
             "implMelsecTask",    // The identifier of this task for men
             8 * KILLOBYTE,          // Stack memory size to allocate
-            &pollingInterval, // Task parameters to be passed to the function
+            NULL, // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskMelsecHandle,  // The identifier of this task for machines
-            0				        // Index of MCU core where the function to run
+            1				        // Index of MCU core where the function to run
         );
 
         /**

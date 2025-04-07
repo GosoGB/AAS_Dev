@@ -22,11 +22,11 @@
 
 namespace muffin {
 
-    void StartModbusRtuTask(uint16_t pollingInterval);
+    void StartModbusRtuTask();
     void StopModbusRtuTask();
     bool HasModbusRtuTask();
 
-    void StartModbusTcpTask(uint16_t pollingInterval);
+    void StartModbusTcpTask();
     void StopModbusTcpTask();
     bool HasModbusTcpTask();
 

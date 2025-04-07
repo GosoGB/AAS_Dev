@@ -1,92 +1,92 @@
+/**
+ * @file MelsecClient.h
+ * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
+ * 
+ * @brief Melsec Client 클래스를 정의합니다.
+ * 
+ * @date 2025-04-07
+ * @version 1.4.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2025
+ */
 
+
+
+
+#pragma once
+
+
+#include <vector>
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include "MelsecConstants.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "TCPTransport.h"
 
-enum MCDataFormat {
-  MC_BINARY,
-  MC_ASCII
-};
-
-class MelsecClient {
-public:
-  MelsecClient();
-  MelsecClient(const char *ip, uint16_t port, MitsuPLCSeries series = QL_SERIES);
 
 
-  // Initialize communication with the PLC
-  bool begin(const char *ip, uint16_t port, MitsuPLCSeries series = QL_SERIES);
-  bool begin();
+namespace muffin
+{
+    class MelsecClient
+    {
+    public:
+        MelsecClient();
+        virtual ~MelsecClient();
+    
+    public:
+        // Initialize communication with the PLC
+        bool Begin(const char *ip, uint16_t port, jvs::ps_e series = jvs::ps_e::QL_SERIES);
 
-  // Set communication mode (ASCII or BINARY)
-  void setHeader(uint16_t subheader, uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo);
-  void setDataFormat(MCDataFormat format) { dataFormat = format; }
-  MCDataFormat getDataFormat() { return dataFormat; }
-  bool Connected();
-  // Write operations
-  bool writeWords(MitsuDeviceType device, uint32_t address, int wordCount, const uint16_t data[]);
-  bool writeWord(MitsuDeviceType device, uint32_t address, uint16_t word);
-  bool writeBit(MitsuDeviceType device, uint32_t address, uint8_t value);
-  bool writeBits(MitsuDeviceType device, uint32_t address, int count, const bool *values);
+        // Set communication mode (ASCII or BINARY)
+        void SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo);
+        void SetDataFormat(jvs::df_e format) { mDataFormat = format; }
+        bool Connected();
+        // Write operations
+        bool WriteWords(jvs::node_area_e area, uint32_t address, int wordCount, const uint16_t data[]);
+        bool WriteWord(jvs::node_area_e area, uint32_t address, uint16_t word);
+        bool WriteBit(jvs::node_area_e area, uint32_t address, uint8_t value);
+        bool WriteBits(jvs::node_area_e area, uint32_t address, int count, const bool *values);
 
+        // Read operations
+        int ReadWords(jvs::node_area_e area, uint32_t address, int wordCount, uint16_t buffer[]);
+        int ReadBits(jvs::node_area_e area, uint32_t address, int count, bool *buffer);
 
-  // Read operations
-  int readWords(MitsuDeviceType device, uint32_t address, int wordCount, uint16_t buffer[]);
-  int readBits(MitsuDeviceType device, uint32_t address, int count, bool *buffer);
+    private:
+        std::string buildAsciiHeader(); // 내부 ASCII 헤더 생성 함수
 
-  
-  // CPU control functions
-  bool run(bool force, MitsuRemoteControlClearMode clearMode);
-  bool pause(bool force);
-  bool stop();
-  bool clear();
-  bool reset();
-  String getCPUModel();
+        // Low-level communication
+        std::string sendAndReceive(const std::string &command);
+        int sendAndReceive(const std::string &command, uint16_t buffer[]);
 
-  // Error description
-  String getErrorDescription(const String &error);
+        // Data conversion helpers
+        int hexStringToWords(const std::string &hexStr, uint16_t buffer[]);
+        int wordsToHexString(const uint16_t data[], int wordCount, std::string &hexStr);
+        int wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], int wordCount);
 
-  // Monitoring timer
-  uint8_t getMonitoringTimer();
-  void setMonitoringTimer(uint8_t time);
+        std::string fitStringToWords(const std::string &input, int wordCount);
+        std::string stringToHexASCII(const std::string &input);
+        std::string extractAsciiData(const std::string &response);
+        std::string extractBinaryData(const std::string &response);
 
-private:
-  uint16_t _port;
-  const char *_ip;
-  TCPTransport tcp;
-  int plcSeries;
-  uint8_t monitoringTimer; // in seconds
-  MCDataFormat dataFormat;  // Communication mode (default MC_ASCII)
+        uint8_t getDeviceCodeBinary(jvs::node_area_e area);
+        std::string getDeviceCodeASCII(jvs::node_area_e area);
 
-  // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
-  uint16_t header_subheader;
-  uint8_t header_networkNo;
-  uint8_t header_pcNo;
-  uint16_t header_ioNo;
-  uint8_t header_stationNo;
+        bool isHexMemory(const jvs::node_area_e type);
+        std::string batchReadWrite(jvs::node_area_e area, uint32_t address, int count, bool read, bool isBit = false, const std::string &dataToWrite = "");
 
-  String buildAsciiHeader(); // 내부 ASCII 헤더 생성 함수
-  
-  // Low-level communication
-  String sendAndReceive(const String &command);
-  int sendAndReceive(const String &command, uint16_t buffer[]);
-
-  // Data conversion helpers
-  int hexStringToWords(const String &hexStr, uint16_t buffer[]);
-  int wordsToHexString(const uint16_t data[], int wordCount, String &hexStr);
-  int wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], int wordCount);
-
-  String fitStringToWords(const String &input, int wordCount);
-  String stringToHexASCII(const String &input);
-  String extractAsciiData(const String &response);
-  String extractBinaryData(const String &response);
-
-  uint8_t getDeviceCode(MitsuDeviceType device);
-
-  bool isHexMemory(const MitsuDeviceType type);
-  // Frame generation (기존 방식: 숫자 주소 사용)
-  String batchReadWrite(MitsuDeviceType device, uint32_t address, int count, bool read, bool isBit = false, const String &dataToWrite = "");
-  String moduleControl(MitsuPLCRemoteControl control, MitsuRemoteControlMode mode = DONT_EXECUTE_FORCIBLY, MitsuRemoteControlClearMode clearMode = DO_NOT_CLEAR);
-};
+    private:
+        // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
+        TCPTransport mMelsecTCP;
+        const uint16_t mSubHeader = 0x5000;
+    private:
+        uint16_t mPort;
+        const char *mIP;
+        jvs::ps_e mPlcSeries;
+        uint8_t mMonitoringTimer;
+        jvs::df_e mDataFormat;
+        uint8_t mNetworkNumber;
+        uint8_t mPcNumber;
+        uint16_t mIoNumber;
+        uint8_t mStationNumber;
+    };
+} 

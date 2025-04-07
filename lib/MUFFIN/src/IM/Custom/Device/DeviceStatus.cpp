@@ -90,7 +90,7 @@ namespace muffin {
         mTaskResources[8].RemainedStackSize = -1;
 
         strcpy(mTaskResources[9].TaskName, "MelsecTask");
-        mTaskResources[9].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[9].TotalStackSize    = 8 * KILLOBYTE;
         mTaskResources[9].RemainedStackSize = -1;
 
     }

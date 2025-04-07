@@ -41,7 +41,8 @@ namespace muffin {
     extern std::vector<muffin::jvs::config::ModbusTCP> mConfigVectorMbTCP;
     extern std::vector<muffin::jvs::config::Melsec> mConfigVectorMelsec;
     extern muffin::jvs::config::Ethernet mEthernet; 
-    
+    extern uint32_t s_PollingIntervalInMillis;
+    extern uint16_t s_PublishIntervalInSeconds;
     
     class Core
     {

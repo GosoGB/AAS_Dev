@@ -1,12 +1,13 @@
 /**
  * @file Melsec.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2025-04-01
+ * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
  * 
- * @copyright Copyright (c) 2025
+ * @brief Melsec 프로토콜 클래스를 선언합니다.
  * 
+ * @date 2025-04-07
+ * @version 1.4.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2025
  */
 
 
@@ -55,13 +56,8 @@ namespace muffin {
         Status bitsRead(const jvs::node_area_e area, const std::set<AddressRange>& addressRangeSet);
         Status wordsRead(const jvs::node_area_e area, const std::set<AddressRange>& addressRangeSet);
     public:
-        MitsuDeviceType ConvertToDeviceType(const jvs::node_area_e area);
         modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area);
     
-
-
-
-
     public:
         MelsecClient mMelsecClient;
 

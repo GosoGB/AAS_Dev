@@ -1,12 +1,13 @@
 /**
  * @file MelsecMutex.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-10-24
+ * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
  * 
- * @copyright Copyright (c) 2024
+ * @brief Melsec Mutex를 정의합니다.
  * 
+ * @date 2025-04-07
+ * @version 1.4.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2025
  */
 
 

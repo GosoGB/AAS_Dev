@@ -20,7 +20,7 @@
 
 namespace muffin {
 
-    void StartMelsecTask(uint16_t pollingInterval);
+    void StartMelsecTask();
     void StopMelsecTask();
     bool HasMelsecTask();
 

@@ -74,6 +74,9 @@ namespace muffin {
     std::vector<muffin::jvs::config::ModbusRTU> mConfigVectorMbRTU;
     std::vector<muffin::jvs::config::ModbusTCP> mConfigVectorMbTCP;
     std::vector<muffin::jvs::config::Melsec> mConfigVectorMelsec;
+    
+    uint32_t s_PollingIntervalInMillis = 1000;
+    uint16_t s_PublishIntervalInSeconds = 60;
 
     void listDir(const char* dirname, const uint8_t levels)
     {

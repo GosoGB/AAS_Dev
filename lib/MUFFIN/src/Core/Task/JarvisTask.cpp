@@ -276,8 +276,8 @@ namespace muffin {
 
         LOG_INFO(logger, "Configured Modbus RTU protocol, mConfigVectorMbRTU size : %d",mConfigVectorMbRTU.size());
 
-        StartModbusRtuTask(jvs::config::operation.GetIntervalPolling().second);
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartModbusRtuTask();
+        StartTaskCyclicalsMSG();
     #else
         ModbusRtuVector.clear();
         mConfigVectorMbRTU.clear();
@@ -313,8 +313,8 @@ namespace muffin {
             delay(100);
         }
 
-        StartModbusRtuTask(jvs::config::operation.GetIntervalPolling().second);
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartModbusRtuTask();
+        StartTaskCyclicalsMSG();
     #endif
         
     }
@@ -353,8 +353,8 @@ namespace muffin {
             ModbusTcpVector.emplace_back(*modbusTCP);
         }
 
-        StartModbusTcpTask(jvs::config::operation.GetIntervalPolling().second);
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartModbusTcpTask();
+        StartTaskCyclicalsMSG();
     }
 
     void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
@@ -392,8 +392,8 @@ namespace muffin {
             MelsecVector.emplace_back(*melsec);
         }
 
-        StartMelsecTask(jvs::config::operation.GetIntervalPolling().second);
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartMelsecTask();
+        StartTaskCyclicalsMSG();
 
     }
 

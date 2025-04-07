@@ -1,12 +1,13 @@
 /**
  * @file Melsec.cpp
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2025-04-01
+ * @author Kim, Joo-Sung (Joosung5732@edgecross.ai)
  * 
- * @copyright Copyright (c) 2025
+ * @brief Melsec 프로토콜 클래스를 선언합니다.
  * 
+ * @date 2025-04-07
+ * @version 1.4.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2025
  */
 
 
@@ -41,9 +42,8 @@ namespace muffin {
 
     bool Melsec::Connect()
     {
-        mMelsecClient.setDataFormat(static_cast<MCDataFormat>(mDataformat));
-
-        return (mMelsecClient.begin(mServerIP.toString().c_str(),mServerPort,static_cast<MitsuPLCSeries>(mPlcSeries)));
+        mMelsecClient.SetDataFormat(mDataformat);
+        return (mMelsecClient.Begin(mServerIP.toString().c_str(),mServerPort, mPlcSeries));
     }
 
     Status Melsec::Config(jvs::config::Melsec* config)
@@ -285,7 +285,7 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             bool response[pollQuantity+1];
-            int result = mMelsecClient.readBits(ConvertToDeviceType(area),startAddress,pollQuantity,response);
+            int result = mMelsecClient.ReadBits(area,startAddress,pollQuantity,response);
             delay(80);
 
             if (result != pollQuantity) 
@@ -330,7 +330,7 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             uint16_t response[pollQuantity];
-            int result = mMelsecClient.readWords(ConvertToDeviceType(area),startAddress,pollQuantity,response);
+            int result = mMelsecClient.ReadWords(area,startAddress,pollQuantity,response);
             delay(80);
 
             if (result != pollQuantity) 
@@ -384,88 +384,5 @@ namespace muffin {
         
         return data;
         
-    }
-
-    MitsuDeviceType Melsec::ConvertToDeviceType(const jvs::node_area_e area)
-    {
-        switch (area)
-        {
-        case jvs::node_area_e::SM:
-            return MitsuDeviceType::SM;
-        case jvs::node_area_e::X:
-            return MitsuDeviceType::X;
-        case jvs::node_area_e::Y:
-            return MitsuDeviceType::Y;
-        case jvs::node_area_e::M:
-            return MitsuDeviceType::M;
-        case jvs::node_area_e::L:
-            return MitsuDeviceType::L;
-        case jvs::node_area_e::F:
-            return MitsuDeviceType::F;
-        case jvs::node_area_e::V:
-            return MitsuDeviceType::F;
-        case jvs::node_area_e::B:
-            return MitsuDeviceType::B;
-        case jvs::node_area_e::TS:
-            return MitsuDeviceType::TS;
-        case jvs::node_area_e::TC:
-            return MitsuDeviceType::TC;
-        case jvs::node_area_e::LTS:
-            return MitsuDeviceType::LTS;
-        case jvs::node_area_e::LTC:
-            return MitsuDeviceType::LTC;
-        case jvs::node_area_e::STS:
-            return MitsuDeviceType::STS;
-        case jvs::node_area_e::STC:
-            return MitsuDeviceType::STC;
-        case jvs::node_area_e::LSTS:
-            return MitsuDeviceType::LSTS;
-        case jvs::node_area_e::LSTC:
-            return MitsuDeviceType::LSTC;
-        case jvs::node_area_e::CS:
-            return MitsuDeviceType::CS;
-        case jvs::node_area_e::CC:
-            return MitsuDeviceType::CC;
-        case jvs::node_area_e::LCS:
-            return MitsuDeviceType::LCS;
-        case jvs::node_area_e::LCC:
-            return MitsuDeviceType::LCC;
-        case jvs::node_area_e::SB:
-            return MitsuDeviceType::SB;
-        case jvs::node_area_e::S:
-            return MitsuDeviceType::S;
-        case jvs::node_area_e::DX:
-            return MitsuDeviceType::DX;
-        case jvs::node_area_e::DY:
-            return MitsuDeviceType::DY;
-        case jvs::node_area_e::SD:
-            return MitsuDeviceType::SD;
-        case jvs::node_area_e::D:
-            return MitsuDeviceType::D;
-        case jvs::node_area_e::W:
-            return MitsuDeviceType::W;
-        case jvs::node_area_e::TN:
-            return MitsuDeviceType::TN;
-        case jvs::node_area_e::CN:
-            return MitsuDeviceType::CN;
-        case jvs::node_area_e::SW:
-            return MitsuDeviceType::SW;
-        case jvs::node_area_e::Z:
-            return MitsuDeviceType::Z;
-        case jvs::node_area_e::LTN:
-            return MitsuDeviceType::LTN;
-        case jvs::node_area_e::STN:
-            return MitsuDeviceType::STN;
-        case jvs::node_area_e::LSTN:
-            return MitsuDeviceType::LSTN;
-        case jvs::node_area_e::LCN:
-            return MitsuDeviceType::LCN;
-        case jvs::node_area_e::LZ:
-            return MitsuDeviceType::LZ;
-        default:
-            LOG_ERROR(logger,"UNDEFINED NODE AREA %d",static_cast<uint16_t>(area));
-            ASSERT((true),"UNDEFINED NODE AREA %d",static_cast<uint16_t>(area));
-            return MitsuDeviceType::D;
-        }
     }
 }

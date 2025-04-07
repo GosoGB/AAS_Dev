@@ -784,13 +784,13 @@ namespace muffin {
                                     
                                     if (im::IsBitArea(nodeArea))
                                     {
-                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric);
-                                        writeResult = melsec.mMelsecClient.writeBit(melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric, retConvertModbus.second);
+                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient.WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
                                     }
                                     else
                                     {
-                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric);
-                                        writeResult = melsec.mMelsecClient.writeWord(melsec.ConvertToDeviceType(nodeArea),modbusAddress.Numeric,retConvertModbus.second);
+                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient.WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
                                     }
                                     xSemaphoreGive(xSemaphoreMelsec);
                                     goto RC_RESPONSE;

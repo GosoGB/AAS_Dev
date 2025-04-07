@@ -23,6 +23,7 @@
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "DataFormat/CSV/CSV.h"
 #include "Protocol/SPEAR/SPEAR.h"
+#include "Core/Core.h"
 
 
 
@@ -100,6 +101,9 @@ namespace muffin {
             executeFactoryReset();
         }
 
+        s_PollingIntervalInMillis = (jvs::config::operation.GetIntervalPolling().second * 1000);
+        s_PublishIntervalInSeconds = jvs::config::operation.GetIntervalServer().second;
+        
         switch (jvs::config::operation.GetServerNIC().second)
         {
         case jvs::snic_e::LTE_CatM1:

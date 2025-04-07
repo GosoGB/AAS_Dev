@@ -259,7 +259,7 @@ namespace muffin {
         default:
             ASSERT(
                 (
-                    (prtcl_ver_e::VERSEOIN_1 <= input) && (input <= prtcl_ver_e::VERSEOIN_3)
+                    (prtcl_ver_e::VERSEOIN_1 <= input) && (input <= prtcl_ver_e::VERSEOIN_4)
                 ), "UNDEFINED OR UNSUPPORTED JARVIS PROTOCOL VERSION: %u", ToUInt8(input)
             );
             return "";
