@@ -2,16 +2,43 @@
 #include <string.h>
 
 // 기본 ASCII 모드용 기본 헤더 (4E 프레임)
-const String baseHeader = "500000FF03FF00";
+// const String baseHeader = "500000FF03FF00";
 
 MelsecClient::MelsecClient() 
-  : _port(0), _ip(nullptr), plcSeries(0), monitoringTimer(0x04), dataFormat(MC_ASCII) {
+: _port(0), _ip(nullptr), plcSeries(0), monitoringTimer(0x04), dataFormat(MC_ASCII),
+header_subheader(0x5000), header_networkNo(0x00), header_pcNo(0xFF),
+header_ioNo(0x03FF), header_stationNo(0x00) 
+{
+  
 }
 
 MelsecClient::MelsecClient(const char *ip, uint16_t port, MitsuPLCSeries series)
-  : _port(port), _ip(ip), plcSeries(series), monitoringTimer(0x04), dataFormat(MC_ASCII) {
+  : _port(port), _ip(ip), plcSeries(series), monitoringTimer(0x04), dataFormat(MC_ASCII), header_subheader(0x5000), header_networkNo(0x00), header_pcNo(0xFF),
+  header_ioNo(0x03FF), header_stationNo(0x00) 
+{
   tcp.setIP(ip);
   tcp.setPort(port);
+}
+
+void MelsecClient::setHeader(uint16_t subheader, uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo) {
+  header_subheader = subheader;
+  header_networkNo = networkNo;
+  header_pcNo = pcNo;
+  header_ioNo = ioNo;
+  header_stationNo = stationNo;
+}
+
+String MelsecClient::buildAsciiHeader() 
+{
+  char buf[15];
+  sprintf(buf, "%.4X%02X%02X%.4X%02X", 
+    header_subheader,
+    header_networkNo,
+    header_pcNo,
+    header_ioNo,
+    header_stationNo
+  );
+  return String(buf);
 }
 
 bool MelsecClient::begin(const char *ip, uint16_t port, MitsuPLCSeries series) {
@@ -35,9 +62,10 @@ bool MelsecClient::Connected()
   }
   
   
+  
   if (dataFormat == MC_ASCII)
   {
-    String cmd = baseHeader;
+    String cmd = buildAsciiHeader();
 
     // NOP 명령: 모니터링 타이머 + 명령(0C00) + 서브커맨드(0000)
     // 데이터 길이 = 2(타이머) + 2(커맨드) + 2(서브커맨드) = 6 = 0x0006
@@ -73,13 +101,13 @@ bool MelsecClient::Connected()
     int index = 0;
 
     // 1. 서두부 (Subheader ~ Request data length)
-    frame[index++] = 0x50;  // Subheader (ASCII 헤더 기준)
-    frame[index++] = 0x00;
-    frame[index++] = 0x00;  // Network No.
-    frame[index++] = 0xFF;  // PC No.
-    frame[index++] = 0xFF;  // I/O No (LSB)
-    frame[index++] = 0x03;  // I/O No (MSB)
-    frame[index++] = 0x00;  // Unit No.
+    frame[index++] = (uint8_t)((header_subheader >> 8) & 0xFF);
+    frame[index++] = (uint8_t)(header_subheader & 0xFF);
+    frame[index++] = header_networkNo;
+    frame[index++] = header_pcNo;
+    frame[index++] = (uint8_t)(header_ioNo & 0xFF);
+    frame[index++] = (uint8_t)((header_ioNo >> 8) & 0xFF);
+    frame[index++] = header_stationNo;
 
     // 2. 데이터 길이 (Request Data Length)
     frame[index++] = 0x06;  // Length LSB
@@ -173,7 +201,8 @@ String MelsecClient::extractAsciiData(const String &response)
   return response.substring(22);  // 실제 응답 데이터
 }
 
-int MelsecClient::hexStringToWords(const String &hexStr, uint16_t buffer[]) {
+int MelsecClient::hexStringToWords(const String &hexStr, uint16_t buffer[]) 
+{
   int wordCount = hexStr.length() / 4;
   String fitted = fitStringToWords(hexStr, wordCount);
   for (int i = 0; i < wordCount; i++) {
@@ -193,7 +222,8 @@ int MelsecClient::hexStringToWords(const String &hexStr, uint16_t buffer[]) {
   return wordCount;
 }
 
-int MelsecClient::wordsToHexString(const uint16_t data[], int wordCount, String &hexStr) {
+int MelsecClient::wordsToHexString(const uint16_t data[], int wordCount, String &hexStr) 
+{
   hexStr = "";
   char buf[5];
   for (int i = 0; i < wordCount; i++) {
@@ -203,7 +233,8 @@ int MelsecClient::wordsToHexString(const uint16_t data[], int wordCount, String 
   return wordCount;
 }
 
-int MelsecClient::wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], int wordCount) {
+int MelsecClient::wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], int wordCount) 
+{
   for (int i = 0; i < wordCount; i++) {
     bytes[i * 2]     = (uint8_t)(words[i] >> 8);
     bytes[i * 2 + 1] = (uint8_t)(words[i] & 0xFF);
@@ -211,7 +242,8 @@ int MelsecClient::wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], 
   return wordCount * 2;
 }
 
-String MelsecClient::fitStringToWords(const String &input, int wordCount) {
+String MelsecClient::fitStringToWords(const String &input, int wordCount) 
+{
   int requiredLength = wordCount * 4;
   String output = input;
   int diff = requiredLength - input.length();
@@ -329,7 +361,7 @@ String MelsecClient::batchReadWrite(MitsuDeviceType device, uint32_t address, in
 
     int dataLen = command.length();
     sprintf(buf, "%.4X", dataLen);
-    String fullFrame = baseHeader + String(buf) + command;
+    String fullFrame = buildAsciiHeader() + String(buf) + command;
     return fullFrame;
   }
   // ✅ BINARY 프레임 생성
@@ -337,13 +369,13 @@ String MelsecClient::batchReadWrite(MitsuDeviceType device, uint32_t address, in
   int index = 0;
 
   // 1. 서두부 (Subheader ~ Request data length)
-  frame[index++] = 0x50;
-  frame[index++] = 0x00;
-  frame[index++] = 0x00;
-  frame[index++] = 0xFF;
-  frame[index++] = 0xFF;
-  frame[index++] = 0x03;
-  frame[index++] = 0x00;
+  frame[index++] = (uint8_t)((header_subheader >> 8) & 0xFF);
+  frame[index++] = (uint8_t)(header_subheader & 0xFF);
+  frame[index++] = header_networkNo;
+  frame[index++] = header_pcNo;
+  frame[index++] = (uint8_t)(header_ioNo & 0xFF);
+  frame[index++] = (uint8_t)((header_ioNo >> 8) & 0xFF);
+  frame[index++] = header_stationNo;
 
   // 임시로 나중에 채우는 요청 길이 위치 기억
   int lengthPos = index;

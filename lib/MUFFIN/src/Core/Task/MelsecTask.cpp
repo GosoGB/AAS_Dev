@@ -63,10 +63,6 @@ namespace muffin
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
                         continue;
                     } 
-                    else
-                    {
-                        LOG_DEBUG(logger,"melsec Client connected");
-                    }
                 }
                 
                 Status ret = melsec.Poll();

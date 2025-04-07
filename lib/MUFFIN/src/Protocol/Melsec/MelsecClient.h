@@ -15,11 +15,13 @@ public:
   MelsecClient();
   MelsecClient(const char *ip, uint16_t port, MitsuPLCSeries series = QL_SERIES);
 
+
   // Initialize communication with the PLC
   bool begin(const char *ip, uint16_t port, MitsuPLCSeries series = QL_SERIES);
   bool begin();
 
   // Set communication mode (ASCII or BINARY)
+  void setHeader(uint16_t subheader, uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo);
   void setDataFormat(MCDataFormat format) { dataFormat = format; }
   MCDataFormat getDataFormat() { return dataFormat; }
   bool Connected();
@@ -54,10 +56,19 @@ private:
   uint16_t _port;
   const char *_ip;
   TCPTransport tcp;
-  int plcSeries; // 0: QL_SERIES, 1: iQR_SERIES
+  int plcSeries;
   uint8_t monitoringTimer; // in seconds
   MCDataFormat dataFormat;  // Communication mode (default MC_ASCII)
 
+  // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
+  uint16_t header_subheader;
+  uint8_t header_networkNo;
+  uint8_t header_pcNo;
+  uint16_t header_ioNo;
+  uint8_t header_stationNo;
+
+  String buildAsciiHeader(); // 내부 ASCII 헤더 생성 함수
+  
   // Low-level communication
   String sendAndReceive(const String &command);
   int sendAndReceive(const String &command, uint16_t buffer[]);
