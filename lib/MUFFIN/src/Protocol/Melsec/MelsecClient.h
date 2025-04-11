@@ -21,6 +21,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include "JARVIS/Include/TypeDefinitions.h"
+#include "include/MelsecCommonHeader.h"
+#include "MelsecBuilder.h"
 #include "TCPTransport.h"
 
 
@@ -36,11 +38,12 @@ namespace muffin
     public:
         // Initialize communication with the PLC
         bool Begin(const char *ip, uint16_t port, jvs::ps_e series = jvs::ps_e::QL_SERIES);
+        bool Connected();
 
         // Set communication mode (ASCII or BINARY)
         void SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo);
         void SetDataFormat(jvs::df_e format) { mDataFormat = format; }
-        bool Connected();
+        
         // Write operations
         bool WriteWords(jvs::node_area_e area, uint32_t address, int wordCount, const uint16_t data[]);
         bool WriteWord(jvs::node_area_e area, uint32_t address, uint16_t word);
@@ -52,7 +55,14 @@ namespace muffin
         int ReadBits(jvs::node_area_e area, uint32_t address, int count, bool *buffer);
 
     private:
-        std::string buildAsciiHeader(); // 내부 ASCII 헤더 생성 함수
+        std::string batchReadWrite(jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit = false, const std::string &dataToWrite = "");
+
+
+        std::string buildAsciiCommonHeader(); // 내부 ASCII 헤더 생성 함수
+        int buildBinaryCommonHeader(uint8_t* frame);
+
+        std::string buildAsciiRequestData(jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit);
+        int buildBinaryRequestData(uint8_t* frame, size_t index, jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit);
 
         // Low-level communication
         std::string sendAndReceive(const std::string &command);
@@ -72,21 +82,16 @@ namespace muffin
         std::string getDeviceCodeASCII(jvs::node_area_e area);
 
         bool isHexMemory(const jvs::node_area_e type);
-        std::string batchReadWrite(jvs::node_area_e area, uint32_t address, int count, bool read, bool isBit = false, const std::string &dataToWrite = "");
-
+       
     private:
         // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
         TCPTransport mMelsecTCP;
-        const uint16_t mSubHeader = 0x5000;
+        MelsecBuilder mMelsecBuilder;
     private:
+        MelsecCommonHeader mCommonHeader;
         uint16_t mPort;
         const char *mIP;
         jvs::ps_e mPlcSeries;
-        uint8_t mMonitoringTimer;
         jvs::df_e mDataFormat;
-        uint8_t mNetworkNumber;
-        uint8_t mPcNumber;
-        uint16_t mIoNumber;
-        uint8_t mStationNumber;
     };
 } 

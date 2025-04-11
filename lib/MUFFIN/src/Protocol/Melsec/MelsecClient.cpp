@@ -29,12 +29,7 @@ namespace muffin
     :   mPort(0), 
         mIP(nullptr), 
         mPlcSeries(jvs::ps_e::QL_SERIES), 
-        mMonitoringTimer(0x04), 
-        mDataFormat(jvs::df_e::BINARY),
-        mNetworkNumber(0x00), 
-        mPcNumber(0xFF),
-        mIoNumber(0x03FF), 
-        mStationNumber(0x00) 
+        mDataFormat(jvs::df_e::BINARY)
     {
         
     }
@@ -47,21 +42,45 @@ namespace muffin
 
     void MelsecClient::SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo) 
     {
-        mNetworkNumber = networkNo;
-        mPcNumber = pcNo;
-        mIoNumber = ioNo;
-        mStationNumber = stationNo;
+        mCommonHeader.NetworkNumber = networkNo;
+        mCommonHeader.PcNumber = pcNo;
+        mCommonHeader.IoNumber = ioNo;
+        mCommonHeader.StationNumber = stationNo;
     }
 
-    std::string MelsecClient::buildAsciiHeader() 
+    int MelsecClient::buildBinaryCommonHeader(uint8_t* frame)
+    {
+        int index = 0;
+
+        // 1. Subheader
+        frame[index++] = static_cast<uint8_t>((mCommonHeader.SubHeader >> 8) & 0xFF);
+        frame[index++] = static_cast<uint8_t>(mCommonHeader.SubHeader & 0xFF);
+
+        // 2. Network No
+        frame[index++] = mCommonHeader.NetworkNumber;
+
+        // 3. PC No
+        frame[index++] = mCommonHeader.PcNumber;
+
+        // 4. IO No (Little endian)
+        frame[index++] = static_cast<uint8_t>(mCommonHeader.IoNumber & 0xFF);
+        frame[index++] = static_cast<uint8_t>((mCommonHeader.IoNumber >> 8) & 0xFF);
+
+        // 5. Station No
+        frame[index++] = mCommonHeader.StationNumber;
+
+        return index;
+    }
+
+    std::string MelsecClient::buildAsciiCommonHeader() 
     {
         char buf[15];
         sprintf(buf, "%.4X%02X%02X%.4X%02X", 
-        mSubHeader,
-        mNetworkNumber,
-        mPcNumber,
-        mIoNumber,
-        mStationNumber
+        mCommonHeader.SubHeader,
+        mCommonHeader.NetworkNumber,
+        mCommonHeader.PcNumber,
+        mCommonHeader.IoNumber,
+        mCommonHeader.StationNumber
         );
         return std::string(buf);
     }
@@ -80,24 +99,39 @@ namespace muffin
     {
         if (mMelsecTCP.connected == false)
         {
-        return false;
+            return false;
         }
-        
-        
-        
+
+        // uint8_t test[1024] = {'\0'};
+        // size_t index = 0;
+
+        // index = mMelsecBuilder.BuildNopCommand(mDataFormat, mCommonHeader, test);
+
+        // Serial.print("SEND : ");
+        // for (size_t i = 0; i < index; i++)
+        // {
+        //     Serial.print((char)test[i]);
+        // }
+        // Serial.println();
+
         if (mDataFormat == jvs::df_e::ASCII)
         {
-            std::string cmd = buildAsciiHeader();
+            std::string cmd = buildAsciiCommonHeader();
 
             // NOP 명령: 모니터링 타이머 + 명령(0C00) + 서브커맨드(0000)
             // 데이터 길이 = 2(타이머) + 2(커맨드) + 2(서브커맨드) = 6 = 0x0006
-            cmd += "0006";     // Request data length (6 bytes = 12 ASCII chars)
-            cmd += "0010";     // Monitoring timer (0010 = 1000ms)
-            cmd += "0C00";     // Command = 0x000C (NOP)
-            cmd += "0000";     // Subcommand = 0x0000
+            cmd += "0006";              // Request data length (6 bytes = 12 ASCII chars)
+            char buf[5];
+            sprintf(buf, "%04X", mCommonHeader.MonitoringTimer);
 
+            cmd += std::string(buf);    // Monitoring timer (0010 = 1000ms)
+            cmd += "0C00";              // Command = 0x000C (NOP)
+            cmd += "0000";              // Subcommand = 0x0000
+
+            // LOG_INFO(logger,"req : %s",cmd.c_str());
             std::string response = sendAndReceive(cmd);
-
+            
+            // LOG_INFO(logger,"resp : %s",response.c_str());
             // 최소 응답 길이 확인 (헤더 + 응답코드까지 22)
             if (response == "ERROR" || response.length() < 22)
             {
@@ -120,24 +154,17 @@ namespace muffin
         else
         {
             uint8_t frame[1024];
-            int index = 0;
 
             // 1. 서두부 (Subheader ~ Request data length)
-            frame[index++] = (uint8_t)((mSubHeader >> 8) & 0xFF);
-            frame[index++] = (uint8_t)(mSubHeader & 0xFF);
-            frame[index++] = mNetworkNumber;
-            frame[index++] = mPcNumber;
-            frame[index++] = (uint8_t)(mIoNumber & 0xFF);
-            frame[index++] = (uint8_t)((mIoNumber >> 8) & 0xFF);
-            frame[index++] = mStationNumber;
+            int index = buildBinaryCommonHeader(frame);
 
             // 2. 데이터 길이 (Request Data Length)
             frame[index++] = 0x06;  // Length LSB
             frame[index++] = 0x00;  // Length MSB
 
             // 3. 모니터링 타이머 (1000ms)
-            frame[index++] = 0x10;  // Timer LSB
-            frame[index++] = 0x00;  // Timer MSB
+            frame[index++] = static_cast<uint8_t>(mCommonHeader.MonitoringTimer & 0xFF);
+            frame[index++] = static_cast<uint8_t>((mCommonHeader.MonitoringTimer >> 8) & 0xFF);
 
             // 4. 커맨드 (NOP = 0x000C)
             frame[index++] = 0x0C;  // Command LSB
@@ -174,18 +201,12 @@ namespace muffin
     {
         if (mDataFormat == jvs::df_e::ASCII)
         {
-        return mMelsecTCP.sendAndReceive(command);
+            return mMelsecTCP.sendAndReceive(command);
         }
 
-        // MC_BINARY 처리
+        // BINARY 처리
         const uint8_t *data = (const uint8_t *)command.c_str();
         int length = command.length();
-        // Serial.print("DATA : ");
-        // for (size_t i = 0; i < length; i++)
-        // {
-        // Serial.printf("%02X",data[i]);
-        // }
-        // Serial.println();
         uint8_t response[1024];
         int respLen = mMelsecTCP.sendAndReceiveBinary(data, length, response);
 
@@ -372,96 +393,89 @@ namespace muffin
         }
     }
 
-    std::string MelsecClient::batchReadWrite(jvs::node_area_e area, uint32_t address, int count, bool read, bool isBit, const std::string &dataToWrite) 
+    std::string MelsecClient::buildAsciiRequestData(jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit)
     {
-        if (mDataFormat == jvs::df_e::ASCII) 
+        std::string result = "";
+        switch (command)
         {
-            // 기존 ASCII 코드 유지
-            std::string command = "";
-            char buf[7];
-
-            snprintf(buf, sizeof(buf), "%.4X", mMonitoringTimer);
-
-            command += buf;
-            command += (read ? "0401" : "1401");
-
-            if (mPlcSeries == jvs::ps_e::IQR_SERIES) 
-            {
-                command += (isBit ? "0003" : "0002");
-                std::string deviceCode = getDeviceCodeASCII(area);
-
-                while (deviceCode.length() < 4) 
-                {
-                    deviceCode += '*';
-                }
-                command += deviceCode;
-            } 
-            else 
-            {
-                command += (isBit ? "0001" : "0000");
-                command += getDeviceCodeASCII(area);
-            }
-
-            if (isHexMemory(area))
-            {
-                char hexStr[7];  // 6자리 + 널종료
-                snprintf(hexStr, sizeof(hexStr), "%06X", address);
-                command += hexStr;
-            }
-            else
-            {
-                std::string addrStr = std::to_string(address);
-                while (addrStr.length() < 6)
-                {
-                    addrStr = "0" + addrStr;
-                }
-                command += addrStr;
-            }
-
-            snprintf(buf, sizeof(buf), "%.4X", count);
-            command += buf;
-            command += dataToWrite;
-
-            snprintf(buf, sizeof(buf), "%.4X", static_cast<int>(command.length()));
-            std::string fullFrame = buildAsciiHeader() + buf + command;
-            return fullFrame;
+        case melsec_command_e::BATCH_READ:
+            result += "0401";
+            break;
+        case melsec_command_e::BATCH_WRITE:
+            result += "1401";
+            break;
+        default:
+            result += "0000";
+            break;
         }
 
-        // ✅ BINARY 프레임 생성
-        uint8_t frame[1024];
-        int index = 0;
+        if (mPlcSeries == jvs::ps_e::IQR_SERIES) 
+        {
+            result += (isBit ? "0003" : "0002");
+            std::string deviceCode = getDeviceCodeASCII(area);
+            while (deviceCode.length() < 4) 
+            {
+                deviceCode += '*';
+            }
+            result += deviceCode;
+        } 
+        else 
+        {
+            result += (isBit ? "0001" : "0000");
+            result += getDeviceCodeASCII(area);
+        }
 
-        // 1. 서두부 (Subheader ~ Request data length)
-        frame[index++] = static_cast<uint8_t>((mSubHeader >> 8) & 0xFF);
-        frame[index++] = static_cast<uint8_t>(mSubHeader & 0xFF);
-        frame[index++] = mNetworkNumber;
-        frame[index++] = mPcNumber;
-        frame[index++] = static_cast<uint8_t>(mIoNumber & 0xFF);
-        frame[index++] = static_cast<uint8_t>((mIoNumber >> 8) & 0xFF);
-        frame[index++] = mStationNumber;
+        if (isHexMemory(area))
+        {
+            char hexStr[7];  // 6자리 + 널종료
+            snprintf(hexStr, sizeof(hexStr), "%06X", address);
+            result += hexStr;
+        }
+        else
+        {
+            std::string addrStr = std::to_string(address);
+            while (addrStr.length() < 6)
+            {
+                addrStr = "0" + addrStr;
+            }
+            result += addrStr;
+        }
 
-        // 임시로 나중에 채우는 요청 길이 위치 기억
-        int lengthPos = index;
-        frame[index++] = 0x00; // 데이터 길이 (2바이트, little-endian)
-        frame[index++] = 0x00;
+        char buf[5];
+        snprintf(buf, sizeof(buf), "%04X", count);
+        result += buf;
 
-        // 2. CPU 모듈 명령
-        frame[index++] = static_cast<uint8_t>(mMonitoringTimer & 0xFF);
-        frame[index++] = static_cast<uint8_t>((mMonitoringTimer >> 8) & 0xFF);
+        return result;
+    }
 
-        frame[index++] = static_cast<uint8_t>(read ? 0x01 : 0x01); // Command (read: 0x0401 / write: 0x1401)
-        frame[index++] = static_cast<uint8_t>(read ? 0x04 : 0x14);
+    int MelsecClient::buildBinaryRequestData(uint8_t* frame, size_t index, jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit)
+    {
+        switch (command)
+        {
+        case melsec_command_e::BATCH_READ:
+            frame[index++] = static_cast<uint8_t>(0x01);
+            frame[index++] = static_cast<uint8_t>(0x04);
+            break;
+        case melsec_command_e::BATCH_WRITE:
+            frame[index++] = static_cast<uint8_t>(0x01);
+            frame[index++] = static_cast<uint8_t>(0x14);
+            break;
+        default:
+            frame[index++] = static_cast<uint8_t>(0x00);
+            frame[index++] = static_cast<uint8_t>(0x00);
+            break;
+        }
 
         // Subcommand
         if (mPlcSeries == jvs::ps_e::IQR_SERIES) 
         {
-        frame[index++] = static_cast<uint8_t>(isBit ? 0x03 : 0x02);
-        frame[index++] = 0x00;
+            frame[index++] = static_cast<uint8_t>(isBit ? 0x03 : 0x02);
+            frame[index++] = 0x00;
         } 
         else 
         {
-        frame[index++] = static_cast<uint8_t>(isBit ? 0x01 : 0x00);
-        frame[index++] = 0x00;
+            frame[index++] = static_cast<uint8_t>(isBit ? 0x01 : 0x00);
+            frame[index++] = 0x00;
         }
 
         if (isHexMemory(area))
@@ -499,8 +513,50 @@ namespace muffin
         frame[index++] = static_cast<uint8_t>(count & 0xFF);
         frame[index++] = static_cast<uint8_t>((count >> 8) & 0xFF);
 
+        return index;
+    }
+
+    std::string MelsecClient::batchReadWrite(jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit, const std::string &dataToWrite) 
+    {
+        if (mDataFormat == jvs::df_e::ASCII) 
+        {
+            // 기존 ASCII 코드 유지
+            std::string result = "";
+            char buf[5];
+            snprintf(buf, sizeof(buf), "%04X", mCommonHeader.MonitoringTimer);
+            result += buf;
+            result += buildAsciiRequestData(area,address,count,command,isBit);
+
+            if (!(command == melsec_command_e::BATCH_READ) && !dataToWrite.empty())
+            {
+                result += dataToWrite;
+            }
+
+            snprintf(buf, sizeof(buf), "%04X", static_cast<int>(result.length()));
+            std::string fullFrame = buildAsciiCommonHeader() + buf + result;
+            return fullFrame;
+        }
+
+        // ✅ BINARY 프레임 생성
+        uint8_t frame[1024];
+
+        // 1. 서두부 (Subheader ~ Request data length)
+        int index = buildBinaryCommonHeader(frame);
+
+        // 임시로 나중에 채우는 요청 길이 위치 기억
+        int lengthPos = index;
+        frame[index++] = 0x00; // 데이터 길이 (2바이트, little-endian)
+        frame[index++] = 0x00;
+
+        // 3. 모니터링 타이머 (1000ms)
+        frame[index++] = static_cast<uint8_t>(mCommonHeader.MonitoringTimer & 0xFF);
+        frame[index++] = static_cast<uint8_t>((mCommonHeader.MonitoringTimer >> 8) & 0xFF);
+        
+        // Command
+        index = buildBinaryRequestData(frame, index, area, address, count, command, isBit);
+
         // 6. 쓰기 데이터가 있다면 추가
-        if (!read && !dataToWrite.empty())
+        if (!(command == melsec_command_e::BATCH_READ) && !dataToWrite.empty())
         {
             for (size_t i = 0; i + 1 < dataToWrite.length(); i += 2)
             {
@@ -541,7 +597,7 @@ namespace muffin
             }
         }
 
-        std::string frame = batchReadWrite(area, address, wordCount, false, false, dataStr);
+        std::string frame = batchReadWrite(area, address, wordCount, melsec_command_e::BATCH_WRITE, false, dataStr);
         std::string resp = sendAndReceive(frame);
 
         // log_d("writeWords response: %s", resp.c_str());
@@ -597,7 +653,7 @@ namespace muffin
             }
         }
 
-        std::string frame = batchReadWrite(area, address, count, false, true, data);
+        std::string frame = batchReadWrite(area, address, count, melsec_command_e::BATCH_WRITE, true, data);
         std::string resp = sendAndReceive(frame);
         // log_d("writeBits response : %s", resp.c_str());
 
@@ -607,35 +663,106 @@ namespace muffin
 
     int MelsecClient::ReadWords(jvs::node_area_e area, uint32_t address, int wordCount, uint16_t buffer[]) 
     {
-        std::string frame = batchReadWrite(area, address, wordCount, true);
-        std::string resp = sendAndReceive(frame);
+        uint8_t test[1024];
+        size_t idx = 0;
+        idx = mMelsecBuilder.BuildCommonHeader(mDataFormat,mCommonHeader,test);
+        size_t tempPos = idx;
+        test[idx++] = 0x00;
+        test[idx++] = 0x00;
+        test[idx++] = 0x00;
+        test[idx++] = 0x00;
+        
+        char buf[5];
+        sprintf(buf, "%04X", mCommonHeader.MonitoringTimer); 
+        for (char c : buf)
+        {
+            test[idx++] = static_cast<uint8_t>(c);
+        }
+
+        idx += mMelsecBuilder.BuildRequestData(mDataFormat, mPlcSeries, false, area, address, wordCount, melsec_command_e::BATCH_READ, &test[idx]);
+
+        size_t startDataPos = tempPos + 4;
+        size_t actualLength = (idx - 1) - startDataPos;
+        char lenBuf[5];
+        snprintf(lenBuf, sizeof(lenBuf), "%04X", static_cast<unsigned int>(actualLength));
+        for (int i = 0; i < 4; ++i)
+        {
+            test[tempPos + i] = static_cast<uint8_t>(lenBuf[i]);
+        }
+
+
+        Serial.print("SEND : ");
+        for (size_t i = 0; i < idx; i++)
+        {
+            Serial.print((char)test[i]);
+        }
+        Serial.println();
+        
+
 
         if (mDataFormat == jvs::df_e::ASCII) 
         {
+            // 기존 ASCII 코드 유지
+            std::string result = "";
+            char buf[5];
+            snprintf(buf, sizeof(buf), "%04X", mCommonHeader.MonitoringTimer);
+            result += buf;
+            result += buildAsciiRequestData(area,address,wordCount,melsec_command_e::BATCH_READ,false);
+            snprintf(buf, sizeof(buf), "%04X", static_cast<int>(result.length()));
+            log_d("SEND : %s",(buildAsciiCommonHeader() + buf + result).c_str());
+            std::string resp = sendAndReceive((buildAsciiCommonHeader() + buf + result));
+
             std::string data = extractAsciiData(resp);
             if (data.empty() || data.length() < static_cast<size_t>(wordCount * 4)) 
             {
                 return 0;
             }
+
             return hexStringToWords(data, buffer);
         }
-
-        // 🧠 Binary 모드
-        std::string data = extractBinaryData(resp); 
-        if (data.length() < static_cast<size_t>(wordCount * 4))
+        else
         {
-            return 0;
-        }
+            // ✅ BINARY 프레임 생성
+            uint8_t frame[1024];
 
-        for (int i = 0; i < wordCount; i++) 
-        {
-            int byteIdx = i * 4; 
-            uint8_t lsb = static_cast<uint8_t>(strtoul(data.substr(byteIdx, 2).c_str(), nullptr, 16));
-            uint8_t msb = static_cast<uint8_t>(strtoul(data.substr(byteIdx + 2, 2).c_str(), nullptr, 16));
-            buffer[i] = (msb << 8) | lsb;
-        }
+            // 1. 서두부 (Subheader ~ Request data length)
+            int index = buildBinaryCommonHeader(frame);
 
-        return wordCount;
+            // 임시로 나중에 채우는 요청 길이 위치 기억
+            int lengthPos = index;
+            frame[index++] = 0x00; // 데이터 길이 (2바이트, little-endian)
+            frame[index++] = 0x00;
+
+            // 3. 모니터링 타이머 (1000ms)
+            frame[index++] = static_cast<uint8_t>(mCommonHeader.MonitoringTimer & 0xFF);
+            frame[index++] = static_cast<uint8_t>((mCommonHeader.MonitoringTimer >> 8) & 0xFF);
+            
+            // Command
+            index = buildBinaryRequestData(frame, index, area, address, wordCount, melsec_command_e::BATCH_READ, false);
+
+            // 요청 길이 계산하여 삽입
+            uint16_t reqLen = static_cast<uint16_t>(index - 9);
+            frame[lengthPos] = static_cast<uint8_t>(reqLen & 0xFF);
+            frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);;
+
+            std::string resp = sendAndReceive(std::string(reinterpret_cast<char*>(frame), index));
+            std::string data = extractBinaryData(resp); 
+
+            if (data.length() < static_cast<size_t>(wordCount * 4))
+            {
+                return 0;
+            }
+
+            for (int i = 0; i < wordCount; i++) 
+            {
+                int byteIdx = i * 4; 
+                uint8_t lsb = static_cast<uint8_t>(strtoul(data.substr(byteIdx, 2).c_str(), nullptr, 16));
+                uint8_t msb = static_cast<uint8_t>(strtoul(data.substr(byteIdx + 2, 2).c_str(), nullptr, 16));
+                buffer[i] = (msb << 8) | lsb;
+            }
+
+            return wordCount;
+        }
     }
 
 
@@ -643,11 +770,15 @@ namespace muffin
     {
         if (mDataFormat == jvs::df_e::ASCII) 
         {
-            // 기존 ASCII 경로
-            std::string frame = batchReadWrite(area, address, count, true, true);
-            std::string resp = sendAndReceive(frame);
-            std::string data = extractAsciiData(resp);
+            std::string result = "";
+            char buf[5];
+            snprintf(buf, sizeof(buf), "%04X", mCommonHeader.MonitoringTimer);
+            result += buf;
+            result += buildAsciiRequestData(area, address, count, melsec_command_e::BATCH_READ, true);
+            snprintf(buf, sizeof(buf), "%04X", static_cast<int>(result.length()));
+            std::string resp = sendAndReceive((buildAsciiCommonHeader() + buf + result));
 
+            std::string data = extractAsciiData(resp);
             if (data.empty() || data.length() < static_cast<size_t>(count))
             {
                 return 0;
@@ -660,45 +791,69 @@ namespace muffin
 
             return count;
         }
-
-        // 🧠 Binary 모드
-
-        std::string frame = batchReadWrite(area, address, count, true, true);
-        const uint8_t* cmd = reinterpret_cast<const uint8_t*>(frame.data());
-
-        uint8_t response[256];
-        int len = mMelsecTCP.sendAndReceiveBinary(cmd, static_cast<int>(frame.length()), response);
-        if (len <= 11)
+        else
         {
-            return 0;
-        }
+            // ✅ BINARY 프레임 생성
+            uint8_t frame[1024];
 
-        const int payloadStart = 11;  // Header size
+            // 1. 서두부 (Subheader ~ Request data length)
+            int index = buildBinaryCommonHeader(frame);
 
-        for (int i = 0; i < count; i++) 
-        {
-            int byteIndex = payloadStart + (i / 2);
-            if (byteIndex >= len)
+            // 임시로 나중에 채우는 요청 길이 위치 기억
+            int lengthPos = index;
+            frame[index++] = 0x00; // 데이터 길이 (2바이트, little-endian)
+            frame[index++] = 0x00;
+
+            // 3. 모니터링 타이머 (1000ms)
+            frame[index++] = static_cast<uint8_t>(mCommonHeader.MonitoringTimer & 0xFF);
+            frame[index++] = static_cast<uint8_t>((mCommonHeader.MonitoringTimer >> 8) & 0xFF);
+            
+            // Command
+            index = buildBinaryRequestData(frame, index, area, address, count, melsec_command_e::BATCH_READ, true);
+
+            // 요청 길이 계산하여 삽입
+            uint16_t reqLen = static_cast<uint16_t>(index - 9);
+            frame[lengthPos] = static_cast<uint8_t>(reqLen & 0xFF);
+            frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);;
+
+
+            std::string temp = std::string(reinterpret_cast<char*>(frame), index);
+            const uint8_t* cmd = reinterpret_cast<const uint8_t*>(temp.data());
+
+            uint8_t response[256];
+            int len = mMelsecTCP.sendAndReceiveBinary(cmd, static_cast<int>(temp.length()), response);
+            if (len <= 11)
             {
-                break;
+                return 0;
             }
 
-            uint8_t byte = response[byteIndex];
-            bool bitVal;
+            const int payloadStart = 11;  // Header size
 
-            if (i % 2 == 0) 
+            for (int i = 0; i < count; i++) 
             {
-                bitVal = (byte & (1 << 4)) != 0;
-            } 
-            else 
-            {
-                bitVal = (byte & (1 << 0)) != 0;
+                int byteIndex = payloadStart + (i / 2);
+                if (byteIndex >= len)
+                {
+                    break;
+                }
+
+                uint8_t byte = response[byteIndex];
+                bool bitVal;
+
+                if (i % 2 == 0) 
+                {
+                    bitVal = (byte & (1 << 4)) != 0;
+                } 
+                else 
+                {
+                    bitVal = (byte & (1 << 0)) != 0;
+                }
+
+                buffer[i] = bitVal;
             }
 
-            buffer[i] = bitVal;
+            return count; 
         }
-
-        return count;
     }
 
     uint8_t MelsecClient::getDeviceCodeBinary(jvs::node_area_e area)
