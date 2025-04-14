@@ -36,6 +36,12 @@ namespace muffin{
         size_t BuildReadRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame);
         size_t BuildWriteRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame);
 
+
+
+
+
+
+        
     public:
         size_t BuildNopCommand(jvs::df_e dataFormat, MelsecCommonHeader commonHeader, uint8_t* frame);
         size_t BuildCommonHeader(jvs::df_e dataFormat, MelsecCommonHeader commonHeader, uint8_t* frame);

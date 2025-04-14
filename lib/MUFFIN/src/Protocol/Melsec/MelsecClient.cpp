@@ -714,6 +714,19 @@ namespace muffin
             Serial.printf("%02X ",testResp[i]);
         }
         Serial.println();
+        
+        Status ret = mMelsecParser.ParseReadResponseBinary(testResp, respSize, false, buffer);
+        if (ret != Status(Status::Code::GOOD))
+        {
+            LOG_ERROR(logger, "ERROR : %s",ret.c_str());
+        }
+
+        for (size_t i = 0; i < wordCount; i++)
+        {
+            LOG_DEBUG(logger,"DATA[%d] : %d",i, buffer[i]);
+        }
+        
+        
         // Serial.print("[LAST] SEND : ");
         // for (size_t i = 0; i < idx; i++)
         // {

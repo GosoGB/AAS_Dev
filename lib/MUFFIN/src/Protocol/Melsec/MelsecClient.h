@@ -23,6 +23,7 @@
 #include "JARVIS/Include/TypeDefinitions.h"
 #include "include/MelsecCommonHeader.h"
 #include "MelsecBuilder.h"
+#include "MelsecParser.h"
 #include "TCPTransport.h"
 
 
@@ -87,6 +88,8 @@ namespace muffin
         // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
         TCPTransport mMelsecTCP;
         MelsecBuilder mMelsecBuilder;
+        MelsecParser mMelsecParser;
+
     private:
         MelsecCommonHeader mCommonHeader;
         uint16_t mPort;
