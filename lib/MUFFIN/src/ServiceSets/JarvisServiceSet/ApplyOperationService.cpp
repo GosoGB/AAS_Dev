@@ -41,7 +41,7 @@ namespace muffin {
             initConfig.PanicResetCount   = 0;
             initConfig.HasPendingJARVIS  = 0;
             initConfig.HasPendingUpdate  = 0;
-            initConfig.ReconfigCode      = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_FACTORY_RESET);;
+            initConfig.ReconfigCode      = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_FACTORY_RESET);
             const uint8_t size = 20;
             char buffer[size] = {'\0'};
 

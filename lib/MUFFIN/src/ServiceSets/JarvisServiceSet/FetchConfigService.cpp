@@ -112,7 +112,7 @@ namespace muffin {
         //     PublishResponseJARVIS(response);
         //     return ret;
         // }
-        std::string payload = R"({"ver":"v4","cnt":{"melsec":[{"ip":"10.11.12.116","prt":3000,"ps":0,"df":1,"nodes":["n001","n002"]}],"rs232":[],"rs485":[],"wifi":[],"eth":[{"dhcp":true,"ip":null,"snm":null,"gtw":null,"dns1":null,"dns2":null}],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[],"mbtcp":[],"op":[{"snic":"lte","exp":false,"intvPoll":1,"intvSrv":60,"rst":false}],"node":[{"id":"n001","adtp":0,"addr":3003,"area":9,"bit":null,"qty":null,"scl":null,"ofst":null,"dt":[0],"ord":null,"fmt":null,"uid":"DI01","event":false},{"id":"n002","adtp":0,"addr":1000,"area":14,"bit":null,"qty":1,"scl":-2,"ofst":null,"dt":[3],"ord":null,"fmt":null,"uid":"P002","event":true}],"alarm":[],"optime":[],"prod":[]}})";
+        std::string payload = R"({"ver":"v4","cnt":{"melsec":[{"ip":"10.11.12.116","prt":3000,"ps":0,"df":0,"nodes":["n001","n002"]}],"rs232":[],"rs485":[],"wifi":[],"eth":[{"dhcp":true,"ip":null,"snm":null,"gtw":null,"dns1":null,"dns2":null}],"catm1":[{"md":"LM5","ctry":"KR"}],"mbrtu":[],"mbtcp":[],"op":[{"snic":"lte","exp":false,"intvPoll":1,"intvSrv":60,"rst":false}],"node":[{"id":"n001","adtp":0,"addr":3003,"area":9,"bit":null,"qty":null,"scl":null,"ofst":null,"dt":[0],"ord":null,"fmt":null,"uid":"DI01","event":false},{"id":"n002","adtp":0,"addr":266,"area":15,"bit":null,"qty":1,"scl":-2,"ofst":null,"dt":[3],"ord":null,"fmt":null,"uid":"P002","event":true}],"alarm":[],"optime":[],"prod":[]}})";
           
         LOG_INFO(logger,"payload : %s",payload.c_str());
 

@@ -220,7 +220,7 @@ namespace muffin
             sprintf(buf, "%02X", response[i]);
             result += std::string(buf);
         }
-        // log_d("result : %s",result.c_str());
+        log_d("result : %s",result.c_str());
         return result;
     }
 
@@ -569,14 +569,41 @@ namespace muffin
         // 요청 길이 계산하여 삽입
         uint16_t reqLen = static_cast<uint16_t>(index - 9);
         frame[lengthPos] = static_cast<uint8_t>(reqLen & 0xFF);
-        frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);;
+        frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);
 
+        // Serial.print("[WRITE] SEND : ");
+        // for (size_t i = 0; i < index; i++)
+        // {
+        //     Serial.printf("%02X ",frame[i]);
+        // }
+        // Serial.println();
         // 바이너리 전송 버퍼 준비 완료
         return std::string(reinterpret_cast<char*>(frame), index);
     }
 
     bool MelsecClient::WriteWords(jvs::node_area_e area, uint32_t address, int wordCount, const uint16_t data[])
     {
+        uint8_t test[1024];
+        size_t idx = 0;
+        // idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader,mPlcSeries,false,area,address,wordCount,data,test);
+        // Serial.print("[LAST] SEND : ");
+        // for (size_t i = 0; i < idx; i++)
+        // {
+        //     Serial.print((char)test[i]);
+        // }
+        // Serial.println();
+
+        idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, false ,area, address, wordCount, data, test);
+        uint8_t testResp[1024];
+        size_t respSize =  mMelsecTCP.sendAndReceiveBinary(test,idx,testResp);
+
+        Serial.print("[WRITE] RESP : ");
+        for (size_t i = 0; i < respSize; i++)
+        {
+            Serial.printf("%02X ",testResp[i]);
+        }
+        Serial.println();
+
         std::string dataStr = "";
 
         if (mDataFormat == jvs::df_e::ASCII) 
@@ -598,6 +625,7 @@ namespace muffin
         }
 
         std::string frame = batchReadWrite(area, address, wordCount, melsec_command_e::BATCH_WRITE, false, dataStr);
+
         std::string resp = sendAndReceive(frame);
 
         // log_d("writeWords response: %s", resp.c_str());
@@ -665,38 +693,33 @@ namespace muffin
     {
         uint8_t test[1024];
         size_t idx = 0;
-        idx = mMelsecBuilder.BuildCommonHeader(mDataFormat,mCommonHeader,test);
-        size_t tempPos = idx;
-        test[idx++] = 0x00;
-        test[idx++] = 0x00;
-        test[idx++] = 0x00;
-        test[idx++] = 0x00;
+        // idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, wordCount, test);
         
-        char buf[5];
-        sprintf(buf, "%04X", mCommonHeader.MonitoringTimer); 
-        for (char c : buf)
+
+        // Serial.print("[LAST] SEND : ");
+        // for (size_t i = 0; i < idx; i++)
+        // {
+        //     Serial.print((char)test[i]);
+        // }
+        // Serial.println();
+
+        idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, wordCount, test);
+        
+        uint8_t testResp[1024];
+        size_t respSize =  mMelsecTCP.sendAndReceiveBinary(test,idx,testResp);
+
+        Serial.print("[WORD] RESP : ");
+        for (size_t i = 0; i < respSize; i++)
         {
-            test[idx++] = static_cast<uint8_t>(c);
-        }
-
-        idx += mMelsecBuilder.BuildRequestData(mDataFormat, mPlcSeries, false, area, address, wordCount, melsec_command_e::BATCH_READ, &test[idx]);
-
-        size_t startDataPos = tempPos + 4;
-        size_t actualLength = (idx - 1) - startDataPos;
-        char lenBuf[5];
-        snprintf(lenBuf, sizeof(lenBuf), "%04X", static_cast<unsigned int>(actualLength));
-        for (int i = 0; i < 4; ++i)
-        {
-            test[tempPos + i] = static_cast<uint8_t>(lenBuf[i]);
-        }
-
-
-        Serial.print("SEND : ");
-        for (size_t i = 0; i < idx; i++)
-        {
-            Serial.print((char)test[i]);
+            Serial.printf("%02X ",testResp[i]);
         }
         Serial.println();
+        // Serial.print("[LAST] SEND : ");
+        // for (size_t i = 0; i < idx; i++)
+        // {
+        //     Serial.printf("%02X ",test[i]);
+        // }
+        // Serial.println();
         
 
 
@@ -709,7 +732,7 @@ namespace muffin
             result += buf;
             result += buildAsciiRequestData(area,address,wordCount,melsec_command_e::BATCH_READ,false);
             snprintf(buf, sizeof(buf), "%04X", static_cast<int>(result.length()));
-            log_d("SEND : %s",(buildAsciiCommonHeader() + buf + result).c_str());
+            // log_d("SEND : %s",(buildAsciiCommonHeader() + buf + result).c_str());
             std::string resp = sendAndReceive((buildAsciiCommonHeader() + buf + result));
 
             std::string data = extractAsciiData(resp);
@@ -743,8 +766,13 @@ namespace muffin
             // 요청 길이 계산하여 삽입
             uint16_t reqLen = static_cast<uint16_t>(index - 9);
             frame[lengthPos] = static_cast<uint8_t>(reqLen & 0xFF);
-            frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);;
-
+            frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);
+            // Serial.print("[actual] SEND : ");
+            // for (size_t i = 0; i < index; i++)
+            // {
+            //     Serial.printf("%02X ",frame[i]);
+            // }
+            // Serial.println();
             std::string resp = sendAndReceive(std::string(reinterpret_cast<char*>(frame), index));
             std::string data = extractBinaryData(resp); 
 
@@ -768,6 +796,30 @@ namespace muffin
 
     int MelsecClient::ReadBits(jvs::node_area_e area, uint32_t address, int count, bool *buffer) 
     {
+        uint8_t test[1024];
+        size_t idx = 0;
+        // idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, wordCount, test);
+        
+
+        // Serial.print("[LAST] SEND : ");
+        // for (size_t i = 0; i < idx; i++)
+        // {
+        //     Serial.print((char)test[i]);
+        // }
+        // Serial.println();
+
+        idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, test);
+        
+        uint8_t testResp[1024];
+        size_t respSize =  mMelsecTCP.sendAndReceiveBinary(test,idx,testResp);
+
+        Serial.print("[BIT] RESP : ");
+        for (size_t i = 0; i < respSize; i++)
+        {
+            Serial.printf("%02X ",testResp[i]);
+        }
+        Serial.println();
+
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             std::string result = "";
@@ -814,7 +866,7 @@ namespace muffin
             // 요청 길이 계산하여 삽입
             uint16_t reqLen = static_cast<uint16_t>(index - 9);
             frame[lengthPos] = static_cast<uint8_t>(reqLen & 0xFF);
-            frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);;
+            frame[lengthPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);
 
 
             std::string temp = std::string(reinterpret_cast<char*>(frame), index);

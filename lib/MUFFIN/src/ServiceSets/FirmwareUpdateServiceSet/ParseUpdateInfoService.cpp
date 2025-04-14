@@ -298,7 +298,7 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
 
-        JsonObject obj = json["mcu2"].as<JsonObject>();;
+        JsonObject obj = json["mcu2"].as<JsonObject>();
         return parseFirmwareInfo(obj, ota::mcu_e::MCU2, output);
     }
 
