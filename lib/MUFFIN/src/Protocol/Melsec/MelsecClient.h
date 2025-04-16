@@ -46,44 +46,15 @@ namespace muffin
         void SetDataFormat(jvs::df_e format) { mDataFormat = format; }
         
         // Write operations
-        bool WriteWords(jvs::node_area_e area, uint32_t address, int wordCount, const uint16_t data[]);
-        bool WriteWord(jvs::node_area_e area, uint32_t address, uint16_t word);
-        bool WriteBit(jvs::node_area_e area, uint32_t address, uint8_t value);
-        bool WriteBits(jvs::node_area_e area, uint32_t address, int count, const bool *values);
+        bool WriteWords(jvs::node_area_e area, uint32_t address, size_t count, const uint16_t value[]);
+        bool WriteWord(jvs::node_area_e area, uint32_t address, uint16_t value);
+        bool WriteBit(jvs::node_area_e area, uint32_t address, uint16_t value);
+        bool WriteBits(jvs::node_area_e area, uint32_t address, size_t count, const uint16_t value[]);
 
         // Read operations
-        int ReadWords(jvs::node_area_e area, uint32_t address, int wordCount, uint16_t buffer[]);
-        int ReadBits(jvs::node_area_e area, uint32_t address, int count, bool *buffer);
+        int ReadWords(jvs::node_area_e area, uint32_t address, size_t count, uint16_t buffer[]);
+        int ReadBits(jvs::node_area_e area, uint32_t address, size_t count, uint16_t buffer[]);
 
-    private:
-        std::string batchReadWrite(jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit = false, const std::string &dataToWrite = "");
-
-
-        std::string buildAsciiCommonHeader(); // 내부 ASCII 헤더 생성 함수
-        int buildBinaryCommonHeader(uint8_t* frame);
-
-        std::string buildAsciiRequestData(jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit);
-        int buildBinaryRequestData(uint8_t* frame, size_t index, jvs::node_area_e area, uint32_t address, int count, melsec_command_e command, bool isBit);
-
-        // Low-level communication
-        std::string sendAndReceive(const std::string &command);
-        int sendAndReceive(const std::string &command, uint16_t buffer[]);
-
-        // Data conversion helpers
-        int hexStringToWords(const std::string &hexStr, uint16_t buffer[]);
-        int wordsToHexString(const uint16_t data[], int wordCount, std::string &hexStr);
-        int wordArrayToByteArray(const uint16_t words[], uint8_t bytes[], int wordCount);
-
-        std::string fitStringToWords(const std::string &input, int wordCount);
-        std::string stringToHexASCII(const std::string &input);
-        std::string extractAsciiData(const std::string &response);
-        std::string extractBinaryData(const std::string &response);
-
-        uint8_t getDeviceCodeBinary(jvs::node_area_e area);
-        std::string getDeviceCodeASCII(jvs::node_area_e area);
-
-        bool isHexMemory(const jvs::node_area_e type);
-       
     private:
         // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
         TCPTransport mMelsecTCP;

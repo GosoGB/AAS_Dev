@@ -83,7 +83,7 @@ namespace muffin
         {
             frame[tempPos + i] = static_cast<uint8_t>(lenBuf[i]);
         }
-
+        
         return index;
     }
 

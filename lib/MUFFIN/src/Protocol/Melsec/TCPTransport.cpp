@@ -39,6 +39,7 @@ namespace muffin
     {
         if (!client.connected()) 
         {
+            closeConnection();
             Serial.println("Connection failed.");
             return "";
         }
@@ -82,31 +83,17 @@ namespace muffin
             return 0;
         }
 
-        // Serial.print("SEND : ");
-        
-        // for (size_t i = 0; i < length; i++)
-        // {
-        //   Serial.printf("%02X ", cmd[i]);
-        // }
-        // Serial.println();
         client.write(cmd, length);
 
         unsigned long start = millis();
         while (!client.available() && (millis() - start) < _timeout) delay(1);
         size_t idx = 0;
+        
         while (client.available()>0)
         {
             responseBuf[idx] = client.read();
             idx++;
         }
-
-        // Serial.print("RESPONSE : ");
-        
-        // for (size_t i = 0; i < idx; i++)
-        // {
-        //   Serial.printf("%02X ", responseBuf[i]);
-        // }
-        // Serial.println();
 
         return idx;
     }

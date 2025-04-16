@@ -34,7 +34,7 @@ namespace muffin {
         uint8_t PcNumber = 0xFF;
         uint16_t IoNumber = 0x03FF;
         uint8_t StationNumber = 0x00;
-        uint8_t MonitoringTimer = 0x04;
+        uint8_t MonitoringTimer = 0x08;
     };
 
 }

@@ -284,7 +284,7 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            bool response[pollQuantity+1];
+            uint16_t response[pollQuantity+1];
             int result = mMelsecClient.ReadBits(area,startAddress,pollQuantity,response);
             delay(80);
 
