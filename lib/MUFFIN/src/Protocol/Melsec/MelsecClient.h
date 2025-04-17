@@ -42,7 +42,7 @@ namespace muffin
         void Close();
 
         // Set communication mode (ASCII or BINARY)
-        void SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo);
+        // void SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo);
         void SetDataFormat(jvs::df_e format) { mDataFormat = format; }
         
         // Write operations

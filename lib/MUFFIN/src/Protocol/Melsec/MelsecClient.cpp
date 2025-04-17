@@ -40,17 +40,18 @@ namespace muffin
 
     }
 
-    void MelsecClient::SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo) 
-    {
-        mCommonHeader.NetworkNumber = networkNo;
-        mCommonHeader.PcNumber = pcNo;
-        mCommonHeader.IoNumber = ioNo;
-        mCommonHeader.StationNumber = stationNo;
-    }
+    // void MelsecClient::SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo) 
+    // {
+    //     mCommonHeader.NetworkNumber = networkNo;
+    //     mCommonHeader.PcNumber = pcNo;
+    //     mCommonHeader.IoNumber = ioNo;
+    //     mCommonHeader.StationNumber = stationNo;
+    // }
+    
 
     bool MelsecClient::Begin(const char *ip, uint16_t port, jvs::ps_e series) 
     {
-        mIP = ip; // @lsj 포인터의 수명 주기 문제가 있을 거 같은데 IPAddress 개체를 그대로 받는 게 어떨까요?
+        mIP = ip; // @lsj 포인터의 수명 주기 문제가 있을 거 같은데 IPAddress 개체를 그대로 받는 게 어떨까요? 네!
         mPort = port;
         mPlcSeries = series;
 
@@ -87,6 +88,7 @@ namespace muffin
         
         uint8_t reqFrame[1024];  // @lsj 생성과 초기화를 동시에 하는 게 좋아요 아니면 적어도 memset으로 초기화해주거나
         uint8_t respFrame[1024];
+        
         size_t idx = 0;
 
         if (mDataFormat == jvs::df_e::ASCII) 
@@ -306,10 +308,12 @@ namespace muffin
         {
             return 0;
         }
+        // @lsj 왜 flush가 read 뒤에 나오는 거죠...? write 바로 뒤에 붙어야 하지 않나요??
+        mClient.flush();
 
         mClient.write(cmd, length);
 
-        unsigned long startTS = millis();
+        uint32_t startTS = millis();
         while (!mClient.available() && (millis() - startTS) < 1000) 
         {
             delay(1);
@@ -322,8 +326,7 @@ namespace muffin
             idx++;
         }
 
-        // @lsj 왜 flush가 read 뒤에 나오는 거죠...? write 바로 뒤에 붙어야 하지 않나요??
-        mClient.flush();
+        
         
         return idx;
     }
