@@ -53,18 +53,38 @@ namespace muffin
         mIP = ip;
         mPort = port;
         mPlcSeries = series;
-        mMelsecTCP.setIP(ip);
-        mMelsecTCP.setPort(port);
-        return mMelsecTCP.connectTCP();
+
+        if (mClient.connect(mIP,mPort)) 
+        {
+            mIsConnected = true;
+        } 
+        else 
+        {
+            mIsConnected = false;
+            LOG_ERROR(logger,"TCP CONNECTION ERROR");
+        }
+
+        return mIsConnected;
     }
 
     bool MelsecClient::Connected() 
     {
-        return mMelsecTCP.connected;
+        return mIsConnected;
+    }
+
+    void MelsecClient::Close()
+    {
+        mClient.stop();
+        mIsConnected = false;
     }
 
     bool MelsecClient::WriteWords(jvs::node_area_e area, uint32_t address, size_t count, const uint16_t value[])
     {
+        if (mIsConnected == false)
+        {
+            return 0;
+        }
+        
         uint8_t reqFrame[1024];
         uint8_t respFrame[1024];
         size_t idx = 0;
@@ -72,18 +92,12 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, value, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            Serial.print("[WORD] REQ : ");
-            for (size_t i = 0; i < idx; i++)
+            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
             {
-                Serial.print((char)reqFrame[i]);
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                return false;
             }
-            Serial.print("[WORD] RESP : ");
-            for (size_t i = 0; i < respSize; i++)
-            {
-                Serial.print((char)respFrame[i]);
-            }
-            Serial.println();
 
             Status ret = mMelsecParser.ParseWriteResponseASCII(respFrame, respSize, false);
             if (ret != Status(Status::Code::GOOD))
@@ -97,18 +111,12 @@ namespace muffin
         else 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, value, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            Serial.print("[WORD] REQ : ");
-            for (size_t i = 0; i < idx; i++)
+            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
             {
-                Serial.print((char)reqFrame[i]);
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                return false;
             }
-            Serial.print("[WORD] RESP : ");
-            for (size_t i = 0; i < respSize; i++)
-            {
-                Serial.print((char)respFrame[i]);
-            }
-            Serial.println();
 
             Status ret = mMelsecParser.ParseWriteResponseBinary(respFrame, respSize, false);
             if (ret != Status(Status::Code::GOOD))
@@ -136,6 +144,11 @@ namespace muffin
 
     bool MelsecClient::WriteBits(jvs::node_area_e area, uint32_t address, size_t count, const uint16_t value[])
     {
+        if (mIsConnected == false)
+        {
+            return 0;
+        }
+
         uint8_t reqFrame[1024];
         uint8_t respFrame[1024];
         size_t idx = 0;
@@ -143,18 +156,12 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, value, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            Serial.print("[WORD] REQ : ");
-            for (size_t i = 0; i < idx; i++)
+            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
             {
-                Serial.print((char)reqFrame[i]);
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                return false;
             }
-            Serial.print("[WORD] RESP : ");
-            for (size_t i = 0; i < respSize; i++)
-            {
-                Serial.print((char)respFrame[i]);
-            }
-            Serial.println();
 
             Status ret = mMelsecParser.ParseWriteResponseASCII(respFrame, respSize, true);
             if (ret != Status(Status::Code::GOOD))
@@ -168,18 +175,12 @@ namespace muffin
         else 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, value, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            Serial.print("[WORD] REQ : ");
-            for (size_t i = 0; i < idx; i++)
+            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
             {
-                Serial.print((char)reqFrame[i]);
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                return false;
             }
-            Serial.print("[WORD] RESP : ");
-            for (size_t i = 0; i < respSize; i++)
-            {
-                Serial.print((char)respFrame[i]);
-            }
-            Serial.println();
 
             Status ret = mMelsecParser.ParseWriteResponseBinary(respFrame, respSize, false);
             if (ret != Status(Status::Code::GOOD))
@@ -195,6 +196,11 @@ namespace muffin
 
     int MelsecClient::ReadWords(jvs::node_area_e area, uint32_t address, size_t count, uint16_t buffer[]) 
     {
+        if (mIsConnected == false)
+        {
+            return 0;
+        }
+        
         uint8_t reqFrame[1024];
         uint8_t respFrame[1024];
         size_t idx = 0;
@@ -202,24 +208,18 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            // Serial.print("[WORD] REQ : ");
-            // for (size_t i = 0; i < idx; i++)
-            // {
-            //     Serial.print((char)reqFrame[i]);
-            // }
-            // Serial.print("[WORD] RESP : ");
-            // for (size_t i = 0; i < respSize; i++)
-            // {
-            //     Serial.print((char)respFrame[i]);
-            // }
-            // Serial.println();
+            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                Close();
+                return 0;
+            }
 
             Status ret = mMelsecParser.ParseReadResponseASCII(respFrame, respSize, false, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
-                mMelsecTCP.closeConnection();
                 return 0;
             }
             
@@ -228,13 +228,18 @@ namespace muffin
         else
         {
             idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            
+            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                Close();
+                return 0;
+            }
+
             Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, false, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
-                mMelsecTCP.closeConnection();
                 return 0;
             }
 
@@ -245,6 +250,11 @@ namespace muffin
 
     int MelsecClient::ReadBits(jvs::node_area_e area, uint32_t address, size_t count, uint16_t buffer[]) 
     {
+        if (mIsConnected == false)
+        {
+            return 0;
+        }
+
         uint8_t reqFrame[1024];
         uint8_t respFrame[1024];
         size_t idx = 0;
@@ -252,24 +262,18 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            // Serial.print("[WORD] REQ : ");
-            // for (size_t i = 0; i < idx; i++)
-            // {
-            //     Serial.print((char)reqFrame[i]);
-            // }
-            // Serial.print("[WORD] RESP : ");
-            // for (size_t i = 0; i < respSize; i++)
-            // {
-            //     Serial.print((char)respFrame[i]);
-            // }
-            // Serial.println();
+            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                Close();
+                return 0;
+            }
 
             Status ret = mMelsecParser.ParseReadResponseASCII(respFrame, respSize, true, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
-                mMelsecTCP.closeConnection();
                 return 0;
             }
             
@@ -278,17 +282,48 @@ namespace muffin
         else
         {
             idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, reqFrame);
-            size_t respSize =  mMelsecTCP.sendAndReceiveBinary(reqFrame, idx, respFrame);
-            
+            size_t respSize = sendAndReceive(reqFrame, idx, respFrame);
+            if (respSize == 0)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR");
+                Close();
+                return 0;
+            }
             Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, true, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
-                mMelsecTCP.closeConnection();
                 return 0;
             }
 
             return count;
         }
+    }
+
+    int MelsecClient::sendAndReceive(const uint8_t *cmd, int length, uint8_t *responseBuf) 
+    {
+        if (!mClient.connected()) 
+        {
+            return 0;
+        }
+
+        mClient.write(cmd, length);
+
+        unsigned long startTS = millis();
+        while (!mClient.available() && (millis() - startTS) < 1000) 
+        {
+            delay(1);
+        }
+        size_t idx = 0;
+        
+        while (mClient.available()>0)
+        {
+            responseBuf[idx] = mClient.read();
+            idx++;
+        }
+
+        mClient.flush();
+        
+        return idx;
     }
 }

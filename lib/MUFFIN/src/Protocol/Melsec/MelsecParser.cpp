@@ -39,7 +39,7 @@ namespace muffin
         constexpr size_t HEADER_SIZE = 18;
         constexpr size_t ENDCODE_SIZE = 4;
 
-        if (length < HEADER_SIZE) 
+        if (length < HEADER_SIZE + ENDCODE_SIZE) 
         {
             LOG_ERROR(logger,"HEADER SIZE ERROR"); 
             return Status(Status::Code::BAD_INVALID_ARGUMENT);

@@ -35,29 +35,20 @@ namespace muffin{
     public:   
         size_t BuildReadRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame);
         size_t BuildWriteRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame);
-
-
-
-
-
-
-        
-    public:
-        size_t BuildNopCommand(jvs::df_e dataFormat, MelsecCommonHeader commonHeader, uint8_t* frame);
-        size_t BuildCommonHeader(jvs::df_e dataFormat, MelsecCommonHeader commonHeader, uint8_t* frame);
-    private:
-        size_t buildAsciiCommonHeader(MelsecCommonHeader commonHeader, uint8_t* frame);
-        size_t buildBinaryCommonHeader(MelsecCommonHeader commonHeader, uint8_t* frame);
-
-        size_t buildAsciiRequestData(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame);
-        size_t buildBinaryRequestData(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame);
         
     private:
-        size_t buildAsciiRequestCommand(melsec_command_e command, uint8_t* frame);
-        size_t buildBinaryRequestCommand(melsec_command_e command, uint8_t* frame);
-
-        size_t buildAsciiRequestSubCommand(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame);
-        size_t buildBinaryRequestSubCommand(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame);
+        size_t buildCommonHeaderASCII(MelsecCommonHeader commonHeader, uint8_t* frame);
+        size_t buildRequestDataASCII(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame);
+        
+        size_t buildCommonHeaderBinary(MelsecCommonHeader commonHeader, uint8_t* frame);
+        size_t buildRequestDataBinary(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame);
+        
+    private:
+        size_t buildRequestCommandASCII(melsec_command_e command, uint8_t* frame);
+        size_t buildRequestSubCommandASCII(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame);
+        
+        size_t buildRequestCommandBinary(melsec_command_e command, uint8_t* frame);
+        size_t buildRequestSubCommandBinary(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame);
 
     private:
         std::string getDeviceCodeASCII(jvs::node_area_e area);

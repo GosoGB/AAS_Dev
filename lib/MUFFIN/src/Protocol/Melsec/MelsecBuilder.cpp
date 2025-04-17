@@ -37,7 +37,7 @@ namespace muffin
     size_t MelsecBuilder::BuildReadRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
     {
         size_t index = 0;
-        index = buildBinaryCommonHeader(commonHeader, frame);
+        index = buildCommonHeaderBinary(commonHeader, frame);
 
         size_t tempPos = index;
         frame[index++] = 0x00;
@@ -47,7 +47,7 @@ namespace muffin
         frame[index++] = static_cast<uint8_t>(commonHeader.MonitoringTimer & 0xFF);
         frame[index++] = static_cast<uint8_t>((commonHeader.MonitoringTimer >> 8) & 0xFF);
 
-        index += buildBinaryRequestData(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
+        index += buildRequestDataBinary(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
 
         uint16_t reqLen = static_cast<uint16_t>(index - 9);
         frame[tempPos] = static_cast<uint8_t>(reqLen & 0xFF);
@@ -59,7 +59,7 @@ namespace muffin
     size_t MelsecBuilder::BuildReadRequestDataASCII(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
     {
         size_t index = 0;
-        index = buildAsciiCommonHeader(commonHeader, frame);
+        index = buildCommonHeaderASCII(commonHeader, frame);
         size_t tempPos = index;
         frame[index++] = 0x00;
         frame[index++] = 0x00;
@@ -73,7 +73,7 @@ namespace muffin
         }
         // NULL 삭제
         index--;
-        index += buildAsciiRequestData(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
+        index += buildRequestDataASCII(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
         
         size_t startDataPos = tempPos + 4;
         size_t actualLength = (index ) - startDataPos;
@@ -90,7 +90,7 @@ namespace muffin
     size_t MelsecBuilder::BuildWriteRequestDataASCII(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
     {
         size_t index = 0;
-        index = buildAsciiCommonHeader(commonHeader, frame);
+        index = buildCommonHeaderASCII(commonHeader, frame);
         size_t tempPos = index;
         frame[index++] = 0x00;
         frame[index++] = 0x00;
@@ -104,7 +104,7 @@ namespace muffin
         }
         // NULL 삭제
         index--;
-        index += buildAsciiRequestData(plcSeries, isBit, area, address, count, melsec_command_e::BATCH_WRITE, &frame[index]);
+        index += buildRequestDataASCII(plcSeries, isBit, area, address, count, melsec_command_e::BATCH_WRITE, &frame[index]);
         for (int i = 0; i < count; ++i)
         {
             char dataBuf[5];
@@ -133,7 +133,7 @@ namespace muffin
     size_t MelsecBuilder::BuildWriteRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
     {
         size_t index = 0;
-        index = buildBinaryCommonHeader(commonHeader, frame);
+        index = buildCommonHeaderBinary(commonHeader, frame);
 
         size_t tempPos = index;
         frame[index++] = 0x00;
@@ -143,7 +143,7 @@ namespace muffin
         frame[index++] = static_cast<uint8_t>(commonHeader.MonitoringTimer & 0xFF);
         frame[index++] = static_cast<uint8_t>((commonHeader.MonitoringTimer >> 8) & 0xFF);
 
-        index += buildBinaryRequestData(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_WRITE, &frame[index]);
+        index += buildRequestDataBinary(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_WRITE, &frame[index]);
 
         for (int i = 0; i < count; ++i)
         {
@@ -158,61 +158,7 @@ namespace muffin
         return index;
     }
 
-    size_t MelsecBuilder::BuildNopCommand(jvs::df_e dataFormat, MelsecCommonHeader commonHeader, uint8_t* frame)
-    {
-        size_t index = BuildCommonHeader(dataFormat, commonHeader, frame);
-
-        if (dataFormat == jvs::df_e::ASCII)
-        {
-            char buf[5];
-            sprintf(buf, "%04X", commonHeader.MonitoringTimer); 
-            std::string cmd = "0006" + std::string(buf) + "0C000000";
-            for (char c : cmd)
-            {
-                frame[index++] = static_cast<uint8_t>(c);
-            }
-
-            return index;
-        }
-        else
-        {
-            // 2. 데이터 길이 (Request Data Length)
-            frame[index++] = 0x06;  // Length LSB
-            frame[index++] = 0x00;  // Length MSB
-
-            // 3. 모니터링 타이머 (1000ms)
-            frame[index++] = static_cast<uint8_t>(commonHeader.MonitoringTimer & 0xFF);
-            frame[index++] = static_cast<uint8_t>((commonHeader.MonitoringTimer >> 8) & 0xFF);
-
-            // 4. 커맨드 (NOP = 0x000C)
-            frame[index++] = 0x0C;  // Command LSB
-            frame[index++] = 0x00;  // Command MSB
-
-            // 5. 서브커맨드
-            frame[index++] = 0x00;  // Subcommand LSB
-            frame[index++] = 0x00;  // Subcommand MSB
-
-            return index;
-        }
-        
-
-    }
-
-    size_t MelsecBuilder::BuildCommonHeader(jvs::df_e dataFormat, MelsecCommonHeader commonHeader, uint8_t* frame)
-    {
-        switch (dataFormat)
-        {
-        case jvs::df_e::BINARY:
-            return (buildBinaryCommonHeader(commonHeader, frame));
-        case jvs::df_e::ASCII:
-            return (buildAsciiCommonHeader(commonHeader, frame)); 
-        default:
-            ASSERT(false, "UNSUPPORTED DATA FRAME");
-            return 0;
-        }
-    }
-
-    size_t MelsecBuilder::buildAsciiCommonHeader(MelsecCommonHeader commonHeader, uint8_t* frame)
+    size_t MelsecBuilder::buildCommonHeaderASCII(MelsecCommonHeader commonHeader, uint8_t* frame)
     {
         size_t index = 0;
 
@@ -234,7 +180,7 @@ namespace muffin
         return index;
     }
 
-    size_t MelsecBuilder::buildBinaryCommonHeader(MelsecCommonHeader commonHeader, uint8_t* frame)
+    size_t MelsecBuilder::buildCommonHeaderBinary(MelsecCommonHeader commonHeader, uint8_t* frame)
     {
         size_t index = 0;
 
@@ -258,7 +204,7 @@ namespace muffin
         return index;
     }
 
-    size_t MelsecBuilder::buildAsciiRequestCommand(melsec_command_e command, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestCommandASCII(melsec_command_e command, uint8_t* frame)
     {
         size_t index = 0;
 
@@ -287,7 +233,7 @@ namespace muffin
         }
     }
 
-    size_t MelsecBuilder::buildAsciiRequestSubCommand(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestSubCommandASCII(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
     {
         size_t index = 0;
         
@@ -329,11 +275,11 @@ namespace muffin
         return index;
     }
 
-    size_t MelsecBuilder::buildAsciiRequestData(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestDataASCII(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
     {
         size_t index = 0;
-        index = buildAsciiRequestCommand(command, frame);
-        index += buildAsciiRequestSubCommand(command, plcSeries, isBit, &frame[index]);
+        index = buildRequestCommandASCII(command, frame);
+        index += buildRequestSubCommandASCII(command, plcSeries, isBit, &frame[index]);
 
         if (plcSeries == jvs::ps_e::IQR_SERIES)
         {
@@ -392,12 +338,12 @@ namespace muffin
         return index;
     }
 
-    size_t MelsecBuilder::buildBinaryRequestData(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestDataBinary(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
     {
 
         size_t index = 0;
-        index = buildBinaryRequestCommand(command, frame);
-        index += buildBinaryRequestSubCommand(command, plcSeries, isBit, &frame[index]);
+        index = buildRequestCommandBinary(command, frame);
+        index += buildRequestSubCommandBinary(command, plcSeries, isBit, &frame[index]);
 
         if (isHexMemory(area))
         {
@@ -437,7 +383,7 @@ namespace muffin
         return index;
     }
 
-    size_t MelsecBuilder::buildBinaryRequestCommand(melsec_command_e command, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestCommandBinary(melsec_command_e command, uint8_t* frame)
     {
         size_t index = 0;
 
@@ -458,7 +404,7 @@ namespace muffin
         }
     }
 
-    size_t MelsecBuilder::buildBinaryRequestSubCommand(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestSubCommandBinary(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
     {
         size_t index = 0;
 

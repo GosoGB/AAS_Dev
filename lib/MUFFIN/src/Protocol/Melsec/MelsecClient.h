@@ -24,7 +24,6 @@
 #include "include/MelsecCommonHeader.h"
 #include "MelsecBuilder.h"
 #include "MelsecParser.h"
-#include "TCPTransport.h"
 
 
 
@@ -40,6 +39,7 @@ namespace muffin
         // Initialize communication with the PLC
         bool Begin(const char *ip, uint16_t port, jvs::ps_e series = jvs::ps_e::QL_SERIES);
         bool Connected();
+        void Close();
 
         // Set communication mode (ASCII or BINARY)
         void SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo);
@@ -56,12 +56,17 @@ namespace muffin
         int ReadBits(jvs::node_area_e area, uint32_t address, size_t count, uint16_t buffer[]);
 
     private:
-        // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
-        TCPTransport mMelsecTCP;
-        MelsecBuilder mMelsecBuilder;
-        MelsecParser mMelsecParser;
+        int sendAndReceive(const uint8_t *cmd, int length, uint8_t *responseBuf);
+
 
     private:
+        // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
+        MelsecBuilder mMelsecBuilder;
+        MelsecParser mMelsecParser;
+        WiFiClient mClient;
+
+    private:
+        bool mIsConnected = false;
         MelsecCommonHeader mCommonHeader;
         uint16_t mPort;
         const char *mIP;
