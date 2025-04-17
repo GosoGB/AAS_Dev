@@ -36,7 +36,7 @@ namespace muffin
         Status ParseWriteResponseASCII(const uint8_t* frame, size_t length, bool isBit);
         Status ParseWriteResponseBinary(const uint8_t* frame, size_t length, bool isBit);
 
-    
+    // @lsj 비어있는 접근제한자는 삭제!
     private:
     
     

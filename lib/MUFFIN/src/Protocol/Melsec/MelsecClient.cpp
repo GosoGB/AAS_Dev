@@ -50,11 +50,11 @@ namespace muffin
 
     bool MelsecClient::Begin(const char *ip, uint16_t port, jvs::ps_e series) 
     {
-        mIP = ip;
+        mIP = ip; // @lsj 포인터의 수명 주기 문제가 있을 거 같은데 IPAddress 개체를 그대로 받는 게 어떨까요?
         mPort = port;
         mPlcSeries = series;
 
-        if (mClient.connect(mIP,mPort)) 
+        if (mClient.connect(mIP, mPort)) 
         {
             mIsConnected = true;
         } 
@@ -85,7 +85,7 @@ namespace muffin
             return 0;
         }
         
-        uint8_t reqFrame[1024];
+        uint8_t reqFrame[1024];  // @lsj 생성과 초기화를 동시에 하는 게 좋아요 아니면 적어도 memset으로 초기화해주거나
         uint8_t respFrame[1024];
         size_t idx = 0;
 
@@ -322,6 +322,7 @@ namespace muffin
             idx++;
         }
 
+        // @lsj 왜 flush가 read 뒤에 나오는 거죠...? write 바로 뒤에 붙어야 하지 않나요??
         mClient.flush();
         
         return idx;

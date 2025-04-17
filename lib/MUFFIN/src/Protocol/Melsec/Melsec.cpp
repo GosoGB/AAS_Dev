@@ -43,7 +43,7 @@ namespace muffin {
     bool Melsec::Connect()
     {
         mMelsecClient.SetDataFormat(mDataformat);
-        return (mMelsecClient.Begin(mServerIP.toString().c_str(),mServerPort, mPlcSeries));
+        return (mMelsecClient.Begin(mServerIP.toString().c_str(), mServerPort, mPlcSeries));
     }
 
     Status Melsec::Config(jvs::config::Melsec* config)
@@ -52,6 +52,11 @@ namespace muffin {
          * @todo SlaveID가 없기 때문에 기존 테이블을 이용하려고 임시로 1로 고정시켜 두었음
          *       Melsec을 위한 노드테이블을 다시 만들것인지 이야기 해야함 @김주성
          * 
+         * @lsj  별도로 테이블을 만들 필요는 없을 것 같은데... 
+         *       다만 1이라는 매직 넘버를 쓰는 건 안 좋아요
+         *       대신 constexpr uint8_t DEFAULT_SLAVE_NUMBER 
+         *       같은 상수를 하나 정의해서 쓰는 게 좋습니다.
+         * @lsj  NodeReference 추가에 실패하는 경우를 처리하도록 수정 필요함
          */
         addNodeReferences(1, config->GetNodes().second);
         mServerIP   = config->GetIPv4().second;
@@ -90,6 +95,7 @@ namespace muffin {
                 return ret;
             }
 
+            // @lsj node_area_e 보다 직관적인 거 있으면 좋겠는데...
             const jvs::node_area_e area = reference->VariableNode.GetNodeArea();
             const AddressRange range = createAddressRange(reference->VariableNode.GetAddress().Numeric, reference->VariableNode.GetQuantity());
     
@@ -105,6 +111,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
+    // @lsj 이거 모드버스랑 겹치는 부분이 있는 거 같은데 하나로 합치는 게 나을 수도 있겠다 싶네요
     im::NumericAddressRange Melsec::createAddressRange(const uint16_t address, const uint16_t quantity) const
     {
         return AddressRange(address, quantity);
@@ -284,9 +291,9 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            uint16_t response[pollQuantity+1];
+            uint16_t response[pollQuantity+1];  // @lsj 메모리 할당과 초기화는 항상 같이 하는 게 좋아요
             int result = mMelsecClient.ReadBits(area,startAddress,pollQuantity,response);
-            delay(80);
+            delay(80); // @lsj 딜레이 없이도 데이터 수집에 무리가 없는지 확인 부탁드려요
 
             if (result != pollQuantity) 
             {

@@ -38,7 +38,7 @@ namespace muffin
     public:
         // Initialize communication with the PLC
         bool Begin(const char *ip, uint16_t port, jvs::ps_e series = jvs::ps_e::QL_SERIES);
-        bool Connected();
+        bool Connected(); // @lsj IsConnected 같은 식으로 이름을 짓는 게 어떨까요?
         void Close();
 
         // Set communication mode (ASCII or BINARY)

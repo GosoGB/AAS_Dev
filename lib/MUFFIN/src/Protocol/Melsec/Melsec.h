@@ -34,7 +34,7 @@ namespace muffin {
     class Melsec
     {
     public:
-        Melsec();
+        Melsec(); // @lsj 기본 생성자, 소멸자로 충분한 경우 별도로 작성하지 않는 방향 어떰?
         virtual ~Melsec();
     private:
         using AddressRange = im::NumericAddressRange;
@@ -53,6 +53,8 @@ namespace muffin {
         Status implementPolling();
         Status updateVariableNodes();
     private:
+    // @lsj 이건 어떤 naming convention을 따른 거냐의 문제인데
+    //      저는 개인적으로 함수는 동사로 시작해야 한다고 생각해요!?
         Status bitsRead(const jvs::node_area_e area, const std::set<AddressRange>& addressRangeSet);
         Status wordsRead(const jvs::node_area_e area, const std::set<AddressRange>& addressRangeSet);
     public:

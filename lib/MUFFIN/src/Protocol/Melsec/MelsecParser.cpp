@@ -48,6 +48,9 @@ namespace muffin
         size_t outCount = 0;
         char lenBuf[5] = {0};
         memcpy(lenBuf, &frame[14], 4);
+
+        // @lsj strtoul 함수 동작이 실패했을 떄의 처리가 추가되면 좋겠습니다.
+        //      converter 클래스 내부 구현을 참조하시면 좋겠네요
         size_t receiveLength = strtoul(lenBuf, nullptr, 16);
         size_t calculateLength = length - HEADER_SIZE ;          // 전체 길이 - 헤더 길이
         if (receiveLength == 0 || (calculateLength != receiveLength)) 
@@ -111,6 +114,7 @@ namespace muffin
 
     Status MelsecParser::ParseReadResponseBinary(const uint8_t* frame, size_t length, bool isBit, uint16_t* outBuffer)
     {
+        // @lsj 파서가 여러 개 생성될 수 있다면 static을 사용하는 게 메모리 사용량을 줄이는 데 도움이 됩니다
         constexpr size_t HEADER_SIZE = 9;
         constexpr size_t ENDCODE_SIZE = 2;
 
@@ -182,6 +186,7 @@ namespace muffin
 
     Status MelsecParser::ParseWriteResponseASCII(const uint8_t* frame, size_t length, bool isBit)
     {
+        // @lsj 파서가 여러 개 생성될 수 있다면 static을 사용하는 게 메모리 사용량을 줄이는 데 도움이 됩니다
         constexpr size_t HEADER_SIZE = 18;
         constexpr size_t ENDCODE_SIZE = 4;
 
