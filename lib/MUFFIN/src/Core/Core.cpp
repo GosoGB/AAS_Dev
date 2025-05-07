@@ -41,7 +41,7 @@
 #include "Protocol/SPEAR/SPEAR.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Task/JarvisTask.h"
-#include "Task/CyclicalPubTask.h"
+#include "Task/PubTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"

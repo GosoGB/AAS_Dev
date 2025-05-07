@@ -1,5 +1,5 @@
 /**
- * @file CyclicalPubTask.h
+ * @file PubTask.h
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
@@ -21,6 +21,6 @@
 
 namespace muffin {
 
-    void StartTaskCyclicalsMSG();
-    void StopCyclicalsMSGTask();
+    void StartTaskMSG();
+    void StopMSGTask();
 }

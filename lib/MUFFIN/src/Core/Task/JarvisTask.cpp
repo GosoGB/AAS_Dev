@@ -21,7 +21,7 @@
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
 #include "Core/Task/MelsecTask.h"
-#include "Core/Task/CyclicalPubTask.h"
+#include "Core/Task/PubTask.h"
 #include "DataFormat/JSON/JSON.h"
 
 #include "IM/Custom/Constants.h"
@@ -277,7 +277,7 @@ namespace muffin {
         LOG_INFO(logger, "Configured Modbus RTU protocol, mConfigVectorMbRTU size : %d",mConfigVectorMbRTU.size());
 
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG();
+        StartTaskMSG();
     #else
         ModbusRtuVector.clear();
         mConfigVectorMbRTU.clear();
@@ -314,7 +314,7 @@ namespace muffin {
         }
 
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG();
+        StartTaskMSG();
     #endif
         
     }
@@ -354,7 +354,7 @@ namespace muffin {
         }
 
         StartModbusTcpTask();
-        StartTaskCyclicalsMSG();
+        StartTaskMSG();
     }
 
     void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
@@ -393,7 +393,7 @@ namespace muffin {
         }
 
         StartMelsecTask();
-        StartTaskCyclicalsMSG();
+        StartTaskMSG();
 
     }
 

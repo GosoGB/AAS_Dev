@@ -120,6 +120,37 @@ namespace muffin {
         return payload;
     }
 
+    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, char output[])
+    {
+        ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
+
+        JsonDocument doc;
+
+        doc["1"]    = ESP32_FW_VERSION;                           // MFM 버전
+        doc["2"]    = 1;                                          // JSON 스키마 유형
+        doc["3"]    = msgVector.at(0).SourceTimestamp;            // 메시지 생성 시점 
+        doc["4"]    = macAddress.GetEthernet();                   // 디바이스 식별자
+
+        JsonArray uid_array   = doc.createNestedArray("5");       // Node 식별자 배열
+        JsonArray value_array = doc.createNestedArray("6");       // 데이터 배열
+
+        for (const auto& msg : msgVector)
+        {
+            if (msg.Value == "MFM_NULL_DATA") 
+            {
+                value_array.add(nullptr);
+            } 
+            else 
+            {
+                value_array.add(msg.Value);
+            }
+            uid_array.add(msg.UID);
+        }
+
+        serializeJson(doc, output, size);
+    }
+
+
     void JSON::Serialize(const json_datum_t& msg, const uint16_t size, char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");

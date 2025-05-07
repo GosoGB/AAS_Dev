@@ -1207,16 +1207,16 @@ namespace muffin { namespace im {
         }
     
         var_data_t variableData = RetrieveData();
-        if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
-        {
-            return std::make_pair(false, daq);
-        }
-
         daq.SourceTimestamp = variableData.Timestamp;
         strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
         daq.Topic = strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
                     strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
                     mqtt::topic_e::DAQ_PARAM;
+
+        if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
+        {
+            return std::make_pair(false, daq);
+        }
 
         switch (variableData.DataType)
         {

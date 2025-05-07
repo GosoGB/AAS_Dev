@@ -62,7 +62,7 @@ namespace muffin {
         : uint8_t
     {
         MQTT_TASK            = 0,
-        CYCLICALS_MSG_TASK   = 1,
+        PUBLISH_MSG_TASK   = 1,
         MODBUS_RTU_TASK      = 2,
         MODBUS_TCP_TASK      = 3,
         MORNITOR_ALARM_TASK  = 4,

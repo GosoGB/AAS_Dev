@@ -1,5 +1,5 @@
 /**
- * @file CyclicalPubTask.cpp
+ * @file PubTask.cpp
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
  * @brief 주기를 확인하며 주기 데이터를 생성해 CDO로 전달하는 기능의 TASK를 구현합니다.
@@ -24,7 +24,7 @@
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
 #include "Core/Core.h"
-#include "CyclicalPubTask.h"
+#include "PubTask.h"
 #include "Protocol/MQTT/CDO.h"
 #include "IM/Node/Node.h"
 #include "IM/Node/NodeStore.h"
@@ -36,13 +36,14 @@ namespace muffin {
 
     TaskHandle_t xTaskMonitorHandle = NULL;
 
-    void cyclicalsMSGTask(void* pvParameter)
+    void MSGTask(void* pvParameter)
     {
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
+        
         if (cyclicalNodeVector.empty())
         {
-            StopCyclicalsMSGTask();
+            StopMSGTask();
         }
 
         uint32_t statusReportMillis = millis(); 
@@ -58,12 +59,14 @@ namespace muffin {
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
-
-                LOG_DEBUG(logger, "[CyclicalsMSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                LOG_DEBUG(logger, "[MSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
                 
-                deviceStatus.SetTaskRemainedStack(task_name_e::CYCLICALS_MSG_TASK, RemainedStackSize);
+                deviceStatus.SetTaskRemainedStack(task_name_e::PUBLISH_MSG_TASK, RemainedStackSize);
             }
-            
+        
+            std::vector<json_datum_t> nodeVector;
+            nodeVector.reserve(cyclicalNodeVector.size());
+
             if (GetTimestamp() - currentTimestamp < s_PublishIntervalInSeconds)
             {
                 vTaskDelay(100 / portTICK_PERIOD_MS); 
@@ -71,41 +74,45 @@ namespace muffin {
             }
 
             currentTimestamp = GetTimestamp();
+            
             for (auto& node : cyclicalNodeVector)
             {
                 std::pair<bool, json_datum_t> ret;
                 ret = node->VariableNode.CreateDaqStruct();
-
-                if (ret.first == true)
+                if (ret.first != true)
                 {
-                    JSON json;
-                    const size_t size = UINT8_MAX;
-                    char payload[size] = {'\0'};
-                    json.Serialize(ret.second, size, payload);
-                    mqtt::Message message(ret.second.Topic, payload);
-                    mqtt::cdo.Store(message);
+                    ret.second.Value = "MFM_NULL_DATA";
                 }
+                nodeVector.emplace_back(ret.second);
             }
+
+            JSON json;
+            const size_t size = 4 * 1024;
+            char payload[size] = {'\0'};
+            json.Serialize(nodeVector, size, payload);
+            mqtt::Message message(mqtt::topic_e::DAQ_INPUT, payload);
+            mqtt::cdo.Store(message);
+
             vTaskDelay(100 / portTICK_PERIOD_MS); 
         }
     }
 
-    void StartTaskCyclicalsMSG()
+    void StartTaskMSG()
     {
         if (xTaskMonitorHandle != NULL)
         {
             LOG_WARNING(logger, "THE TASK HAS ALREADY STARTED");
             return;
-        }    
+        }
         
         /**
          * @todo 스택 오버플로우를 방지하기 위해서 MQTT 메시지 크기에 따라서
          *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
          */
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            cyclicalsMSGTask,      // Function to be run inside of the task
-            "cyclicalsMSGTask",    // The identifier of this task for men
-            4*KILLOBYTE,			       // Stack memory size to allocate
+            MSGTask,      // Function to be run inside of the task
+            "MSGTask",    // The identifier of this task for men
+            8*KILLOBYTE,			       // Stack memory size to allocate
             NULL,      // Task parameters to be passed to the function
             0,				       // Task Priority for scheduling
             &xTaskMonitorHandle,   // The identifier of this task for machines
@@ -140,7 +147,7 @@ namespace muffin {
         }
     }
 
-    void StopCyclicalsMSGTask()
+    void StopMSGTask()
     {
         if (xTaskMonitorHandle == NULL)
         {

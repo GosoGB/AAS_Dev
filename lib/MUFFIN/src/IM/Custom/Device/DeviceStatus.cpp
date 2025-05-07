@@ -57,7 +57,7 @@ namespace muffin {
         mTaskResources[0].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[0].RemainedStackSize = -1;
 
-        strcpy(mTaskResources[1].TaskName, "cyclicalsMSGTask");
+        strcpy(mTaskResources[1].TaskName, "PublishMSGTask");
         mTaskResources[1].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[1].RemainedStackSize = -1;
 
@@ -157,7 +157,7 @@ namespace muffin {
         case task_name_e::MQTT_TASK:
             mTaskResources[0].RemainedStackSize = remainedStack;
             break;
-        case task_name_e::CYCLICALS_MSG_TASK:
+        case task_name_e::PUBLISH_MSG_TASK:
             mTaskResources[1].RemainedStackSize = remainedStack;
             break;
         case task_name_e::MODBUS_RTU_TASK:
