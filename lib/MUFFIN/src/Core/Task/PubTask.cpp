@@ -41,6 +41,7 @@ namespace muffin {
 
     void MSGTask(void* pvParameter)
     {
+        
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
@@ -50,6 +51,7 @@ namespace muffin {
 
         while (true)
         {
+            uint32_t testTS = millis();
         #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
         #else
@@ -70,7 +72,7 @@ namespace muffin {
 
                 while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK)) == false)
                 {
-                    if (millis() - lastReceiveTime > (2 * SECOND_IN_MILLIS)) 
+                    if (millis() - lastReceiveTime > (5 * SECOND_IN_MILLIS)) 
                     {
                         LOG_ERROR(logger,"TIMEOUT: MODBUS_RTU_TASK");
                         break;
@@ -86,7 +88,7 @@ namespace muffin {
 
                 while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK)) == false)
                 {
-                    if (millis() - lastReceiveTime > (2 * SECOND_IN_MILLIS)) 
+                    if (millis() - lastReceiveTime > (5 * SECOND_IN_MILLIS)) 
                     {
                         LOG_ERROR(logger,"TIMEOUT: MODBUS_TCP_TASK");
                         break;
@@ -102,7 +104,7 @@ namespace muffin {
 
                 while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK)) == false)
                 {
-                    if (millis() - lastReceiveTime > (2 * SECOND_IN_MILLIS)) 
+                    if (millis() - lastReceiveTime > (5 * SECOND_IN_MILLIS)) 
                     {
                         LOG_ERROR(logger,"TIMEOUT: MELSEC_TASK");
                         break;
@@ -113,24 +115,40 @@ namespace muffin {
             }
 
             s_DaqTaskSetFlag.reset();
-
             std::vector<json_datum_t> nodeVector;
             nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
             
             for (auto& node : eventNodeVector)
             {
-                if (node->VariableNode.mHasNewEvent == false)
-                {
+                if (node->VariableNode.mHasNewEvent == false    || 
+                    strncmp(node->GetUID(), "A", 1) == 0        ||
+                    strncmp(node->GetUID(), "E", 1) == 0
+                )
+                {   
                     continue;
                 }
-                
+
                 std::pair<bool, json_datum_t> ret;
                 ret = node->VariableNode.CreateDaqStruct();
                 if (ret.first != true)
                 {
-                    ret.second.Value = "MFM_NULL_DATA";
+                    ret.second.Value = "MFM_NULL";
                 }
-                nodeVector.emplace_back(ret.second);
+
+                if (strncmp(node->GetUID(), "P", 1) == 0)
+                {
+                    JSON json;
+                    const size_t size = UINT8_MAX;
+                    char payload[size] = {'\0'};
+                    json.Serialize(ret.second, size, payload);
+                    
+                    mqtt::Message message(ret.second.Topic, payload);
+                    mqtt::cdo.Store(message);
+                }
+                else
+                {
+                    nodeVector.emplace_back(ret.second);
+                }
             }
             
             if (GetTimestamp() - currentTimestamp > s_PublishIntervalInSeconds)
@@ -142,7 +160,7 @@ namespace muffin {
                     ret = node->VariableNode.CreateDaqStruct();
                     if (ret.first != true)
                     {
-                        ret.second.Value = "MFM_NULL_DATA";
+                        ret.second.Value = "MFM_NULL";
                     }
                     nodeVector.emplace_back(ret.second);
                 }
@@ -153,15 +171,12 @@ namespace muffin {
                 continue;
             }
             
-            uint64_t SourceTimestamp = GetTimestampInMillis();
             JSON json;
             const size_t size = 4 * 1024;
             char payload[size] = {'\0'};
-            json.Serialize(nodeVector, size, SourceTimestamp, payload);
+            json.Serialize(nodeVector, size, payload);
             mqtt::Message message(mqtt::topic_e::DAQ_INPUT, payload);
             mqtt::cdo.Store(message);
-
-            vTaskDelay(100 / portTICK_PERIOD_MS); 
         }
     }
 

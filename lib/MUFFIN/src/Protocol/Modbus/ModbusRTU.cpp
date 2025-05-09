@@ -569,7 +569,7 @@ Status ModbusRTU::PollTemp()
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
                     ret = Status::Code::BAD_DATA_LOST;
                     mPolledDataTable.UpdateInputRegister(slaveID, address, INVALID_VALUE);
-                    return ret;
+                    // return ret;
                 }
                 else
                 {
@@ -619,7 +619,7 @@ Status ModbusRTU::PollTemp()
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
                     ret = Status::Code::BAD_DATA_LOST;
                     mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
-                    return ret;
+                    // return ret;
                 }
                 else
                 {

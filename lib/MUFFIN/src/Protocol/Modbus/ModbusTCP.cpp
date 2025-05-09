@@ -261,6 +261,7 @@ namespace muffin {
                 BIT_MEMORY:
                     if (datum.IsOK == false)
                     {
+                        LOG_ERROR(logger,"TCP POLLING ERROR");
                         polledData.StatusCode = Status::Code::BAD;
                         polledData.Value.Boolean = datum.Value == 1 ? true : false;
                     }
@@ -289,7 +290,7 @@ namespace muffin {
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveHoldingRegister(slaveID, address + i);
-                        polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
+                        polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;                     
                         polledData.ValueType = jvs::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;
                         vectorPolledData.emplace_back(polledData);
@@ -439,7 +440,7 @@ namespace muffin {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
                     ret = Status::Code::BAD_DATA_LOST;
                     mPolledDataTable.UpdateInputRegister(slaveID, address, INVALID_VALUE);
-                    return ret;
+                    // return ret;
                 }
                 else
                 {
@@ -489,7 +490,7 @@ namespace muffin {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
                     ret = Status::Code::BAD_DATA_LOST;
                     mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
-                    return ret;
+                    // return ret;
                 }
                 else
                 {

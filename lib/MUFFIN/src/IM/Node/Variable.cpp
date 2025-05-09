@@ -554,7 +554,6 @@ namespace muffin { namespace im {
         variableData.HasNewEvent = isEventOccured(variableData);
         variableData.IsEventType = variableData.HasNewEvent;
         mHasNewEvent = variableData.HasNewEvent;
-
         try
         {
             mDataBuffer.emplace_back(variableData);
@@ -1012,7 +1011,6 @@ namespace muffin { namespace im {
             if (mInitEvent == true)
             {   
                 mInitEvent = false;
-                LOG_WARNING(logger,"처음 폴링");
                 return true;
             }
             
@@ -1026,6 +1024,7 @@ namespace muffin { namespace im {
         {
             if (lastestHistory.StatusCode != variableData.StatusCode)
             {
+                LOG_WARNING(logger,"lastestHistory : %s, variableData : %s",Status(lastestHistory.StatusCode).c_str(), Status(variableData.StatusCode).c_str());
                 return true;
             }
             else
@@ -1197,7 +1196,7 @@ namespace muffin { namespace im {
         {
             return std::make_pair(false, daq);
         }
-    
+        
         var_data_t variableData = RetrieveData();
         daq.SourceTimestamp = variableData.Timestamp;
         strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));

@@ -120,7 +120,7 @@ namespace muffin {
         return payload;
     }
 
-    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t SourceTimestamp, char output[])
+    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
 
@@ -128,7 +128,7 @@ namespace muffin {
 
         doc["1"]    = ESP32_FW_VERSION;                             // MFM 버전
         doc["2"]    = 1;                                            // JSON 스키마 유형
-        doc["3"]    = SourceTimestamp;                              // 메시지 생성 시점 
+        doc["3"]    = msgVector.at(0).SourceTimestamp;              // 메시지 생성 시점 
         doc["4"]    = macAddress.GetEthernet();                     // 디바이스 식별자
    
         JsonArray uidArray = doc["5"].to<JsonArray>();             // Node 식별자 배열
@@ -136,7 +136,7 @@ namespace muffin {
 
         for (const auto& msg : msgVector)
         {
-            if (msg.Value == "MFM_NULL_DATA") 
+            if (msg.Value == "MFM_NULL") 
             {
                 valueArray.add(nullptr);
             } 
@@ -160,7 +160,14 @@ namespace muffin {
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
         doc["uid"]    = msg.UID;
-        doc["value"]  = msg.Value;
+        if (msg.Value == "MFM_NULL") 
+        {
+            doc["value"]  = nullptr;
+        } 
+        else 
+        {
+            doc["value"]  = msg.Value;
+        }
         doc["mv"]     = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
