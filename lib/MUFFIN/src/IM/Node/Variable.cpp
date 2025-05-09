@@ -22,6 +22,7 @@
 #include "Common/Assert.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Variable.h"
 
@@ -436,6 +437,45 @@ namespace muffin { namespace im {
         return result;
     }
 
+    void Variable::UpdateError()
+    {
+        removeOldestHistory();
+
+        var_data_t variableData;
+        variableData.StatusCode     = Status::Code::BAD;
+        variableData.Timestamp      = 0;
+        variableData.HasValue       = false;
+        variableData.HasStatus      = false;
+        variableData.HasTimestamp   = false;
+
+        if (mDataBuffer.size() == 0)
+        {
+            variableData.IsEventType  = true;
+            variableData.HasNewEvent  = true;
+        }
+        else
+        {
+            const var_data_t lastestHistory = mDataBuffer.back();
+            variableData.IsEventType  = (lastestHistory.StatusCode != variableData.StatusCode);
+            variableData.HasNewEvent  = (lastestHistory.StatusCode != variableData.StatusCode);
+        }
+
+        variableData.HasNewEvent = isEventOccured(variableData);
+        variableData.IsEventType = variableData.HasNewEvent;
+        mHasNewEvent = variableData.HasNewEvent;
+        
+        try
+        {
+            mDataBuffer.emplace_back(variableData);
+            // logData(variableData);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "FAILED TO EMPLACE DATA: %s", e.what());
+        }
+
+    }
+
     void Variable::Update(const std::vector<poll_data_t>& polledData)
     {
         removeOldestHistory();
@@ -492,6 +532,7 @@ namespace muffin { namespace im {
 
 
     CHECK_EVENT:
+
         if (variableData.StatusCode != Status::Code::GOOD)
         {
             variableData.HasValue = false;
@@ -507,76 +548,13 @@ namespace muffin { namespace im {
                 variableData.IsEventType  = (lastestHistory.StatusCode != variableData.StatusCode);
                 variableData.HasNewEvent  = (lastestHistory.StatusCode != variableData.StatusCode);
             }
-            goto EMPLACE_DATA;
+
         }
 
         variableData.HasNewEvent = isEventOccured(variableData);
         variableData.IsEventType = variableData.HasNewEvent;
-        if (variableData.HasNewEvent == true)
-        {
-            json_datum_t daq;
-            strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
-            
-            if (strncmp(daq.UID, "DI", 2) == 0 || strncmp(daq.UID, "DO", 2) == 0 || strncmp(daq.UID, "P", 1) == 0)
-            {
-                daq.SourceTimestamp = variableData.Timestamp;
-                daq.Topic = strncmp(daq.UID, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
-                            strncmp(daq.UID, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
-                            mqtt::topic_e::DAQ_PARAM;
-    
-                switch (variableData.DataType)
-                {
-                case jvs::dt_e::BOOLEAN:
-                    daq.Value = variableData.Value.Boolean ? "true" : "false";
-                    break;
-                case jvs::dt_e::FLOAT32 :
-                    daq.Value = Float32ConvertToString(variableData.Value.Float32);
-                    break;
-                case jvs::dt_e::FLOAT64:
-                    daq.Value = Float64ConvertToString(variableData.Value.Float64);
-                    break;
-                case jvs::dt_e::INT16:
-                    daq.Value = std::to_string(variableData.Value.Int16);
-                    break;
-                case jvs::dt_e::INT32:
-                    daq.Value = std::to_string(variableData.Value.Int32);
-                    break;
-                case jvs::dt_e::INT64:
-                    daq.Value = std::to_string(variableData.Value.Int64);
-                    break;
-                case jvs::dt_e::INT8 :
-                    daq.Value = std::to_string(variableData.Value.Int8);
-                    break;
-                case jvs::dt_e::STRING:
-                    daq.Value = std::string(variableData.Value.String.Data);
-                    break;
-                case jvs::dt_e::UINT16:
-                    daq.Value = std::to_string(variableData.Value.UInt16);
-                    break;
-                case jvs::dt_e::UINT32:
-                    daq.Value = std::to_string(variableData.Value.UInt32);
-                    break;
-                case jvs::dt_e::UINT64:
-                    daq.Value = std::to_string(variableData.Value.UInt64);
-                    break;
-                case jvs::dt_e::UINT8:
-                    daq.Value = std::to_string(variableData.Value.UInt8);
-                    break;
-                default:
-                    break;
-                }
-                
-                JSON json;
-                const size_t size = UINT8_MAX;
-                char payload[size] = {'\0'};
-                json.Serialize(daq, size, payload);
-                
-                mqtt::Message message(daq.Topic, payload);
-                mqtt::cdo.Store(message);
-            }
-        }
+        mHasNewEvent = variableData.HasNewEvent;
 
-    EMPLACE_DATA:
         try
         {
             mDataBuffer.emplace_back(variableData);
@@ -1034,6 +1012,7 @@ namespace muffin { namespace im {
             if (mInitEvent == true)
             {   
                 mInitEvent = false;
+                LOG_WARNING(logger,"처음 폴링");
                 return true;
             }
             
@@ -1042,6 +1021,19 @@ namespace muffin { namespace im {
         }
 
         const var_data_t lastestHistory = mDataBuffer.back();
+
+        if (variableData.StatusCode != Status::Code::GOOD)
+        {
+            if (lastestHistory.StatusCode != variableData.StatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        
         switch (variableData.DataType)
         {
         case jvs::dt_e::BOOLEAN:
@@ -1259,7 +1251,7 @@ namespace muffin { namespace im {
         default:
             break;
         }
-
+        
         return std::make_pair(true, daq);
     }
 

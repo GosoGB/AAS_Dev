@@ -45,6 +45,7 @@ namespace muffin {
     public:
         Status Config(jvs::config::ModbusTCP* config);
         void Clear();
+        void SetTimeoutError();
     public:
         IPAddress GetServerIP();
         uint16_t GetServerPort();

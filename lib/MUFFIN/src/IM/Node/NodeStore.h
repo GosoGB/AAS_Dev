@@ -41,6 +41,7 @@ namespace muffin { namespace im {
 
     public:
         std::vector<Node*> GetCyclicalNode();
+        std::vector<Node*> GetEventNode();
     private:
         NodeStore();
         virtual ~NodeStore();

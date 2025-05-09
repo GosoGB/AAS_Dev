@@ -536,4 +536,19 @@ namespace muffin {
     {
         return mServerPort;
     }
+
+    void ModbusTCP::SetTimeoutError()
+    {
+        const auto RetrieveEntireNode = mNodeTable.RetrieveEntireNode();
+        if (RetrieveEntireNode.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE SLAVE ID FOR POLLING: %s", RetrieveEntireNode.first.c_str());
+            return;
+        }
+
+        for (const auto& node : RetrieveEntireNode.second)
+        {
+            node->VariableNode.UpdateError();
+        }
+    }
 }

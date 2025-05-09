@@ -17,6 +17,7 @@
 #include <freertos/task.h>
 
 #include "Core/Core.h"
+#include "Core/Task/PubTask.h"
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
@@ -73,6 +74,7 @@ namespace muffin
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
             }
+            s_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
         }
     }
@@ -114,6 +116,7 @@ namespace muffin
         {
         case pdPASS:
             LOG_INFO(logger, "The Melsec task has been started");
+            s_DaqTaskEnableFlag.set(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));
             // return Status(Status::Code::GOOD);
             break;
 
@@ -141,7 +144,7 @@ namespace muffin
             LOG_WARNING(logger, "NO MELSEC TASK TO STOP!");
             return;
         }
-        
+        s_DaqTaskEnableFlag.flip(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));
         vTaskDelete(xTaskMelsecHandle);
         xTaskMelsecHandle = NULL;
         LOG_INFO(logger, "STOPPED THE MELSEC TASK");

@@ -362,6 +362,7 @@ Status ModbusRTU::PollTemp()
                 const uint16_t address  = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
                 const jvs::node_area_e area = node->VariableNode.GetNodeArea();
+                
 
                 modbus::datum_t datum;
                 datum.Address = address;

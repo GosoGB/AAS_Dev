@@ -16,6 +16,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
+#include "Common/DataStructure/bitset.h"
 
 
 
@@ -23,4 +24,13 @@ namespace muffin {
 
     void StartTaskMSG();
     void StopMSGTask();
+    typedef enum class SetFlagEnum : uint8_t
+    {
+        MODBUS_RTU_TASK   = 0,
+        MODBUS_TCP_TASK   = 1,
+        MELSEC_TASK       = 2,
+    } set_task_flag_e;
+    
+    extern bitset<static_cast<uint8_t>(3)> s_DaqTaskEnableFlag;
+    extern bitset<static_cast<uint8_t>(3)> s_DaqTaskSetFlag;
 }

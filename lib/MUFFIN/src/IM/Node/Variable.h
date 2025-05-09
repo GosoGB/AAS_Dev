@@ -46,6 +46,7 @@ namespace muffin { namespace im {
 
     public:
         void Update(const std::vector<poll_data_t>& polledData);
+        void UpdateError();
     private:
         void implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData);
         void removeOldestHistory();
@@ -79,7 +80,9 @@ namespace muffin { namespace im {
     private:
         // virtual void strategySingleDataType() override;
         // void strategySingleDataType();
-
+    
+    public:
+        bool mHasNewEvent = false;
     private:
         // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
         bool mInitEvent = true;

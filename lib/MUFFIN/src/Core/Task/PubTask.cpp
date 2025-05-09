@@ -36,18 +36,17 @@ namespace muffin {
 
     TaskHandle_t xTaskMonitorHandle = NULL;
 
+    bitset<static_cast<uint8_t>(3)> s_DaqTaskEnableFlag;
+    bitset<static_cast<uint8_t>(3)> s_DaqTaskSetFlag;
+
     void MSGTask(void* pvParameter)
     {
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
-        
-        if (cyclicalNodeVector.empty())
-        {
-            StopMSGTask();
-        }
+        std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
 
         uint32_t statusReportMillis = millis(); 
-        time_t currentTimestamp = GetTimestamp();
+        time_t currentTimestamp = 0;
 
         while (true)
         {
@@ -63,20 +62,68 @@ namespace muffin {
                 
                 deviceStatus.SetTaskRemainedStack(task_name_e::PUBLISH_MSG_TASK, RemainedStackSize);
             }
-        
-            std::vector<json_datum_t> nodeVector;
-            nodeVector.reserve(cyclicalNodeVector.size());
-
-            if (GetTimestamp() - currentTimestamp < s_PublishIntervalInSeconds)
+            
+            uint32_t lastReceiveTime;
+            if (s_DaqTaskEnableFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK)))
             {
-                vTaskDelay(100 / portTICK_PERIOD_MS); 
-                continue;
+                lastReceiveTime = millis();
+
+                while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK)) == false)
+                {
+                    if (millis() - lastReceiveTime > (2 * SECOND_IN_MILLIS)) 
+                    {
+                        LOG_ERROR(logger,"TIMEOUT: MODBUS_RTU_TASK");
+                        break;
+                    }
+                    vTaskDelay(10 / portTICK_PERIOD_MS);
+                }
+                LOG_INFO(logger,"POLLING MODBUS_RTU_TASK");
+            }
+            
+            if (s_DaqTaskEnableFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK)))
+            {
+                lastReceiveTime = millis();
+
+                while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK)) == false)
+                {
+                    if (millis() - lastReceiveTime > (2 * SECOND_IN_MILLIS)) 
+                    {
+                        LOG_ERROR(logger,"TIMEOUT: MODBUS_TCP_TASK");
+                        break;
+                    }
+                    vTaskDelay(10 / portTICK_PERIOD_MS);
+                }
+                LOG_INFO(logger,"POLLING MODBUS_TCP_TASK");
             }
 
-            currentTimestamp = GetTimestamp();
-            
-            for (auto& node : cyclicalNodeVector)
+            if (s_DaqTaskEnableFlag.test(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK)))
             {
+                lastReceiveTime = millis();
+
+                while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK)) == false)
+                {
+                    if (millis() - lastReceiveTime > (2 * SECOND_IN_MILLIS)) 
+                    {
+                        LOG_ERROR(logger,"TIMEOUT: MELSEC_TASK");
+                        break;
+                    }
+                    vTaskDelay(10 / portTICK_PERIOD_MS);
+                }
+                LOG_INFO(logger,"POLLING MELSEC_TASK");
+            }
+
+            s_DaqTaskSetFlag.reset();
+
+            std::vector<json_datum_t> nodeVector;
+            nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
+            
+            for (auto& node : eventNodeVector)
+            {
+                if (node->VariableNode.mHasNewEvent == false)
+                {
+                    continue;
+                }
+                
                 std::pair<bool, json_datum_t> ret;
                 ret = node->VariableNode.CreateDaqStruct();
                 if (ret.first != true)
@@ -85,11 +132,32 @@ namespace muffin {
                 }
                 nodeVector.emplace_back(ret.second);
             }
+            
+            if (GetTimestamp() - currentTimestamp > s_PublishIntervalInSeconds)
+            {
+                currentTimestamp = GetTimestamp();
+                for (auto& node : cyclicalNodeVector)
+                {
+                    std::pair<bool, json_datum_t> ret;
+                    ret = node->VariableNode.CreateDaqStruct();
+                    if (ret.first != true)
+                    {
+                        ret.second.Value = "MFM_NULL_DATA";
+                    }
+                    nodeVector.emplace_back(ret.second);
+                }
+            }
 
+            if (nodeVector.empty())
+            {
+                continue;
+            }
+            
+            uint64_t SourceTimestamp = GetTimestampInMillis();
             JSON json;
             const size_t size = 4 * 1024;
             char payload[size] = {'\0'};
-            json.Serialize(nodeVector, size, payload);
+            json.Serialize(nodeVector, size, SourceTimestamp, payload);
             mqtt::Message message(mqtt::topic_e::DAQ_INPUT, payload);
             mqtt::cdo.Store(message);
 

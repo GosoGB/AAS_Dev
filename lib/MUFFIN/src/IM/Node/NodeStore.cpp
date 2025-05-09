@@ -151,6 +151,21 @@ namespace muffin { namespace im {
         return cyclicalNodeVector;
     }
 
+    std::vector<Node*> NodeStore::GetEventNode()
+    {
+        std::vector<Node*> EventNodeVector;
+
+        for (auto& node : mMapNode)
+        {
+            if (node.second->HasAttributeEvent() == true)
+            {
+                EventNodeVector.emplace_back(node.second);
+            }
+        }
+        
+        return EventNodeVector;
+    }
+
 
     NodeStore* NodeStore::mInstance = nullptr;
 }}
