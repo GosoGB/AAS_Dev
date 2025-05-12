@@ -1024,7 +1024,6 @@ namespace muffin { namespace im {
         {
             if (lastestHistory.StatusCode != variableData.StatusCode)
             {
-                LOG_WARNING(logger,"lastestHistory : %s, variableData : %s",Status(lastestHistory.StatusCode).c_str(), Status(variableData.StatusCode).c_str());
                 return true;
             }
             else

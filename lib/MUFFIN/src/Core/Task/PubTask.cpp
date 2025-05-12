@@ -36,12 +36,27 @@ namespace muffin {
 
     TaskHandle_t xTaskMonitorHandle = NULL;
 
-    bitset<static_cast<uint8_t>(3)> s_DaqTaskEnableFlag;
-    bitset<static_cast<uint8_t>(3)> s_DaqTaskSetFlag;
+    bitset<static_cast<uint8_t>(3)> g_DaqTaskEnableFlag;
+    bitset<static_cast<uint8_t>(3)> g_DaqTaskSetFlag;
+
+    bool WaitForFlagWithTimeout(set_task_flag_e task)
+    {
+        if (!g_DaqTaskEnableFlag.test(static_cast<uint8_t>(task))) return true;
+
+        uint32_t lastReceiveTime = millis();
+        while (!g_DaqTaskSetFlag.test(static_cast<uint8_t>(task)))
+        {
+            if (millis() - lastReceiveTime > 5 * SECOND_IN_MILLIS)
+            {
+                return false;
+            }
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+        }
+        return true;
+    }
 
     void MSGTask(void* pvParameter)
     {
-        
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
@@ -65,56 +80,24 @@ namespace muffin {
                 deviceStatus.SetTaskRemainedStack(task_name_e::PUBLISH_MSG_TASK, RemainedStackSize);
             }
             
-            uint32_t lastReceiveTime;
-            if (s_DaqTaskEnableFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK)))
+            if (WaitForFlagWithTimeout(set_task_flag_e::MODBUS_RTU_TASK) == false)
             {
-                lastReceiveTime = millis();
-
-                while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK)) == false)
-                {
-                    if (millis() - lastReceiveTime > (5 * SECOND_IN_MILLIS)) 
-                    {
-                        LOG_ERROR(logger,"TIMEOUT: MODBUS_RTU_TASK");
-                        break;
-                    }
-                    vTaskDelay(10 / portTICK_PERIOD_MS);
-                }
-                LOG_INFO(logger,"POLLING MODBUS_RTU_TASK");
+                LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_RTU_TASK");
             }
             
-            if (s_DaqTaskEnableFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK)))
+            if (WaitForFlagWithTimeout(set_task_flag_e::MODBUS_TCP_TASK) == false)
             {
-                lastReceiveTime = millis();
-
-                while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK)) == false)
-                {
-                    if (millis() - lastReceiveTime > (5 * SECOND_IN_MILLIS)) 
-                    {
-                        LOG_ERROR(logger,"TIMEOUT: MODBUS_TCP_TASK");
-                        break;
-                    }
-                    vTaskDelay(10 / portTICK_PERIOD_MS);
-                }
-                LOG_INFO(logger,"POLLING MODBUS_TCP_TASK");
+                LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_TCP_TASK");
             }
 
-            if (s_DaqTaskEnableFlag.test(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK)))
+            if (WaitForFlagWithTimeout(set_task_flag_e::MELSEC_TASK) == false)
             {
-                lastReceiveTime = millis();
-
-                while (s_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK)) == false)
-                {
-                    if (millis() - lastReceiveTime > (5 * SECOND_IN_MILLIS)) 
-                    {
-                        LOG_ERROR(logger,"TIMEOUT: MELSEC_TASK");
-                        break;
-                    }
-                    vTaskDelay(10 / portTICK_PERIOD_MS);
-                }
-                LOG_INFO(logger,"POLLING MELSEC_TASK");
+                LOG_ERROR(logger,"TIMEOUT ERROR : MELSEC_TASK");
             }
+            
+            g_DaqTaskSetFlag.reset();
 
-            s_DaqTaskSetFlag.reset();
+            // LOG_ERROR(logger,"testTS : %d", millis() - testTS);
             std::vector<json_datum_t> nodeVector;
             nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
             

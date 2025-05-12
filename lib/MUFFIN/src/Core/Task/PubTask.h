@@ -21,9 +21,7 @@
 
 
 namespace muffin {
-
-    void StartTaskMSG();
-    void StopMSGTask();
+    
     typedef enum class SetFlagEnum : uint8_t
     {
         MODBUS_RTU_TASK   = 0,
@@ -31,6 +29,10 @@ namespace muffin {
         MELSEC_TASK       = 2,
     } set_task_flag_e;
     
-    extern bitset<static_cast<uint8_t>(3)> s_DaqTaskEnableFlag;
-    extern bitset<static_cast<uint8_t>(3)> s_DaqTaskSetFlag;
+    extern bitset<static_cast<uint8_t>(3)> g_DaqTaskEnableFlag;
+    extern bitset<static_cast<uint8_t>(3)> g_DaqTaskSetFlag;
+
+    void StartTaskMSG();
+    void StopMSGTask();
+    bool WaitForFlagWithTimeout(set_task_flag_e task);
 }

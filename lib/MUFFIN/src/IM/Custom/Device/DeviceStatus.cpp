@@ -54,11 +54,11 @@ namespace muffin {
    #endif
 
         strcpy(mTaskResources[0].TaskName, "MqttTask");
-        mTaskResources[0].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[0].TotalStackSize    = 8 * KILLOBYTE;
         mTaskResources[0].RemainedStackSize = -1;
 
         strcpy(mTaskResources[1].TaskName, "PublishMSGTask");
-        mTaskResources[1].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[1].TotalStackSize    = 8 * KILLOBYTE;
         mTaskResources[1].RemainedStackSize = -1;
 
         strcpy(mTaskResources[2].TaskName, "ModbusRtuTask");
