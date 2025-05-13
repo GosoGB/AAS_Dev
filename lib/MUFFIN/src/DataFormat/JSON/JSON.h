@@ -146,7 +146,7 @@ namespace muffin {
         size_t Serialize(const fota_status_t& _struct, const size_t size, char output[]);
 
     public:
-        void Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, char output[]);
+        void Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t sourceTimestamp,char output[]);
         void Serialize(const json_datum_t& msg, const uint16_t size, char output[]);
         void Serialize(const json_alarm_t& msg, const uint16_t size, char output[]);
         void Serialize(const operation_struct_t& msg, const uint16_t size, char output[]);

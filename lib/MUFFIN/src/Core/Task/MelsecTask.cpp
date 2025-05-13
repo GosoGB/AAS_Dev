@@ -53,6 +53,11 @@ namespace muffin
                 deviceStatus.SetTaskRemainedStack(task_name_e::MELSEC_TASK, RemainedStackSize);
             }
 
+            if (g_DaqTaskSetFlag.test(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK)))
+            {
+                continue;
+            }
+
             for(auto& melsec : MelsecVector)
             {
                 if (!melsec.mMelsecClient.Connected())
@@ -144,7 +149,7 @@ namespace muffin
             LOG_WARNING(logger, "NO MELSEC TASK TO STOP!");
             return;
         }
-        g_DaqTaskEnableFlag.flip(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));
+        g_DaqTaskEnableFlag.reset(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));
         vTaskDelete(xTaskMelsecHandle);
         xTaskMelsecHandle = NULL;
         LOG_INFO(logger, "STOPPED THE MELSEC TASK");

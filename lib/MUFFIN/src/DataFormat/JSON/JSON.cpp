@@ -120,7 +120,7 @@ namespace muffin {
         return payload;
     }
 
-    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, char output[])
+    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t sourceTimestamp,char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
 

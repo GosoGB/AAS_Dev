@@ -41,18 +41,17 @@ namespace muffin {
 
     bool WaitForFlagWithTimeout(set_task_flag_e task)
     {
-        if (!g_DaqTaskEnableFlag.test(static_cast<uint8_t>(task))) return true;
-
-        uint32_t lastReceiveTime = millis();
-        while (!g_DaqTaskSetFlag.test(static_cast<uint8_t>(task)))
+        if (!g_DaqTaskEnableFlag.test(static_cast<uint8_t>(task))) 
         {
-            if (millis() - lastReceiveTime > 5 * SECOND_IN_MILLIS)
-            {
-                return false;
-            }
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+            return true;
         }
-        return true;
+
+        if (g_DaqTaskSetFlag.test(static_cast<uint8_t>(task)))
+        {
+            return true;
+        }
+        
+        return false;
     }
 
     void MSGTask(void* pvParameter)
@@ -61,12 +60,17 @@ namespace muffin {
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
 
+        static uint32_t currentTimestamp = 0;
+        const uint32_t intervalMillis = s_PublishIntervalInSeconds * SECOND_IN_MILLIS;
         uint32_t statusReportMillis = millis(); 
-        time_t currentTimestamp = 0;
 
+        bool initFlag = true;
         while (true)
         {
-            uint32_t testTS = millis();
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            
+            bool isSuccessPolling = true;
+            uint64_t sourceTimestamp = GetTimestampInMillis();
         #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
         #else
@@ -82,61 +86,87 @@ namespace muffin {
             
             if (WaitForFlagWithTimeout(set_task_flag_e::MODBUS_RTU_TASK) == false)
             {
-                LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_RTU_TASK");
+                isSuccessPolling = false;
+                // LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_RTU_TASK");
             }
             
             if (WaitForFlagWithTimeout(set_task_flag_e::MODBUS_TCP_TASK) == false)
             {
-                LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_TCP_TASK");
+                isSuccessPolling = false;
+                // LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_TCP_TASK");
             }
 
             if (WaitForFlagWithTimeout(set_task_flag_e::MELSEC_TASK) == false)
             {
-                LOG_ERROR(logger,"TIMEOUT ERROR : MELSEC_TASK");
+                isSuccessPolling = false;
+                // LOG_ERROR(logger,"TIMEOUT ERROR : MELSEC_TASK");
             }
-            
-            g_DaqTaskSetFlag.reset();
 
-            // LOG_ERROR(logger,"testTS : %d", millis() - testTS);
-            std::vector<json_datum_t> nodeVector;
-            nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
-            
-            for (auto& node : eventNodeVector)
+            if (initFlag == true)
             {
-                if (node->VariableNode.mHasNewEvent == false    || 
-                    strncmp(node->GetUID(), "A", 1) == 0        ||
-                    strncmp(node->GetUID(), "E", 1) == 0
-                )
-                {   
-                    continue;
-                }
-
-                std::pair<bool, json_datum_t> ret;
-                ret = node->VariableNode.CreateDaqStruct();
-                if (ret.first != true)
+                if(isSuccessPolling)
                 {
-                    ret.second.Value = "MFM_NULL";
-                }
-
-                if (strncmp(node->GetUID(), "P", 1) == 0)
-                {
-                    JSON json;
-                    const size_t size = UINT8_MAX;
-                    char payload[size] = {'\0'};
-                    json.Serialize(ret.second, size, payload);
-                    
-                    mqtt::Message message(ret.second.Topic, payload);
-                    mqtt::cdo.Store(message);
+                   initFlag = false; 
+                   g_DaqTaskSetFlag.reset();
                 }
                 else
                 {
-                    nodeVector.emplace_back(ret.second);
+                    LOG_INFO(logger," 첫 폴링 완료될때까지 대기");
+                    continue;
+                }
+            }
+            else
+            {
+                if (isSuccessPolling)
+                {
+                    g_DaqTaskSetFlag.reset();
                 }
             }
             
-            if (GetTimestamp() - currentTimestamp > s_PublishIntervalInSeconds)
+            std::vector<json_datum_t> nodeVector;
+            nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
+            
+            if (isSuccessPolling)
             {
-                currentTimestamp = GetTimestamp();
+                for (auto& node : eventNodeVector)
+                {
+                    if (node->VariableNode.mHasNewEvent == false    || 
+                        strncmp(node->GetUID(), "A", 1) == 0        ||
+                        strncmp(node->GetUID(), "E", 1) == 0
+                    )
+                    {   
+                        continue;
+                    }
+                    
+                    std::pair<bool, json_datum_t> ret;
+                    ret = node->VariableNode.CreateDaqStruct();
+                    if (ret.first != true)
+                    {
+                        ret.second.Value = "MFM_NULL";
+                    }
+
+                    if (strncmp(node->GetUID(), "P", 1) == 0)
+                    {
+                        JSON json;
+                        const size_t size = UINT8_MAX;
+                        char payload[size] = {'\0'};
+                        json.Serialize(ret.second, size, payload);
+                        
+                        mqtt::Message message(ret.second.Topic, payload);
+                        mqtt::cdo.Store(message);
+                    }
+                    else
+                    {
+                        nodeVector.emplace_back(ret.second);
+                    }
+                }
+            }  
+            
+            uint32_t now = millis();
+            if (now >= currentTimestamp)
+            {
+                currentTimestamp = (currentTimestamp == 0) ? now + intervalMillis : currentTimestamp + intervalMillis;
+
                 for (auto& node : cyclicalNodeVector)
                 {
                     std::pair<bool, json_datum_t> ret;
@@ -157,7 +187,7 @@ namespace muffin {
             JSON json;
             const size_t size = 4 * 1024;
             char payload[size] = {'\0'};
-            json.Serialize(nodeVector, size, payload);
+            json.Serialize(nodeVector, size, sourceTimestamp, payload);
             mqtt::Message message(mqtt::topic_e::DAQ_INPUT, payload);
             mqtt::cdo.Store(message);
         }

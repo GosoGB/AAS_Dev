@@ -61,8 +61,6 @@ namespace muffin {
                 deviceStatus.SetTaskRemainedStack(task_name_e::MODBUS_RTU_TASK, RemainedStackSize);
             }
 
-            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
-
             if (g_DaqTaskSetFlag.test((static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK)) == true))
             {
                 continue;
@@ -85,7 +83,9 @@ namespace muffin {
                 }
             #endif
             }
+
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
+            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
         }
     }
 
@@ -147,7 +147,7 @@ namespace muffin {
             LOG_WARNING(logger, "NO MODBUS RTU TASK TO STOP!");
             return;
         }
-        g_DaqTaskEnableFlag.flip(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
+        g_DaqTaskEnableFlag.reset(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
         vTaskDelete(xTaskModbusRtuHandle);
         xTaskModbusRtuHandle = NULL;
         LOG_INFO(logger, "STOPPED THE MODBUS RTU TASK");
@@ -283,7 +283,7 @@ namespace muffin {
             LOG_WARNING(logger, "NO MODBUS TCP TASK TO STOP!");
             return;
         }
-        g_DaqTaskEnableFlag.flip(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));
+        g_DaqTaskEnableFlag.reset(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));
         vTaskDelete(xTaskModbusTcpHandle);
         xTaskModbusTcpHandle = NULL;
         LOG_INFO(logger, "STOPPED THE MODBUS TCP TASK");
