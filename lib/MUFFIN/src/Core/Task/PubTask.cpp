@@ -87,19 +87,16 @@ namespace muffin {
             if (WaitForFlagWithTimeout(set_task_flag_e::MODBUS_RTU_TASK) == false)
             {
                 isSuccessPolling = false;
-                // LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_RTU_TASK");
             }
             
             if (WaitForFlagWithTimeout(set_task_flag_e::MODBUS_TCP_TASK) == false)
             {
                 isSuccessPolling = false;
-                // LOG_ERROR(logger,"TIMEOUT ERROR : MODBUS_TCP_TASK");
             }
 
             if (WaitForFlagWithTimeout(set_task_flag_e::MELSEC_TASK) == false)
             {
                 isSuccessPolling = false;
-                // LOG_ERROR(logger,"TIMEOUT ERROR : MELSEC_TASK");
             }
 
             if (initFlag == true)
@@ -111,7 +108,6 @@ namespace muffin {
                 }
                 else
                 {
-                    LOG_INFO(logger," 첫 폴링 완료될때까지 대기");
                     continue;
                 }
             }

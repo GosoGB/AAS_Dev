@@ -46,6 +46,7 @@ namespace muffin {
         uint16_t GetServerPort();
         bool Connect();
         Status Poll();
+        void SetTimeoutError();
     private:
         Status addNodeReferences(const uint8_t slaveID, const std::vector<std::__cxx11::string>& vectorNodeID);
         im::NumericAddressRange createAddressRange(const uint16_t address, const uint16_t quantity) const;

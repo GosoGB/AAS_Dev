@@ -132,6 +132,14 @@ namespace muffin {
                 
                 deviceStatus.SetTaskRemainedStack(task_name_e::PRODUCTION_INFO_TASK, RemainedStackSize);
             }
+            
+            bool publishFlag = false;
+            if (GetTimestamp() > NextTime)
+            {
+                publishFlag = true;
+                LastTime = NextTime;
+                NextTime = CalculateTimestampNextMinuteStarts(LastTime);
+            }
 
             for (auto& nodeReference : mVectorNodeReference)
             {
@@ -170,16 +178,11 @@ namespace muffin {
                     // updateCountNG(datum);
                 }
 
-                if (GetTimestamp() < NextTime)
+                if (publishFlag)
                 {
-                    break;
+                    publishInfo(mProductCount.Total);
+                    mProductCount.Total = 0;
                 }
-
-                LastTime = NextTime;
-                NextTime = CalculateTimestampNextMinuteStarts(LastTime);
-
-                publishInfo(mProductCount.Total);
-                mProductCount.Total = 0;
             }
 
             vTaskDelay(1000 / portTICK_PERIOD_MS);

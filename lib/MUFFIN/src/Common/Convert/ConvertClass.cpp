@@ -334,7 +334,7 @@ namespace muffin {
             {
                 return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::PRODUCTION_INFO);
             }
-            else if (input == "melsec")
+            else if (input == "mc")
             {
                 return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::MELSEC);
             }

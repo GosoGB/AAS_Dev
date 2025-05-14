@@ -81,7 +81,7 @@ namespace muffin {
             cnt["alarm"].to<JsonArray>();
             cnt["optime"].to<JsonArray>();
             cnt["prod"].to<JsonArray>();
-            cnt["melsec"].to<JsonArray>();
+            cnt["mc"].to<JsonArray>();
 
             JsonArray catm1 = cnt["catm1"].to<JsonArray>();
             JsonObject _catm1 = catm1.add<JsonObject>();

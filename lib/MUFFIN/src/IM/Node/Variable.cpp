@@ -1198,7 +1198,15 @@ namespace muffin { namespace im {
         
         var_data_t variableData = RetrieveData();
         daq.SourceTimestamp = variableData.Timestamp;
-        strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
+        if ((strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0) || (strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0))
+        {
+            strncpy(daq.UID, mCIN->GetNodeID().second, sizeof(daq.UID));
+        }
+        else if((strncmp(mCIN->GetDeprecableUID().second, "P", 1) == 0))
+        {
+            strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
+        }
+        
         daq.Topic = strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
                     strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
                     mqtt::topic_e::DAQ_PARAM;

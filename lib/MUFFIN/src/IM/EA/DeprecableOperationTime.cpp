@@ -173,6 +173,15 @@ namespace muffin {
                 deviceStatus.SetTaskRemainedStack(task_name_e::OPERATION_TIME_TASK, RemainedStackSize);
             }
 
+            bool publishFlag = false; 
+
+            if (GetTimestamp() > mPublishTimer.NextTime)
+            {
+                publishFlag = true;
+                mPublishTimer.LastTime = mPublishTimer.NextTime;
+                mPublishTimer.NextTime = CalculateTimestampNextMinuteStarts(mPublishTimer.LastTime);
+           }
+            
             for (auto& nodeReference : mVectorNodeReference)
             {
                 const size_t dataStoredCount = nodeReference.get().second->VariableNode.RetrieveCount();
@@ -202,7 +211,6 @@ namespace muffin {
                             mStatus = jvs::op_status_e::PROCESSING;
                             publishOperationStatus();
                         }
-                        
                         ++processingTime;
                     }
                 }
@@ -215,16 +223,11 @@ namespace muffin {
                     }
                 }
 
-                if (GetTimestamp() < mPublishTimer.NextTime)
+                if (publishFlag)
                 {
-                    break;
+                    publishInfo(processingTime);
+                    processingTime = 0;
                 }
-
-                publishInfo(processingTime);
-
-                mPublishTimer.LastTime = mPublishTimer.NextTime;
-                mPublishTimer.NextTime = CalculateTimestampNextMinuteStarts(mPublishTimer.LastTime);
-                processingTime = 0;
             }
 
             vTaskDelay(1000 / portTICK_PERIOD_MS);

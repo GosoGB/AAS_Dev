@@ -493,70 +493,12 @@ namespace muffin {
         #endif 
             esp_restart();
         }
-
+        
         esp32FS.Remove(LWIP_HTTP_PATH);
         
         ApplyJarvisTask();
         PublishFirmwareStatusMessageService();
         PublishStatusEventMessageService(&initConfig);
-        
-        // MelsecClient plc;
-        // plc.setDataFormat(MC_BINARY);
-
-        // if (!plc.begin("10.11.12.116", 3000, QL_SERIES)) 
-        // {
-        //   LOG_DEBUG(logger,"PLC connection failed");
-        // }
-
-
-        // while (true)
-        // {
-        //     if (plc.Connected())
-        //     {
-        //         LOG_ERROR(logger,"연결 성공");
-
-        //         bool bits[6];
-        //         int read = plc.readBits(M, 160, 2, bits);
-
-        //         if (read == 2) 
-        //         {
-        //             for (int i = 0; i < 2; i++) 
-        //             {
-        //                 LOG_DEBUG(logger,"X%d : %s",16+i,bits[i] ? "ON" :"OFF");
-        //             }
-        //         } 
-
-        //         uint16_t buffer[5] = {0};
-
-        //         int wordsRead = plc.readWords(D,1000, 1, buffer);
-        //         if (wordsRead == 1) 
-        //         {
-        //             for (size_t i = 0; i < 1; i++)
-        //             {
-        //                 LOG_DEBUG(logger,"DATA[%d] : %d",i,buffer[i]);
-        //             }
-        //         } 
-        //         else 
-        //         {
-        //             LOG_ERROR(logger,"Failed to read words from PLC.");
-        //         }
-
-        //         // buffer[0] = 1555;
-        //         // plc.writeWords(W,10,1,buffer);
-        //     }
-        //     else
-        //     {
-        //         LOG_ERROR(logger,"연결 실패");
-        //         if (!plc.begin("10.11.12.116", 3000, QL_SERIES)) 
-        //         {
-        //           LOG_DEBUG(logger,"PLC connection failed");
-        //         }
-        //     }
-        //     delay(5000);
-        // }
-        
-    
-
     }
 
     Status Core::readInitConfig(init_cfg_t* output)
@@ -715,7 +657,7 @@ namespace muffin {
         cnt["alarm"].to<JsonArray>();
         cnt["optime"].to<JsonArray>();
         cnt["prod"].to<JsonArray>();
-        cnt["melsec"].to<JsonArray>();
+        cnt["mc"].to<JsonArray>();
 
         JsonArray catm1 = cnt["catm1"].to<JsonArray>();
         JsonObject _catm1 = catm1.add<JsonObject>();

@@ -65,6 +65,7 @@ namespace muffin
                     if (!melsec.Connect())
                     {
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                        melsec.SetTimeoutError();
                         continue;
                     } 
                     else
