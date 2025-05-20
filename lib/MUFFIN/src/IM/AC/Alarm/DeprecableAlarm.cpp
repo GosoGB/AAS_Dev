@@ -17,6 +17,7 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/Time/TimeUtils.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "DeprecableAlarm.h"
 #include "Protocol/MQTT/CDO.h"
 #include "IM/Custom/Constants.h"
@@ -79,7 +80,7 @@ namespace muffin {
     {
         for (auto& alarmInfo : mVectorAlarmInfo)
         {
-            if (alarmInfo.UID.at(0) == 'E')
+            if (alarmInfo.Topic == mqtt::topic_e::ERROR)
             {
                 return true;
             }
@@ -192,16 +193,12 @@ namespace muffin {
                     switch (cin.GetType().second)
                     {
                     case jvs::alarm_type_e::ONLY_LCL:
-                        pubLclToScautr(cin, reference.second->VariableNode);
                         strategyLCL(cin, datum, reference.second->VariableNode);
                         break;
                     case jvs::alarm_type_e::ONLY_UCL:
-                        pubUclToScautr(cin, reference.second->VariableNode);
                         strategyUCL(cin, datum, reference.second->VariableNode);
                         break;
                     case jvs::alarm_type_e::LCL_AND_UCL:
-                        pubLclToScautr(cin, reference.second->VariableNode);
-                        pubUclToScautr(cin, reference.second->VariableNode);
                         strategyLclAndUcl(cin, datum, reference.second->VariableNode);
                         break;
                     case jvs::alarm_type_e::CONDITION:
@@ -227,7 +224,7 @@ namespace muffin {
         const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_LCL;
         ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_LCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
 
-        const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
+        const bool isNewAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::LCL) == false;
         const bool isAlarmCondition = value < lcl;
 
         if (isNewAlarm == true)
@@ -264,7 +261,7 @@ namespace muffin {
         const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_UCL;
         ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_UCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
 
-        const bool isNewAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
+        const bool isNewAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::UCL) == false;
         const bool isAlarmCondition = value > ucl;
 
         if (isNewAlarm == true)
@@ -301,8 +298,8 @@ namespace muffin {
         const float lcl = cin.GetLCL().second;
         const float value = convertToFloat(datum);
 
-        const bool isNewLclAlarm = isActiveAlarm(cin.GetLclAlarmUID().second) == false;
-        const bool isNewUclAlarm = isActiveAlarm(cin.GetUclAlarmUID().second) == false;
+        const bool isNewLclAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::LCL) == false;
+        const bool isNewUclAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::UCL) == false;
         const bool isUclCondition = value > ucl;
         const bool isLclCondition = value < lcl;
 
@@ -378,18 +375,18 @@ namespace muffin {
         }
 
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-        std::string alarmUID;
+        std::string alarmNodeID;
         for (auto& node : nodeStore)
         {
             if (cin.GetNodeID().second == node.first)
             {
-                alarmUID = node.second->GetUID();
+                alarmNodeID = node.first;
                 break;
             }
         }
-        ASSERT((alarmUID.length() == 4), "THE LENGTH OF ALARM UID MUST BE 4");
+        ASSERT((alarmNodeID.length() == 4), "THE LENGTH OF ALARM UID MUST BE 4");
 
-        const bool isNewAlarm = isActiveAlarm(alarmUID) == false;
+        const bool isNewAlarm = isActiveAlarm(alarmNodeID, jvs::alarm_pub_type_e::CONDITION) == false;
         bool isCondition = false;
 
         const std::vector<int16_t> vectorCondition = cin.GetCondition().second;
@@ -445,11 +442,11 @@ namespace muffin {
         }
     }
     
-    bool AlarmMonitor::isActiveAlarm(const std::string& uid)
+    bool AlarmMonitor::isActiveAlarm(const std::string& nid, const jvs::alarm_pub_type_e type)
     {
         for (auto& alarmInfo : mVectorAlarmInfo)
         {
-            if (uid == alarmInfo.UID)
+            if (nid == alarmInfo.NodeID && type == alarmInfo.AlarmTpye)
             {
                 return true;
             }
@@ -493,13 +490,13 @@ namespace muffin {
         }
     }
 
-    json_alarm_t AlarmMonitor::retrieveActiveAlarm(const std::string& uid)
+    json_alarm_t AlarmMonitor::retrieveActiveAlarm(const std::string& nid)
     {
         json_alarm_t alarm;
         std::vector<muffin::json_alarm_t>::iterator it;
         for (it = mVectorAlarmInfo.begin(); it != mVectorAlarmInfo.end(); ++it)
         {
-            if (it->UID == uid)
+            if (it->NodeID == nid)
             {
                 alarm = *it;
                 mVectorAlarmInfo.erase(it);
@@ -572,48 +569,38 @@ namespace muffin {
         push.SourceTimestamp = GetTimestampInMillis();
         push.Topic = mqtt::topic_e::PUSH;
         push.Value = value;
-        
+
+        strncpy(push.NodeID, cin.GetNodeID().second.c_str(), sizeof(push.NodeID));
+
         alarm.Topic = mqtt::topic_e::ALARM;
-        alarm.Type = "start";
-        alarm.TimeStarted = GetTimestampInMillis();
-        alarm.TimeFinished = -1;
+        alarm.AlarmState = jvs::alarm_state_e::START;
+        alarm.SourceTimestamp = GetTimestampInMillis();
         alarm.Value = value;
+        strncpy(alarm.NodeID, cin.GetNodeID().second.c_str(), sizeof(alarm.NodeID));
+
+        alarm.UUID = createAlarmUUID();
         
         switch (type)
         {
         case jvs::alarm_type_e::ONLY_LCL:
-            alarm.UID = cin.GetLclAlarmUID().second;
-            push.UID = cin.GetLclAlarmUID().second;
+            alarm.AlarmTpye = jvs::alarm_pub_type_e::LCL;
             break;
         case jvs::alarm_type_e::ONLY_UCL:
-            alarm.UID = cin.GetUclAlarmUID().second;
-            push.UID = cin.GetUclAlarmUID().second;
+            alarm.AlarmTpye = jvs::alarm_pub_type_e::UCL;
             break;
         case jvs::alarm_type_e::CONDITION:
-            {
-                im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-                for (auto& nodeRef : nodeStore)
-                {
-                    if (cin.GetNodeID().second == nodeRef.first)
-                    {
-                        alarm.UID = nodeRef.second->GetUID();
-                        push.UID = nodeRef.second->GetUID();
-                        break;
-                    }
-                }
-            }
+            alarm.AlarmTpye = jvs::alarm_pub_type_e::CONDITION;
             break;
         default:
             break;
         }
-        alarm.UUID = createAlarmUUID();
-        
+
 
         JSON json;
         const size_t size = UINT8_MAX;
         char payload[size] = {'\0'};
         json.Serialize(alarm, size, payload);
-        const mqtt::topic_e topic = alarm.UID.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
+        const mqtt::topic_e topic = alarm.Topic;
         mqtt::Message AlarmMessage(topic, payload);
         
         memset(payload, '\0', size);
@@ -629,99 +616,24 @@ namespace muffin {
 
     void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const std::string& value)
     {
-        std::string uid;
+        json_alarm_t alarm = retrieveActiveAlarm(cin.GetNodeID().second);
 
-        switch (type)
-        {
-        case jvs::alarm_type_e::ONLY_LCL:
-            uid = cin.GetLclAlarmUID().second;
-            break;
-        case jvs::alarm_type_e::ONLY_UCL:
-            uid = cin.GetUclAlarmUID().second;
-            break;
-        case jvs::alarm_type_e::CONDITION:
-            {
-                im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-                for (auto& node : nodeStore)
-                {
-                    if (cin.GetNodeID().second == node.first)
-                    {
-                        uid = node.second->GetUID();
-                        break;
-                    }
-                }
-            }
-            break;
-        default:
-            break;
-        }
-        
-        json_alarm_t alarm = retrieveActiveAlarm(uid);
-
-        alarm.TimeFinished = GetTimestampInMillis();
-        alarm.Type = "finish";
+        alarm.SourceTimestamp = GetTimestampInMillis();
+        alarm.AlarmState = jvs::alarm_state_e::FINISH;
         alarm.Value = value;
 
         JSON json;
         const size_t size = UINT8_MAX;
         char payload[size] = {'\0'};
         json.Serialize(alarm, size, payload);
-        const mqtt::topic_e topic = alarm.UID.at(0) == 'A' ? mqtt::topic_e::ALARM : mqtt::topic_e::ERROR;
+        const mqtt::topic_e topic = alarm.Topic;
         mqtt::Message message(topic, payload);
         mqtt::cdo.Store(message);
     }
 
-    std::pair<bool,std::vector<std::string>> AlarmMonitor::GetUclUid()
-    {
-        std::vector<std::string> mVector;
-        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
+    
 
-        for (auto& cin : mVectorConfig)
-        {
-            ret = cin.GetUclUID();
-            if (ret.first == Status::Code::GOOD)
-            {
-                mVector.emplace_back(ret.second);
-            }
-        }
-        
-        if (mVector.size() == 0)
-        {
-            return std::make_pair(false,mVector);
-        }
-        else
-        {
-            return std::make_pair(true,mVector);
-        }
-
-    }
-
-    std::pair<bool,std::vector<std::string>> AlarmMonitor::GetLclUid()
-    {
-        std::vector<std::string> mVector;
-        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
-
-        for (auto& cin : mVectorConfig)
-        {
-            ret = cin.GetLclUID();
-            if (ret.first == Status::Code::GOOD)
-            {
-                mVector.emplace_back(ret.second);
-            }
-        }
-        
-        if (mVector.size() == 0)
-        {
-            return std::make_pair(false,mVector);
-        }
-        else
-        {
-            return std::make_pair(true,mVector);
-        }
-
-    }
-
-    bool AlarmMonitor::ConvertUCL(std::string ucluid, std::string ucl)
+    bool AlarmMonitor::ConvertUCL(std::string nid, std::string ucl)
     {
         bool decimalFound = false;
         size_t start = (ucl[0] == '-') ? 1 : 0;
@@ -746,11 +658,10 @@ namespace muffin {
 
         for (auto& cin : mVectorConfig)
         {
-            ret = cin.GetUclUID();
-            
+            ret = cin.GetNodeID();
             if (ret.first == Status::Code::GOOD)
             {
-                if (ret.second == ucluid)
+                if (ret.second == nid)
                 {
                     float floatUCL = Convert.ToFloat(ucl);
                     cin.SetUCL(floatUCL);
@@ -764,7 +675,7 @@ namespace muffin {
         return true;
     }
 
-    bool AlarmMonitor::ConvertLCL(std::string lcluid, std::string lcl)
+    bool AlarmMonitor::ConvertLCL(std::string nid, std::string lcl)
     {
         bool decimalFound = false;
         size_t start = (lcl[0] == '-') ? 1 : 0;
@@ -789,10 +700,10 @@ namespace muffin {
 
         for (auto& cin : mVectorConfig)
         {
-            ret = cin.GetLclUID();
+            ret = cin.GetNodeID();
             if (ret.first == Status::Code::GOOD)
             {
-                if (ret.second == lcluid)
+                if (ret.second == nid)
                 {
                     float floatLCL = Convert.ToFloat(lcl);
                     cin.SetLCL(floatLCL);
@@ -841,7 +752,6 @@ namespace muffin {
         JsonDocument doc;
         Status ret = json.Deserialize(file, &doc);
         file.close();
-        LOG_WARNING(logger, "[BEFORE] Remained Heap: %u Bytes", ESP.getFreeHeap());
         JsonArray alarms = doc["cnt"]["alarm"];
         for (JsonObject alarm : alarms)
         {
@@ -852,56 +762,7 @@ namespace muffin {
                 file = esp32FS.Open(JARVIS_PATH, "w", true);
                 serializeJson(doc, file);
                 file.close();
-                LOG_WARNING(logger, "[AFTER] Remained Heap: %u Bytes", ESP.getFreeHeap());
             }
-        }
-    }
-
-    void AlarmMonitor::pubLclToScautr(jvs::config::Alarm& cin, const im::Variable& node)
-    {
-        float lcl = cin.GetLCL().second;
-        if (lcl != cin.mPreviousLCL)
-        {
-            json_datum_t param;
-
-            param.SourceTimestamp = GetTimestampInMillis();
-            strncpy(param.UID, cin.GetLclUID().second.c_str(), sizeof(param.UID));
-            param.Value = node.FloatConvertToStringForLimitValue(lcl);
-
-            JSON json;
-            const size_t size = UINT8_MAX;
-            char payload[size] = {'\0'};
-            json.Serialize(param, size, payload);
-            
-            const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
-            mqtt::Message message(topic, payload);
-            mqtt::cdo.Store(message);
-
-            cin.mPreviousLCL = lcl;
-        }
-        
-    }
-
-    void AlarmMonitor::pubUclToScautr(jvs::config::Alarm& cin, const im::Variable& node)
-    {
-        float ucl = cin.GetUCL().second;
-        if (ucl != cin.mPreviousUCL)
-        {
-            json_datum_t param;
-
-            param.SourceTimestamp = GetTimestampInMillis();
-            strncpy(param.UID, cin.GetUclUID().second.c_str(), sizeof(param.UID));
-            param.Value = node.FloatConvertToStringForLimitValue(ucl);
-
-            JSON json;
-            const size_t size = UINT8_MAX;
-            char payload[size] = {'\0'};
-            json.Serialize(param, size, payload);
-
-            const mqtt::topic_e topic = mqtt::topic_e::DAQ_PARAM;
-            mqtt::Message message(topic, payload);
-            mqtt::cdo.Store(message);
-            cin.mPreviousUCL = ucl;
         }
     }
 

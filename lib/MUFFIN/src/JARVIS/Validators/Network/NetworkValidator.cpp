@@ -25,11 +25,11 @@
 
 namespace muffin { namespace jvs {
 
-    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN)
+    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN,  prtcl_ver_e ProtocolVersion)
     {
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
-
+        mProtocolVersion = ProtocolVersion;
         switch (key)
         {
         case cfg_key_e::ETHERNET:
@@ -443,18 +443,22 @@ namespace muffin { namespace jvs {
         const bool DHCP = cin["dhcp"].as<bool>();
         config::ethernet->SetDHCP(DHCP);
 
-        const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
-        const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
-        if (retEths.first != rsc_e::GOOD)
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
         {
-            return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
+            const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
+            const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
+            if (retEths.first != rsc_e::GOOD)
+            {
+                return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
+            }
+            
+            /**
+             * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
+             * 
+             */
         }
-        
-        /**
-         * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
-         * 
-         */
 
+        
         if (DHCP == false)
         {
             const auto retIP    = convertToIPv4(cin["ip"].as<JsonVariant>(),   false);
@@ -506,9 +510,12 @@ namespace muffin { namespace jvs {
         isValid &= json.containsKey("snm");     
         isValid &= json.containsKey("gtw");    
         isValid &= json.containsKey("dns1");    
-        isValid &= json.containsKey("dns2");  
-        isValid &= json.containsKey("eths");  
-
+        isValid &= json.containsKey("dns2"); 
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+        {
+            isValid &= json.containsKey("eths");  
+        }
+         
         if (isValid == true)
         {
             return rsc_e::GOOD;
@@ -523,9 +530,13 @@ namespace muffin { namespace jvs {
     {
         bool isValid = true;
         isValid &= json["dhcp"].isNull() == false;
-        isValid &= json["eths"].isNull() == false;
         isValid &= json["dhcp"].is<bool>();
-        isValid &= json["eths"].is<uint8_t>();
+        
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+        {
+            isValid &= json["eths"].isNull() == false;
+            isValid &= json["eths"].is<uint8_t>(); 
+        }
 
         if (isValid == false)
         {

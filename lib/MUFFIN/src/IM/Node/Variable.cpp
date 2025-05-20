@@ -30,53 +30,6 @@
 
 namespace muffin { namespace im {
 
-/*
-    void logData(const var_data_t& data)
-    {
-        switch (data.DataType)
-        {
-        case jvs::dt_e::BOOLEAN:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
-            break;
-        case jvs::dt_e::INT8:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
-            break;
-        case jvs::dt_e::UINT8:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
-            break;
-        case jvs::dt_e::INT16:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
-            break;
-        case jvs::dt_e::UINT16:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
-            break;
-        case jvs::dt_e::INT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
-            break;
-        case jvs::dt_e::UINT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
-            break;
-        case jvs::dt_e::INT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
-            break;
-        case jvs::dt_e::UINT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
-            break;
-        case jvs::dt_e::FLOAT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
-            break;
-        case jvs::dt_e::FLOAT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
-            break;
-        case jvs::dt_e::STRING:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
-            break;
-        default:
-            break;
-        }
-    }
-*/
-
     Variable::Variable(const jvs::config::Node* cin)
         : mCIN(cin)
     {
@@ -1198,19 +1151,8 @@ namespace muffin { namespace im {
         
         var_data_t variableData = RetrieveData();
         daq.SourceTimestamp = variableData.Timestamp;
-        if ((strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0) || (strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0))
-        {
-            strncpy(daq.UID, mCIN->GetNodeID().second, sizeof(daq.UID));
-        }
-        else if((strncmp(mCIN->GetDeprecableUID().second, "P", 1) == 0))
-        {
-            strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
-        }
-        
-        daq.Topic = strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
-                    strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
-                    mqtt::topic_e::DAQ_PARAM;
-
+        daq.Topic = mCIN->GetTopic().second;
+    
         if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
         {
             return std::make_pair(false, daq);

@@ -725,7 +725,6 @@ namespace muffin {
 
         jvs::ValidationResult result = jarvis->Validate(doc);
         doc.clear();
-
         if (result.GetRSC() >= jvs::rsc_e::BAD)
         {
             ret = Status::Code::BAD_DATA_LOST;

@@ -37,8 +37,10 @@ namespace muffin { namespace jvs {
         virtual ~NetworkValidator() {}
     private:
         using cin_vector = std::vector<config::Base*>;
+    private:
+        prtcl_ver_e mProtocolVersion;
     public:
-        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, prtcl_ver_e ProtocolVersion);
     private:
         std::pair<rsc_e, std::string> validateEthernet(const JsonArray array);
         rsc_e validateMandatoryKeysEthernet(const JsonObject json);

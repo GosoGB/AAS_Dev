@@ -44,16 +44,16 @@ namespace muffin { namespace jvs {
         ValidationResult Inspect(JsonDocument& jsonDocument, std::map<cfg_key_e, cin_vector>* mapCIN);
     private:
         std::pair<rsc_e, std::string> validateMetaData(const JsonObject json);
-        std::pair<rsc_e, std::string> validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateNicLAN(const cfg_key_e key, const JsonArray json);
-        std::pair<rsc_e, std::string> validateNicLTE(const cfg_key_e key, const JsonArray json);
-        std::pair<rsc_e, std::string> validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateMelsec(const cfg_key_e key, const JsonArray json, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateOperation(const JsonArray json);
-        std::pair<rsc_e, std::string> validateNode(const JsonArray json, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateAlarm(const JsonArray json, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateOperationTime(const JsonArray json, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateProductionInfo(const JsonArray json, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateSerialPort(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateNicLAN(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion);
+        std::pair<rsc_e, std::string> validateNicLTE(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion);
+        std::pair<rsc_e, std::string> validateModbus(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateMelsec(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateOperation(const JsonArray json, prtcl_ver_e protocolVersion);
+        std::pair<rsc_e, std::string> validateNode(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateAlarm(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateOperationTime(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateProductionInfo(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
     private:
         std::pair<rsc_e, std::string> removeNotUsedKeys(JsonObject container);
         std::pair<rsc_e, std::string> emplacePairsForCIN(std::map<cfg_key_e, cin_vector>* mapCIN);

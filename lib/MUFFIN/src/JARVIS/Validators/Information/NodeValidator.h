@@ -25,6 +25,7 @@
 #include "JARVIS/Include/Base.h"
 #include "JARVIS/Include/DataUnitOrder.h"
 #include "JARVIS/Include/TypeDefinitions.h"
+#include "Protocol/MQTT/Include/TypeDefinitions.h"
 
 
 
@@ -37,8 +38,10 @@ namespace muffin { namespace jvs {
         virtual ~NodeValidator() {}
     private:
         using cin_vector = std::vector<config::Base*>;
+    private:
+        prtcl_ver_e mProtocolVersion;
     public:
-        std::pair<rsc_e, std::string> Inspect(const JsonArray arrayCIN, cin_vector* outVector);
+        std::pair<rsc_e, std::string> Inspect(const JsonArray arrayCIN, prtcl_ver_e protocolVersion, cin_vector* outVector);
     private:
         rsc_e validateMandatoryKeys(const JsonObject json);
         rsc_e validateMandatoryValues(const JsonObject json);
@@ -55,6 +58,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::vector<DataUnitOrder>> processDataUnitOrders(JsonVariant dataUnitOrders);
         // Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
+        void convertToTopic(const uint8_t topic);
         void convertToAdressType(const uint8_t type);
         void convertToAddress(JsonVariant address);
         void convertToNodeArea(JsonVariant nodeArea);
@@ -77,10 +81,9 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::vector<DataUnitOrder>> mDataUnitOrders;
         std::pair<rsc_e, std::vector<dt_e>> mDataTypes;
         std::pair<rsc_e, std::string> mFormatString;
-        char mUID[5];
+        std::pair<rsc_e, mqtt::topic_e> mTopic;
         bool mIsEventType = false;
     private:
         std::vector<fmt_spec_e> mVectorFormatSpecifier;
-        const std::regex mPatternUID;
     };
 }}

@@ -97,17 +97,17 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
-        char UID[5];
+        char NodeID[5];
         std::string Value;
     } json_datum_t;
 
     typedef struct JsonAlarmType
     {
         mqtt::topic_e Topic;
-        std::string Type;
-        uint64_t TimeStarted;
-        int64_t TimeFinished;
-        std::string UID;
+        jvs::alarm_state_e AlarmState;
+        jvs::alarm_pub_type_e AlarmTpye;
+        uint64_t SourceTimestamp;
+        char NodeID[5];
         std::string UUID;
         std::string Value;
     } json_alarm_t;
@@ -123,7 +123,7 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
-        std::string UID;
+        char NodeID[5];
         std::string Value;
     } push_struct_t;
 

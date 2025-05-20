@@ -35,11 +35,10 @@ namespace muffin { namespace jvs { namespace config {
         if (this != &obj)
         {
             strncpy(mNodeID, obj.mNodeID, sizeof(mNodeID));
-            strncpy(mDeprecableUID, obj.mDeprecableUID, sizeof(mDeprecableUID));
 
             mAddressType            = obj.mAddressType;
             mAddress                = obj.mAddress;
-            mNodeArea             = obj.mNodeArea;
+            mNodeArea               = obj.mNodeArea;
             mBitIndex               = obj.mBitIndex;
             mAddressQuantity        = obj.mAddressQuantity;
             mNumericScale           = obj.mNumericScale;
@@ -47,6 +46,7 @@ namespace muffin { namespace jvs { namespace config {
             mVectorDataUnitOrders   = obj.mVectorDataUnitOrders;
             mVectorDataTypes        = obj.mVectorDataTypes;
             mFormatString           = obj.mFormatString;
+            mTopic                  = obj.mTopic;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
         }
         
@@ -59,7 +59,7 @@ namespace muffin { namespace jvs { namespace config {
             mNodeID                 == obj.mNodeID                  &&
             mAddressType            == obj.mAddressType             &&
             mAddress.Numeric        == obj.mAddress.Numeric         &&
-            mNodeArea             == obj.mNodeArea              &&
+            mNodeArea               == obj.mNodeArea                &&
             mBitIndex               == obj.mBitIndex                &&
             mAddressQuantity        == obj.mAddressQuantity         &&
             mNumericScale           == obj.mNumericScale            &&
@@ -67,7 +67,7 @@ namespace muffin { namespace jvs { namespace config {
             std::equal(mVectorDataUnitOrders.begin(), mVectorDataUnitOrders.end(), obj.mVectorDataUnitOrders.begin()) &&
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
-            mDeprecableUID          == obj.mDeprecableUID           &&
+            mTopic                  == obj.mTopic                   &&
             mHasAttributeEvent      == obj.mHasAttributeEvent
         );
     }
@@ -493,18 +493,10 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::FORMAT_STRING));
     }
 
-    void Node::SetDeprecableUID(const char* uid)
+    void Node::SetTopic(const mqtt::topic_e topic)
     {
-        ASSERT((strlen(uid) == 4), "UID MUST BE A STRING WITH LEGNTH OF 4");
-        ASSERT(
-            (
-                uid[0] == 'P' || uid[0] == 'A' || uid[0] == 'E' ||
-                strncmp(uid, "DI", 2) || strncmp(uid, "DO", 2) || strncmp(uid, "MD", 2)
-            ), "UID MUST START WITH ONE OF PREFIXES, \"P\", \"A\", \"E\", \"DI\", \"DO\", \"MD\""
-        );
-
-        strncpy(mDeprecableUID, uid, sizeof(mDeprecableUID));
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DEPRECABLE_UID));
+        mTopic = topic;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::TOPIC));
     }
 
     void Node::SetAttributeEvent(const bool hasEvent)
@@ -681,18 +673,6 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, const char*> Node::GetDeprecableUID() const
-    {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DEPRECABLE_UID)) == true)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mDeprecableUID);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mDeprecableUID);
-        }
-    }
-
     std::pair<Status, bool> Node::GetAttributeEvent() const
     {
         if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ATTRIBUTE_EVENT)) == true)
@@ -702,6 +682,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mHasAttributeEvent);
+        }
+    }
+
+    std::pair<Status, mqtt::topic_e> Node::GetTopic() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::TOPIC)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mTopic);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mTopic);
         }
     }
 }}}

@@ -126,9 +126,9 @@ namespace muffin {
             {
                 for (auto& node : eventNodeVector)
                 {
-                    if (node->VariableNode.mHasNewEvent == false    || 
-                        strncmp(node->GetUID(), "A", 1) == 0        ||
-                        strncmp(node->GetUID(), "E", 1) == 0
+                    if (node->VariableNode.mHasNewEvent == false    ||  
+                        node->GetTopic() == mqtt::topic_e::ALARM    || 
+                        node->GetTopic() == mqtt::topic_e::ERROR
                     )
                     {   
                         continue;
@@ -141,7 +141,7 @@ namespace muffin {
                         ret.second.Value = "MFM_NULL";
                     }
 
-                    if (strncmp(node->GetUID(), "P", 1) == 0)
+                    if (node->GetTopic() == mqtt::topic_e::DAQ_PARAM)
                     {
                         JSON json;
                         const size_t size = UINT8_MAX;

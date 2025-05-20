@@ -122,36 +122,36 @@ namespace muffin { namespace jvs {
             {
                 case cfg_key_e::RS232:
                 case cfg_key_e::RS485:
-                    ret = validateSerialPort(key, cinArray, &outputVector);
+                    ret = validateSerialPort(key, cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::WIFI4:
                 case cfg_key_e::ETHERNET:
-                    ret = validateNicLAN(key, cinArray);
+                    ret = validateNicLAN(key, cinArray, mProtocolVersion);
                     break;
                 case cfg_key_e::LTE_CatM1:
-                    ret = validateNicLTE(key, cinArray);
+                    ret = validateNicLTE(key, cinArray, mProtocolVersion);
                     break;
                 case cfg_key_e::MODBUS_RTU:
                 case cfg_key_e::MODBUS_TCP:
-                    ret = validateModbus(key, cinArray, &outputVector);
+                    ret = validateModbus(key, cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::MELSEC:
-                    ret = validateMelsec(key, cinArray, &outputVector);
+                    ret = validateMelsec(key, cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::OPERATION:
-                    ret = validateOperation(cinArray);
+                    ret = validateOperation(cinArray, mProtocolVersion);
                     break;
                 case cfg_key_e::NODE:
-                    ret = validateNode(cinArray, &outputVector);
+                    ret = validateNode(cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::ALARM:
-                    ret = validateAlarm(cinArray, &outputVector);
+                    ret = validateAlarm(cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::OPERATION_TIME:
-                    ret = validateOperationTime(cinArray, &outputVector);
+                    ret = validateOperationTime(cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::PRODUCTION_INFO:
-                    ret = validateProductionInfo(cinArray, &outputVector);
+                    ret = validateProductionInfo(cinArray, mProtocolVersion, &outputVector);
                     break;
                 default:
                     ASSERT(false, "UNDEFINED CIN KEY");
@@ -404,7 +404,7 @@ namespace muffin { namespace jvs {
         }
     }
 
-    std::pair<rsc_e, std::string> Validator::validateSerialPort(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateSerialPort(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
@@ -413,28 +413,28 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json)
+    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion)
     {
         NetworkValidator validator;
-        return validator.Inspect(key, json);
+        return validator.Inspect(key, json, protocolVersion);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNicLTE(const cfg_key_e key, const JsonArray json)
+    std::pair<rsc_e, std::string> Validator::validateNicLTE(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion)
     {
         LteValidator validator;
         return validator.Inspect(key, json);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateModbus(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateModbus(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
         
         ModbusValidator validator;
-        return validator.Inspect(key, json, outputVector);
+        return validator.Inspect(key, json, protocolVersion, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateMelsec(const cfg_key_e key, const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateMelsec(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
@@ -443,22 +443,22 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateOperation(const JsonArray json)
+    std::pair<rsc_e, std::string> Validator::validateOperation(const JsonArray json, prtcl_ver_e protocolVersion)
     {
         OperationValidator validator;
         return validator.Inspect(json);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNode(const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateNode(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
         
         NodeValidator validator;
-        return validator.Inspect(json, outputVector);
+        return validator.Inspect(json, protocolVersion, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateAlarm(const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateAlarm(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
@@ -467,7 +467,7 @@ namespace muffin { namespace jvs {
         return validator.Inspect(json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateOperationTime(const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateOperationTime(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
@@ -476,7 +476,7 @@ namespace muffin { namespace jvs {
         return validator.Inspect(json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateProductionInfo(const JsonArray json, cin_vector* outputVector)
+    std::pair<rsc_e, std::string> Validator::validateProductionInfo(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");

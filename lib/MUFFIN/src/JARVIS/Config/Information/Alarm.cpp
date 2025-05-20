@@ -42,9 +42,7 @@ namespace muffin { namespace jvs { namespace config {
             mNodeID     =  obj.mNodeID;
             mType       =  obj.mType;
             mLCL        =  obj.mLCL;
-            mLclUID     =  obj.mLclUID;
             mUCL        =  obj.mUCL;
-            mUclUID     =  obj.mUclUID;
             mCondition  =  obj.mCondition;
         }
         
@@ -57,9 +55,7 @@ namespace muffin { namespace jvs { namespace config {
             mNodeID     ==  obj.mNodeID     &&
             mType       ==  obj.mType       &&
             mLCL        ==  obj.mLCL        &&
-            mLclUID     ==  obj.mLclUID     && 
             mUCL        ==  obj.mUCL        &&
-            mUclUID     ==  obj.mUclUID     && 
             mCondition  ==  obj.mCondition
         );
     }
@@ -89,74 +85,10 @@ namespace muffin { namespace jvs { namespace config {
         mIsLclSet = true;
     }
 
-    void Alarm::SetLclUID(const std::string& lclUID)
-    {
-        ASSERT(
-            (
-                [&]()
-                {
-                    const std::regex pattern("^P[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
-                    return std::regex_match(lclUID, pattern);
-                }()
-            ), "INVALID LCL UID: %s", lclUID.c_str()
-        );
-
-        mLclUID = lclUID;
-        mIsLclUidSet = true;
-    }
-
-    void Alarm::SetLclAlarmUID(const std::string& lclAlarmUID)
-    {
-        ASSERT(
-            (
-                [&]()
-                {
-                    const std::regex pattern("^A[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
-                    return std::regex_match(lclAlarmUID, pattern);
-                }()
-            ), "INVALID LCL UID: %s", lclAlarmUID.c_str()
-        );
-
-        mLclAlarmUID = lclAlarmUID;
-        mIsLclAlarmUidSet = true;
-    }
-
     void Alarm::SetUCL(const float ucl)
     {
         mUCL = ucl;
         mIsUclSet = true;
-    }
-
-    void Alarm::SetUclUID(const std::string& uclUID)
-    {
-        ASSERT(
-            (
-                [&]()
-                {
-                    const std::regex pattern("^P[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
-                    return std::regex_match(uclUID, pattern);
-                }()
-            ), "INVALID UCL UID: %s", uclUID.c_str()
-        );
-
-        mUclUID = uclUID;
-        mIsUclUidSet = true;
-    }
-
-    void Alarm::SetUclAlarmUID(const std::string& uclAlarmUID)
-    {
-        ASSERT(
-            (
-                [&]()
-                {
-                    const std::regex pattern("^A[A-Fa-f0-9!@#$%^&*()_+=-]{3}$");
-                    return std::regex_match(uclAlarmUID, pattern);
-                }()
-            ), "INVALID LCL ALARM UID: %s", uclAlarmUID.c_str()
-        );
-
-        mUclAlarmUID = uclAlarmUID;
-        mIsUclAlarmUidSet = true;
     }
 
     void Alarm::SetCondition(const std::vector<int16_t>& condition)
@@ -203,30 +135,6 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, std::string> Alarm::GetLclUID() const
-    {
-        if (mIsLclUidSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mLclUID);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mLclUID);
-        }
-    }
-
-    std::pair<Status, std::string> Alarm::GetLclAlarmUID() const
-    {
-        if (mIsLclAlarmUidSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mLclAlarmUID);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mLclAlarmUID);
-        }
-    }
-
     std::pair<Status, float> Alarm::GetUCL() const
     {
         if (mIsUclSet)
@@ -236,30 +144,6 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mUCL);
-        }
-    }
-
-    std::pair<Status, std::string> Alarm::GetUclUID() const
-    {
-        if (mIsUclUidSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mUclUID);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mUclUID);
-        }
-    }
-
-    std::pair<Status, std::string> Alarm::GetUclAlarmUID() const
-    {
-        if (mIsUclAlarmUidSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mUclAlarmUID);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mUclAlarmUID);
         }
     }
 

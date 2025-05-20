@@ -33,18 +33,16 @@ namespace muffin { namespace jvs {
         , mDataUnitOrders(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>())
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
-        , mPatternUID(std::regex(R"(^(?:[PAE][A-Za-z0-9!@#$%^&*()_+=-]{3}|(?:DI|DO|MD)[A-Za-z0-9!@#$%^&*()_+=-]{2})$)"))
     {
         memset(mNodeID, '\0', sizeof(mNodeID));
-        memset(mUID,    '\0', sizeof(mUID));
     }
 
-    std::pair<rsc_e, std::string> NodeValidator::Inspect(const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> NodeValidator::Inspect(const JsonArray arrayCIN, prtcl_ver_e protocolVersion, cin_vector* outVector)
     {
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
-
+        mProtocolVersion = protocolVersion;
         for (JsonObject json : arrayCIN)
         {
             rsc_e rsc = validateMandatoryKeys(json);
@@ -92,12 +90,13 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mDataTypes.first, message);
             }
 
-            strncpy(mUID, json["uid"].as<const char*>(), sizeof(mUID));
-            if (std::regex_match(mUID, mPatternUID) == false)
+            convertToTopic(json["topic"].as<uint8_t>());
+            if (mTopic.first != rsc_e::GOOD)
             {
                 char message[64] = {'\0'};
-                snprintf(message, 64, "INVALID UID: %s", json["uid"].as<const char*>());
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
+                snprintf(message, 64, "INVALID NODE TOPIC: %d, NODE ID: %s", json["topic"].as<uint8_t>(),
+                                                                               mNodeID);
+                return std::make_pair(mTopic.first, message);
             }
 
             mIsEventType = json["event"].as<bool>();
@@ -231,8 +230,8 @@ namespace muffin { namespace jvs {
             node->SetAddressType(mAddressType.second);
             node->SetAddrress(mAddress.second);
             node->SetDataTypes(std::move(mDataTypes.second));
-            node->SetDeprecableUID(mUID);
             node->SetAttributeEvent(mIsEventType);
+            node->SetTopic(mTopic.second);
 
             if (mNodeArea.first == rsc_e::GOOD)
             {
@@ -301,7 +300,6 @@ namespace muffin { namespace jvs {
             mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
             mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>());
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
-            memset(mUID, '\0', sizeof(mUID));
             mIsEventType = false;
             mVectorFormatSpecifier.clear();
         }
@@ -328,8 +326,12 @@ namespace muffin { namespace jvs {
         isValid &= json.containsKey("ord");
         isValid &= json.containsKey("dt");
         isValid &= json.containsKey("fmt");
-        isValid &= json.containsKey("uid");
         isValid &= json.containsKey("event");
+
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+        {
+            isValid &= json.containsKey("topic");
+        }
 
         if (isValid == true)
         {
@@ -353,14 +355,18 @@ namespace muffin { namespace jvs {
         isValid &= json["adtp"].isNull()   == false;
         isValid &= json["addr"].isNull()   == false;
         isValid &= json["dt"].isNull()     == false;
-        isValid &= json["uid"].isNull()    == false;
         isValid &= json["event"].isNull()  == false;
         isValid &= json["id"].is<const char*>();
         isValid &= json["adtp"].is<uint8_t>();
         isValid &= json["addr"].is<JsonVariant>();
         isValid &= json["dt"].is<JsonArray>();
-        isValid &= json["uid"].is<const char*>();
         isValid &= json["event"].is<bool>();
+
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+        {
+            isValid &= json["topic"].isNull()    == false;
+            isValid &= json["topic"].is<uint8_t>();
+        }
 
         if (isValid == true)
         {
@@ -1388,6 +1394,29 @@ namespace muffin { namespace jvs {
             mAddress.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
             return;
         }
+    }
+
+    void NodeValidator::convertToTopic(const uint8_t topic)
+    {
+        switch (topic)
+        {
+        case 0:
+            mTopic.second = mqtt::topic_e::DAQ_INPUT;
+            break;
+        case 1:
+            mTopic.second = mqtt::topic_e::ALARM;
+            break;
+        case 2:
+            mTopic.second = mqtt::topic_e::ERROR;
+            break;
+        case 3:
+            mTopic.second = mqtt::topic_e::DAQ_PARAM;
+            break;
+        default:
+            mTopic.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
+            return;
+        }
+        mTopic.first = rsc_e::GOOD;
     }
 
     /**

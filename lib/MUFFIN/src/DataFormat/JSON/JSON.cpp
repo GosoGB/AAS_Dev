@@ -126,13 +126,13 @@ namespace muffin {
 
         JsonDocument doc;
 
-        doc["1"]    = ESP32_FW_VERSION;                             // MFM 버전
-        doc["2"]    = 1;                                            // JSON 스키마 유형
-        doc["3"]    = msgVector.at(0).SourceTimestamp;              // 메시지 생성 시점 
-        doc["4"]    = macAddress.GetEthernet();                     // 디바이스 식별자
+        doc["mv"]    = ESP32_FW_VERSION;                             // MFM 버전
+        doc["tp"]    = 1;                                            // JSON 스키마 유형
+        doc["ts"]    = msgVector.at(0).SourceTimestamp;              // 메시지 생성 시점 
+        doc["mac"]    = macAddress.GetEthernet();                     // 디바이스 식별자
    
-        JsonArray uidArray = doc["5"].to<JsonArray>();             // Node 식별자 배열
-        JsonArray valueArray = doc["6"].to<JsonArray>();           // 데이터 배열
+        JsonArray nidArray = doc["id"].to<JsonArray>();             // Node 식별자 배열
+        JsonArray valueArray = doc["val"].to<JsonArray>();           // 데이터 배열
 
         for (const auto& msg : msgVector)
         {
@@ -144,7 +144,7 @@ namespace muffin {
             {
                 valueArray.add(msg.Value);
             }
-            uidArray.add(msg.UID);
+            nidArray.add(msg.NodeID);
         }
 
         serializeJson(doc, output, size);
@@ -159,7 +159,7 @@ namespace muffin {
 
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
-        doc["uid"]    = msg.UID;
+        doc["nid"]    = msg.NodeID;
         if (msg.Value == "MFM_NULL") 
         {
             doc["value"]  = nullptr;
@@ -179,13 +179,13 @@ namespace muffin {
         
         JsonDocument doc;
 
-        doc["mac"]    = macAddress.GetEthernet();
-        doc["tp"]     = msg.Type;
-        doc["ts"]     = msg.TimeStarted;
-        doc["tf"]     = msg.TimeFinished;
-        doc["uid"]    = msg.UID;
-        doc["id"]     = msg.UUID;
         doc["mv"]     = ESP32_FW_VERSION;
+        doc["as"]     = static_cast<uint8_t>(msg.AlarmState);
+        doc["at"]     = static_cast<uint8_t>(msg.AlarmTpye);
+        doc["ts"]      = msg.SourceTimestamp;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["id"]     = msg.UUID;
+        doc["nid"]    = msg.NodeID;
         doc["value"]  = msg.Value;
 
         serializeJson(doc, output, size);
@@ -225,7 +225,7 @@ namespace muffin {
         JsonDocument doc;
 
         doc["mac"]    = macAddress.GetEthernet();
-        doc["uid"]    = msg.UID;
+        doc["nid"]    = msg.NodeID;
         doc["ts"]     = msg.SourceTimestamp;
         doc["mv"]     = ESP32_FW_VERSION;
         doc["value"]  = msg.Value;
@@ -359,12 +359,12 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]   = msg.Head.Code;
+        doc["c"] = msg.Head.Code;
         doc["s"] = msg.Head.Status;
         
-        JsonObject response          = doc["r"].to<JsonObject>();
-        response["1"]  = msg.SemanticVersion;
-        response["2"]      = msg.VersionCode;
+        JsonObject response = doc["r"].to<JsonObject>();
+        response["1"]       = msg.SemanticVersion;
+        response["2"]       = msg.VersionCode;
 
         serializeJson(doc, output, size);
     }
@@ -373,13 +373,13 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]   = msg.Head.Code;
+        doc["c"] = msg.Head.Code;
         doc["s"] = msg.Head.Status;
         
-        JsonObject response     = doc["r"].to<JsonObject>();
-        response["1"]    = msg.Remained;
-        response["2"]    = msg.UsedHeap;
-        response["3"]    = msg.UsedStack;
+        JsonObject response = doc["r"].to<JsonObject>();
+        response["1"]       = msg.Remained;
+        response["2"]       = msg.UsedHeap;
+        response["3"]       = msg.UsedStack;
 
         serializeJson(doc, output, size);
     }
@@ -388,9 +388,9 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]   = msg.Head.Code;
-        doc["s"]   = msg.Head.Status;
-        doc["r"]   = msg.StatusCode;
+        doc["c"] = msg.Head.Code;
+        doc["s"] = msg.Head.Status;
+        doc["r"] = msg.StatusCode;
 
         serializeJson(doc, output, size);
     }
@@ -399,14 +399,14 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]  = msg.Head.Code;
+        doc["c"] = msg.Head.Code;
         
         JsonObject body = doc["b"].to<JsonObject>();
-        body["1"]   = static_cast<uint8_t>(msg.Link);
-        body["2"]   = static_cast<uint8_t>(msg.SlaveID);
-        body["3"]   = static_cast<uint8_t>(msg.Area);
-        body["4"]   = static_cast<uint16_t>(msg.Address);
-        body["5"]   = static_cast<uint16_t>(msg.Value);
+        body["1"] = static_cast<uint8_t>(msg.Link);
+        body["2"] = static_cast<uint8_t>(msg.SlaveID);
+        body["3"] = static_cast<uint8_t>(msg.Area);
+        body["4"] = static_cast<uint16_t>(msg.Address);
+        body["5"] = static_cast<uint16_t>(msg.Value);
         
         serializeJson(doc, output, size);
     }

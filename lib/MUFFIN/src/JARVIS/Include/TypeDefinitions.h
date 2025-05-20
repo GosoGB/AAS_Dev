@@ -352,5 +352,20 @@ namespace muffin { namespace jvs {
         TURN_OFF
     } op_status_e;
 
+    typedef enum class AlarmStateEnum
+        : uint8_t
+    {
+        FINISH    = 0,
+        START     = 1,
+    } alarm_state_e;
+
+    typedef enum class AlarmPublishTypeEnum
+        : uint8_t
+    {
+        UCL         = 0,
+        LCL         = 1,
+        CONDITION   = 2
+    } alarm_pub_type_e;
+
     
 }}
