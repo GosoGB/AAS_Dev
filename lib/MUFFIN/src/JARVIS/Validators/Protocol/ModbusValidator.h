@@ -36,6 +36,7 @@ namespace muffin { namespace jvs {
     public:
         std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
+        std::pair<rsc_e, if_e> convertToEthernetInterfaces(uint8_t eths);
         std::pair<rsc_e, std::string> validateModbusRTU(const JsonArray array, cin_vector* outVector);
         std::pair<rsc_e, std::string> validateModbusTCP(const JsonArray array, cin_vector* outVector);
         rsc_e validateMandatoryKeysModbusRTU(const JsonObject json);

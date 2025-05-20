@@ -288,7 +288,7 @@ namespace muffin {
         cnt.remove("eth");
         JsonArray ethObj = cnt["eth"].to<JsonArray>();
         JsonObject _eth = ethObj.add<JsonObject>();
-
+        _eth["eths"] = 0;
         std::string settingStr;
 
         while (true)
@@ -306,6 +306,7 @@ namespace muffin {
                 _eth["gtw"]  = nullptr;
                 _eth["dns1"] = nullptr;
                 _eth["dns2"] = nullptr;
+                
                 return saveJarvisJson();
             }
             else if (settingStr == "N" || settingStr == "n")

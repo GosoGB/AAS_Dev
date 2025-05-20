@@ -443,6 +443,18 @@ namespace muffin { namespace jvs {
         const bool DHCP = cin["dhcp"].as<bool>();
         config::ethernet->SetDHCP(DHCP);
 
+        const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
+        const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
+        if (retEths.first != rsc_e::GOOD)
+        {
+            return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
+        }
+        
+        /**
+         * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
+         * 
+         */
+
         if (DHCP == false)
         {
             const auto retIP    = convertToIPv4(cin["ip"].as<JsonVariant>(),   false);
@@ -495,6 +507,7 @@ namespace muffin { namespace jvs {
         isValid &= json.containsKey("gtw");    
         isValid &= json.containsKey("dns1");    
         isValid &= json.containsKey("dns2");  
+        isValid &= json.containsKey("eths");  
 
         if (isValid == true)
         {
@@ -510,7 +523,9 @@ namespace muffin { namespace jvs {
     {
         bool isValid = true;
         isValid &= json["dhcp"].isNull() == false;
+        isValid &= json["eths"].isNull() == false;
         isValid &= json["dhcp"].is<bool>();
+        isValid &= json["eths"].is<uint8_t>();
 
         if (isValid == false)
         {
@@ -814,6 +829,21 @@ namespace muffin { namespace jvs {
         else
         {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, IPAddress());
+        }
+    }
+
+    std::pair<rsc_e, if_e> NetworkValidator::convertToEthernetInterfaces(uint8_t eths)
+    {
+        switch (eths)
+        {
+        case 0:
+            return std::make_pair(rsc_e::GOOD, if_e::EMBEDDED);
+        case 1:
+            return std::make_pair(rsc_e::GOOD, if_e::LINK_01);
+        case 2:
+            return std::make_pair(rsc_e::GOOD, if_e::LINK_02);
+        default:
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, if_e::EMBEDDED);
         }
     }
 }}

@@ -50,6 +50,7 @@ namespace muffin { namespace jvs {
     private:
         rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
+        std::pair<rsc_e, if_e> convertToEthernetInterfaces(uint8_t eths);
         std::pair<rsc_e, bool> convertToDHCP(JsonVariant dhcp);
         std::pair<rsc_e, bool> convertToEAP(JsonVariant eap);
         std::pair<rsc_e, wifi_auth_mode_t> convertToAuth(JsonVariant auth);

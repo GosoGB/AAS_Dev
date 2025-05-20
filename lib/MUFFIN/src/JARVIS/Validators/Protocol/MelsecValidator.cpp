@@ -71,11 +71,23 @@ namespace muffin { namespace jvs {
             const uint8_t plcSeries = cin["ps"].as<uint8_t>();
             const uint8_t dataFormat = cin["df"].as<uint8_t>();
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
+            const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
     
             const auto retIP    = convertToIPv4(ip);
             auto retNodes       = convertToNodes(nodes);
             auto retPlcSeries   = convertToPlcSeries(plcSeries);
             auto retDataFormat  = convertTodataFormat(dataFormat);
+            
+            const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
+            if (retEths.first != rsc_e::GOOD)
+            {
+                return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
+            }
+        
+        /**
+         * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
+         * 
+         */
 
             if (prt == 0)
             {
@@ -143,7 +155,8 @@ namespace muffin { namespace jvs {
         isValid &= json.containsKey("ps");
         isValid &= json.containsKey("df");
         isValid &= json.containsKey("nodes");
-    
+        isValid &= json.containsKey("eths");
+
         if (isValid == true)
         {
             return rsc_e::GOOD;
@@ -162,11 +175,13 @@ namespace muffin { namespace jvs {
         isValid &= json["ps"].isNull()  == false;
         isValid &= json["df"].isNull()  == false;
         isValid &= json["nodes"].isNull() == false;
+        isValid &= json["eths"].isNull() == false;
         isValid &= json["ip"].is<std::string>();
         isValid &= json["prt"].is<uint16_t>();
         isValid &= json["ps"].is<uint8_t>();
         isValid &= json["df"].is<uint8_t>();
         isValid &= json["nodes"].is<JsonArray>();
+        isValid &= json["eths"].is<uint8_t>();
 
         if (isValid == true)
         {
@@ -301,4 +316,18 @@ namespace muffin { namespace jvs {
     
     }
 
+    std::pair<rsc_e, if_e> MelsecValidator::convertToEthernetInterfaces(uint8_t eths)
+    {
+        switch (eths)
+        {
+        case 0:
+            return std::make_pair(rsc_e::GOOD, if_e::EMBEDDED);
+        case 1:
+            return std::make_pair(rsc_e::GOOD, if_e::LINK_01);
+        case 2:
+            return std::make_pair(rsc_e::GOOD, if_e::LINK_02);
+        default:
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, if_e::EMBEDDED);
+        }
+    }
 }}

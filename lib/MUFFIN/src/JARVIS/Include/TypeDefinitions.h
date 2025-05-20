@@ -263,6 +263,14 @@ namespace muffin { namespace jvs {
         LCM300
     } md_e;
 
+    typedef enum class EthernetInterfacesEnum
+        : uint8_t
+    {
+        EMBEDDED   ,
+        LINK_01    ,
+        LINK_02    
+    } if_e;
+
     typedef enum class LteCatM1CountryEnum
     {
         KOREA,

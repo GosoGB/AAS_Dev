@@ -42,6 +42,7 @@ namespace muffin { namespace jvs {
     private:
         rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
+        std::pair<rsc_e, if_e> convertToEthernetInterfaces(uint8_t eths);
         std::pair<rsc_e, IPAddress> convertToIPv4(const std::string ip);
         std::pair<rsc_e, std::vector<std::string>> convertToNodes(const JsonArray nodes);
         std::pair<rsc_e, ps_e> convertToPlcSeries(const uint8_t plcSeries);
