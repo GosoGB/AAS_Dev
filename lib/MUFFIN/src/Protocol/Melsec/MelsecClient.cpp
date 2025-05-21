@@ -237,8 +237,9 @@ namespace muffin
                 Close();
                 return 0;
             }
-
-            Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, false, buffer);
+            
+            
+            Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, count, false, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -291,7 +292,7 @@ namespace muffin
                 Close();
                 return 0;
             }
-            Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, true, buffer);
+            Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, count, true, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -325,8 +326,6 @@ namespace muffin
             responseBuf[idx] = mClient.read();
             idx++;
         }
-
-        
         
         return idx;
     }

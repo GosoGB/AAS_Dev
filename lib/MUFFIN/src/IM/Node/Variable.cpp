@@ -1141,9 +1141,17 @@ namespace muffin { namespace im {
         return std::string(buffer);
     }
 
+    mqtt::topic_e Variable::GetTopic() const
+    {
+        return mCIN->GetTopic().second;
+    }
+
     std::pair<bool, json_datum_t> Variable::CreateDaqStruct()
     {
         json_datum_t daq;
+
+        strncpy(daq.NodeID, mCIN->GetNodeID().second, sizeof(daq.NodeID));
+
         if (RetrieveCount() == 0)
         {
             return std::make_pair(false, daq);
@@ -1152,7 +1160,6 @@ namespace muffin { namespace im {
         var_data_t variableData = RetrieveData();
         daq.SourceTimestamp = variableData.Timestamp;
         daq.Topic = mCIN->GetTopic().second;
-    
         if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
         {
             return std::make_pair(false, daq);

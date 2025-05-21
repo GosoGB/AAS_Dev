@@ -120,6 +120,22 @@ namespace muffin {
         return payload;
     }
 
+    std::string JSON::Serialize(const mfm_config_struct_t& _struct)
+    {
+        JsonDocument doc;
+        std::string payload;
+
+        doc["id"]  = _struct.ID;
+        doc["ts"]  = _struct.SourceTimestamp;
+        doc["mv"]  = ESP32_FW_VERSION;
+        doc["rsc"] = _struct.ResponseCode;
+
+
+        serializeJson(doc,payload);
+
+        return payload;
+    }
+
     void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t sourceTimestamp,char output[])
     {
         ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");

@@ -10,7 +10,7 @@
  */
 
 
-
+#include <Arduino.h>
 #include <string.h>
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
@@ -105,18 +105,29 @@ namespace muffin
         // NULL 삭제
         index--;
         index += buildRequestDataASCII(plcSeries, isBit, area, address, count, melsec_command_e::BATCH_WRITE, &frame[index]);
-        for (int i = 0; i < count; ++i)
+        
+        if (isBit)
         {
-            char dataBuf[5];
-            sprintf(dataBuf, "%04X", data[i]);  // 16bit -> 4자리 HEX
-            for (char c : dataBuf)
+            for (size_t i = 0; i < count; i++)
             {
-                frame[index++] = static_cast<uint8_t>(c);
+                frame[index++] = data[i] == 1 ? static_cast<uint8_t>('1') : static_cast<uint8_t>('0'); 
             }
-            // NULL 삭제
-            index--;
         }
-
+        else
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                char dataBuf[5];
+                sprintf(dataBuf, "%04X", data[i]);  // 16bit -> 4자리 HEX
+                for (char c : dataBuf)
+                {
+                    frame[index++] = static_cast<uint8_t>(c);
+                }
+                // NULL 삭제
+                index--;
+            }
+        }
+        
         // Length 계산 및 삽입
         size_t startDataPos = tempPos + 4;
         size_t actualLength = index - startDataPos;
@@ -145,16 +156,29 @@ namespace muffin
 
         index += buildRequestDataBinary(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_WRITE, &frame[index]);
 
-        for (int i = 0; i < count; ++i)
+        if (isBit)
         {
-            frame[index++] = static_cast<uint8_t>(data[i] & 0xFF);         // LSB
-            frame[index++] = static_cast<uint8_t>((data[i] >> 8) & 0xFF);  // MSB
+            for (int i = 0; i < count; i += 2)
+            {
+                uint8_t bit0 = (i + 1 < count) ? (data[i + 1] & 0x01) : 0;
+                uint8_t bit1 = data[i] & 0x01;
+                frame[index++] = (bit1 << 4) | bit0;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                frame[index++] = static_cast<uint8_t>(data[i] & 0xFF);         // LSB
+                frame[index++] = static_cast<uint8_t>((data[i] >> 8) & 0xFF);  // MSB
+            }
+            
         }
 
         uint16_t reqLen = static_cast<uint16_t>(index - 9);
         frame[tempPos] = static_cast<uint8_t>(reqLen & 0xFF);
         frame[tempPos + 1] = static_cast<uint8_t>((reqLen >> 8) & 0xFF);
-        
+
         return index;
     }
 

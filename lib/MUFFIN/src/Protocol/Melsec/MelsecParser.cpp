@@ -116,9 +116,8 @@ namespace muffin
         return Status(Status::Code::GOOD);
     }
 
-    Status MelsecParser::ParseReadResponseBinary(const uint8_t* frame, size_t length, bool isBit, uint16_t* outBuffer)
+    Status MelsecParser::ParseReadResponseBinary(const uint8_t* frame, size_t length, const size_t count, bool isBit, uint16_t* outBuffer)
     {
-        // @lsj 파서가 여러 개 생성될 수 있다면 static을 사용하는 게 메모리 사용량을 줄이는 데 도움이 됩니다
         constexpr uint8_t HEADER_SIZE = 9;
         constexpr uint8_t ENDCODE_SIZE = 2;
 
@@ -153,19 +152,34 @@ namespace muffin
         const size_t dataSize = receiveLength - ENDCODE_SIZE;
 
         if (isBit) 
-        {
-            // 1 바이트 = 1 비트
-            for (size_t i = 0; i < dataSize; ++i) 
+        {   
+            for (size_t i = 0; i < dataSize; ++i)
             {
-                if (dataStart[i] == 0x00 || dataStart[i] == 0x01) 
+                const uint8_t byte = dataStart[i];
+                
+                // LSN
+                uint8_t bit0 = (byte >> 4) & 0x0F;
+                
+                if (bit0 != 0x00 && bit0 != 0x01)
                 {
-                    outBuffer[outCount++] = dataStart[i];
-                } 
-                else 
-                {
-                    LOG_ERROR(logger, "INVALID BIT VALUE: 0x%02X", dataStart[i]);
+                    LOG_ERROR(logger, "INVALID BIT VALUE (BIT0): 0x%02X", bit0);
                     return Status(Status::Code::BAD_INVALID_ARGUMENT);
                 }
+                outBuffer[outCount++] = bit0;
+                
+                if (outCount >= count)
+                {
+                    break;
+                } 
+
+                // MSN
+                uint8_t bit1 = byte & 0x0F;
+                if (bit1 != 0x00 && bit1 != 0x01)
+                {
+                    LOG_ERROR(logger, "INVALID BIT VALUE (BIT1): 0x%02X", bit1);
+                    return Status(Status::Code::BAD_INVALID_ARGUMENT);
+                }
+                outBuffer[outCount++] = bit1;
             }
         } 
         else 

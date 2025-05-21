@@ -63,10 +63,10 @@ namespace muffin {
             }
             if (catM1->IsConnected() == false)
             {
-            LOG_WARNING(logger, "LTE Cat.M1 HAS LOST CONNECTION");
-            mqttClient->ResetTEMP();
-            catM1->Reconnect();
-            InitCatM1Service();
+                LOG_WARNING(logger, "LTE Cat.M1 HAS LOST CONNECTION");
+                mqttClient->ResetTEMP();
+                catM1->Reconnect();
+                InitCatM1Service();
             }
             vTaskDelay(1000 / portTICK_PERIOD_MS);   
         }

@@ -147,7 +147,6 @@ namespace muffin {
                         const size_t size = UINT8_MAX;
                         char payload[size] = {'\0'};
                         json.Serialize(ret.second, size, payload);
-                        
                         mqtt::Message message(ret.second.Topic, payload);
                         mqtt::cdo.Store(message);
                     }
@@ -171,6 +170,8 @@ namespace muffin {
                     {
                         ret.second.Value = "MFM_NULL";
                     }
+
+                    
                     nodeVector.emplace_back(ret.second);
                 }
             }

@@ -376,14 +376,15 @@ namespace muffin {
 
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::string alarmNodeID;
-        for (auto& node : nodeStore)
+        for (auto& _node : nodeStore)
         {
-            if (cin.GetNodeID().second == node.first)
+            if (cin.GetNodeID().second == _node.first)
             {
-                alarmNodeID = node.first;
+                alarmNodeID = _node.first;
                 break;
             }
         }
+
         ASSERT((alarmNodeID.length() == 4), "THE LENGTH OF ALARM UID MUST BE 4");
 
         const bool isNewAlarm = isActiveAlarm(alarmNodeID, jvs::alarm_pub_type_e::CONDITION) == false;
@@ -569,10 +570,11 @@ namespace muffin {
         push.SourceTimestamp = GetTimestampInMillis();
         push.Topic = mqtt::topic_e::PUSH;
         push.Value = value;
-
+        
         strncpy(push.NodeID, cin.GetNodeID().second.c_str(), sizeof(push.NodeID));
+        
+        alarm.Topic = node.GetTopic() == mqtt::topic_e::ERROR ? mqtt::topic_e::ERROR : mqtt::topic_e::ALARM;
 
-        alarm.Topic = mqtt::topic_e::ALARM;
         alarm.AlarmState = jvs::alarm_state_e::START;
         alarm.SourceTimestamp = GetTimestampInMillis();
         alarm.Value = value;
@@ -765,6 +767,19 @@ namespace muffin {
             }
         }
     }
+
+    // std::string AlarmMonitor::GetNodeID(const std::string nid)
+    // {
+    //     for (auto& cin : mVectorConfig)
+    //     {
+    //         if (nid == )
+    //         {
+    //             /* code */
+    //         }
+            
+    //         const std::string nodeId = cin.GetNodeID().second;
+    //     }
+    // }
 
     AlarmMonitor* AlarmMonitor::mInstance = nullptr;
 }

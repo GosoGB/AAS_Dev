@@ -30,7 +30,7 @@ namespace muffin
 
     public:
         Status ParseReadResponseASCII(const uint8_t* frame, size_t length, bool isBit, uint16_t* outBuffer);
-        Status ParseReadResponseBinary(const uint8_t* frame, size_t length, bool isBit, uint16_t* outBuffer);
+        Status ParseReadResponseBinary(const uint8_t* frame, size_t length, const size_t count, bool isBit, uint16_t* outBuffer);
     
     public:
         Status ParseWriteResponseASCII(const uint8_t* frame, size_t length, bool isBit);

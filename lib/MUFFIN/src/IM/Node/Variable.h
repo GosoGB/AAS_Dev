@@ -73,6 +73,7 @@ namespace muffin { namespace im {
         std::pair<Status, uint16_t> ConvertModbusData(std::string& data);
     public:
         std::pair<bool, json_datum_t> CreateDaqStruct();
+        mqtt::topic_e GetTopic() const;
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
         void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);

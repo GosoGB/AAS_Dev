@@ -93,6 +93,15 @@ namespace muffin {
         JsonArray RequestData;
     } remote_controll_struct_t;
 
+    typedef struct RemoteControllLimitStruct
+    {
+        mqtt::topic_e Topic;
+        std::string ID;
+        uint64_t SourceTimestamp;
+        uint16_t ResponseCode;
+        std::string ResponseReason;
+    } mfm_config_struct_t;
+
     typedef struct JsonDatumType
     {
         mqtt::topic_e Topic;
@@ -142,6 +151,7 @@ namespace muffin {
     public:
         std::string Serialize(const jarvis_struct_t& _struct);
         std::string Serialize(const remote_controll_struct_t& _struct);
+        std::string Serialize(const mfm_config_struct_t& _struct);
         std::string Serialize(const jarvis_interface_struct_t& _struct);
         size_t Serialize(const fota_status_t& _struct, const size_t size, char output[]);
 
@@ -165,18 +175,6 @@ namespace muffin {
         Status Deserialize(fs::File& file, JsonDocument* json);
     private:
         Status processErrorCode(const DeserializationError& errorCode);
-        // Status Deserialize(const spear_msg_t& message, JsonDocument* json);
-    
-    // private:
-    //     std::string serializeJarvisResponse(const jarvis_struct_t& _struct);
-    // private:
-    //     std::string serializeScautrRemoteControllResponse(const remote_controll_struct_t& _struct);
-    // private:
-    //     std::string serializeDaqInput(const json_datum_t& _struct);
-    //     std::string serializeDaqOutput(const json_datum_t& _struct);
-    //     std::string serializeDaqParam(const json_datum_t& _struct);
-    // private:
-    //     std::string serializeScautrAlarm(const remote_controll_struct_t& _struct);
-    //     std::string serializeScautrError(const remote_controll_struct_t& _struct);
+ 
     };
 }

@@ -33,6 +33,7 @@ namespace muffin { namespace jvs {
         , mDataUnitOrders(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>())
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
+        , mTopic(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT)
     {
         memset(mNodeID, '\0', sizeof(mNodeID));
     }
@@ -90,14 +91,45 @@ namespace muffin { namespace jvs {
                 return std::make_pair(mDataTypes.first, message);
             }
 
-            convertToTopic(json["topic"].as<uint8_t>());
-            if (mTopic.first != rsc_e::GOOD)
+            if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
             {
-                char message[64] = {'\0'};
-                snprintf(message, 64, "INVALID NODE TOPIC: %d, NODE ID: %s", json["topic"].as<uint8_t>(),
-                                                                               mNodeID);
-                return std::make_pair(mTopic.first, message);
+                convertToTopic(json["topic"].as<uint8_t>());
+                if (mTopic.first != rsc_e::GOOD)
+                {
+                    char message[64] = {'\0'};
+                    snprintf(message, 64, "INVALID NODE TOPIC: %d, NODE ID: %s", json["topic"].as<uint8_t>(),
+                                                                                mNodeID);
+                    return std::make_pair(mTopic.first, message);
+                }
             }
+            else
+            {
+                const char* UID = json["uid"].as<const char*>();
+                mTopic.first = rsc_e::GOOD;
+                if (strncmp(UID,"DI",2) == 0 || strncmp(UID,"DO",2) == 0)
+                {
+                    mTopic.second = mqtt::topic_e::DAQ_INPUT;
+                }
+                else if (strncmp(UID,"P",1) == 0)
+                {
+                    mTopic.second = mqtt::topic_e::DAQ_PARAM;
+                }
+                else if (strncmp(UID,"A",1) == 0)
+                {
+                    mTopic.second = mqtt::topic_e::ALARM;
+                }
+                else if (strncmp(UID,"E",1) == 0)
+                {
+                    mTopic.second = mqtt::topic_e::ERROR;
+                }
+                else
+                {
+                    LOG_ERROR(logger,"UID ERROR : %s",UID);
+                    mTopic.first = rsc_e::BAD;
+                }
+            
+            }
+            
 
             mIsEventType = json["event"].as<bool>();
             /*Node 설정 형식에서 필수로 입력해야 하는 속성은 모두 유효합니다.*/
