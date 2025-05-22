@@ -140,18 +140,16 @@ namespace muffin {
         mqtt::Message jarvis(mqtt::topic_e::JARVIS_REQUEST, "");
         mqtt::Message jarvisStatus(mqtt::topic_e::JARVIS_INTERFACE_REQUEST, "");
         mqtt::Message remoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
-        mqtt::Message remoteControlLimit(mqtt::topic_e::JARVIS_CONFIG_REQUEST, "");
         mqtt::Message firmwareUpdate(mqtt::topic_e::FOTA_UPDATE, "");
 
 
         std::vector<mqtt::Message> topics;
         try
         {
-            topics.reserve(5);
+            topics.reserve(4);
             topics.emplace_back(std::move(jarvis));
             topics.emplace_back(std::move(jarvisStatus));
             topics.emplace_back(std::move(remoteControl));
-            topics.emplace_back(std::move(remoteControlLimit));
             topics.emplace_back(std::move(firmwareUpdate));
         }
         catch(const std::bad_alloc& e)

@@ -476,174 +476,174 @@ namespace muffin {
         esp_restart();
     }
 
-    Status processMessageMfmConfig(const char* payload)
-    {
-        JSON json;
-        mfm_config_struct_t messageconfig;
-        std::string serializedPayload;
-        JsonDocument doc;
-        Status retJSON = json.Deserialize(payload, &doc);
-        std::string Description;
+    // Status processMessageMfmConfig(const char* payload)
+    // {
+    //     JSON json;
+    //     mfm_config_struct_t messageconfig;
+    //     std::string serializedPayload;
+    //     JsonDocument doc;
+    //     Status retJSON = json.Deserialize(payload, &doc);
+    //     std::string Description;
 
-        if (retJSON != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
+    //     if (retJSON != Status::Code::GOOD)
+    //     {
+    //         LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
 
-            switch (retJSON.ToCode())
-            {
-            case Status::Code::BAD_END_OF_STREAM:
-                Description = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
-                break;
-            case Status::Code::BAD_NO_DATA:
-                Description ="PAYLOAD EMPTY";
-                break;
-            case Status::Code::BAD_DATA_ENCODING_INVALID:
-                Description = "PAYLOAD INVALID ENCODING";
-                break;
-            case Status::Code::BAD_OUT_OF_MEMORY:
-                Description = "PAYLOAD OUT OF MEMORY";
-                break;
-            case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-                Description = "PAYLOAD EXCEEDED NESTING LIMIT";
-                break;
-            case Status::Code::BAD_UNEXPECTED_ERROR:
-                Description = "UNDEFINED CONDITION";
-                break;
-            default:
-                Description = "UNDEFINED CONDITION";
-                break;
-            }
+    //         switch (retJSON.ToCode())
+    //         {
+    //         case Status::Code::BAD_END_OF_STREAM:
+    //             Description = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
+    //             break;
+    //         case Status::Code::BAD_NO_DATA:
+    //             Description ="PAYLOAD EMPTY";
+    //             break;
+    //         case Status::Code::BAD_DATA_ENCODING_INVALID:
+    //             Description = "PAYLOAD INVALID ENCODING";
+    //             break;
+    //         case Status::Code::BAD_OUT_OF_MEMORY:
+    //             Description = "PAYLOAD OUT OF MEMORY";
+    //             break;
+    //         case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
+    //             Description = "PAYLOAD EXCEEDED NESTING LIMIT";
+    //             break;
+    //         case Status::Code::BAD_UNEXPECTED_ERROR:
+    //             Description = "UNDEFINED CONDITION";
+    //             break;
+    //         default:
+    //             Description = "UNDEFINED CONDITION";
+    //             break;
+    //         }
             
-            messageconfig.ID = "0";
-            messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-            messageconfig.ResponseCode    = 900;
-            messageconfig.ResponseReason = Description;
+    //         messageconfig.ID = "0";
+    //         messageconfig.SourceTimestamp = GetTimestampInMillis(); 
+    //         messageconfig.ResponseCode    = 900;
+    //         messageconfig.ResponseReason = Description;
 
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-            mqtt::cdo.Store(message);
+    //         serializedPayload = json.Serialize(messageconfig);
+    //         mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
+    //         mqtt::cdo.Store(message);
            
-            return retJSON;
-        }
+    //         return retJSON;
+    //     }
 
-        /**
-         * @todo JSON Message에 대해 Validator 구현해야함
-         */
+    //     /**
+    //      * @todo JSON Message에 대해 Validator 구현해야함
+    //      */
   
         
-        bool isValid = true;
-        isValid &= doc.containsKey("id");
-        isValid &= doc.containsKey("ts");
-        isValid &= doc.containsKey("mv");
-        isValid &= doc.containsKey("nid");
-        isValid &= doc.containsKey("tp");
-        isValid &= doc.containsKey("val");
+    //     bool isValid = true;
+    //     isValid &= doc.containsKey("id");
+    //     isValid &= doc.containsKey("ts");
+    //     isValid &= doc.containsKey("mv");
+    //     isValid &= doc.containsKey("nid");
+    //     isValid &= doc.containsKey("tp");
+    //     isValid &= doc.containsKey("val");
         
-        if (isValid != true)
-        {
-            messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-            messageconfig.ResponseCode    = 900;
-            messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY CANNOT BE MISSING";
+    //     if (isValid != true)
+    //     {
+    //         messageconfig.SourceTimestamp = GetTimestampInMillis(); 
+    //         messageconfig.ResponseCode    = 900;
+    //         messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY CANNOT BE MISSING";
       
             
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
+    //         serializedPayload = json.Serialize(messageconfig);
+    //         mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
+    //         Status ret = mqtt::cdo.Store(message);
+    //         return Status(Status::Code::BAD_INVALID_ARGUMENT);
+    //     }
 
 
-        isValid &= doc["id"].isNull() == false;
-        isValid &= doc["id"].is<uint32_t>();
+    //     isValid &= doc["id"].isNull() == false;
+    //     isValid &= doc["id"].is<uint32_t>();
 
-        isValid &= doc["ts"].isNull() == false;
-        isValid &= doc["ts"].is<uint32_t>();
+    //     isValid &= doc["ts"].isNull() == false;
+    //     isValid &= doc["ts"].is<uint32_t>();
 
-        isValid &= doc["mv"].isNull() == false;
-        isValid &= doc["mv"].is<std::string>();
+    //     isValid &= doc["mv"].isNull() == false;
+    //     isValid &= doc["mv"].is<std::string>();
 
-        isValid &= doc["nid"].isNull() == false;
-        isValid &= doc["nid"].is<std::string>();
+    //     isValid &= doc["nid"].isNull() == false;
+    //     isValid &= doc["nid"].is<std::string>();
 
-        isValid &= doc["tp"].isNull() == false;
-        isValid &= doc["tp"].is<uint8_t>();
+    //     isValid &= doc["tp"].isNull() == false;
+    //     isValid &= doc["tp"].is<uint8_t>();
 
-        isValid &= doc["val"].isNull() == false;
-        isValid &= doc["val"].is<std::string>();
+    //     isValid &= doc["val"].isNull() == false;
+    //     isValid &= doc["val"].is<std::string>();
         
-        if (isValid != true)
-        {
-            messageconfig.ID = "0";
-            messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-            messageconfig.ResponseCode    = 900;
-            messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY'S VALUE CANNOT BE NULL";
+    //     if (isValid != true)
+    //     {
+    //         messageconfig.ID = "0";
+    //         messageconfig.SourceTimestamp = GetTimestampInMillis(); 
+    //         messageconfig.ResponseCode    = 900;
+    //         messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY'S VALUE CANNOT BE NULL";
      
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
+    //         serializedPayload = json.Serialize(messageconfig);
+    //         mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
+    //         Status ret = mqtt::cdo.Store(message);
+    //         return Status(Status::Code::BAD_INVALID_ARGUMENT);
+    //     }
 
 
-        messageconfig.ID = doc["id"].as<std::string>();
-        std::string nodeID = doc["nid"].as<std::string>();
-        uint8_t limitType = doc["tp"].as<uint8_t>();
-        std::string val = doc["val"].as<std::string>();
+    //     messageconfig.ID = doc["id"].as<std::string>();
+    //     std::string nodeID = doc["nid"].as<std::string>();
+    //     uint8_t limitType = doc["tp"].as<uint8_t>();
+    //     std::string val = doc["val"].as<std::string>();
         
 
-        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+    //     AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
 
-        if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::UCL))
-        {
-            bool result = alarmMonitor.ConvertUCL(nodeID, val);
-            if (result)
-            {
-                messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                messageconfig.ResponseCode      = 200;                
-            }
-            else
-            {
-                messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                messageconfig.ResponseCode    = 900;
-                messageconfig.ResponseReason  = "FAIL TO SETING UCL";
-            }
-        }
-        else if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::LCL))
-        {
-            bool result = alarmMonitor.ConvertLCL(nodeID, val);
-            if (result)
-            {
-                messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                messageconfig.ResponseCode      = 200;                
-            }
-            else
-            {
-                messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                messageconfig.ResponseCode    = 900;
-                messageconfig.ResponseReason  = "FAIL TO SETING LCL";
-            }
+    //     if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::UCL))
+    //     {
+    //         bool result = alarmMonitor.ConvertUCL(nodeID, val);
+    //         if (result)
+    //         {
+    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
+    //             messageconfig.ResponseCode      = 200;                
+    //         }
+    //         else
+    //         {
+    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
+    //             messageconfig.ResponseCode    = 900;
+    //             messageconfig.ResponseReason  = "FAIL TO SETING UCL";
+    //         }
+    //     }
+    //     else if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::LCL))
+    //     {
+    //         bool result = alarmMonitor.ConvertLCL(nodeID, val);
+    //         if (result)
+    //         {
+    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
+    //             messageconfig.ResponseCode      = 200;                
+    //         }
+    //         else
+    //         {
+    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
+    //             messageconfig.ResponseCode    = 900;
+    //             messageconfig.ResponseReason  = "FAIL TO SETING LCL";
+    //         }
 
-        }
-        else
-        {
-            messageconfig.SourceTimestamp   = GetTimestampInMillis();
-            messageconfig.ResponseCode    = 900;
-            messageconfig.ResponseReason  = "LIMIT TPYE ERROR : " + limitType;
-        }
+    //     }
+    //     else
+    //     {
+    //         messageconfig.SourceTimestamp   = GetTimestampInMillis();
+    //         messageconfig.ResponseCode    = 900;
+    //         messageconfig.ResponseReason  = "LIMIT TPYE ERROR : " + limitType;
+    //     }
         
-        serializedPayload = json.Serialize(messageconfig);
-        mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-        Status ret = mqtt::cdo.Store(message);
-        if (ret != Status::Code::GOOD)
-        {
-            /**
-             * @todo Store 실패시 falsh 메모리에 저장하는 방법
-             * 
-             */
-            LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-        }
-        return ret;
-    }
+    //     serializedPayload = json.Serialize(messageconfig);
+    //     mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
+    //     Status ret = mqtt::cdo.Store(message);
+    //     if (ret != Status::Code::GOOD)
+    //     {
+    //         /**
+    //          * @todo Store 실패시 falsh 메모리에 저장하는 방법
+    //          * 
+    //          */
+    //         LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
+    //     }
+    //     return ret;
+    // }
 
     Status processMessageRemoteControl(const char* payload)
     {
@@ -1063,8 +1063,6 @@ RC_RESPONSE:
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
             return processMessageRemoteControl(message.second.GetPayload());
         
-        case mqtt::topic_e::JARVIS_CONFIG_REQUEST:
-            return processMessageMfmConfig(message.second.GetPayload());
         default:
             ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(message.second.GetTopicCode()));
             return Status(Status::Code::BAD_INVALID_ARGUMENT);

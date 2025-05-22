@@ -62,9 +62,7 @@ namespace muffin { namespace mqtt {
         FOTA_UPDATE                     = 16,
         FOTA_STATUS                     = 17,
         REMOTE_CONTROL_REQUEST          = 18,
-        REMOTE_CONTROL_RESPONSE         = 19,
-        JARVIS_CONFIG_REQUEST           = 20,
-        JARVIS_CONFIG_RESPONSE          = 21
+        REMOTE_CONTROL_RESPONSE         = 19
     } topic_e;  
 
     typedef enum class MqttQoSEnum
