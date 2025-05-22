@@ -1115,12 +1115,10 @@ RC_RESPONSE:
                     }
                 }
                 
-                
                 const std::string payload =  deviceStatus.ToStringCyclical();
                 mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
                 mqtt::cdo.Store(message);
 
-                
             }
 
             if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))

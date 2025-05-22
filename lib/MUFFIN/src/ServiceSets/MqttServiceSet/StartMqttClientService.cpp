@@ -142,7 +142,6 @@ namespace muffin {
         mqtt::Message remoteControl(mqtt::topic_e::REMOTE_CONTROL_REQUEST, "");
         mqtt::Message firmwareUpdate(mqtt::topic_e::FOTA_UPDATE, "");
 
-
         std::vector<mqtt::Message> topics;
         try
         {

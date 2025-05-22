@@ -189,11 +189,11 @@ namespace muffin {
         doc["nid"]    = msg.NodeID;
         if (msg.Value == "MFM_NULL") 
         {
-            doc["value"]  = nullptr;
+            doc["val"]  = nullptr;
         } 
         else 
         {
-            doc["value"]  = msg.Value;
+            doc["val"]  = msg.Value;
         }
 
         serializeJson(doc, output, size);
@@ -212,7 +212,7 @@ namespace muffin {
         doc["mac"]    = macAddress.GetEthernet();
         doc["id"]     = msg.UUID;
         doc["nid"]    = msg.NodeID;
-        doc["value"]  = msg.Value;
+        doc["val"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }
@@ -240,7 +240,7 @@ namespace muffin {
         doc["mv"]  = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
-        doc["value"]  = msg.Value;
+        doc["val"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }
@@ -255,7 +255,7 @@ namespace muffin {
         doc["mac"]    = macAddress.GetEthernet();
         doc["nid"]    = msg.NodeID;
         doc["ts"]     = msg.SourceTimestamp;
-        doc["value"]  = msg.Value;
+        doc["val"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }
