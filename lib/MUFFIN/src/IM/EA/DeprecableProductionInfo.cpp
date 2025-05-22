@@ -79,7 +79,7 @@ namespace muffin {
         switch (taskCreationResult)
         {
         case pdPASS:
-            // LOG_INFO(logger, "The ProductionInfo task has been started");
+            LOG_INFO(logger, "The ProductionInfo task has been started");
             break;
         case pdFAIL:
             LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");

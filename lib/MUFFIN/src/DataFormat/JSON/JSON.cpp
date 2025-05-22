@@ -110,6 +110,7 @@ namespace muffin {
         JsonDocument doc;
         std::string payload;
 
+        doc["mv"]  = ESP32_FW_VERSION;
         doc["id"]  = _struct.ID;
         doc["ts"]  = _struct.SourceTimestamp;
         doc["rsc"] = _struct.ResponseCode;
@@ -124,11 +125,19 @@ namespace muffin {
     {
         JsonDocument doc;
         std::string payload;
-
+        
+        doc["mv"]  = ESP32_FW_VERSION;
         doc["id"]  = _struct.ID;
         doc["ts"]  = _struct.SourceTimestamp;
-        doc["mv"]  = ESP32_FW_VERSION;
         doc["rsc"] = _struct.ResponseCode;
+        if (_struct.ResponseReason.empty())
+        {
+            doc["rsn"] = nullptr;
+        }
+        else
+        {
+            doc["rsn"] = _struct.ResponseReason;
+        }
 
 
         serializeJson(doc,payload);
@@ -173,6 +182,8 @@ namespace muffin {
 
         JsonDocument doc;
 
+
+        doc["mv"]     = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
         doc["nid"]    = msg.NodeID;
@@ -184,7 +195,6 @@ namespace muffin {
         {
             doc["value"]  = msg.Value;
         }
-        doc["mv"]     = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
     }
@@ -212,11 +222,11 @@ namespace muffin {
         ASSERT((size >= 128), "OUTPUT BUFFER MUST BE GREATER THAN 128");
         
         JsonDocument doc;
-
+        
+        doc["mv"]      = ESP32_FW_VERSION;
         doc["mac"]     = macAddress.GetEthernet();
         doc["ts"]      = msg.SourceTimestamp;
         doc["status"]  = msg.Status;
-        doc["mv"]      = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
     }
@@ -227,6 +237,7 @@ namespace muffin {
         
         JsonDocument doc;
 
+        doc["mv"]  = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
         doc["value"]  = msg.Value;
@@ -240,10 +251,10 @@ namespace muffin {
         
         JsonDocument doc;
 
+        doc["mv"]     = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
         doc["nid"]    = msg.NodeID;
         doc["ts"]     = msg.SourceTimestamp;
-        doc["mv"]     = ESP32_FW_VERSION;
         doc["value"]  = msg.Value;
 
         serializeJson(doc, output, size);
@@ -253,7 +264,8 @@ namespace muffin {
     {// 512 bytes
         JsonDocument doc;
         std::string payload;
-
+        
+        doc["mv"]  = ESP32_FW_VERSION;
         doc["ts"] =  _struct.SourceTimestamp;
         JsonArray ifArray = doc["if"].to<JsonArray>();
         JsonObject interface = ifArray.add<JsonObject>();

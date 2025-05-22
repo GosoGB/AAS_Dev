@@ -545,7 +545,7 @@ namespace muffin {
             messageconfig.ResponseCode    = 900;
             messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY CANNOT BE MISSING";
       
-
+            
             serializedPayload = json.Serialize(messageconfig);
             mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
             Status ret = mqtt::cdo.Store(message);
@@ -554,7 +554,10 @@ namespace muffin {
 
 
         isValid &= doc["id"].isNull() == false;
-        isValid &= doc["id"].is<std::string>();
+        isValid &= doc["id"].is<uint32_t>();
+
+        isValid &= doc["ts"].isNull() == false;
+        isValid &= doc["ts"].is<uint32_t>();
 
         isValid &= doc["mv"].isNull() == false;
         isValid &= doc["mv"].is<std::string>();
@@ -570,11 +573,11 @@ namespace muffin {
         
         if (isValid != true)
         {
+            messageconfig.ID = "0";
             messageconfig.SourceTimestamp = GetTimestampInMillis(); 
             messageconfig.ResponseCode    = 900;
             messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY'S VALUE CANNOT BE NULL";
      
-
             serializedPayload = json.Serialize(messageconfig);
             mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
             Status ret = mqtt::cdo.Store(message);
@@ -628,9 +631,8 @@ namespace muffin {
             messageconfig.ResponseReason  = "LIMIT TPYE ERROR : " + limitType;
         }
         
-        
         serializedPayload = json.Serialize(messageconfig);
-        mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
+        mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
         Status ret = mqtt::cdo.Store(message);
         if (ret != Status::Code::GOOD)
         {
@@ -877,12 +879,12 @@ namespace muffin {
                                     
                                     if (im::IsBitArea(nodeArea))
                                     {
-                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
+                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
                                         writeResult = melsec.mMelsecClient.WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
                                     }
                                     else
                                     {
-                                        LOG_INFO(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
+                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
                                         writeResult = melsec.mMelsecClient.WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
                                     }
                                     xSemaphoreGive(xSemaphoreMelsec);
