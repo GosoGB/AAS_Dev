@@ -90,6 +90,7 @@ namespace muffin {
         std::string ID;
         uint64_t SourceTimestamp;
         std::string ResponseCode;
+        std::string Description;
         JsonArray RequestData;
     } remote_controll_struct_t;
 

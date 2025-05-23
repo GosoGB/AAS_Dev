@@ -116,7 +116,11 @@ namespace muffin {
 
         time_t LastTime;
         time_t NextTime = CalculateTimestampNextMinuteStarts(GetTimestamp());
-  
+
+        mPreviousCount.Total = UINT64_MAX;
+        // mPreviousCount.NG = UINT64_MAX;
+        // mPreviousCount.Good = UINT64_MAX;
+
         while (true)
         {
         #if defined(DEBUG)
@@ -160,7 +164,7 @@ namespace muffin {
                 {
                     break;
                 }
-
+                
                 /**
                  * @todo PROGIX에 총 생산수량 외에 양품수량, 불량수량을 보내기 위한
                  *       메시지 형식을 클라우드 개발팀과 협의해야 합니다.
@@ -223,7 +227,7 @@ namespace muffin {
         
         if (mPreviousCount.Total > TotalValue)
         {
-             mProductCount.Total = 0;
+            mProductCount.Total = 0;
         }
         else
         {

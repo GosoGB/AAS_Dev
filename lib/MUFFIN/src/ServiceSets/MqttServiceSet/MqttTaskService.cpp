@@ -709,10 +709,10 @@ namespace muffin {
         messageconfig.ID = doc["id"].as<std::string>();
         for (JsonObject obj : request)
         {
-            std::string uid = obj["uid"].as<std::string>(); 
+            std::string nid = obj["nid"].as<std::string>(); 
             std::string value = obj["val"].as<std::string>(); 
             
-            remoteData.emplace_back(uid, value); 
+            remoteData.emplace_back(nid, value); 
         }
 
         
