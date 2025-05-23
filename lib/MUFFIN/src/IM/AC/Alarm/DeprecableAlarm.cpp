@@ -232,6 +232,7 @@ namespace muffin {
             if (isAlarmCondition == true)
             {
                 activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한값 알람 발생, %s",node.GetNodeID());
             }
             else
             {
@@ -247,6 +248,7 @@ namespace muffin {
             else
             {
                 deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한값 알람 종료, %s",node.GetNodeID());
             }
         }
     }
@@ -269,6 +271,7 @@ namespace muffin {
             if (isAlarmCondition == true)
             {
                 activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 발생, %s",node.GetNodeID());
             }
             else
             {
@@ -284,6 +287,7 @@ namespace muffin {
             else
             {
                 deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 종료, %s",node.GetNodeID());
             }
         }
     }
@@ -308,6 +312,7 @@ namespace muffin {
             if (isLclCondition == true)
             {
                 activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한 알람 발생, %s",node.GetNodeID());
             }
         }
         else
@@ -316,6 +321,7 @@ namespace muffin {
             if (isLclCondition == false)
             {
                 deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한 알람 종료, %s",node.GetNodeID());
             }
         }
 
@@ -324,6 +330,7 @@ namespace muffin {
             if (isUclCondition == true)
             {
                 activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 발생, %s",node.GetNodeID());
             }
         }
         else
@@ -331,6 +338,7 @@ namespace muffin {
             if (isUclCondition == false)
             {
                 deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 종료, %s",node.GetNodeID());
             }
 
         }
@@ -635,7 +643,7 @@ namespace muffin {
 
     
 
-    bool AlarmMonitor::ConvertUCL(std::string nid, std::string ucl)
+    Status AlarmMonitor::ConvertUCL(std::string nid, std::string ucl)
     {
         bool decimalFound = false;
         size_t start = (ucl[0] == '-') ? 1 : 0;
@@ -646,13 +654,13 @@ namespace muffin {
             {
                 if (decimalFound) 
                 {
-                    return false;
+                    return Status(Status::Code::BAD_INVALID_ARGUMENT);
                 }
                 decimalFound = true;
             } 
             else if (!isdigit(c)) 
             {
-                return false;
+                return Status(Status::Code::BAD_INVALID_ARGUMENT);
             }
         }
         
@@ -667,17 +675,17 @@ namespace muffin {
                 {
                     float floatUCL = Convert.ToFloat(ucl);
                     cin.SetUCL(floatUCL);
-                    updateFlashUclValue(cin.GetNodeID().second,floatUCL);
-                    return true; 
+
+                    return updateFlashUclValue(cin.GetNodeID().second,floatUCL);
                 }
             }
 
         }
 
-        return true;
+        return Status(Status::Code::BAD_NOT_FOUND);
     }
 
-    bool AlarmMonitor::ConvertLCL(std::string nid, std::string lcl)
+    Status AlarmMonitor::ConvertLCL(std::string nid, std::string lcl)
     {
         bool decimalFound = false;
         size_t start = (lcl[0] == '-') ? 1 : 0;
@@ -688,13 +696,13 @@ namespace muffin {
             {
                 if (decimalFound) 
                 {
-                    return false;
+                    return Status(Status::Code::BAD_INVALID_ARGUMENT);
                 }
                 decimalFound = true;
             } 
             else if (!isdigit(c)) 
             {
-                return false;
+                return Status(Status::Code::BAD_INVALID_ARGUMENT);
             }
         }
         
@@ -709,26 +717,31 @@ namespace muffin {
                 {
                     float floatLCL = Convert.ToFloat(lcl);
                     cin.SetLCL(floatLCL);
-                    updateFlashLclValue(cin.GetNodeID().second,floatLCL);
+                    
+                    return updateFlashLclValue(cin.GetNodeID().second,floatLCL);
                 }
             }
         }
         
-        return true;
+        return Status(Status::Code::BAD_NOT_FOUND);
     }
 
-    void AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)
+    Status AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)
     {
         File file = esp32FS.Open(JARVIS_PATH, "r", false);
         if (file == false)
         {
-            return;
+            return Status(Status::Code::BAD);
         }
         
         JSON json;
         JsonDocument doc;
         Status ret = json.Deserialize(file, &doc);
         file.close();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
         JsonArray alarms = doc["cnt"]["alarm"];
         for (JsonObject alarm : alarms)
         {
@@ -740,20 +753,25 @@ namespace muffin {
                 file.close();
             }
         }
+        return Status(Status::Code::GOOD);
     }
 
-    void AlarmMonitor::updateFlashLclValue(std::string nodeid, float lcl)
+    Status AlarmMonitor::updateFlashLclValue(std::string nodeid, float lcl)
     {
         File file = esp32FS.Open(JARVIS_PATH, "r", false);
         if (file == false)
         {
-            return;
+            return Status(Status::Code::BAD);
         }
         
         JSON json;
         JsonDocument doc;
         Status ret = json.Deserialize(file, &doc);
         file.close();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
         JsonArray alarms = doc["cnt"]["alarm"];
         for (JsonObject alarm : alarms)
         {
@@ -766,20 +784,9 @@ namespace muffin {
                 file.close();
             }
         }
-    }
 
-    // std::string AlarmMonitor::GetNodeID(const std::string nid)
-    // {
-    //     for (auto& cin : mVectorConfig)
-    //     {
-    //         if (nid == )
-    //         {
-    //             /* code */
-    //         }
-            
-    //         const std::string nodeId = cin.GetNodeID().second;
-    //     }
-    // }
+        return Status(Status::Code::GOOD);
+    }
 
     AlarmMonitor* AlarmMonitor::mInstance = nullptr;
 }

@@ -25,4 +25,6 @@ namespace muffin {
     Status PublishResponseJARVIS(const jarvis_struct_t& response);
     Status StartMqttTaskService(init_cfg_t& config, CallbackUpdateInitConfig callbackJARVIS);
     Status StopMqttTaskService();
+    Status RemoteControllToMachine(remote_controll_struct_t* message, JsonArray& mc);
+    Status RemoteControllToModlink(remote_controll_struct_t* message, JsonArray& md);
 }

@@ -46,13 +46,14 @@ namespace muffin {
         void Add(jvs::config::Alarm* cin);
         void Clear();
         bool HasError() const;
+        bool isContainNode(std::string nid);
     public:
         void StartTask();
         void StopTask();
 
     public:
-        bool ConvertUCL(std::string nid, std::string ucl);
-        bool ConvertLCL(std::string nid, std::string lcl);
+        Status ConvertUCL(std::string nid, std::string ucl);
+        Status ConvertLCL(std::string nid, std::string lcl);
     private:
         static void wrapImplTask(void* pvParams);
         void implTask();
@@ -68,8 +69,8 @@ namespace muffin {
         void deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const std::string& value);
 
     private:
-        void updateFlashUclValue(std::string nodeid, float ucl);
-        void updateFlashLclValue(std::string nodeid, float lcl);
+        Status updateFlashUclValue(std::string nodeid, float ucl);
+        Status updateFlashLclValue(std::string nodeid, float lcl);
     private:
         using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node*>>;
         std::vector<jvs::config::Alarm> mVectorConfig;

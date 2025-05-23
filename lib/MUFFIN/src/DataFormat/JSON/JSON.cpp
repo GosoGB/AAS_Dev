@@ -114,36 +114,20 @@ namespace muffin {
         doc["id"]  = _struct.ID;
         doc["ts"]  = _struct.SourceTimestamp;
         doc["rsc"] = _struct.ResponseCode;
-        doc["req"] = _struct.RequestData;
-
-        serializeJson(doc,payload);
-
-        return payload;
-    }
-
-    std::string JSON::Serialize(const mfm_config_struct_t& _struct)
-    {
-        JsonDocument doc;
-        std::string payload;
-        
-        doc["mv"]  = ESP32_FW_VERSION;
-        doc["id"]  = _struct.ID;
-        doc["ts"]  = _struct.SourceTimestamp;
-        doc["rsc"] = _struct.ResponseCode;
-        if (_struct.ResponseReason.empty())
+        if (_struct.ResponseCode == 200)
         {
-            doc["rsn"] = nullptr;
+            doc["dsc"]= nullptr;
         }
         else
         {
-            doc["rsn"] = _struct.ResponseReason;
+            doc["dsc"]= _struct.Description;
         }
-
 
         serializeJson(doc,payload);
 
         return payload;
     }
+
 
     void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t sourceTimestamp,char output[])
     {

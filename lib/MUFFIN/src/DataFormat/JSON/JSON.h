@@ -87,21 +87,11 @@ namespace muffin {
     typedef struct RemoteControllStruct
     {
         mqtt::topic_e Topic;
-        std::string ID;
-        uint64_t SourceTimestamp;
-        std::string ResponseCode;
-        std::string Description;
-        JsonArray RequestData;
-    } remote_controll_struct_t;
-
-    typedef struct RemoteControllLimitStruct
-    {
-        mqtt::topic_e Topic;
-        std::string ID;
+        uint32_t ID;
         uint64_t SourceTimestamp;
         uint16_t ResponseCode;
-        std::string ResponseReason;
-    } mfm_config_struct_t;
+        std::string Description;
+    } remote_controll_struct_t;
 
     typedef struct JsonDatumType
     {
@@ -152,7 +142,6 @@ namespace muffin {
     public:
         std::string Serialize(const jarvis_struct_t& _struct);
         std::string Serialize(const remote_controll_struct_t& _struct);
-        std::string Serialize(const mfm_config_struct_t& _struct);
         std::string Serialize(const jarvis_interface_struct_t& _struct);
         size_t Serialize(const fota_status_t& _struct, const size_t size, char output[]);
 

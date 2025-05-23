@@ -362,8 +362,8 @@ namespace muffin { namespace jvs {
     typedef enum class AlarmPublishTypeEnum
         : uint8_t
     {
-        UCL         = 0,
-        LCL         = 1,
+        LCL         = 0,
+        UCL         = 1,
         CONDITION   = 2
     } alarm_pub_type_e;
 

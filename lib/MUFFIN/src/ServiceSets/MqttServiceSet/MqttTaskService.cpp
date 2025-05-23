@@ -63,7 +63,6 @@ static uint8_t RECONNECT_TRIAL_COUNT = 0;
 muffin::CallbackUpdateInitConfig cbUpdateInitConfig = nullptr;
 
 
-
 namespace muffin {
 
     Status manageConnection()
@@ -476,174 +475,6 @@ namespace muffin {
         esp_restart();
     }
 
-    // Status processMessageMfmConfig(const char* payload)
-    // {
-    //     JSON json;
-    //     mfm_config_struct_t messageconfig;
-    //     std::string serializedPayload;
-    //     JsonDocument doc;
-    //     Status retJSON = json.Deserialize(payload, &doc);
-    //     std::string Description;
-
-    //     if (retJSON != Status::Code::GOOD)
-    //     {
-    //         LOG_ERROR(logger, "FAILED TO DESERIALIZE JSON: %s", retJSON.c_str());
-
-    //         switch (retJSON.ToCode())
-    //         {
-    //         case Status::Code::BAD_END_OF_STREAM:
-    //             Description = "PAYLOAD INSUFFICIENT OR INCOMPLETE";
-    //             break;
-    //         case Status::Code::BAD_NO_DATA:
-    //             Description ="PAYLOAD EMPTY";
-    //             break;
-    //         case Status::Code::BAD_DATA_ENCODING_INVALID:
-    //             Description = "PAYLOAD INVALID ENCODING";
-    //             break;
-    //         case Status::Code::BAD_OUT_OF_MEMORY:
-    //             Description = "PAYLOAD OUT OF MEMORY";
-    //             break;
-    //         case Status::Code::BAD_ENCODING_LIMITS_EXCEEDED:
-    //             Description = "PAYLOAD EXCEEDED NESTING LIMIT";
-    //             break;
-    //         case Status::Code::BAD_UNEXPECTED_ERROR:
-    //             Description = "UNDEFINED CONDITION";
-    //             break;
-    //         default:
-    //             Description = "UNDEFINED CONDITION";
-    //             break;
-    //         }
-            
-    //         messageconfig.ID = "0";
-    //         messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-    //         messageconfig.ResponseCode    = 900;
-    //         messageconfig.ResponseReason = Description;
-
-    //         serializedPayload = json.Serialize(messageconfig);
-    //         mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-    //         mqtt::cdo.Store(message);
-           
-    //         return retJSON;
-    //     }
-
-    //     /**
-    //      * @todo JSON Message에 대해 Validator 구현해야함
-    //      */
-  
-        
-    //     bool isValid = true;
-    //     isValid &= doc.containsKey("id");
-    //     isValid &= doc.containsKey("ts");
-    //     isValid &= doc.containsKey("mv");
-    //     isValid &= doc.containsKey("nid");
-    //     isValid &= doc.containsKey("tp");
-    //     isValid &= doc.containsKey("val");
-        
-    //     if (isValid != true)
-    //     {
-    //         messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-    //         messageconfig.ResponseCode    = 900;
-    //         messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY CANNOT BE MISSING";
-      
-            
-    //         serializedPayload = json.Serialize(messageconfig);
-    //         mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-    //         Status ret = mqtt::cdo.Store(message);
-    //         return Status(Status::Code::BAD_INVALID_ARGUMENT);
-    //     }
-
-
-    //     isValid &= doc["id"].isNull() == false;
-    //     isValid &= doc["id"].is<uint32_t>();
-
-    //     isValid &= doc["ts"].isNull() == false;
-    //     isValid &= doc["ts"].is<uint32_t>();
-
-    //     isValid &= doc["mv"].isNull() == false;
-    //     isValid &= doc["mv"].is<std::string>();
-
-    //     isValid &= doc["nid"].isNull() == false;
-    //     isValid &= doc["nid"].is<std::string>();
-
-    //     isValid &= doc["tp"].isNull() == false;
-    //     isValid &= doc["tp"].is<uint8_t>();
-
-    //     isValid &= doc["val"].isNull() == false;
-    //     isValid &= doc["val"].is<std::string>();
-        
-    //     if (isValid != true)
-    //     {
-    //         messageconfig.ID = "0";
-    //         messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-    //         messageconfig.ResponseCode    = 900;
-    //         messageconfig.ResponseReason  = "INVALID MESSAGE: MANDATORY KEY'S VALUE CANNOT BE NULL";
-     
-    //         serializedPayload = json.Serialize(messageconfig);
-    //         mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-    //         Status ret = mqtt::cdo.Store(message);
-    //         return Status(Status::Code::BAD_INVALID_ARGUMENT);
-    //     }
-
-
-    //     messageconfig.ID = doc["id"].as<std::string>();
-    //     std::string nodeID = doc["nid"].as<std::string>();
-    //     uint8_t limitType = doc["tp"].as<uint8_t>();
-    //     std::string val = doc["val"].as<std::string>();
-        
-
-    //     AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-
-    //     if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::UCL))
-    //     {
-    //         bool result = alarmMonitor.ConvertUCL(nodeID, val);
-    //         if (result)
-    //         {
-    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
-    //             messageconfig.ResponseCode      = 200;                
-    //         }
-    //         else
-    //         {
-    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
-    //             messageconfig.ResponseCode    = 900;
-    //             messageconfig.ResponseReason  = "FAIL TO SETING UCL";
-    //         }
-    //     }
-    //     else if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::LCL))
-    //     {
-    //         bool result = alarmMonitor.ConvertLCL(nodeID, val);
-    //         if (result)
-    //         {
-    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
-    //             messageconfig.ResponseCode      = 200;                
-    //         }
-    //         else
-    //         {
-    //             messageconfig.SourceTimestamp   = GetTimestampInMillis();
-    //             messageconfig.ResponseCode    = 900;
-    //             messageconfig.ResponseReason  = "FAIL TO SETING LCL";
-    //         }
-
-    //     }
-    //     else
-    //     {
-    //         messageconfig.SourceTimestamp   = GetTimestampInMillis();
-    //         messageconfig.ResponseCode    = 900;
-    //         messageconfig.ResponseReason  = "LIMIT TPYE ERROR : " + limitType;
-    //     }
-        
-    //     serializedPayload = json.Serialize(messageconfig);
-    //     mqtt::Message message(mqtt::topic_e::JARVIS_CONFIG_RESPONSE, serializedPayload);
-    //     Status ret = mqtt::cdo.Store(message);
-    //     if (ret != Status::Code::GOOD)
-    //     {
-    //         /**
-    //          * @todo Store 실패시 falsh 메모리에 저장하는 방법
-    //          * 
-    //          */
-    //         LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-    //     }
-    //     return ret;
-    // }
 
     Status processMessageRemoteControl(const char* payload)
     {
@@ -684,7 +515,8 @@ namespace muffin {
             }
             
             messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-            messageconfig.ResponseCode    = "900 :" + Description;
+            messageconfig.ResponseCode    = 900;
+            messageconfig.Description = Description;
 
             serializedPayload = json.Serialize(messageconfig);
             mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
@@ -700,14 +532,261 @@ namespace muffin {
             return retJSON;
         }
 
+        messageconfig.ID = doc["id"].as<uint32_t>();
+
+        Status ret = Status(Status::Code::UNCERTAIN);
+
+        if (doc["mc"].isNull() == false)
+        {
+            JsonArray mc = doc["mc"].as<JsonArray>();
+            ret =  RemoteControllToMachine(&messageconfig, mc);
+        }
+        else if(doc["md"].isNull() == false)
+        {
+            JsonArray md = doc["md"].as<JsonArray>();
+            ret = RemoteControllToModlink(&messageconfig, md);
+        }
+        else
+        {
+            messageconfig.ResponseCode = 900;
+            messageconfig.Description = "NOT FOUND KEY : MC or MD";
+        }
+
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"REMOTE CONTROL ERROR ! %s",ret.c_str());
+    
+        }
+        
+
+        messageconfig.SourceTimestamp  = GetTimestampInMillis();
+        serializedPayload = json.Serialize(messageconfig);
+        mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
+        ret = mqtt::cdo.Store(message);
+        if (ret != Status::Code::GOOD)
+        {
+            /**
+             * @todo Store 실패시 falsh 메모리에 저장하는 방법
+             * 
+             */
+            LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
+        }
+        return ret;
+        
+    }
+
+    Status subscribeMessages(init_cfg_t& params)
+    {
+        if (mqtt::cia.Count() == 0)
+        {
+            return Status(Status::Code::GOOD);
+        }
+
+        const std::pair<Status, mqtt::Message> message = mqtt::cia.Retrieve();
+        if (message.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO PEEK MESSAGE: %s ", message.first.c_str());
+            return message.first;
+        }
+        
+        Status ret(Status::Code::UNCERTAIN);
+        switch (message.second.GetTopicCode())
+        {
+        case mqtt::topic_e::JARVIS_REQUEST:
+            ret = processMessageJARVIS(params, message.second.GetPayload());
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger, "Processed JARVIS request successfully");
+            }
+            else
+            {
+                LOG_ERROR(logger, "FAILED TO PROCESS JARVIS REQUEST MESSAGE: %s", ret.c_str());
+            }
+            return ret;
+
+        case mqtt::topic_e::JARVIS_INTERFACE_REQUEST:
+            return processMessageJarvisStatus(message.second.GetPayload());
+        
+        case mqtt::topic_e::FOTA_UPDATE:
+            ret = processMessageUpdate(params, message.second.GetPayload());
+            if (ret == Status::Code::GOOD)
+            {
+                LOG_INFO(logger, "Processed update request successfully");
+            }
+            else
+            {
+                LOG_ERROR(logger, "FAILED TO PROCESS OTA REQUEST MESSAGE: %s", ret.c_str());
+            }
+            return ret;
+
+        case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
+            return processMessageRemoteControl(message.second.GetPayload());
+        
+        default:
+            ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(message.second.GetTopicCode()));
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+    }
+
+    void implMqttTask(void* pvParameters)
+    {
+        uint32_t statusReportMillis = millis(); 
+        uint32_t reconnectMillis    = millis();
+        
+        init_cfg_t params = {
+            .PanicResetCount   = reinterpret_cast<init_cfg_t*>(pvParameters)->PanicResetCount,
+            .HasPendingJARVIS  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingJARVIS,
+            .HasPendingUpdate  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingUpdate,
+            .ReconfigCode      = reinterpret_cast<init_cfg_t*>(pvParameters)->ReconfigCode
+        };
+
+        while (true)
+        {
+        #if defined(DEBUG)
+            if ((millis() - statusReportMillis) > (600 * SECOND_IN_MILLIS))
+        #else
+            if ((millis() - statusReportMillis) > (3600 * SECOND_IN_MILLIS))
+        #endif
+            {
+                /**
+                 * @todo 현재 DeviceStatus에 필요한 정보를 mqttTask에서 생성하고, COD로 넘겨주고 있음 추후에는 이 기능을 별도의 task로 빼서 구현해야함
+                 * @김주성
+                 * 
+                 */
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+                size_t RemainedHeapSize = ESP.getFreeHeap();
+                size_t RemainedFlashMemorySize = esp32FS.GetTotalBytes();
+                LOG_DEBUG(logger, "[MqttTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                LOG_DEBUG(logger, "Heap Remained: %u Bytes", RemainedHeapSize);
+                LOG_DEBUG(logger, "Flash Memory Remained: %u Bytes", RemainedFlashMemorySize);
+
+                deviceStatus.SetTaskRemainedStack(task_name_e::MQTT_TASK, RemainedStackSize);
+                deviceStatus.SetRemainedHeap(RemainedHeapSize);
+                deviceStatus.SetRemainedFlash(RemainedFlashMemorySize);
+
+                if(jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
+                {
+                    catm1_report_t signal;
+                    if(catM1->GetSignalQuality(&signal) == Status(Status::Code::GOOD))
+                    {
+                        deviceStatus.SetReportCatM1(signal);
+                    }
+                }
+                
+                const std::string payload =  deviceStatus.ToStringCyclical();
+                mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
+                mqtt::cdo.Store(message);
+
+            }
+
+            if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
+            {
+                if (manageConnection() == Status::Code::BAD_NOT_EXECUTABLE)
+                {
+                    StopMqttTaskService();
+                }
+                reconnectMillis = millis();
+            }
+            publishMessages();
+            subscribeMessages(params);
+            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
+        }
+    }
+
+    void implStopMqttTask(TimerHandle_t)
+    {
         /**
-         * @todo JSON Message에 대해 Validator 구현해야함
+         * @todo 전송하지 못한 메시지는 플래시 메모리에라도 저장해야 합니다.
          */
-        JsonArray request = doc["req"].as<JsonArray>();
-        messageconfig.RequestData = request;
+        if (xHandle == NULL)
+        {
+            return;
+        }
+        
+        vTaskDelete(xHandle);
+        xHandle = NULL;
+    }
+
+    Status StartMqttTaskService(init_cfg_t& config, CallbackUpdateInitConfig callbackJARVIS)
+    {
+        if (xHandle != NULL)
+        {
+            return Status(Status::Code::GOOD);
+        }
+
+        if (cbUpdateInitConfig == nullptr)
+        {
+            cbUpdateInitConfig = callbackJARVIS;
+        }
+
+        BaseType_t ret = xTaskCreatePinnedToCore(implMqttTask,     // Function to be run inside of the task
+                                                 "implMqttTask",   // The identifier of this task for men
+                                                 8*KILLOBYTE,	   // Stack memory size to allocate
+                                                 &config,		   // Task parameters to be passed to the function
+                                                 0,				   // Task Priority for scheduling
+                                                 &xHandle,         // The identifier of this task for machines
+                                                 1);			   // Index of MCU core where the function to run
+
+        switch (ret)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "MQTT task has been started");
+            return Status(Status::Code::GOOD);
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %d", static_cast<int>(ret));
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+    }
+
+    Status StopMqttTaskService()
+    {
+        INetwork* snic = RetrieveServiceNicService();
+        std::pair<Status, size_t> mutex = snic->TakeMutex();
+        if (mutex.first != Status::Code::GOOD)
+        {
+            return mutex.first;
+        }
+        mqttClient->Disconnect(mutex.second);
+        
+        TimerHandle_t xTimer = xTimerCreate("implStopMqttTask",  // pcTimerName
+                                            SECOND_IN_MILLIS,   // xTimerPeriod,
+                                            pdFALSE,            // uxAutoReload,
+                                            (void *)0,          // pvTimerID,
+                                            implStopMqttTask);  // pxCallbackFunction
+        
+        if (xTimer == NULL)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR STOPPING MQTT SERVICE");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+        else
+        {
+            LOG_INFO(logger, "Created a timer for stopping mqtt service");
+            if (xTimerStart(xTimer, 0) != pdPASS)
+            {
+                LOG_ERROR(logger, "FAILED TO START TIMER FOR STOPPING MQTT SERVICE");
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+        
+        LOG_INFO(logger, "Stopping the MQTT service");
+        return Status(Status::Code::GOOD);
+    }
+
+    Status RemoteControllToMachine(remote_controll_struct_t* message, JsonArray& mc)
+    {
         std::vector<std::pair<std::string, std::string>> remoteData;
-        messageconfig.ID = doc["id"].as<std::string>();
-        for (JsonObject obj : request)
+        for (JsonObject obj : mc)
         {
             std::string nid = obj["nid"].as<std::string>(); 
             std::string value = obj["val"].as<std::string>(); 
@@ -715,54 +794,28 @@ namespace muffin {
             remoteData.emplace_back(nid, value); 
         }
 
-        
-
-         /**
-         * @todo 스카우터,프로직스 기준으로 제어명령은 한개밖에 들어오지 않아 고정으로 설정해두었음 remoteData.at(0), 추후 변경시 수정해야함
-         */
-
-
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         
         std::pair<Status, im::Node*> ret = nodeStore.GetNodeReference(remoteData.at(0).first);
         std::pair<Status, uint16_t> retConvertModbus = std::make_pair(Status(Status::Code::UNCERTAIN),0);
-        
+
         if (ret.first != Status::Code::GOOD)
         {
-            messageconfig.SourceTimestamp   = GetTimestampInMillis();
-            messageconfig.ResponseCode  = "900 : UNDEFINED NODEID : " + remoteData.at(0).first;
+            message->SourceTimestamp   = GetTimestampInMillis();
+            message->ResponseCode  = 900;
+            message->Description = "UNDEFINED NODEID : " + remoteData.at(0).first;
 
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status retCDO = mqtt::cdo.Store(message);
-            if (retCDO != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
             return ret.first;
         }
 
         retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
         if (retConvertModbus.first != Status::Code::GOOD)
         {
-            messageconfig.SourceTimestamp = GetTimestampInMillis();
-            messageconfig.ResponseCode    = "900 : " + retConvertModbus.first.ToString();
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return retConvertModbus.first;
+            message->SourceTimestamp = GetTimestampInMillis();
+            message->ResponseCode  = 900;
+            message->Description = retConvertModbus.first.ToString();
+
+           return retConvertModbus.first;
         }
         else
         {
@@ -992,235 +1045,73 @@ namespace muffin {
 RC_RESPONSE:
             if (writeResult == 1)
             {
-                messageconfig.ResponseCode = "200";
+                message->ResponseCode = 200;
             }
             else
             {
-                messageconfig.ResponseCode = "900 : UNEXPECTED ERROR";
+                message->ResponseCode  = 900;
+                message->Description = "UNEXPECTED ERROR";
             }
-            messageconfig.SourceTimestamp  = GetTimestampInMillis();
-            serializedPayload = json.Serialize(messageconfig);
-
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return ret;
-        }
-        
-    }
-
-    Status subscribeMessages(init_cfg_t& params)
-    {
-        if (mqtt::cia.Count() == 0)
-        {
+            
             return Status(Status::Code::GOOD);
         }
-
-        const std::pair<Status, mqtt::Message> message = mqtt::cia.Retrieve();
-        if (message.first.ToCode() != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO PEEK MESSAGE: %s ", message.first.c_str());
-            return message.first;
-        }
-        
-        Status ret(Status::Code::UNCERTAIN);
-        switch (message.second.GetTopicCode())
-        {
-        case mqtt::topic_e::JARVIS_REQUEST:
-            ret = processMessageJARVIS(params, message.second.GetPayload());
-            if (ret == Status::Code::GOOD)
-            {
-                LOG_INFO(logger, "Processed JARVIS request successfully");
-            }
-            else
-            {
-                LOG_ERROR(logger, "FAILED TO PROCESS JARVIS REQUEST MESSAGE: %s", ret.c_str());
-            }
-            return ret;
-
-        case mqtt::topic_e::JARVIS_INTERFACE_REQUEST:
-            return processMessageJarvisStatus(message.second.GetPayload());
-        
-        case mqtt::topic_e::FOTA_UPDATE:
-            ret = processMessageUpdate(params, message.second.GetPayload());
-            if (ret == Status::Code::GOOD)
-            {
-                LOG_INFO(logger, "Processed update request successfully");
-            }
-            else
-            {
-                LOG_ERROR(logger, "FAILED TO PROCESS OTA REQUEST MESSAGE: %s", ret.c_str());
-            }
-            return ret;
-
-        case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
-            return processMessageRemoteControl(message.second.GetPayload());
-        
-        default:
-            ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(message.second.GetTopicCode()));
-            return Status(Status::Code::BAD_INVALID_ARGUMENT);
-        }
     }
 
-    void implMqttTask(void* pvParameters)
-    {
-        uint32_t statusReportMillis = millis(); 
-        uint32_t reconnectMillis    = millis();
-        
-        init_cfg_t params = {
-            .PanicResetCount   = reinterpret_cast<init_cfg_t*>(pvParameters)->PanicResetCount,
-            .HasPendingJARVIS  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingJARVIS,
-            .HasPendingUpdate  = reinterpret_cast<init_cfg_t*>(pvParameters)->HasPendingUpdate,
-            .ReconfigCode      = reinterpret_cast<init_cfg_t*>(pvParameters)->ReconfigCode
-        };
-
-        while (true)
-        {
-        #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (600 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3600 * SECOND_IN_MILLIS))
-        #endif
-            {
-                /**
-                 * @todo 현재 DeviceStatus에 필요한 정보를 mqttTask에서 생성하고, COD로 넘겨주고 있음 추후에는 이 기능을 별도의 task로 빼서 구현해야함
-                 * @김주성
-                 * 
-                 */
-                statusReportMillis = millis();
-                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
-                size_t RemainedHeapSize = ESP.getFreeHeap();
-                size_t RemainedFlashMemorySize = esp32FS.GetTotalBytes();
-                LOG_DEBUG(logger, "[MqttTask] Stack Remaind: %u Bytes", RemainedStackSize);
-                LOG_DEBUG(logger, "Heap Remained: %u Bytes", RemainedHeapSize);
-                LOG_DEBUG(logger, "Flash Memory Remained: %u Bytes", RemainedFlashMemorySize);
-
-                deviceStatus.SetTaskRemainedStack(task_name_e::MQTT_TASK, RemainedStackSize);
-                deviceStatus.SetRemainedHeap(RemainedHeapSize);
-                deviceStatus.SetRemainedFlash(RemainedFlashMemorySize);
-
-                if(jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
-                {
-                    catm1_report_t signal;
-                    if(catM1->GetSignalQuality(&signal) == Status(Status::Code::GOOD))
-                    {
-                        deviceStatus.SetReportCatM1(signal);
-                    }
-                }
-                
-                const std::string payload =  deviceStatus.ToStringCyclical();
-                mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
-                mqtt::cdo.Store(message);
-
-            }
-
-            if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
-            {
-                if (manageConnection() == Status::Code::BAD_NOT_EXECUTABLE)
-                {
-                    StopMqttTaskService();
-                }
-                reconnectMillis = millis();
-            }
-            publishMessages();
-            subscribeMessages(params);
-            vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
-        }
-    }
-
-    void implStopMqttTask(TimerHandle_t)
+    Status RemoteControllToModlink(remote_controll_struct_t* message, JsonArray& md)
     {
         /**
-         * @todo 전송하지 못한 메시지는 플래시 메모리에라도 저장해야 합니다.
+         * @todo 1.4.0 에서는 하나의 설정 값만 입력 받는다. 
+         * 
          */
-        if (xHandle == NULL)
-        {
-            return;
-        }
+        JsonObject obj = md[0]; // 추후 변경이 필요한 로직
+   
+        std::string nodeID = obj["nid"].as<std::string>();
+        uint8_t limitType = obj["tp"].as<uint8_t>();
+        std::string val = obj["val"].as<std::string>();
         
-        vTaskDelete(xHandle);
-        xHandle = NULL;
-    }
-
-    Status StartMqttTaskService(init_cfg_t& config, CallbackUpdateInitConfig callbackJARVIS)
-    {
-        if (xHandle != NULL)
-        {
-            return Status(Status::Code::GOOD);
-        }
-
-        if (cbUpdateInitConfig == nullptr)
-        {
-            cbUpdateInitConfig = callbackJARVIS;
-        }
-
-        BaseType_t ret = xTaskCreatePinnedToCore(implMqttTask,     // Function to be run inside of the task
-                                                 "implMqttTask",   // The identifier of this task for men
-                                                 8*KILLOBYTE,	   // Stack memory size to allocate
-                                                 &config,		   // Task parameters to be passed to the function
-                                                 0,				   // Task Priority for scheduling
-                                                 &xHandle,         // The identifier of this task for machines
-                                                 1);			   // Index of MCU core where the function to run
-
-        switch (ret)
-        {
-        case pdPASS:
-            LOG_INFO(logger, "MQTT task has been started");
-            return Status(Status::Code::GOOD);
-
-        case pdFAIL:
-            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-
-        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
-            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
-            return Status(Status::Code::BAD_OUT_OF_MEMORY);
-
-        default:
-            LOG_ERROR(logger, "UNKNOWN ERROR: %d", static_cast<int>(ret));
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-    }
-
-    Status StopMqttTaskService()
-    {
-        INetwork* snic = RetrieveServiceNicService();
-        std::pair<Status, size_t> mutex = snic->TakeMutex();
-        if (mutex.first != Status::Code::GOOD)
-        {
-            return mutex.first;
-        }
-        mqttClient->Disconnect(mutex.second);
+        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
         
-        TimerHandle_t xTimer = xTimerCreate("implStopMqttTask",  // pcTimerName
-                                            SECOND_IN_MILLIS,   // xTimerPeriod,
-                                            pdFALSE,            // uxAutoReload,
-                                            (void *)0,          // pvTimerID,
-                                            implStopMqttTask);  // pxCallbackFunction
         
-        if (xTimer == NULL)
+        if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::UCL))
         {
-            LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR STOPPING MQTT SERVICE");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            LOG_DEBUG(logger,"상한 알람 값 변경, %s",nodeID.c_str());
+            Status result = alarmMonitor.ConvertUCL(nodeID, val);
+            if (result == Status::Code::GOOD)
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode      = 200;                
+            }
+            else
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode    = 900;
+                message->Description  = "FAIL TO SETING UCL";
+            }
+        }
+        else if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::LCL))
+        {
+            LOG_DEBUG(logger,"하한 알람 값 변경, %s",nodeID.c_str());
+            Status result = alarmMonitor.ConvertLCL(nodeID, val);
+            if (result == Status::Code::GOOD)
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode      = 200;                
+            }
+            else
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode    = 900;
+                message->Description  = "FAIL TO SETING LCL";
+            }
+
         }
         else
         {
-            LOG_INFO(logger, "Created a timer for stopping mqtt service");
-            if (xTimerStart(xTimer, 0) != pdPASS)
-            {
-                LOG_ERROR(logger, "FAILED TO START TIMER FOR STOPPING MQTT SERVICE");
-                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            }
+            message->SourceTimestamp   = GetTimestampInMillis();
+            message->ResponseCode    = 900;
+            message->Description  = "LIMIT TPYE ERROR : " + limitType;
         }
-        
-        LOG_INFO(logger, "Stopping the MQTT service");
+
         return Status(Status::Code::GOOD);
     }
 }
