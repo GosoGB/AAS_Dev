@@ -41,7 +41,7 @@ namespace muffin {
         const uint8_t size = 64;
         char buffer[size] = {'\0'};
 
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
         snprintf(buffer, size, "%s,%llu,%s,%s,null",
             macAddress.GetEthernet(),
             GetTimestampInMillis(),
@@ -181,7 +181,7 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             return strategyInitCatM1();
 
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
         case jvs::snic_e::Ethernet:
             return strategyInitEthernet();
     #endif

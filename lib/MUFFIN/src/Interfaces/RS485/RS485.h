@@ -98,6 +98,11 @@ namespace muffin {
         static constexpr uint8_t RX3_PIN_NUMBER = 16;
         static constexpr uint8_t TX2_PIN_NUMBER = 17;
         static constexpr uint8_t TX3_PIN_NUMBER = 17;
+    #elif defined(MT11)
+        static constexpr uint8_t RX2_PIN_NUMBER = 16;
+        static constexpr uint8_t RX3_PIN_NUMBER = 16;
+        static constexpr uint8_t TX2_PIN_NUMBER = 17;
+        static constexpr uint8_t TX3_PIN_NUMBER = 17;
     #endif
     };
 }

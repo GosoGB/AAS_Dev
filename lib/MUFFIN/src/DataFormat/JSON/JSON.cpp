@@ -259,7 +259,7 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             interface["snic"] = "lte";
             break;
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
         case jvs::snic_e::Ethernet:
             interface["snic"] = "eth";
             break;
@@ -334,6 +334,8 @@ namespace muffin {
         doc["deviceType"] = "MODLINK-ML10";
     #elif defined(MODLINK_T2)
         doc["deviceType"] = "MODLINK-T2";
+    #elif defined(MT11)
+        doc["deviceType"] = "MT11";
     #endif
         doc["mac"]  =  macAddress.GetEthernet();
         JsonObject mcu1 = doc["mcu1"].to<JsonObject>();

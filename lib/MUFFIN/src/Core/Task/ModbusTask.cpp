@@ -69,7 +69,7 @@ namespace muffin {
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
-            #if defined(MODLINK_L) || defined(MODLINK_ML10)
+            #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
                 Status ret = modbusRTU.Poll();
                 if (ret != Status::Code::GOOD)
                 {

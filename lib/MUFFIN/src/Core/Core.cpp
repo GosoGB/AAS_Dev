@@ -209,7 +209,7 @@ namespace muffin {
         settimeofday(&tv, NULL);
         
         logger.Init();
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
@@ -229,7 +229,9 @@ namespace muffin {
             }
             
             delay(2000);
+    #if !defined(MT11)
             spear.Reset();
+    #endif
             esp_restart();
         }
     #endif 

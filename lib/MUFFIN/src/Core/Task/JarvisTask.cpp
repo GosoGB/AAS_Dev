@@ -209,7 +209,7 @@ namespace muffin {
 
     void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(MODLINK_ML10) 
         ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND MODLINK-ML10");
         jvs::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
         if (cin->GetPortIndex().second == jvs::prt_e::PORT_2)
@@ -236,6 +236,10 @@ namespace muffin {
                 delay(100);
             }            
         }
+    #elif defined(MT11)
+        {
+            
+        }
 
     #endif
     }
@@ -254,7 +258,7 @@ namespace muffin {
             return;
         }
 
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
         ModbusRtuVector.clear();
         mConfigVectorMbRTU.clear();
         

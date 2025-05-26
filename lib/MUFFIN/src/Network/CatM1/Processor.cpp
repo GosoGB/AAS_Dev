@@ -99,7 +99,7 @@ namespace muffin {
      *        처리하는 별도의 코드가 있어야 합니다. 특히 JARVIS에서.
      */
     Processor::Processor()
-        : mSerial(HardwareSerial(1))
+        : mSerial(HardwareSerial(2))
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         , mRxBufferSize(15*KILLOBYTE)
     #else

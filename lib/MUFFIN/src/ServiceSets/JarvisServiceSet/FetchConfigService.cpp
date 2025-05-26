@@ -41,7 +41,10 @@ namespace muffin {
         snprintf(buffer, sizeof(buffer), "MODLINK-L/%s", FW_VERSION_ESP32.GetSemanticVersion());
     #elif defined(MODLINK_T2)
         snprintf(buffer, sizeof(buffer), "MODLINK-T2/%s", FW_VERSION_ESP32.GetSemanticVersion());
-    #endif
+    #elif defined(MT11)
+        snprintf(buffer, sizeof(buffer), "MT11/%s", FW_VERSION_ESP32.GetSemanticVersion());
+   
+        #endif
 
         http::RequestHeader header(
             rest_method_e::GET, 

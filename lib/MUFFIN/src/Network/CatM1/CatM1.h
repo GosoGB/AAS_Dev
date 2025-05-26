@@ -133,6 +133,9 @@ namespace muffin {
     #elif defined(VOLA_T10M)
         const uint8_t mPinStatus = 36;
         const uint8_t mPinReset  = 33;
+    #elif defined(MT11)
+        const uint8_t mPinStatus = 6;
+        const uint8_t mPinReset  = 7;
     #else
         const uint8_t mPinStatus = 33;
         const uint8_t mPinReset  = 14;

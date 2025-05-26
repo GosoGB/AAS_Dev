@@ -92,6 +92,13 @@ namespace muffin {
             ret = Status::Code::BAD_DATA_ENCODING_INVALID;
             return ret;
         }
+    #elif defined(MT11)
+        if (strcmp((*output)["deviceType"].as<const char*>(), "MT11") != 0)
+        {
+            LOG_ERROR(logger, "THE DEVICE TYPE DOES NOT MATCH THAT OF THE DEVICE");
+            ret = Status::Code::BAD_DATA_ENCODING_INVALID;
+            return ret;
+        }
     #endif
 
         if ((*output)["otaId"].is<uint32_t>() == false)

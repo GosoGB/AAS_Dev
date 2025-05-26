@@ -32,7 +32,7 @@ namespace muffin {
         : mStatus(Status::Code::UNCERTAIN)
     {
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
         mEthernetStatusReport.Enabled = false;
         mEthernetStatusReport.LocalIP = "0.0.0.0";
         mEthernetStatusReport.Status  = "UNKNOWN";
@@ -201,7 +201,7 @@ namespace muffin {
     }
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
     void DeviceStatus::SetReportEthernet(const eth_report_t report)
     {
         mEthernetStatusReport = report;
@@ -285,7 +285,7 @@ namespace muffin {
         JsonObject network  = doc["network"].to<JsonObject>();
         {
     #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
             if (mEthernetStatusReport.Enabled == true)
             {
                 JsonObject ethernet = network["ethernet"].to<JsonObject>();

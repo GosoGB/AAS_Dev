@@ -37,7 +37,7 @@ namespace muffin {
 #endif
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-   #if defined(MODLINK_T2) || defined(MODLINK_B)
+   #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
       typedef struct EthernetStatusReportType
       {
          bool Enabled;
@@ -77,7 +77,7 @@ namespace muffin {
       void SetRemainedHeap(const size_t memory);
       void SetRemainedFlash(const size_t memory);
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-   #if defined(MODLINK_T2) || defined(MODLINK_B)
+   #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
       void SetReportEthernet(const eth_report_t report);
    #endif
       void SetReportCatM1(const catm1_report_t report);
@@ -99,7 +99,7 @@ namespace muffin {
       task_info_t mTaskResources[10];
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-   #if defined(MODLINK_T2) || defined(MODLINK_B)
+   #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
       eth_report_t mEthernetStatusReport;
    #endif
       catm1_report_t mCatM1StatusReport;

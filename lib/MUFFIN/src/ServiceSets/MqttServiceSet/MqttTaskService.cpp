@@ -820,7 +820,7 @@ namespace muffin {
         else
         {
             uint8_t writeResult = 0;
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
             if (mConfigVectorMbTCP.size() != 0)
             {
                 for (auto& TCP : mConfigVectorMbTCP)
@@ -987,7 +987,7 @@ namespace muffin {
                                     }
                                     
                                     writeResult = 0;
-                                #if defined(MODLINK_L) || defined(MODLINK_ML10)
+                                #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
                                     if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
@@ -1027,7 +1027,6 @@ namespace muffin {
                                     msg.Area = nodeArea;
                                     msg.Address = modbusAddress.Numeric;
                                     msg.Value = retConvertModbus.second;
-                                    
                                     Status result = spear.ExecuteService(msg);
                                     if (result == Status(Status::Code::GOOD))
                                     {

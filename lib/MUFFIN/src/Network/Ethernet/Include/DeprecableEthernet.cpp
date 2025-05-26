@@ -129,6 +129,8 @@ bool DeprecableEthernet::Begin()
     snprintf(hostName, 32, "MODLINK-T2-%s", muffin::macAddress.GetEthernet());
 #elif defined(MODLINK_B)
     snprintf(hostName, 32, "MODLINK-B-%s", muffin::macAddress.GetEthernet());
+#elif defined(MT11)
+    snprintf(hostName, 32, "MT11-%s", muffin::macAddress.GetEthernet());
 #endif
     
     ret = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_ETH, hostName);

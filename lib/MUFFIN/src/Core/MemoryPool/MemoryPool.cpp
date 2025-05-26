@@ -76,6 +76,8 @@ namespace muffin
 
 #if defined(MODLINK_L)
     MemoryPool memoryPool(28, 160);
+#elif defined(MT11)
+    MemoryPool memoryPool(28,1000);
 #else   
     MemoryPool memoryPool(28, 80);
 #endif
