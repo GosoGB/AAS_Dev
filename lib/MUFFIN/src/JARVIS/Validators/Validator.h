@@ -45,7 +45,7 @@ namespace muffin { namespace jvs {
     private:
         std::pair<rsc_e, std::string> validateMetaData(const JsonObject json);
         std::pair<rsc_e, std::string> validateSerialPort(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
-        std::pair<rsc_e, std::string> validateNicLAN(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion);
+        std::pair<rsc_e, std::string> validateNicLAN(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateNicLTE(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion);
         std::pair<rsc_e, std::string> validateModbus(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateMelsec(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);

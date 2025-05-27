@@ -171,9 +171,7 @@ namespace muffin { namespace jvs {
         : uint8_t
     {
         PORT_2 = 2,
-    #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
         PORT_3 = 3
-    #endif
     } prt_e;
 
     typedef enum class ModlinkSerialPortBaudRateEnum

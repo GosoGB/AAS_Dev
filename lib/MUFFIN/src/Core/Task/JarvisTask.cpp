@@ -214,8 +214,8 @@ namespace muffin {
         jvs::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
         if (cin->GetPortIndex().second == jvs::prt_e::PORT_2)
         {
-            RS485 = new(std::nothrow) RS485Class(Serial2, 17, -1, -1);
-            if (RS485 == nullptr)
+            RS485_LINK1 = new(std::nothrow) RS485Class(Serial2, 17, -1, -1);
+            if (RS485_LINK1 == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
@@ -243,18 +243,22 @@ namespace muffin {
             {   
                 uint8_t TX_PIN  = 38;
                 
-                RS485 = new(std::nothrow) RS485Class(Serial2, TX_PIN, -1, -1);
-                if (RS485 == nullptr)
+                RS485_LINK2 = new(std::nothrow) RS485Class(Serial2, TX_PIN, -1, -1);
+                if (RS485_LINK2 == nullptr)
                 {
                     LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
                 }
             }
             else if (cin->GetPortIndex().second == jvs::prt_e::PORT_2)
             {   
-                uint8_t TX_PIN  = 38;
-                
-                RS485 = new(std::nothrow) RS485Class(Serial2, TX_PIN, -1, -1);
-                if (RS485 == nullptr)
+                uint8_t TX_PIN  = 17;
+              
+                /**
+                 * @todo 현재 CATM1 시리얼 포트와 HardwareSerial UART 핀이 곂치기 때문에 반드시 테스트 후 처리 해야함 @김주성 @이상진
+                 * 
+                 */
+                RS485_LINK1 = new(std::nothrow) RS485Class(Serial2, TX_PIN, -1, -1);
+                if (RS485_LINK1 == nullptr)
                 {
                     LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
                 }

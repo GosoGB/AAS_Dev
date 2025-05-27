@@ -106,6 +106,9 @@ class RS485Class : public Stream {
     uint16_t _config;
 };
 
-extern RS485Class* RS485;
+extern RS485Class* RS485_LINK1;
+#if defined(MT11)
+extern RS485Class* RS485_LINK2 = nullptr;
+#endif
 
 #endif

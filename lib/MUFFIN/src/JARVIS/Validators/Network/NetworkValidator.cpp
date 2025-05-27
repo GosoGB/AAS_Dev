@@ -25,7 +25,7 @@
 
 namespace muffin { namespace jvs {
 
-    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN,  prtcl_ver_e ProtocolVersion)
+    std::pair<rsc_e, std::string> NetworkValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN,  prtcl_ver_e ProtocolVersion, cin_vector* outVector)
     {
         ASSERT((arrayCIN.isNull() == false), "OUTPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");

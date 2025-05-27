@@ -40,7 +40,7 @@ namespace muffin { namespace jvs {
     private:
         prtcl_ver_e mProtocolVersion;
     public:
-        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, prtcl_ver_e ProtocolVersion);
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, prtcl_ver_e ProtocolVersion, cin_vector* outVector);
     private:
         std::pair<rsc_e, std::string> validateEthernet(const JsonArray array);
         rsc_e validateMandatoryKeysEthernet(const JsonObject json);

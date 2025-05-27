@@ -151,6 +151,7 @@ namespace muffin {
 
             for (; trialCount < MAX_RETRY_COUNT; ++trialCount)
             {
+                LOG_DEBUG(logger,"MSG : %s",message.second.GetPayload());
                 ret = mqttClient->Publish(mutex.second, message.second);
                 if (ret == Status::Code::GOOD)
                 {

@@ -126,7 +126,7 @@ namespace muffin { namespace jvs {
                     break;
                 case cfg_key_e::WIFI4:
                 case cfg_key_e::ETHERNET:
-                    ret = validateNicLAN(key, cinArray, mProtocolVersion);
+                    ret = validateNicLAN(key, cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::LTE_CatM1:
                     ret = validateNicLTE(key, cinArray, mProtocolVersion);
@@ -413,10 +413,10 @@ namespace muffin { namespace jvs {
         return validator.Inspect(key, json, outputVector);
     }
 
-    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion)
+    std::pair<rsc_e, std::string> Validator::validateNicLAN(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
     {
         NetworkValidator validator;
-        return validator.Inspect(key, json, protocolVersion);
+        return validator.Inspect(key, json, protocolVersion, outputVector);
     }
 
     std::pair<rsc_e, std::string> Validator::validateNicLTE(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion)
