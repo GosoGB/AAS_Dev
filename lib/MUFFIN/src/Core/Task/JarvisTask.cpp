@@ -238,7 +238,18 @@ namespace muffin {
         }
     #elif defined(MT11)
         {
-            
+            jvs::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
+            if (cin->GetPortIndex().second == jvs::prt_e::PORT_3)
+            {   
+                RS485 = new(std::nothrow) RS485Class(Serial2, 38, -1, -1);
+                uint8_t TX_PIN  = 38;
+                uint8_t RX_PIN  = 21;
+                Serial2.setPins(RX_PIN, TX_PIN);
+                if (RS485 == nullptr)
+                {
+                    LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
+                }
+            }
         }
 
     #endif

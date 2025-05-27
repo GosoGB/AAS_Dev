@@ -109,7 +109,7 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             return InitCatM1Service();
     
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
         case jvs::snic_e::Ethernet:
             return InitEthernetService();
     #endif

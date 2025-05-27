@@ -101,7 +101,7 @@ namespace muffin {
 
     Status ModbusRTU::configurePort(jvs::prt_e portIndex, jvs::config::Rs485* portConfig)
     {
-        if (portIndex == jvs::prt_e::PORT_2)
+        if (portIndex == jvs::prt_e::PORT_3)
         {
             const jvs::bdr_e baudrate   = portConfig->GetBaudRate().second;
             const jvs::dbit_e dataBit   = portConfig->GetDataBit().second;

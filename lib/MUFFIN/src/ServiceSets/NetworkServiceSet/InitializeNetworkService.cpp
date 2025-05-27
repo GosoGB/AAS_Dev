@@ -270,6 +270,70 @@ namespace muffin {
         LOG_INFO(logger,"Initialized ethernet interface");
         return ret;
     }
+#elif defined(MT11)
+    Status InitEthernetService()
+    {
+        // if (jvs::config::ethernet == nullptr)
+        // {
+            // LOG_DEBUG(logger, "Ethernet is not configured");
+            // return Status(Status::Code::GOOD);
+        // }
+        
+        // if (ethernet == nullptr)
+        // {
+        //     ethernet = new(std::nothrow) Ethernet();
+        //     if (ethernet == nullptr)
+        //     {
+        //         LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
+        //         return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        //     }
+        // }
+        
+        // if (ethernet->IsConnected() == true)
+        // {
+        //     return Status(Status::Code::GOOD);
+        // }
+
+        // Status ret = ethernet->Init();
+        // if (ret != Status::Code::GOOD)
+        // {
+        //     LOG_ERROR(logger, "FAILED TO INITIALIZE ETHERNET");
+        //     return ret;
+        // }
+        
+        // ret = ethernet->Config(jvs::config::ethernet);
+        // if (ret != Status::Code::GOOD)
+        // {
+        //     LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNET CIN");
+        //     return ret;
+        // }
+        // LOG_INFO(logger,"Configured ethernet CIN");
+
+        // ret = ethernet->Connect();
+        // if (ret != Status::Code::GOOD)
+        // {
+        //     LOG_ERROR(logger, "FAILED TO CONNECT ETHERNET");
+        //     return ret;
+        // }
+        // LOG_INFO(logger,"Ethernet has connected");
+        
+        // const uint32_t startedMillis = millis();
+        // do
+        // {
+        //     ret = ethernet->SyncNTP();
+        //     if ((millis() - startedMillis) > 10*SECOND_IN_MILLIS)
+        //     {
+        //         LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER. DEVICE WILL BE RESTARTED");
+        //         spear.Reset();
+        //         esp_restart();
+        //     }
+        // } while (ret != Status::Code::GOOD);
+        // LOG_INFO(logger, "Synchronized with NTP server");
+
+        // LOG_INFO(logger,"Initialized ethernet interface");
+        // return ret;
+        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+    }
 #endif
 
     Status InitWiFiService()

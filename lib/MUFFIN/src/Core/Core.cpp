@@ -67,6 +67,7 @@
 
 #include "CLI/CLI.h"
 #include "Network/CatM1/CatM1.h"
+#include "Network/Ethernet/W5500/W5500.h"
 
 
 namespace muffin {
@@ -235,6 +236,14 @@ namespace muffin {
             esp_restart();
         }
     #endif 
+    #if defined(MT11)
+        W5500 w5500(w5500::if_e::EMBEDDED);
+        w5500.Init(10);
+        char mac[13] = {'\0'};
+        w5500.GetMacAddress(mac);
+        LOG_WARNING(logger,"MAC : %s",mac);
+        macAddress.SetMacAddress(mac);
+    #endif    
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),
