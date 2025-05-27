@@ -12,6 +12,7 @@
 
 
 
+#if defined(MT11)
 
 #include <string.h>
 
@@ -927,3 +928,5 @@ void getDNSfromDHCP(uint8_t* ip)
 // {
 // 	return mLeaseTime;
 // }
+
+#endif

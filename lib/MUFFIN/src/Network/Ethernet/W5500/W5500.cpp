@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2025
  * 
  */
+#if defined(MT11)
 
 
 
@@ -616,3 +617,5 @@ namespace muffin {
         return write(numericAddress, controlPhase, length, data);
     }
 }
+
+#endif

@@ -7,7 +7,7 @@
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
  */
-
+#if defined(MT11)
 
 
 
@@ -416,3 +416,5 @@ namespace muffin { namespace w5500 {
         return ret;
     }
 }}
+
+#endif

@@ -33,6 +33,7 @@ namespace muffin {
     private:
         std::string getSerialInput();
         JsonDocument mJarvisJson;
+        JsonArray mEthernetArray;
         Status saveJarvisJson();
     private:
         void printCenteredText(const std::string& info, const size_t length);

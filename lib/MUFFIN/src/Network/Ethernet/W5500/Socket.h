@@ -47,7 +47,7 @@
  * 
  * @copyright Copyright (c) Edgecross Inc. 2025
  */
-
+#if defined(MT11)
 
 
 
@@ -390,3 +390,5 @@ namespace muffin { namespace w5500 {
         const sock_prtcl_e mProtocol;
     };
 }}
+
+#endif

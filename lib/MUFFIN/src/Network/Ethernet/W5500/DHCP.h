@@ -9,7 +9,7 @@
  * 
  * @copyright Copyright (c) 2025
  */
-
+#if defined(MT11)
 
 
 
@@ -294,3 +294,5 @@ typedef struct DynamicHostConfigurationProtocolType
     };
 }}
 #define DCHP_HOST_NAME           "WIZnet\0"
+
+#endif

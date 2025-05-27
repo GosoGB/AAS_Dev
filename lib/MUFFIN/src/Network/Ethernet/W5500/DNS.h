@@ -20,7 +20,7 @@
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
  */
-
+#if defined(MT11)
 
 
 
@@ -96,3 +96,5 @@ namespace muffin { namespace w5500 {
         const uint16_t DNS_PORT = 53;
     };
 }}
+
+#endif

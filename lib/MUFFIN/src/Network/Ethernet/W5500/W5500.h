@@ -27,7 +27,7 @@
  * 
  * @copyright Copyright (c) 2025
  */
-
+#if defined(MT11)
 
 
 
@@ -161,3 +161,5 @@ namespace muffin {
         IPAddress mDNS2;
     };
 }
+
+#endif

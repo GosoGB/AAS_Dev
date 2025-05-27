@@ -15,6 +15,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#if defined(MT11)
 
 #include "SSLClient.h"
 #include "certBundle.h"
@@ -762,3 +763,5 @@ void SSLClient::setTimeout(uint32_t milliseconds) {
 void SSLClient::setAlpnProtocols(const char **alpn_protos) {
   _alpn_protos = alpn_protos;
 }
+
+#endif

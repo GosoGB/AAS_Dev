@@ -266,9 +266,9 @@ namespace muffin { namespace jvs {
     typedef enum class EthernetInterfacesEnum
         : uint8_t
     {
-        EMBEDDED   ,
-        LINK_01    ,
-        LINK_02    
+        EMBEDDED = 0  ,
+        LINK_01  = 1  ,
+        LINK_02  = 2  
     } if_e;
 
     typedef enum class LteCatM1CountryEnum
