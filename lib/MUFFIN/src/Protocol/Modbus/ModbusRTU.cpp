@@ -103,12 +103,33 @@ namespace muffin {
     {
         if (portIndex == jvs::prt_e::PORT_3)
         {
+            uint8_t TX_PIN  = 38;
+            uint8_t RX_PIN  = 21;
+
             const jvs::bdr_e baudrate   = portConfig->GetBaudRate().second;
             const jvs::dbit_e dataBit   = portConfig->GetDataBit().second;
             const jvs::pbit_e parityBit = portConfig->GetParityBit().second;
             const jvs::sbit_e stopBit   = portConfig->GetStopBit().second;
-
+            
             SerialConfig serialConfig = convert2SerialConfig(dataBit, stopBit, parityBit);
+
+            Serial2.begin(Convert.ToUInt32(baudrate),serialConfig, RX_PIN, TX_PIN);
+            ModbusRTUClient.begin(*RS485, Convert.ToUInt32(baudrate), serialConfig);
+            return Status(Status::Code::GOOD);
+        }
+        else if (portIndex == jvs::prt_e::PORT_2)
+        {
+            uint8_t TX_PIN  = 17;
+            uint8_t RX_PIN  = 18;
+
+            const jvs::bdr_e baudrate   = portConfig->GetBaudRate().second;
+            const jvs::dbit_e dataBit   = portConfig->GetDataBit().second;
+            const jvs::pbit_e parityBit = portConfig->GetParityBit().second;
+            const jvs::sbit_e stopBit   = portConfig->GetStopBit().second;
+            
+            SerialConfig serialConfig = convert2SerialConfig(dataBit, stopBit, parityBit);
+
+            Serial2.begin(Convert.ToUInt32(baudrate),serialConfig, RX_PIN, TX_PIN);
             ModbusRTUClient.begin(*RS485, Convert.ToUInt32(baudrate), serialConfig);
             return Status(Status::Code::GOOD);
         }
