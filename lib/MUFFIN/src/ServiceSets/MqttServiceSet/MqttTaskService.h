@@ -4,8 +4,8 @@
  * 
  * @brief MQTT 태스크를 실행하고 정지하는 서비스를 선언합니다.
  * 
- * @date 2025-01-24
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

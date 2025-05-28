@@ -4,8 +4,8 @@
  * 
  * @brief 네트워크 인터페이스 초기화 함수를 정의합니다.
  * 
- * @date 2025-01-23
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -17,18 +17,26 @@
 #include "Common/Logger/Logger.h"
 #include "IM/Custom/Constants.h"
 #include "JARVIS/Config/Operation/Operation.h"
+#include "JARVIS/Config/Network/Ethernet.h"
 #include "Network/CatM1/CatM1.h"
-#include "Network/Ethernet/Ethernet.h"
+#include "Network/Ethernet/EthernetFactory.h"
 #include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 #include "Protocol/SPEAR/SPEAR.h"
 #include "Protocol/MQTT/IMQTT.h"
  
 TaskHandle_t xTaskLteMonitorHandle = NULL;
- 
+
+
+
 namespace muffin {
  
-    
+    /**
+     * @btodo [담당자] 김주성 전임연구원
+     *        [작업 상세]
+     *            호출자가 없는데 삭제해도 되는 것인지 확인한
+     *            다음 불필요한 함수일 경우 삭제 요망
+     */
     void StopLteMonitorTask()
     {
         if (xTaskLteMonitorHandle == NULL)
@@ -42,17 +50,18 @@ namespace muffin {
         xTaskLteMonitorHandle = NULL;
     }
 
+
     void implLteMonitorTask(void* pvParameters)
     {
         uint32_t statusReportMillis = millis(); 
 
         while (true)
         {
-        #if defined(DEBUG)
+    #if defined(DEBUG)
         if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
+    #else
         if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
+    #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -73,6 +82,7 @@ namespace muffin {
 
     }
  
+
     Status startTaskMonitoringCatM1()
     {
         if (xTaskLteMonitorHandle != NULL)
@@ -128,6 +138,7 @@ namespace muffin {
         LOG_INFO(logger, "Started CatM1 monitoring task");
         return Status(Status::Code::GOOD);
     }
+
 
     Status InitCatM1Service()
     {
@@ -207,7 +218,7 @@ namespace muffin {
         return ret;
     }
 
-#if defined(MT10) || defined(MB10)
+
     Status InitEthernetService()
     {
         if (jvs::config::ethernet == nullptr)
@@ -216,14 +227,11 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
         
+        INetwork* ethernet = EthernetFactory::Create();
         if (ethernet == nullptr)
         {
-            ethernet = new(std::nothrow) Ethernet();
-            if (ethernet == nullptr)
-            {
-                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
-                return Status(Status::Code::BAD_OUT_OF_MEMORY);
-            }
+            LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ETHERNET INTERFACE");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
         
         if (ethernet->IsConnected() == true)
@@ -237,6 +245,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO INITIALIZE ETHERNET");
             return ret;
         }
+        LOG_INFO(logger, "Initialized Ethernet interface");
         
         ret = ethernet->Config(jvs::config::ethernet);
         if (ret != Status::Code::GOOD)
@@ -244,7 +253,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNET CIN");
             return ret;
         }
-        LOG_INFO(logger,"Configured ethernet CIN");
+        LOG_INFO(logger, "Configured ethernet CIN");
 
         ret = ethernet->Connect();
         if (ret != Status::Code::GOOD)
@@ -252,7 +261,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO CONNECT ETHERNET");
             return ret;
         }
-        LOG_INFO(logger,"Ethernet has connected");
+        LOG_INFO(logger, "Ethernet has connected");
         
         const uint32_t startedMillis = millis();
         do
@@ -269,76 +278,5 @@ namespace muffin {
 
         LOG_INFO(logger,"Initialized ethernet interface");
         return ret;
-    }
-#elif defined(MT11)
-    Status InitEthernetService()
-    {
-        // if (jvs::config::ethernet == nullptr)
-        // {
-            // LOG_DEBUG(logger, "Ethernet is not configured");
-            // return Status(Status::Code::GOOD);
-        // }
-        
-        // if (ethernet == nullptr)
-        // {
-        //     ethernet = new(std::nothrow) Ethernet();
-        //     if (ethernet == nullptr)
-        //     {
-        //         LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY");
-        //         return Status(Status::Code::BAD_OUT_OF_MEMORY);
-        //     }
-        // }
-        
-        // if (ethernet->IsConnected() == true)
-        // {
-        //     return Status(Status::Code::GOOD);
-        // }
-
-        // Status ret = ethernet->Init();
-        // if (ret != Status::Code::GOOD)
-        // {
-        //     LOG_ERROR(logger, "FAILED TO INITIALIZE ETHERNET");
-        //     return ret;
-        // }
-        
-        // ret = ethernet->Config(jvs::config::ethernet);
-        // if (ret != Status::Code::GOOD)
-        // {
-        //     LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNET CIN");
-        //     return ret;
-        // }
-        // LOG_INFO(logger,"Configured ethernet CIN");
-
-        // ret = ethernet->Connect();
-        // if (ret != Status::Code::GOOD)
-        // {
-        //     LOG_ERROR(logger, "FAILED TO CONNECT ETHERNET");
-        //     return ret;
-        // }
-        // LOG_INFO(logger,"Ethernet has connected");
-        
-        // const uint32_t startedMillis = millis();
-        // do
-        // {
-        //     ret = ethernet->SyncNTP();
-        //     if ((millis() - startedMillis) > 10*SECOND_IN_MILLIS)
-        //     {
-        //         LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER. DEVICE WILL BE RESTARTED");
-        //         spear.Reset();
-        //         esp_restart();
-        //     }
-        // } while (ret != Status::Code::GOOD);
-        // LOG_INFO(logger, "Synchronized with NTP server");
-
-        // LOG_INFO(logger,"Initialized ethernet interface");
-        // return ret;
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
-    }
-#endif
-
-    Status InitWiFiService()
-    {
-        ASSERT((false), "Wi-Fi INTERFACE IS NOT SUPPORTED YET");
-        return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 }

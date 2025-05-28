@@ -4,8 +4,8 @@
  * 
  * @brief 수신한 JARIVS 설정 정보를 검증하여 유효하다면 적용하는 태스크를 정의합니다.
  * 
- * @date 2025-01-23
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -49,7 +49,7 @@
 #include "Protocol/SPEAR/SPEAR.h"
 
 #include "Storage/ESP32FS/ESP32FS.h"
-#include "Network/Ethernet/Ethernet.h"
+// #include "Network/Ethernet/EthernetFactory.h"
 #include "Storage/CatFS/CatFS.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 

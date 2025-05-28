@@ -4,8 +4,8 @@
  * 
  * @brief LWIP TCP/IP stack 기반의 HTTP 클라이언트 클래스를 선언합니다.
  * 
- * @date 2025-01-21
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */

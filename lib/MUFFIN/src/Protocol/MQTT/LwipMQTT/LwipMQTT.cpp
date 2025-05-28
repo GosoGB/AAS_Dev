@@ -5,13 +5,13 @@
  * 
  * @brief FreeRTOS TCP/IP 스택인 LwIP를 사용하는 MQTT 프로토콜 클래스를 정의합니다.
  * 
- * @date 2025-01-22
- * @version 1.3.1
- * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
- * 
  * @todo 향후 on-premise 방식으로 납품되는 경우, MQTTS 대신 MQTT 프로토콜로 
  *       연결해야 할 수도 있기 때문에 초기화 방식을 변경 가능하게 수정해야 함
+ * 
+ * @date 2025-05-28
+ * @version 1.4.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -23,7 +23,7 @@
 #include "Common/Time/TimeUtils.h"
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/FirmwareVersion/FirmwareVersion.h"
-#include "Network/Ethernet/Ethernet.h"
+// #include "Network/Ethernet/Ethernet.h"
 #include "Protocol/Certs.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/Include/Helper.h"
@@ -277,6 +277,14 @@ namespace muffin { namespace mqtt {
         return;
     }
 
+
+    /**
+     * @btodo [담당자] 김주성 전임연구원
+     *        [작업 상세]
+     *            임시적으로 만들어 둔 함수로 보입니다.
+     *            필요 없는 경우 삭제, 필요한 경우 구현할
+     *            내용 작성 요망
+     */
     Status LwipMQTT::ResetTEMP()
     {
         return Status(Status::Code::GOOD);

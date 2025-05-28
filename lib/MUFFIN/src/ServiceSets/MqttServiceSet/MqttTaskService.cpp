@@ -4,8 +4,8 @@
  * 
  * @brief MQTT 태스크를 실행하고 정지하는 서비스를 정의합니다.
  * 
- * @date 2025-03-13
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -39,7 +39,6 @@
 #include "IM/Custom/Constants.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "Network/CatM1/CatM1.h"
-#include "Network/Ethernet/Ethernet.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"

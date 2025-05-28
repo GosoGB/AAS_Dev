@@ -4,15 +4,16 @@
  * 
  * @brief LWIP TCP/IP stack 기반의 HTTP 클라이언트 클래스를 정의합니다.
  * 
- * @date 2025-01-21
- * @version 1.3.1
- * 
- * @copyright Copyright (c) Edgecross Inc. 2024-2025
- * 
  * @todo Information Model에 MODLINK 모델 및 펌웨어 버전과 같은 정보를 Node 
  *       형태로 표현한 다음 이를 토대로 user agengt 정보를 생성해야 합니다.
  * 
  * @todo ESP32FS 초기화 부분에서 mResponsePath에 있는 파일을 모두 삭제하게 만들어야 합니다.
+ * 
+ * 
+ * @date 2025-05-28
+ * @version 1.4.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -22,7 +23,7 @@
 #include "Common/Convert/ConvertClass.h"
 #include "LwipHTTP.h"
 #include "IM/Custom/Constants.h"
-#include "Network/Ethernet/Ethernet.h"
+// #include "Network/Ethernet/Ethernet.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Protocol/HTTP/Include/Helper.h"
 #include "Protocol/Certs.h"

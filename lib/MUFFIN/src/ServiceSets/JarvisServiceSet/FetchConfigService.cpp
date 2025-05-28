@@ -4,8 +4,8 @@
  * 
  * @brief MFM 서버로부터 최신 설정 정보를 가져오는 함수를 정의합니다.
  * 
- * @date 2025-01-24
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -23,7 +23,6 @@
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "Network/CatM1/CatM1.h"
-#include "Network/Ethernet/Ethernet.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"

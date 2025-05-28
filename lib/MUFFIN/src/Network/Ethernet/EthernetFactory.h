@@ -1,8 +1,10 @@
+#if defined(MB10) || defined(MT10) || defined(MT11)
+
 /**
- * @file RetrieveServiceNicService.h
+ * @file EthernetFactory.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief Operation 설정을 따라 서비스 네트워크를 반환하는 서비스를 선언합니다.
+ * @brief 
  * 
  * @date 2025-05-28
  * @version 1.4.0
@@ -21,5 +23,13 @@
 
 namespace muffin {
 
-    INetwork* RetrieveServiceNicService();
+
+    class EthernetFactory
+    {
+    public:
+        static INetwork* Create();
+    };
 }
+
+
+#endif
