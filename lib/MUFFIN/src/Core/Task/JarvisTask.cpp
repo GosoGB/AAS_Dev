@@ -80,7 +80,7 @@ namespace muffin {
                 break;
             }
         }
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
@@ -221,7 +221,7 @@ namespace muffin {
             }
         }
 
-    #elif defined(MODLINK_T2) || defined(MODLINK_B)
+    #elif defined(MT10) || defined(MB10)
         for (auto& Rs485CIN : vectorRS485CIN)
         {
             size_t count = 0;
@@ -351,7 +351,7 @@ namespace muffin {
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
+        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MT10");
     #endif
 
         if (s_HasNode == false)
@@ -389,7 +389,7 @@ namespace muffin {
     void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
     {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
+        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MT10");
     #endif
 
         if (s_HasNode == false)

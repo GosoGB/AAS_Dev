@@ -297,9 +297,9 @@ namespace muffin { namespace jvs {
 
     typedef enum class ServerNetworkInterfaceCardEnum : uint8_t
     {
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         Ethernet,
-    #elif defined(MODLINK_B)
+    #elif defined(MB10)
         WiFi4,
     #endif
         LTE_CatM1

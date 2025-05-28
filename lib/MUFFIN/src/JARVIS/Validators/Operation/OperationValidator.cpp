@@ -121,12 +121,12 @@ namespace muffin { namespace jvs {
         {
             return std::make_pair(rsc_e::GOOD, snic_e::LTE_CatM1);
         }
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         else if (strcmp(snic, "eth") == 0)
         {
             return std::make_pair(rsc_e::GOOD, snic_e::Ethernet);
         }
-    #elif defined(MODLINK_B)
+    #elif defined(MB10)
         else if (strcmp(snic, "wifi") == 0)
         {
             return std::make_pair(rsc_e::GOOD, snic_e::WiFi4);

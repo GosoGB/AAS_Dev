@@ -1,21 +1,29 @@
+#if defined(MT10) || defined(MB10)
+
 /**
- * @file DeprecableEthernet.h
+ * @file LAN8720.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief Ethernet Handle 값 사용을 위해 임시로 복사해둔 ETH.h 파일 사본입니다.
- *
- * @date 2025-02-17
- * @version 1.2.6
+ * @brief Ethernet 통신을 사용하는데 필요한 기능을 제공하는 클래스를 선언합니다.
+ * 
+ * @todo Network 모듈 단에서 Ethernet 인터페이스의 MAC 주소를 어떻게 읽어가는
+ * 것이 좋을지 결정하지 못하였습니다. 현재는 다음의 두 개의 방안을 고민 중입니다.
+ *   - 방법 #1: GetMacAddress() 함수를 정적 메서드로 선언
+ *   - 방법 #2: Ethernet() -> Init() -> GetMacAddress() 순서로 호출
+ * 
+ * @todo Arduino 프레임워크의 제약으로 인해 Disconnect(), Reconnect() 함수는 
+ * 개발하지 않기로 결정하였습니다. 향후에 ESP-IDF 프레임워크로 이전하게 된다면
+ * Disconnect(), Reconnect() 함수를 개발해야 합니다.
+ * 
+ * 
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
- * 
- * @todo 만약 IPv6 표준이 필요한 경우 IPv6Address 클래스를 사용하여 개발할 것
  */
 
 
 
-
-#if defined(MODLINK_T2) || defined(MODLINK_B)
 
 #pragma once
 
@@ -81,5 +89,4 @@ public:
 
 
 extern DeprecableEthernet deprecableEthernet;
-
 #endif

@@ -210,7 +210,7 @@ namespace muffin {
         settimeofday(&tv, NULL);
         
         logger.Init();
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
@@ -249,7 +249,7 @@ namespace muffin {
             FW_VERSION_ESP32.GetSemanticVersion(),
             FW_VERSION_ESP32.GetVersionCode());
 
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         {
             uint8_t trialCount = 0;    
             while (spear.Init() != Status::Code::GOOD)
@@ -469,7 +469,7 @@ namespace muffin {
                 delay(1);
             }
             
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MT10) || defined(MB10)
             spear.Reset();
         #endif 
             esp_restart();
@@ -499,7 +499,7 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO UPDATE: %s", ret.c_str());
             }
             
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MT10) || defined(MB10)
             spear.Reset();
         #endif 
             esp_restart();

@@ -259,7 +259,7 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             interface["snic"] = "lte";
             break;
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         case jvs::snic_e::Ethernet:
             interface["snic"] = "eth";
             break;
@@ -332,8 +332,8 @@ namespace muffin {
         doc["deviceType"] = "MODLINK-L";
     #elif defined(MODLINK_ML10)
         doc["deviceType"] = "MODLINK-ML10";
-    #elif defined(MODLINK_T2)
-        doc["deviceType"] = "MODLINK-T2";
+    #elif defined(MT10)
+        doc["deviceType"] = "MT10";
     #elif defined(MT11)
         doc["deviceType"] = "MT11";
     #endif
@@ -341,7 +341,7 @@ namespace muffin {
         JsonObject mcu1 = doc["mcu1"].to<JsonObject>();
         mcu1["vc"] = _struct.VersionCodeMcu1;  
         mcu1["version"] = _struct.VersionMcu1;
-    #if defined(MODLINK_T2)
+    #if defined(MT10)
         JsonObject mcu2 = doc["mcu2"].to<JsonObject>();
         mcu2["vc"] = _struct.VersionCodeMcu2;  
         mcu2["version"] = _struct.VersionMcu2; 

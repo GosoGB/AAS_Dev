@@ -30,7 +30,7 @@ namespace muffin {
         {
         case jvs::snic_e::LTE_CatM1:
             return static_cast<INetwork*>(catM1);
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         case jvs::snic_e::Ethernet:
             return static_cast<INetwork*>(ethernet);
     #endif

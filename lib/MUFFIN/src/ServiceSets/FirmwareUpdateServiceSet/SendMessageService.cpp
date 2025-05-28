@@ -36,7 +36,7 @@ namespace muffin {
         fota_status_t status;
         status.VersionCodeMcu1  = FW_VERSION_ESP32.GetVersionCode();
         status.VersionMcu1      = FW_VERSION_ESP32.GetSemanticVersion();
-    #if defined(MODLINK_T2)
+    #if defined(MT10)
         status.VersionCodeMcu2  = FW_VERSION_MEGA2560.GetVersionCode();
         status.VersionMcu2      = FW_VERSION_MEGA2560.GetSemanticVersion();
     #endif
@@ -77,8 +77,8 @@ namespace muffin {
 
         #if defined(MODLINK_L)
             char userAgent[32] = "MODLINK-L/";
-        #elif defined(MODLINK_T2)
-            char userAgent[32] = "MODLINK-T2/";
+        #elif defined(MT10)
+            char userAgent[32] = "MT10/";
         #elif defined(MT11)
             char userAgent[32] = "MT11/";
         #endif
@@ -139,8 +139,8 @@ namespace muffin {
 
         #if defined(MODLINK_L)
             char userAgent[32] = "MODLINK-L/";
-        #elif defined(MODLINK_T2)
-            char userAgent[32] = "MODLINK-T2/";
+        #elif defined(MT10)
+            char userAgent[32] = "MT10/";
         #elif defined(MT11)
             char userAgent[32] = "MT11/";
         #endif

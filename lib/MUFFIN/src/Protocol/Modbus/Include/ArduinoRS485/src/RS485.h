@@ -108,7 +108,7 @@ class RS485Class : public Stream {
 
 extern RS485Class* RS485_LINK1;
 #if defined(MT11)
-extern RS485Class* RS485_LINK2 = nullptr;
+extern RS485Class* RS485_LINK2;
 #endif
 
 #endif

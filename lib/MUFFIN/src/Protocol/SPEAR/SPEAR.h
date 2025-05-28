@@ -13,7 +13,7 @@
 
 
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+#if defined(MT10) || defined(MB10)
 
 #pragma once
 

@@ -88,12 +88,12 @@ namespace muffin {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         static constexpr uint8_t RX_PIN_NUMBER = 16;
         static constexpr uint8_t TX_PIN_NUMBER = 17;
-    #elif defined(MODLINK_T2)
+    #elif defined(MT10)
         static constexpr uint8_t RX2_PIN_NUMBER = 16;
         static constexpr uint8_t RX3_PIN_NUMBER = 16;
         static constexpr uint8_t TX2_PIN_NUMBER = 17;
         static constexpr uint8_t TX3_PIN_NUMBER = 17;
-    #elif defined(MODLINK_B)
+    #elif defined(MB10)
         static constexpr uint8_t RX2_PIN_NUMBER = 16;
         static constexpr uint8_t RX3_PIN_NUMBER = 16;
         static constexpr uint8_t TX2_PIN_NUMBER = 17;

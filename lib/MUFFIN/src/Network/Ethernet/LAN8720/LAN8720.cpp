@@ -1,11 +1,9 @@
 /**
- * @file DeprecableEthernet.cpp
+ * @file LAN8720.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
- * 
- * @brief Ethernet Handle 값 사용을 위해 임시로 복사해둔 ETH.h 파일 사본입니다.
  *
- * @date 2025-02-17
- * @version 1.2.6
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -13,7 +11,7 @@
 
 
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+#if defined(MT10) || defined(MB10)
 
 #include <esp_eth.h>
 #include <esp_eth_com.h>
@@ -125,9 +123,9 @@ bool DeprecableEthernet::Begin()
     add_esp_interface_netif(ESP_IF_ETH, mInterface);
 
     char hostName[32] = {'\0'};
-#if defined(MODLINK_T2)
-    snprintf(hostName, 32, "MODLINK-T2-%s", muffin::macAddress.GetEthernet());
-#elif defined(MODLINK_B)
+#if defined(MT10)
+    snprintf(hostName, 32, "MT10-%s", muffin::macAddress.GetEthernet());
+#elif defined(MB10)
     snprintf(hostName, 32, "MODLINK-B-%s", muffin::macAddress.GetEthernet());
 #elif defined(MT11)
     snprintf(hostName, 32, "MT11-%s", muffin::macAddress.GetEthernet());

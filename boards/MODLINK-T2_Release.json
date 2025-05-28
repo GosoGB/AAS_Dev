@@ -24,7 +24,7 @@
       "arduino",
       "espidf"
     ],
-    "name": "MODLINK-T2_Release",
+    "name": "MT10_Release",
     "upload": {
       "flash_size": "4MB",
       "maximum_ram_size": 532480,

@@ -1,3 +1,5 @@
+#if defined(MT10) || defined(MT11) || defined(MB10)
+
 /**
  * @file Ethernet.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
@@ -23,14 +25,14 @@
 
 
 
-#if defined(MODLINK_T2) || defined(MODLINK_B) 
-
 #pragma once
+
+#include <WiFiGeneric.h>
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Common/DataStructure/bitset.h"
-#include "Include/DeprecableEthernet.h"
+#include "LAN8720/LAN8720.h"
 #include "JARVIS/Config/Network/Ethernet.h"
 #include "Network/INetwork.h"
 

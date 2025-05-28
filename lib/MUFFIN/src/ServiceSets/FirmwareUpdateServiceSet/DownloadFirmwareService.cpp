@@ -76,8 +76,8 @@ namespace muffin {
 
         #if defined(MODLINK_L)
             char userAgent[32] = "MODLINK-L/";
-        #elif defined(MODLINK_T2)
-            char userAgent[32] = "MODLINK-T2/";
+        #elif defined(MT10)
+            char userAgent[32] = "MT10/";
         #elif defined(MT11)
             char userAgent[32] = "MT11/";
         #endif

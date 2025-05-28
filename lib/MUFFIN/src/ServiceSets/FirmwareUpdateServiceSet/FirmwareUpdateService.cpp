@@ -312,7 +312,7 @@ namespace muffin {
         return ret;
     }
 
-#if defined(MODLINK_T2)
+#if defined(MT10)
     Status waitTillPageParsed(const uint32_t delayMillis, const uint32_t address, ota::MEGA2560& mega2560)
     {
         const uint32_t startedMillis = millis();
@@ -643,7 +643,7 @@ namespace muffin {
 
                 /**
                  * @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.
-                 * @details MODLINK-T2 내부의 ATmega2560 칩셋은 부트로더 내부에 AVRISP_2 프로그래머를 가지고 있습니다.
+                 * @details MT10 내부의 ATmega2560 칩셋은 부트로더 내부에 AVRISP_2 프로그래머를 가지고 있습니다.
                  *          AVRISP_2 워드 주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가 하나의 주소로 표현됩니다.
                  */
                 currentAddress += page.Size / 2;
@@ -774,7 +774,7 @@ namespace muffin {
 
                 /**
                  * @brief 워드 주소 체계에 맞추기 위해 페이지 사이즈를 2로 나눕니다.
-                 * @details MODLINK-T2 내부의 ATmega2560 칩셋은 부트로더 내부에 AVRISP_2 프로그래머를 가지고 있습니다.
+                 * @details MT10 내부의 ATmega2560 칩셋은 부트로더 내부에 AVRISP_2 프로그래머를 가지고 있습니다.
                  *          AVRISP_2 워드 주소 체계는 16-bit 단위이기 때문에 두 개의 바이트가 하나의 주소로 표현됩니다.
                  */
                 currentAddress += page.Size / 2;
@@ -905,7 +905,7 @@ namespace muffin {
             return ret;
         }
         
-    #if defined(MODLINK_T2)
+    #if defined(MT10)
         if (mega2560->Head.HasNewFirmware == true)
         {
             CRC32 crc32;

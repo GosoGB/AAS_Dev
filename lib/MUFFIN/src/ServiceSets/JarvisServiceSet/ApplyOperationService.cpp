@@ -88,7 +88,7 @@ namespace muffin {
         
     TEARDOWN:
         vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         spear.Reset();
     #endif 
         esp_restart();
@@ -109,7 +109,7 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             return InitCatM1Service();
     
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         case jvs::snic_e::Ethernet:
             return InitEthernetService();
     #endif

@@ -115,7 +115,7 @@ namespace muffin {
         {
             LOG_ERROR(logger, "FAILED TO RECONNECT TO THE BROKER");
             LOG_INFO(logger, "Restart the device");
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MT10) || defined(MB10)
             spear.Reset();
         #endif 
             esp_restart();
@@ -289,7 +289,7 @@ namespace muffin {
             if (ret == Status::Code::GOOD)
             {
                 LOG_INFO(logger,"Device will be reset due to JARVIS request");
-            #if defined(MODLINK_T2) || defined(MODLINK_B)
+            #if defined(MT10) || defined(MB10)
                 spear.Reset();
             #endif
                 esp_restart();
@@ -395,7 +395,7 @@ namespace muffin {
     {
         if (params.HasPendingUpdate == true)
         {
-            #if defined(MODLINK_T2) || defined(MODLINK_B)
+            #if defined(MT10) || defined(MB10)
                 spear.Reset();
             #endif
                 esp_restart();
@@ -470,7 +470,7 @@ namespace muffin {
         LOG_INFO(logger, "MQTT service has been")
 
         LOG_INFO(logger,"Device will be reset due to OTA request");
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         spear.Reset();
     #endif
         esp_restart();
@@ -821,7 +821,7 @@ namespace muffin {
         else
         {
             uint8_t writeResult = 0;
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
             if (mConfigVectorMbTCP.size() != 0)
             {
                 for (auto& TCP : mConfigVectorMbTCP)

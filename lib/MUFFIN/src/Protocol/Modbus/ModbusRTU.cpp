@@ -211,7 +211,7 @@ namespace muffin {
 Status ModbusRTU::PollTemp()
     {   
         Status ret = Status(Status::Code::UNCERTAIN);
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         const auto retrievedSlaveInfo = mAddressTable.RetrieveEntireSlaveID();
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {

@@ -32,7 +32,7 @@ namespace muffin {
         : mStatus(Status::Code::UNCERTAIN)
     {
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         mEthernetStatusReport.Enabled = false;
         mEthernetStatusReport.LocalIP = "0.0.0.0";
         mEthernetStatusReport.Status  = "UNKNOWN";
@@ -46,7 +46,7 @@ namespace muffin {
         mCatM1StatusReport.SINR      = INT16_MIN;
 #endif
 
-   #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
+   #if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
       mWiFiStatusReport.Enabled  = false;
       mWiFiStatusReport.LocalIP  = "0.0.0.0";
       mWiFiStatusReport.Status   = "UNKNOWN";
@@ -201,7 +201,7 @@ namespace muffin {
     }
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
     void DeviceStatus::SetReportEthernet(const eth_report_t report)
     {
         mEthernetStatusReport = report;
@@ -214,7 +214,7 @@ namespace muffin {
     }
 #endif
 
-#if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
+#if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
     void DeviceStatus::SetReportWiFi(const wifi_report_t report)
     {
         mWiFiStatusReport = report;
@@ -231,7 +231,7 @@ namespace muffin {
         JsonObject firmwareESP32          = firmware["esp32"].to<JsonObject>();
         firmwareESP32["semanticVersion"]  = FW_VERSION_ESP32.GetSemanticVersion();
         firmwareESP32["versionCode"]      = FW_VERSION_ESP32.GetVersionCode();
-	#if defined(MODLINK_T2)
+	#if defined(MT10)
         JsonObject firmwareATmega2560          = firmware["atmega2560"].to<JsonObject>();
         firmwareATmega2560["semanticVersion"]  = FW_VERSION_MEGA2560.GetSemanticVersion();
         firmwareATmega2560["versionCode"]      = FW_VERSION_MEGA2560.GetVersionCode();
@@ -258,7 +258,7 @@ namespace muffin {
         JsonObject firmwareESP32          = firmware["esp32"].to<JsonObject>();
         firmwareESP32["semanticVersion"]  = FW_VERSION_ESP32.GetSemanticVersion();
         firmwareESP32["versionCode"]      = FW_VERSION_ESP32.GetVersionCode();
-	#if defined(MODLINK_T2)
+	#if defined(MT10)
         JsonObject firmwareATmega2560          = firmware["atmega2560"].to<JsonObject>();
         firmwareATmega2560["semanticVersion"]  = FW_VERSION_MEGA2560.GetSemanticVersion();
         firmwareATmega2560["versionCode"]      = FW_VERSION_MEGA2560.GetVersionCode();
@@ -285,7 +285,7 @@ namespace muffin {
         JsonObject network  = doc["network"].to<JsonObject>();
         {
     #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-        #if defined(MODLINK_T2) || defined(MODLINK_B) || defined(MT11)
+        #if defined(MT10) || defined(MB10) || defined(MT11)
             if (mEthernetStatusReport.Enabled == true)
             {
                 JsonObject ethernet = network["ethernet"].to<JsonObject>();
@@ -308,7 +308,7 @@ namespace muffin {
             }
     #endif
 
-        #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
+        #if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
             if (mWiFiStatusReport.Enabled == true)
             {
                 JsonObject wifi = network["wifi"].to<JsonObject>();

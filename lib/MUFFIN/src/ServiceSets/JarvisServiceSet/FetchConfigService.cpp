@@ -39,8 +39,8 @@ namespace muffin {
         char buffer[32] = {'\0'};
     #if defined(MODLINK_L)
         snprintf(buffer, sizeof(buffer), "MODLINK-L/%s", FW_VERSION_ESP32.GetSemanticVersion());
-    #elif defined(MODLINK_T2)
-        snprintf(buffer, sizeof(buffer), "MODLINK-T2/%s", FW_VERSION_ESP32.GetSemanticVersion());
+    #elif defined(MT10)
+        snprintf(buffer, sizeof(buffer), "MT10/%s", FW_VERSION_ESP32.GetSemanticVersion());
     #elif defined(MT11)
         snprintf(buffer, sizeof(buffer), "MT11/%s", FW_VERSION_ESP32.GetSemanticVersion());
    
