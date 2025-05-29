@@ -35,7 +35,7 @@ namespace muffin {
         virtual Status Connect() = 0;
         virtual Status Disconnect() = 0;
         virtual Status Reconnect() = 0;
-        virtual bool IsConnected() const = 0;
+        virtual bool IsConnected() = 0;
         virtual IPAddress GetIPv4() const = 0;
         virtual Status SyncNTP() = 0;
         virtual std::pair<Status, size_t> TakeMutex() = 0;

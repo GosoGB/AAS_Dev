@@ -190,7 +190,7 @@ namespace muffin {
         }
     }
 
-    bool WiFi4::IsConnected() const
+    bool WiFi4::IsConnected()
     {
         if (WiFi.status() == WL_CONNECTED)
         {

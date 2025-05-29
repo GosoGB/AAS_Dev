@@ -121,6 +121,8 @@ namespace muffin {
 
     Status W5500::Connect()
     {
+        Status ret(Status::Code::UNCERTAIN);
+
         if (mCRB.IPv4[0] == 0 && mCRB.IPv4[1] == 0 && mCRB.IPv4[2] == 0 && mCRB.IPv4[3] == 0)
         {
             if (mDHCP == nullptr)
@@ -129,7 +131,7 @@ namespace muffin {
                 mDHCP = new w5500::DHCP(socket);
             }
             
-            Status ret = mDHCP->Init();
+            ret = mDHCP->Init();
             if (ret != muffin::Status::Code::GOOD)
             {
                 LOG_ERROR(muffin::logger, "FAILED TO INITIALIZE DHCP CLIENT: %s", ret.c_str());
@@ -138,40 +140,64 @@ namespace muffin {
 
             /**
              * @todo Run 함수는 김주성 전임이 Task로 변환하는 작업 진행 중이고 그게 끝나면 DHCP.cpp 파일 교체해야 함
+             *       실행 결과도 확인할 것
              */
-            mDHCP->Run();
+            ret = mDHCP->Run();
         }
         
+
+        /**
+         * @todo 실행 결과 확인할 것
+         */
+        ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
+        ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
+        ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
     }
 
 
     Status W5500::Disconnect()
     {
-        ;
+        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
     }
 
 
     Status W5500::Reconnect()
     {
-        ;
+        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+    }
+
+    
+    bool W5500::getLinkStatus()
+    {
+        uint8_t retrievedPHY = 0;
+
+        Status ret = retrieveCRB(w5500::crb_addr_e::PHY_CONFIGURATION, sizeof(retrievedPHY), &retrievedPHY);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE PHY REGISTER: %s", ret.c_str());
+            return false;
+        }
+        
+        return retrievedPHY & 0x01;
     }
 
 
-    bool W5500::IsConnected() const
+    bool W5500::IsConnected()
     {
-        ;
+        const bool isUp = getLinkStatus();
+        return isUp;
     }
 
 
     IPAddress W5500::GetIPv4() const
     {
-        ;
+        return INADDR_NONE;
     }
 
 
     Status W5500::SyncNTP()
     {
-        ;
+        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
     }
 
     std::pair<Status, size_t> W5500::TakeMutex()

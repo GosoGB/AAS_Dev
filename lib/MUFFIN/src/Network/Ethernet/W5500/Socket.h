@@ -62,7 +62,11 @@
 #include "Common/Logger/Logger.h"
 #include "Include/TypeDefinitions.h"
 #include "Include/Converter.h"
-#include "W5500.h"
+
+
+namespace muffin {
+    class W5500;
+}
 
 // #include "wizchip_conf.h"
 constexpr uint8_t MAX_TRIAL_COUNT = 5;

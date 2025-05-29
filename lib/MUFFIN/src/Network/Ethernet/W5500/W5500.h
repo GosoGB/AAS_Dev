@@ -73,7 +73,7 @@ namespace muffin {
         virtual Status Connect() override;
         virtual Status Disconnect() override;
         virtual Status Reconnect() override;
-        virtual bool IsConnected() const override;
+        virtual bool IsConnected() override;
         virtual IPAddress GetIPv4() const override;
         virtual Status SyncNTP() override;
         virtual std::pair<Status, size_t> TakeMutex() override;
@@ -85,6 +85,7 @@ namespace muffin {
         Status setDNS1(const IPAddress ipv4);
         Status setDNS2(const IPAddress ipv4);
         Status setIPv4(const w5500::ipv4_type_e type, const IPAddress ipv4);
+        bool getLinkStatus();
     public:
         Status GetMacAddress(uint8_t mac[]);
         Status GetMacAddress(char mac[]);

@@ -216,7 +216,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    bool CatM1::IsConnected() const
+    bool CatM1::IsConnected()
     {
         if (mState == state_e::SUCCEDDED_TO_GET_IP)
         {

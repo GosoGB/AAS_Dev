@@ -20,7 +20,7 @@
 #include <sys/_stdint.h>
 
 #include "Common/Status.h"
-#include "Network/Ethernet/W5500/W5500.h"
+#include "../Socket.h"
 
 
 

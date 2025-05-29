@@ -13,12 +13,13 @@
  */
 
 
- 
+
 
 #include <sys/_stdint.h>
 
 #include "Common/Assert.h"
 #include "Socket.h"
+#include "W5500.h"
 #include "Include/TypeDefinitions.h"
 
 

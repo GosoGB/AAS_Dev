@@ -19,6 +19,7 @@
 #include "Common/Logger/Logger.h"
 #include "DHCP.h"
 #include "../Socket.h"
+#include "../W5500.h"
 
 uint8_t HOST_NAME[] = DCHP_HOST_NAME;  
 
