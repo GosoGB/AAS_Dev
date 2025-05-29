@@ -22,7 +22,9 @@
 #include "Network/Ethernet/EthernetFactory.h"
 #include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
-#include "Protocol/SPEAR/SPEAR.h"
+#if defined(MB10) || defined(MT10)
+    #include "Protocol/SPEAR/SPEAR.h"
+#endif
 #include "Protocol/MQTT/IMQTT.h"
  
 TaskHandle_t xTaskLteMonitorHandle = NULL;
@@ -262,7 +264,7 @@ namespace muffin {
             return ret;
         }
         LOG_INFO(logger, "Ethernet has connected");
-        
+    
         const uint32_t startedMillis = millis();
         do
         {
@@ -270,7 +272,9 @@ namespace muffin {
             if ((millis() - startedMillis) > 10*SECOND_IN_MILLIS)
             {
                 LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER. DEVICE WILL BE RESTARTED");
-                spear.Reset();
+                #if defined(MB10) || defined(MT10)
+                    spear.Reset();
+                #endif
                 esp_restart();
             }
         } while (ret != Status::Code::GOOD);

@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 /**
  * @file Sockets.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
@@ -47,10 +49,10 @@
  * 
  * @copyright Copyright (c) Edgecross Inc. 2025
  */
-#if defined(MT11)
 
 
 
+ 
 #pragma once
 
 #include <esp32-hal.h>
@@ -94,8 +96,8 @@ namespace muffin { namespace w5500 {
     
     class Socket
     {
-        friend class EthernetClient;
-        
+    friend class DHCP;
+    
     public:
         /**
          * @brief Construct a network socket for the W5500 Ethernet interface.
@@ -122,7 +124,7 @@ namespace muffin { namespace w5500 {
         Status GetInterrupt(sir_t* interrupt);
         sock_id_e GetSocketID() const;
         sock_prtcl_e GetProtocol() const;
-        int Available();
+        uint16_t Available();
 
 
     public:
@@ -135,8 +137,11 @@ namespace muffin { namespace w5500 {
          * @return Status Returns the status of the operation, indicating success or failure.
          */
         Status Open();
+        Status Open(const uint16_t port);
+    private:
+        Status openInternal(const uint16_t port);
 
-
+    public:
         /**
          * @brief Closes the socket and releases any associated resources.
          * 
@@ -285,19 +290,6 @@ namespace muffin { namespace w5500 {
          * @note Ensure proper interrupt configuration before calling this function.
          */
         void waitInterruptEvnet();
-
-
-        
-        /**
-         * @brief Clears the specified socket interrupt.
-         *
-         * This function clears the interrupt flag for the given interrupt type
-         * associated with the socket. It is typically used to acknowledge and
-         * reset interrupt conditions after they have been handled.
-         *
-         * @param interrupt The interrupt type to clear, specified as a value of the sir_e enumeration.
-         */
-        void clearInterrupt(const sir_e interrupt);
         
         
         /**
@@ -307,7 +299,7 @@ namespace muffin { namespace w5500 {
          * associated with the socket, ensuring that the socket is in
          * a clean state for further operations.
          */
-        void clearInterruptAll();
+        void clearInterrupt();
         
         
         /**
@@ -383,12 +375,14 @@ namespace muffin { namespace w5500 {
         Status implementReceive(const size_t length, uint8_t* data);
     private:
         static const uint8_t MAX_TRIAL_COUNT = 5;
-    private:
+    public:
         W5500& mW5500;
+    private:
         w5500::srb_t mSRB;
         const sock_id_e mID;
         const sock_prtcl_e mProtocol;
     };
 }}
+
 
 #endif

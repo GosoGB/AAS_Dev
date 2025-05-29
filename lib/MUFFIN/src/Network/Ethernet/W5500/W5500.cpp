@@ -1,14 +1,18 @@
+#if defined(MT11)
+
 /**
  * @file W5500.cpp
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2025-04-18
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @copyright Copyright (c) 2025
+ * @date 2025-05-29
+ * @version 1.4.0
  * 
+ * @note
+ *      Ver.1.4.0 기준, W5500 링크는 LINK #1 위치에만 위치할 수 있다는 가정하에 코드를 작성하였습니다.
+ *      만약 LINK #2에 W5500 링크 설치가 가능하게 변경된다면 mRESET 핀 설정 부분을 수정해야 합니다.
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2025
  */
-#if defined(MT11)
 
 
 
@@ -19,6 +23,8 @@
 #include "Common/Logger/Logger.h"
 #include "Include/Converter.h"
 #include "Include/Microchip24AA02E.h"
+#include "JARVIS/Config/Network/Ethernet.h"
+#include "Socket.h"
 #include "W5500.h"
 
 SPISettings muffin::W5500::mSpiConfig;
@@ -30,6 +36,7 @@ namespace muffin {
     
     W5500::W5500(const w5500::if_e idx)
         : mCS(static_cast<uint8_t>(idx))
+        , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 38)
         , xSemaphore(NULL)
     {
         pinMode(mCS,     OUTPUT);
@@ -49,10 +56,8 @@ namespace muffin {
      * @todo MUTEX 적용이 필요한지, 범위는 어떻게 되어야 하는지 고민이 필요함
      *       예: 다른 SPI 디바이스와의 경쟁상황 발생 가능성 등
      */
-    Status W5500::Init(const uint8_t mhz)
+    Status W5500::Init()
     {
-        ASSERT((mhz < 71), "CLOCK MUST BE LESS THAN OR EQUAL TO 70MHz");
-
         if (xSemaphore == NULL)
         {
             xSemaphore = xSemaphoreCreateMutex();
@@ -64,7 +69,7 @@ namespace muffin {
         }
 
         resetW5500();
-        initSPI(mhz);
+        initSPI(mMHz);
 
         Status ret = setMacAddress();
         if (ret != Status::Code::GOOD)
@@ -74,6 +79,110 @@ namespace muffin {
         }
         
         return ret;
+    }
+
+
+    Status W5500::Config(jvs::config::Base* config)
+    {
+        ASSERT((config != nullptr), "INPUT PARAM <jvs::config::Base* config> CANNOT BE NULL");
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::ETHERNET), "INVALID JARVIS CATEGORY");
+
+        jvs::config::Ethernet* cin = static_cast<jvs::config::Ethernet*>(config);
+        if (cin->GetDHCP().second == true)
+        {
+            memset(mCRB.IPv4, 0, sizeof(mCRB.IPv4));
+            memset(mCRB.Gateway, 0, sizeof(mCRB.Gateway));
+            memset(mCRB.Subnetmask, 0, sizeof(mCRB.Subnetmask));
+        }
+        else
+        {
+            mCRB.IPv4[0] = cin->GetStaticIPv4().second[0];
+            mCRB.IPv4[1] = cin->GetStaticIPv4().second[1];
+            mCRB.IPv4[2] = cin->GetStaticIPv4().second[2];
+            mCRB.IPv4[3] = cin->GetStaticIPv4().second[3];
+
+            mCRB.Gateway[0] = cin->GetGateway().second[0];
+            mCRB.Gateway[1] = cin->GetGateway().second[1];
+            mCRB.Gateway[2] = cin->GetGateway().second[2];
+            mCRB.Gateway[3] = cin->GetGateway().second[3];
+
+            mCRB.Subnetmask[0] = cin->GetSubnetmask().second[0];
+            mCRB.Subnetmask[1] = cin->GetSubnetmask().second[1];
+            mCRB.Subnetmask[2] = cin->GetSubnetmask().second[2];
+            mCRB.Subnetmask[3] = cin->GetSubnetmask().second[3];
+
+            mDNS1 = cin->GetDNS1().second;
+            mDNS2 = cin->GetDNS2().second;
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+
+    Status W5500::Connect()
+    {
+        if (mCRB.IPv4[0] == 0 && mCRB.IPv4[1] == 0 && mCRB.IPv4[2] == 0 && mCRB.IPv4[3] == 0)
+        {
+            if (mDHCP == nullptr)
+            {
+                w5500::Socket socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
+                mDHCP = new w5500::DHCP(socket);
+            }
+            
+            Status ret = mDHCP->Init();
+            if (ret != muffin::Status::Code::GOOD)
+            {
+                LOG_ERROR(muffin::logger, "FAILED TO INITIALIZE DHCP CLIENT: %s", ret.c_str());
+                return ret;
+            }
+
+            /**
+             * @todo Run 함수는 김주성 전임이 Task로 변환하는 작업 진행 중이고 그게 끝나면 DHCP.cpp 파일 교체해야 함
+             */
+            mDHCP->Run();
+        }
+        
+    }
+
+
+    Status W5500::Disconnect()
+    {
+        ;
+    }
+
+
+    Status W5500::Reconnect()
+    {
+        ;
+    }
+
+
+    bool W5500::IsConnected() const
+    {
+        ;
+    }
+
+
+    IPAddress W5500::GetIPv4() const
+    {
+        ;
+    }
+
+
+    Status W5500::SyncNTP()
+    {
+        ;
+    }
+
+    std::pair<Status, size_t> W5500::TakeMutex()
+    {
+        return std::make_pair(Status(Status::Code::GOOD), 1);
+    }
+
+    
+    Status W5500::ReleaseMutex()
+    {
+        return Status(Status::Code::GOOD);
     }
 
 
@@ -98,7 +207,9 @@ namespace muffin {
     Status W5500::setMacAddress()
     {   
         Microchip24AA02E microchip;
-        if (microchip.Read(false, mCRB.MAC) == false)
+        const bool isLink = w5500::if_e::EMBEDDED != static_cast<w5500::if_e>(mCS);
+
+        if (microchip.Read(isLink, mCRB.MAC) == false)
         {
             LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
             return Status(Status::Code::BAD_DEVICE_FAILURE);
@@ -133,32 +244,32 @@ namespace muffin {
     }
 
 
-    Status W5500::SetIPv4(const IPAddress ipv4)
+    Status W5500::setLocalIP(const IPAddress ipv4)
     {
         return setIPv4(w5500::ipv4_type_e::SOURCE_IPv4, ipv4);
     }
 
 
-    Status W5500::SetGateway(const IPAddress ipv4)
+    Status W5500::setGateway(const IPAddress ipv4)
     {
         return setIPv4(w5500::ipv4_type_e::GATEWAY, ipv4);
     }
 
 
-    Status W5500::SetSubnetmask(const IPAddress ipv4)
+    Status W5500::setSubnetmask(const IPAddress ipv4)
     {
         return setIPv4(w5500::ipv4_type_e::SUBNETMASK, ipv4);
     }
 
 
-    Status W5500::SetDNS1(const IPAddress ipv4)
+    Status W5500::setDNS1(const IPAddress ipv4)
     {
         mDNS1 = ipv4;
         return Status(Status::Code::BAD_NOT_IMPLEMENTED);
     }
 
 
-    Status W5500::SetDNS2(const IPAddress ipv4)
+    Status W5500::setDNS2(const IPAddress ipv4)
     {
         mDNS2 = ipv4;
         return Status(Status::Code::BAD_NOT_IMPLEMENTED);
@@ -284,7 +395,6 @@ namespace muffin {
         
         return mEphemeralPort++;
     }
-
 
 
     Status W5500::read(const uint16_t address, const uint8_t control, uint8_t* output)
@@ -616,6 +726,10 @@ namespace muffin {
         const uint8_t  controlPhase     = Converter::ControlPhase(idx, am_e::WRITE);
         return write(numericAddress, controlPhase, length, data);
     }
+
+
+    W5500* ethernet = nullptr;
 }
+
 
 #endif

@@ -1,15 +1,17 @@
+#if defined(MT11)
+
 /**
  * @file DHCP.h
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief 
  * 
- * @date 2025-05-08
- * @version 1.0.0
+ * @date 2025-05-29
+ * @version 1.4.0
  * 
- * @copyright Copyright (c) 2025
+ * @copyright Copyright (c) Edgecross Inc. 2025
  */
-#if defined(MT11)
+
 
 
 
@@ -53,9 +55,10 @@ namespace muffin { namespace w5500 {
         DISCOVER   = 1,  // Send discover and wait for offer message
         REQUEST    = 2,  // Send request and wait for ack or nack message
         LEASED     = 3,  // Received ack and IP has been leased
-        REREQUSET  = 4,  // Send request for maintaining leased IP
-        RELEASE    = 5,  // Leased IP address has been released and no longer in use
-        STOP       = 6   // Stop using DHCP
+        RENEWING   = 4,  // Send request for maintaining leased IP
+        REBIND     = 5,
+        RELEASE    = 6,  // Leased IP address has been released and no longer in use
+        STOP       = 7   // Stop using DHCP
     } state_e;
 
 
@@ -189,13 +192,17 @@ typedef struct DynamicHostConfigurationProtocolType
     
     class DHCP
     {
+    public: 
+        DHCP(Socket& socket) : mSocket(socket) {}
+        ~DHCP() {}
+
     public:
         /*
          * @brief DHCP client initialization (outside of the main loop)
          * @param s   - socket number
          * @param buf - buffer for processing DHCP message
          */
-        Status Init(W5500& w5500, const uint8_t socketID, uint8_t buffer[]);
+        Status Init();
         
         /*
          * @brief DHCP 1s Tick Timer handler
@@ -223,7 +230,7 @@ typedef struct DynamicHostConfigurationProtocolType
          *
          * @note This function is always called by you main task.
          */ 
-        Status Run(const sock_id_e idx, W5500& w5500);
+        Status Run();
         
         /*
          * @brief Stop DHCP processing
@@ -258,20 +265,27 @@ typedef struct DynamicHostConfigurationProtocolType
          * @return unit 1s
          */
         uint32_t GetLeasetime() const;
+
     private:
-        Status initMessage(W5500& w5500);
-        Status sendRequest(W5500& w5500);
+        Status renewingMessage();
+        Status initMessage();
+        Status sendDiscoverMessage();
+        Status sendRequest();
+        Status parseAckMessage(const uint8_t* buffer, size_t length);
+        Status parseOfferMessage(const uint8_t* buffer, size_t length);
+ 
     public:
-        void sendDiscoverMessage(W5500& w5500);
-        
         /* Reset the DHCP timeout count and retry count. */
         void resetTimeout();
     
     private:
+        Socket& mSocket;
         state_e mState = state_e::INIT;
-        volatile uint32_t tickCurrent    = 0;   // unit: second
-        uint32_t tickNext   	         = WAIT_TIME;  // unit: second
-        uint8_t  trialCount              = 0;  
+        uint32_t mLeaseTime      = INFINITE_LEASE_TIME;
+        uint32_t mLeaseT2        = 0;
+        uint32_t mLeaseT1        = 0;
+        uint32_t mTickCurrent    = 0;
+        uint8_t  trialCount      = 0;
 
     private:
         // uint8_t mMAC[6] = { 0 };    // DHCP_CHADDR
@@ -281,8 +295,8 @@ typedef struct DynamicHostConfigurationProtocolType
         uint8_t mAllocatedGW[4]     = { 0 };
         uint8_t mAllocatedSNM[4]    = { 0 };
         uint8_t mAllocatedDNS[4]    = { 0 };
-        uint32_t mLeaseTime        = INFINITE_LEASE_TIME;
-        uint8_t mSocket;
+        
+        uint8_t mSocketID;
         uint32_t mXID = 0x12345678;
         dhcp_t mDHCP;
     private:
@@ -293,6 +307,7 @@ typedef struct DynamicHostConfigurationProtocolType
         static const uint32_t  MAGIC_COOKIE     = 0x63825363;
     };
 }}
-#define DCHP_HOST_NAME           "WIZnet\0"
+#define DCHP_HOST_NAME           "MT11-\0"
+
 
 #endif

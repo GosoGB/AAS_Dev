@@ -30,6 +30,12 @@ namespace muffin { namespace w5500 {
         LINK_02    = 17
     } if_e;
 
+    typedef enum class DhcpPortEnum 
+        : uint16_t
+    {
+        SERVER = 67,  // DHCP 서버가 수신하는 포트
+        CLIENT = 68   // DHCP 클라이언트가 수신하는 포트
+    } dhcp_port_e;
 
     typedef enum class BlockSelectBitsEnum
         : uint8_t

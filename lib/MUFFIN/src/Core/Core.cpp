@@ -238,7 +238,7 @@ namespace muffin {
     #endif 
     #if defined(MT11)
         W5500 w5500(w5500::if_e::EMBEDDED);
-        w5500.Init(10);
+        w5500.Init();
         char mac[13] = {'\0'};
         w5500.GetMacAddress(mac);
         LOG_WARNING(logger,"MAC : %s",mac);
