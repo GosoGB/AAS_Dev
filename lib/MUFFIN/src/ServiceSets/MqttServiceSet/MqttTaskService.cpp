@@ -867,10 +867,10 @@ namespace muffin {
                                     switch (nodeArea)
                                     {
                                     case jvs::node_area_e::COILS:
-                                        writeResult = modbusTCP.mModbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     case jvs::node_area_e::HOLDING_REGISTER:
-                                        writeResult = modbusTCP.mModbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
                                         break;
                                     default:
                                         LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);

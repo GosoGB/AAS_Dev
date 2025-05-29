@@ -180,7 +180,7 @@ namespace muffin {
         w5500::DHCP* mDHCP = nullptr;
     };
 
-    extern W5500* embeddedW5500;
+    extern W5500* ethernet;
     extern W5500* link1W5500;
     extern W5500* link2W5500;
 }

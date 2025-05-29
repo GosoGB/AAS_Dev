@@ -81,24 +81,8 @@ namespace muffin {
                 break;
             }
         }
-    #if defined(MT11)
 
-        if (jvs::config::link1Ethernet != nullptr)
-        {
-            
-        }
-        
-    #endif
-    // #if defined(MT10) || defined(MB10) || defined(MT11)
-        // for (auto& pair : *jarvis)
-        // {
-        //     const jvs::cfg_key_e key = pair.first;
-        //     if (key == jvs::cfg_key_e::ETHERNET)
-        //     {
-        //         InitEthernetService();
-        //     }
-        // }
-    // #endif
+        applayEthernet();
 
         for (auto& pair : *jarvis)
         {
@@ -362,7 +346,6 @@ namespace muffin {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MT10");
     #endif
-
         if (s_HasNode == false)
         {
             LOG_WARNING(logger, "NO NODE");
@@ -379,27 +362,31 @@ namespace muffin {
         
         for (auto& modbusTCPCIN : vectorModbusTCPCIN)
         {
-            ModbusTCP* modbusTCP = new ModbusTCP();
             jvs::config::ModbusTCP* cin = static_cast<jvs::config::ModbusTCP*>(modbusTCPCIN);
 
-            // const jvs::if_e eth = cin->GetEthernetInterface().second;
-            // w5500::if_e _eth;
-            // switch (eth)
-            // {
-            // case jvs::if_e::EMBEDDED:
-            //     _eth = w5500::if_e::EMBEDDED;
-            //     break;
-            // case jvs::if_e::LINK_01:
-            //     _eth = w5500::if_e::LINK_01;
-            //     break;
-            // case jvs::if_e::LINK_02:
-            //     _eth = w5500::if_e::LINK_02;
-            //     break;
-            // default:
-            //     _eth = w5500::if_e::EMBEDDED;
-            //     break;
-            // }
-
+            const jvs::if_e eth = cin->GetEthernetInterface().second;
+            
+            수정중 김주성
+            
+            
+            switch (eth)
+            {
+            case jvs::if_e::EMBEDDED:
+                
+                break;
+            case jvs::if_e::LINK_01:
+                
+                break;
+            case jvs::if_e::LINK_02:
+        
+                break;
+            default:
+        
+                break;
+            }
+            
+            ModbusTCP* modbusTCP = new ModbusTCP();
+            
             Status ret = modbusTCP->Config(cin);
             if (ret != Status::Code::GOOD)
             {
@@ -439,6 +426,24 @@ namespace muffin {
         {
             Melsec* melsec = new Melsec();
             jvs::config::Melsec* cin = static_cast<jvs::config::Melsec*>(melsecCIN);
+
+            const jvs::if_e eth = cin->GetEthernetInterface().second;
+            switch (eth)
+            {
+            case jvs::if_e::EMBEDDED:
+               
+                break;
+            case jvs::if_e::LINK_01:
+                
+                break;
+            case jvs::if_e::LINK_02:
+       
+                break;
+            default:
+     
+                break;
+            }
+
             Status ret = melsec->Config(cin);
             if (ret != Status::Code::GOOD)
             {
@@ -452,6 +457,24 @@ namespace muffin {
         StartMelsecTask();
         StartTaskMSG();
 
+    }
+
+    void applayEthernet()
+    {
+   #if defined(MT11)
+        if (jvs::config::link1Ethernet != nullptr)
+        {
+            link1W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_01);
+            link1W5500->Init();
+            // link1W5500->config(jvs::config::link1Ethernet)
+        }
+        if (jvs::config::link2Ethernet != nullptr)
+        {
+            link2W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_02);
+            link2W5500->Init();
+            // link2W5500->config(jvs::config::link2Ethernet)
+        }
+    #endif
     }
 
 }

@@ -191,9 +191,9 @@ namespace muffin {
             
             for(auto& modbusTCP : ModbusTcpVector)
             {
-                if (!modbusTCP.mModbusTCPClient.connected()) 
+                if (!modbusTCP.mModbusTCPClient->connected()) 
                 {
-                    if (modbusTCP.mModbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
+                    if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
                     {
                         LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
                         modbusTCP.SetTimeoutError();

@@ -753,9 +753,9 @@ namespace muffin {
         return write(numericAddress, controlPhase, length, data);
     }
 
-    W5500* embeddedW5500;
-    W5500* link1W5500;
-    W5500* link2W5500;
+    W5500* ethernet   = nullptr;
+    W5500* link1W5500 = nullptr;
+    W5500* link2W5500 = nullptr;
 }
 
 

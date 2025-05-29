@@ -42,7 +42,11 @@ namespace muffin {
     class ModbusTCP
     {
     public:
+    #if defined(MT11)
+        ModbusTCP(w5500::Socket& socket);
+    #else
         ModbusTCP();
+    #endif
         virtual ~ModbusTCP();
     private:
         using AddressRange = im::NumericAddressRange;
@@ -80,10 +84,10 @@ namespace muffin {
         uint16_t mServerPort;
     public:
     #if defined(MT11)
-        EthernetClient mClient;
+        w5500::EthernetClient* mClient = nullptr;
     #else
         WiFiClient mClient;
     #endif
-        ModbusTCPClient mModbusTCPClient;
+    ModbusTCPClient* mModbusTCPClient = nullptr;
     };
 }
