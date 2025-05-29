@@ -83,13 +83,13 @@ namespace muffin {
             goto ON_FAIL;
         }
 
-        if (jvs::config::ethernet->GetDHCP().second == false)
+        if (jvs::config::embeddedEthernet->GetDHCP().second == false)
         {
-            const bool isConfigured = config(jvs::config::ethernet->GetStaticIPv4().second,
-                                                                jvs::config::ethernet->GetGateway().second,
-                                                                jvs::config::ethernet->GetSubnetmask().second,
-                                                                jvs::config::ethernet->GetDNS1().second,
-                                                                jvs::config::ethernet->GetDNS2().second);
+            const bool isConfigured = config(jvs::config::embeddedEthernet->GetStaticIPv4().second,
+                                                                jvs::config::embeddedEthernet->GetGateway().second,
+                                                                jvs::config::embeddedEthernet->GetSubnetmask().second,
+                                                                jvs::config::embeddedEthernet->GetDNS1().second,
+                                                                jvs::config::embeddedEthernet->GetDNS2().second);
 
             if (isConfigured == false)
             {

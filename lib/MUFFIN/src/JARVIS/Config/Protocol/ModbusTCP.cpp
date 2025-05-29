@@ -38,11 +38,12 @@ namespace muffin { namespace jvs { namespace config {
     {
         if (this != &obj)
         {
-            mNIC        = obj.mNIC;
-            mIPv4       = obj.mIPv4;
-            mNodes      = obj.mNodes;
-            mPort       = obj.mPort;
-            mSlaveID    = obj.mSlaveID;
+            mNIC                = obj.mNIC;
+            mIPv4               = obj.mIPv4;
+            mNodes              = obj.mNodes;
+            mPort               = obj.mPort;
+            mSlaveID            = obj.mSlaveID;
+            mEthernetInterface  = obj.mEthernetInterface;
         }
 
         return *this;
@@ -51,11 +52,12 @@ namespace muffin { namespace jvs { namespace config {
     bool ModbusTCP::operator==(const ModbusTCP& obj) const
     {
        return (
-            mNIC        == obj.mNIC      &&
-            mIPv4       == obj.mIPv4     &&
-            mNodes      == obj.mNodes    &&
-            mPort       == obj.mPort     &&
-            mSlaveID    == obj.mSlaveID
+            mNIC                == obj.mNIC      &&
+            mIPv4               == obj.mIPv4     &&
+            mNodes              == obj.mNodes    &&
+            mPort               == obj.mPort     &&
+            mSlaveID            == obj.mSlaveID  &&
+            mEthernetInterface  == obj.mEthernetInterface
         );
     }
 
@@ -109,6 +111,24 @@ namespace muffin { namespace jvs { namespace config {
 
         mNodes = std::move(nodes);
         mIsNodesSet = true;
+    }
+
+    std::pair<Status, if_e> ModbusTCP::GetEthernetInterface() const
+    {
+        if (mIsEthernetInterface)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEthernetInterface);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEthernetInterface);
+        }
+    }
+
+    void ModbusTCP::SetEthernetInterface(const if_e eth)
+    {
+        mEthernetInterface = eth;
+        mIsEthernetInterface = true;
     }
 
     std::pair<Status, nic_e> ModbusTCP::GetNIC() const

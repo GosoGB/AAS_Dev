@@ -266,6 +266,9 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-
-    Ethernet* ethernet = nullptr;
+    Ethernet* embeddedEthernet = nullptr;
+#if defined(MT11)
+    Ethernet* link1Ethernet = nullptr;
+    Ethernet* link2Ethernet = nullptr;
+#endif
 }}}

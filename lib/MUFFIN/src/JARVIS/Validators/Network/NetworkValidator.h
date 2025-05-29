@@ -42,9 +42,11 @@ namespace muffin { namespace jvs {
     public:
         std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, prtcl_ver_e ProtocolVersion, cin_vector* outVector);
     private:
-        std::pair<rsc_e, std::string> validateEthernet(const JsonArray array);
+        std::pair<rsc_e, std::string> validateEthernet(const JsonArray array, cin_vector* outVector);
         rsc_e validateMandatoryKeysEthernet(const JsonObject json);
         rsc_e validateMandatoryValuesEthernet(const JsonObject json);
+    private:    
+        std::pair<rsc_e, std::string> setEthernetConfig(const JsonObject obj, config::Ethernet* eth);
     private:
         std::pair<rsc_e, std::string> validateWiFi4(const JsonArray array, cin_vector* outVector);
         rsc_e validateMandatoryKeysWiFi4(const JsonObject json);

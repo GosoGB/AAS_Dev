@@ -160,6 +160,10 @@ namespace muffin {
         IPAddress mDNS1;
         IPAddress mDNS2;
     };
+
+    extern W5500* embeddedW5500;
+    extern W5500* link1W5500;
+    extern W5500* link2W5500;
 }
 
 #endif

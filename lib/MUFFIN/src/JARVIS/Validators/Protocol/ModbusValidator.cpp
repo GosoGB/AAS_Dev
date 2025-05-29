@@ -80,20 +80,7 @@ namespace muffin { namespace jvs {
             auto retNodes         = convertToNodes(nodes);
             const auto retSID     = convertToSlaveID(sid);
 
-            if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
-            {
-                const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
-                const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
-                if (retEths.first != rsc_e::GOOD)
-                {
-                    return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
-                }
-                
-                /**
-                 * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
-                 * 
-                 */
-            }
+            
 
             if (prt == 0)
             {
@@ -131,12 +118,27 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR MODBUS TCP CONFIG");
             }
 
+            if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+            {
+                const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
+                const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
+                if (retEths.first != rsc_e::GOOD)
+                {
+                    return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
+                }
+                modbusTCP->SetEthernetInterface(retEths.second);
+            }
+            else
+            {
+                modbusTCP->SetEthernetInterface(if_e::EMBEDDED);
+            }
+            
             modbusTCP->SetSlaveID(retSID.second);
             modbusTCP->SetIPv4(retIP.second);
             modbusTCP->SetPort(prt);
             modbusTCP->SetNIC(retIface.second);
             modbusTCP->SetNodes(std::move(retNodes.second));
-
+            
             
             rsc = emplaceCIN(static_cast<config::Base*>(modbusTCP), outVector);
             if (rsc != rsc_e::GOOD)

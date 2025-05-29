@@ -221,7 +221,7 @@ namespace muffin {
 
     Status InitEthernetService()
     {
-        if (jvs::config::ethernet == nullptr)
+        if (jvs::config::embeddedEthernet == nullptr)
         {
             LOG_DEBUG(logger, "Ethernet is not configured");
             return Status(Status::Code::GOOD);
@@ -247,7 +247,7 @@ namespace muffin {
         }
         LOG_INFO(logger, "Initialized Ethernet interface");
         
-        ret = ethernet->Config(jvs::config::ethernet);
+        ret = ethernet->Config(jvs::config::embeddedEthernet);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNET CIN");
@@ -270,7 +270,9 @@ namespace muffin {
             if ((millis() - startedMillis) > 10*SECOND_IN_MILLIS)
             {
                 LOG_ERROR(logger, "FAILED TO SYNC WITH NTP SERVER. DEVICE WILL BE RESTARTED");
+        #if defined(MT10) || defined(MB10)
                 spear.Reset();
+        #endif
                 esp_restart();
             }
         } while (ret != Status::Code::GOOD);

@@ -130,6 +130,7 @@ namespace muffin { namespace jvs {
             Melsec->SetPlcSeries(std::move(retPlcSeries.second));
             Melsec->SetDataFormat(std::move(retDataFormat.second));
             Melsec->SetNodes(std::move(retNodes.second));
+            Melsec->SetEthernetInterface(std::move(retEths.second));
 
             rsc = emplaceCIN(static_cast<config::Base*>(Melsec), outVector);
             if (rsc != rsc_e::GOOD)

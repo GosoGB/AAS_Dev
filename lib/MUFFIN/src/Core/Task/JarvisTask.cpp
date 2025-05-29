@@ -49,7 +49,8 @@
 #include "Protocol/SPEAR/SPEAR.h"
 
 #include "Storage/ESP32FS/ESP32FS.h"
-// #include "Network/Ethernet/EthernetFactory.h"
+#include "Network/Ethernet/EthernetFactory.h"
+#include "Network/Ethernet/W5500/W5500.h"
 #include "Storage/CatFS/CatFS.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 
@@ -80,16 +81,24 @@ namespace muffin {
                 break;
             }
         }
-    #if defined(MT10) || defined(MB10)
-        for (auto& pair : *jarvis)
+    #if defined(MT11)
+
+        if (jvs::config::link1Ethernet != nullptr)
         {
-            const jvs::cfg_key_e key = pair.first;
-            if (key == jvs::cfg_key_e::ETHERNET)
-            {
-                InitEthernetService();
-            }
+            
         }
+        
     #endif
+    // #if defined(MT10) || defined(MB10) || defined(MT11)
+        // for (auto& pair : *jarvis)
+        // {
+        //     const jvs::cfg_key_e key = pair.first;
+        //     if (key == jvs::cfg_key_e::ETHERNET)
+        //     {
+        //         InitEthernetService();
+        //     }
+        // }
+    // #endif
 
         for (auto& pair : *jarvis)
         {
@@ -372,6 +381,25 @@ namespace muffin {
         {
             ModbusTCP* modbusTCP = new ModbusTCP();
             jvs::config::ModbusTCP* cin = static_cast<jvs::config::ModbusTCP*>(modbusTCPCIN);
+
+            // const jvs::if_e eth = cin->GetEthernetInterface().second;
+            // w5500::if_e _eth;
+            // switch (eth)
+            // {
+            // case jvs::if_e::EMBEDDED:
+            //     _eth = w5500::if_e::EMBEDDED;
+            //     break;
+            // case jvs::if_e::LINK_01:
+            //     _eth = w5500::if_e::LINK_01;
+            //     break;
+            // case jvs::if_e::LINK_02:
+            //     _eth = w5500::if_e::LINK_02;
+            //     break;
+            // default:
+            //     _eth = w5500::if_e::EMBEDDED;
+            //     break;
+            // }
+
             Status ret = modbusTCP->Config(cin);
             if (ret != Status::Code::GOOD)
             {

@@ -38,11 +38,12 @@ namespace muffin { namespace jvs { namespace config {
     {
         if (this != &obj)
         {
-            mIPv4          = obj.mIPv4;
-            mPlcSeies      = obj.mPlcSeies;
-            mPort          = obj.mPort;
-            mNodes         = obj.mNodes;
-            mDataFormat    = obj.mDataFormat;
+            mIPv4              = obj.mIPv4;
+            mPlcSeies          = obj.mPlcSeies;
+            mPort              = obj.mPort;
+            mNodes             = obj.mNodes;
+            mDataFormat        = obj.mDataFormat;
+            mEthernetInterface = obj.mEthernetInterface;
         }
 
         return *this;
@@ -51,11 +52,12 @@ namespace muffin { namespace jvs { namespace config {
     bool Melsec::operator==(const Melsec& obj) const
     {
     return (
-        mPlcSeies          == obj.mPlcSeies   &&
-            mIPv4          == obj.mIPv4       &&
-            mNodes         == obj.mNodes      &&
-            mPort          == obj.mPort       &&
-            mDataFormat    == obj.mDataFormat
+        mPlcSeies              == obj.mPlcSeies   &&
+            mIPv4              == obj.mIPv4       &&
+            mNodes             == obj.mNodes      &&
+            mPort              == obj.mPort       &&
+            mDataFormat        == obj.mDataFormat &&
+            mEthernetInterface == obj.mEthernetInterface
         );
     }
 
@@ -107,6 +109,24 @@ namespace muffin { namespace jvs { namespace config {
 
         mNodes = std::move(nodes);
         mIsNodesSet = true;
+    }
+
+    void Melsec::SetEthernetInterface(const if_e eth)
+    {
+        mEthernetInterface = eth;
+        mIsEthernetInterface = true;
+    }
+
+    std::pair<Status, if_e> Melsec::GetEthernetInterface() const
+    {
+        if (mIsEthernetInterface)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mEthernetInterface);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mEthernetInterface);
+        }
     }
 
     std::pair<Status, ps_e> Melsec::GetPlcSeies() const

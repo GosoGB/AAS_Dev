@@ -323,14 +323,14 @@ namespace muffin {
     Status setEthernet(jarvis_interface_struct_t* response)
     {
         response->Ethernet.IsEthernetSet = true;
-        response->Ethernet.EnableDHCP = jvs::config::ethernet->GetDHCP().second;
+        response->Ethernet.EnableDHCP = jvs::config::embeddedEthernet->GetDHCP().second;
         if (response->Ethernet.EnableDHCP == false)
         {
-            response->Ethernet.StaticIPv4   = jvs::config::ethernet->GetStaticIPv4().second;
-            response->Ethernet.Subnetmask   = jvs::config::ethernet->GetSubnetmask().second;
-            response->Ethernet.Gateway      = jvs::config::ethernet->GetGateway().second;
-            response->Ethernet.DNS1         = jvs::config::ethernet->GetDNS1().second;
-            response->Ethernet.DNS2         = jvs::config::ethernet->GetDNS2().second;
+            response->Ethernet.StaticIPv4   = jvs::config::embeddedEthernet->GetStaticIPv4().second;
+            response->Ethernet.Subnetmask   = jvs::config::embeddedEthernet->GetSubnetmask().second;
+            response->Ethernet.Gateway      = jvs::config::embeddedEthernet->GetGateway().second;
+            response->Ethernet.DNS1         = jvs::config::embeddedEthernet->GetDNS1().second;
+            response->Ethernet.DNS2         = jvs::config::embeddedEthernet->GetDNS2().second;
         }
     
         return Status(Status::Code::GOOD);

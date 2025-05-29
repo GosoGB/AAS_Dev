@@ -30,7 +30,11 @@
 #include "JARVIS/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusTCPClient.h"
-#include "WiFi.h"
+#if defined(MT11)
+    #include "Network/Ethernet/W5500/EthernetClient.h"
+#else
+    #include "WiFi.h"
+#endif
 
 
 namespace muffin {
@@ -75,7 +79,11 @@ namespace muffin {
         IPAddress mServerIP;
         uint16_t mServerPort;
     public:
-        WiFiClient mWifiClient;
+    #if defined(MT11)
+        EthernetClient mClient;
+    #else
+        WiFiClient mClient;
+    #endif
         ModbusTCPClient mModbusTCPClient;
     };
 }

@@ -43,20 +43,24 @@ namespace muffin { namespace jvs { namespace config {
         void SetPlcSeries(const ps_e plcSeies);
         void SetDataFormat(const df_e dataFormat);
         void SetNodes(std::vector<std::string>&& nodes) noexcept;
+        void SetEthernetInterface(const if_e eth);
 
     public:
+        std::pair<Status, if_e> GetEthernetInterface() const;
         std::pair<Status, ps_e> GetPlcSeies() const;
         std::pair<Status, df_e> GetDataFormat() const;
         std::pair<Status, IPAddress> GetIPv4() const;
         std::pair<Status, uint16_t> GetPort() const;
         std::pair<Status, std::vector<std::string>> GetNodes() const;
     private:
-        bool mIsPlcSeiesSet     = false;
-        bool mIsDataFormatSet   = false;
-        bool mIsIPv4Set         = false;
-        bool mIsNodesSet        = false;
-        bool mIsPortSet         = false;
+        bool mIsPlcSeiesSet         = false;
+        bool mIsDataFormatSet       = false;
+        bool mIsIPv4Set             = false;
+        bool mIsNodesSet            = false;
+        bool mIsPortSet             = false;
+        bool mIsEthernetInterface   = false;
     private:
+        if_e mEthernetInterface;
         df_e mDataFormat;
         ps_e mPlcSeies;
         IPAddress mIPv4;

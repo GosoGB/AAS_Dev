@@ -33,7 +33,7 @@ namespace muffin { namespace jvs {
         switch (key)
         {
         case cfg_key_e::ETHERNET:
-            return validateEthernet(arrayCIN);
+            return validateEthernet(arrayCIN, outVector);
         case cfg_key_e::WIFI4:
             return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, "Wi-Fi IS NOT SUPPORTED IN THE CURRENT VERSION");
         default:
@@ -402,104 +402,150 @@ namespace muffin { namespace jvs {
         }
     }
 
+    std::pair<rsc_e, std::string> NetworkValidator::setEthernetConfig(const JsonObject obj, config::Ethernet* eth)
+    {
+        const bool DHCP = obj["dhcp"].as<bool>();
+        eth->SetDHCP(DHCP);
+        
+        if (DHCP == false)
+        {
+            const auto retIP    = convertToIPv4(obj["ip"].as<JsonVariant>(),   false);
+            const auto retSVM   = convertToIPv4(obj["snm"].as<JsonVariant>(),  true);
+            const auto retGTW   = convertToIPv4(obj["gtw"].as<JsonVariant>(),  false);
+            const auto retDNS1  = convertToIPv4(obj["dns1"].as<JsonVariant>(), false);
+            const auto retDNS2  = convertToIPv4(obj["dns2"].as<JsonVariant>(), false);
+
+            if (retIP.first != rsc_e::GOOD)
+            {
+                return std::make_pair(retIP.first, "INVALID ETHERNET IP");
+            }
+
+            if (retSVM.first != rsc_e::GOOD)
+            {
+                return std::make_pair(retSVM.first, "INVALID ETHERNET SUBNETMASK");
+            }
+
+            if (retGTW.first != rsc_e::GOOD)
+            {
+                return std::make_pair(retGTW.first, "INVALID ETHERNET GATEWAY");
+            }
+
+            if (retDNS1.first != rsc_e::GOOD)
+            {
+                return std::make_pair(retDNS1.first, "INVALID ETHERNET DNS1");
+            }
+
+            if (retDNS2.first != rsc_e::GOOD)
+            {
+                return std::make_pair(retDNS2.first, "INVALID ETHERNET DNS2");
+            }
+
+            eth->SetStaticIPv4(retIP.second);
+            eth->SetSubnetmask(retSVM.second);
+            eth->SetGateway(retGTW.second);
+            eth->SetDNS1(retDNS1.second);
+            eth->SetDNS2(retDNS2.second);
+        }
+
+        return std::make_pair(rsc_e::GOOD, "GOOD");
+    }
+
     /**
      * @todo 상태 코드로 오류가 아닌 경고를 반환하도록 수정해야 합니다.
      * @brief 크기가 1보다 클 때 첫번째 설정만 적용되고 나머지는 버려집니다.
      *        이는 설정 형식 자체의 오류는 아니며, 일부는 적용되기 때문에
      *        상태 코드로 오류가 아닌 경고를 반환하는 것이 적합합니다.
      */
-    std::pair<rsc_e, std::string> NetworkValidator::validateEthernet(const JsonArray array)
+    std::pair<rsc_e, std::string> NetworkValidator::validateEthernet(const JsonArray array, cin_vector* outVector)
     {
-        if (array.size() != 1)
-        {
-            /**
-             * @todo MT11 모델은 Ethernet 인터페이스가 두 개 이상이 될 수 있습니다.
-             *       따라서 MT11부터 본 함수의 로직은 MODLINK 모델에 따라 다르게 
-             *       동작할 수 있도록 수정되어야 합니다.
-             */
-            ASSERT((array.size() == 1), "ETHERNET CONFIG CANNOT BE GREATER THAN 1");
-            return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, "INVALID ETHERNET CONFIG: ONLY ONE ETHERNET MODULE CAN BE CONFIGURED");
-        }
 
-        JsonObject cin = array[0].as<JsonObject>();
-        rsc_e rsc = validateMandatoryKeysEthernet(cin);
-        if (rsc != rsc_e::GOOD)
+    #if defined(MT11)
+        for (JsonObject cin : array)
         {
-            return std::make_pair(rsc, "INVALID ETHERNET: MANDATORY KEY CANNOT BE MISSING");
-        }
-
-        rsc = validateMandatoryValuesEthernet(cin);
-        if (rsc != rsc_e::GOOD)
-        {
-            return std::make_pair(rsc, "INVALID ETHERNET: MANDATORY KEY'S VALUE CANNOT BE NULL");
-        }
-        
-        config::ethernet = new(std::nothrow) config::Ethernet();
-        if (config::ethernet == nullptr)
-        {
-            return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR CIN: ETHERNET");
-        }
-
-        const bool DHCP = cin["dhcp"].as<bool>();
-        config::ethernet->SetDHCP(DHCP);
-
-        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
-        {
-            const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
-            const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
-            if (retEths.first != rsc_e::GOOD)
+    #else
+            const bool hasMultipleCIN = array.size() > 1 ? true : false;
+            const JsonObject cin = array[0];
+    #endif
+            rsc_e rsc = validateMandatoryKeysEthernet(cin);
+            if (rsc != rsc_e::GOOD)
             {
-                return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
+                return std::make_pair(rsc, "INVALID ETHERNET: MANDATORY KEY CANNOT BE MISSING");
+            }
+
+            rsc = validateMandatoryValuesEthernet(cin);
+            if (rsc != rsc_e::GOOD)
+            {
+                return std::make_pair(rsc, "INVALID ETHERNET: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
             
-            /**
-             * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
-             * 
-             */
-        }
+            uint8_t EthernetInterfaces = 0;
+            if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+            {
+                EthernetInterfaces = cin["eths"].as<uint8_t>();
+                const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
+                if (retEths.first != rsc_e::GOOD)
+                {
+                    return std::make_pair(retEths.first, "INVALID ETHERNET INTERFACES");
+                }
+            }
+            std::pair<rsc_e, std::string> result;
+            
+            switch (EthernetInterfaces)
+            {
+            case static_cast<uint8_t>(if_e::EMBEDDED):
 
+                config::embeddedEthernet = new(std::nothrow) config::Ethernet();
+                if (config::embeddedEthernet == nullptr)
+                {
+                    return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR CIN: EMBEDDED ETHERNET");
+                }
+                result = setEthernetConfig(cin, config::embeddedEthernet);
+                break;
+        #if defined(MT11)
+            case static_cast<uint8_t>(if_e::LINK_01):
+
+                config::link1Ethernet = new(std::nothrow) config::Ethernet();
+                if (config::link1Ethernet == nullptr)
+                {
+                    return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR CIN: LINK1 ETHERNET");
+                }
+                result = setEthernetConfig(cin, config::link1Ethernet);
+                break;
+            case static_cast<uint8_t>(if_e::LINK_02):
+
+                config::link2Ethernet = new(std::nothrow) config::Ethernet();
+                if (config::link2Ethernet == nullptr)
+                {
+                    return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR CIN: LINK2 ETHERNET");
+                }
+                result = setEthernetConfig(cin, config::link2Ethernet);
+                break;
+        #endif 
+            default:
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID ETHERNET INTERFACES");
+            }
+            
+            if (result.first != rsc_e::GOOD)
+            {
+                return result;
+            }
+          
+            
+    #if defined(MT11)
+        }
         
-        if (DHCP == false)
-        {
-            const auto retIP    = convertToIPv4(cin["ip"].as<JsonVariant>(),   false);
-            const auto retSVM   = convertToIPv4(cin["snm"].as<JsonVariant>(),  true);
-            const auto retGTW   = convertToIPv4(cin["gtw"].as<JsonVariant>(),  false);
-            const auto retDNS1  = convertToIPv4(cin["dns1"].as<JsonVariant>(), false);
-            const auto retDNS2  = convertToIPv4(cin["dns2"].as<JsonVariant>(), false);
-
-            if (retIP.first != rsc_e::GOOD)
-            {
-                return std::make_pair(rsc, "INVALID ETHERNET IP");
-            }
-
-            if (retSVM.first != rsc_e::GOOD)
-            {
-                return std::make_pair(rsc, "INVALID ETHERNET SUBNETMASK");
-            }
-
-            if (retGTW.first != rsc_e::GOOD)
-            {
-                return std::make_pair(rsc, "INVALID ETHERNET GATEWAY");
-            }
-
-            if (retDNS1.first != rsc_e::GOOD)
-            {
-                return std::make_pair(rsc, "INVALID ETHERNET DNS1");
-            }
-
-            if (retDNS2.first != rsc_e::GOOD)
-            {
-                return std::make_pair(rsc, "INVALID ETHERNET DNS2");
-            }
-
-            config::ethernet->SetStaticIPv4(retIP.second);
-            config::ethernet->SetSubnetmask(retSVM.second);
-            config::ethernet->SetGateway(retGTW.second);
-            config::ethernet->SetDNS1(retDNS1.second);
-            config::ethernet->SetDNS2(retDNS2.second);
-        }
-
         return std::make_pair(rsc_e::GOOD, "GOOD");
+    #else
+        if (hasMultipleCIN == true)
+        {
+            return std::make_pair(rsc_e::UNCERTAIN_CONFIG_INSTANCE, "UNCERTIAN: APPLIED ONLY ONE ETHERTNET CONFIG");
+        }
+        else
+        {
+            return std::make_pair(rsc_e::GOOD, "GOOD");
+        }
+    #endif
+
     }
 
     rsc_e NetworkValidator::validateMandatoryKeysEthernet(const JsonObject json)
