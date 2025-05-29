@@ -1,9 +1,10 @@
+#if defined(MT11)
+
 /**
  * @file W5500.h
- * @author your name (you@domain.com)
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
  * @brief 
- * @version 0.1
- * @date 2025-04-18
  * 
  * @note 
  *      - Max socket: 8 simultaneously
@@ -23,11 +24,13 @@
  *             - Use straight cable for network switch or router.
  *             - Use crossover cable for network nodes except for switch and router.
  *             - If counterpart supports auto MDI-X, than both cables can be used.
- *          - 
  * 
- * @copyright Copyright (c) 2025
+ * @date 2025-05-29
+ * @version 1.4.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2025
  */
-#if defined(MT11)
+
 
 
 
@@ -40,9 +43,10 @@
 #include <sys/_stdint.h>
 
 #include "Common/Status.h"
+#include "DHCP/DHCP.h"
+#include "IM/Custom/Constants.h"
 #include "Include/TypeDefinitions.h"
-
-constexpr uint32_t MHz = 1000 * 1000;
+#include "Network/INetwork.h"
 
 
 
@@ -51,27 +55,37 @@ namespace muffin {
 
     namespace w5500 {
         class Socket;
+        class DHCP;
     }
 
 
-    class W5500
+    class W5500 : public INetwork
     {
     friend class w5500::Socket;
+    friend class w5500::DHCP;
     
     public:
         W5500(const w5500::if_e idx);
-        ~W5500() {}
+        virtual ~W5500() override {}
     public:
-        Status Init(const uint8_t mhz = 1);
-    public:
-        // Static IP configuration
-        Status SetIPv4(const IPAddress ipv4);
-        Status SetGateway(const IPAddress ipv4);
-        Status SetSubnetmask(const IPAddress ipv4);
-        Status SetDNS1(const IPAddress ipv4);
-        Status SetDNS2(const IPAddress ipv4);
+        virtual Status Init() override;
+        virtual Status Config(jvs::config::Base* config) override;
+        virtual Status Connect() override;
+        virtual Status Disconnect() override;
+        virtual Status Reconnect() override;
+        virtual bool IsConnected() override;
+        virtual IPAddress GetIPv4() const override;
+        virtual Status SyncNTP() override;
+        virtual std::pair<Status, size_t> TakeMutex() override;
+        virtual Status ReleaseMutex() override;
     private:
+        Status setLocalIP(const IPAddress ipv4);
+        Status setGateway(const IPAddress ipv4);
+        Status setSubnetmask(const IPAddress ipv4);
+        Status setDNS1(const IPAddress ipv4);
+        Status setDNS2(const IPAddress ipv4);
         Status setIPv4(const w5500::ipv4_type_e type, const IPAddress ipv4);
+        bool getLinkStatus();
     public:
         Status GetMacAddress(uint8_t mac[]);
         Status GetMacAddress(char mac[]);
@@ -119,7 +133,7 @@ namespace muffin {
 
 
     /**
-     * @brief Read/Write 함수 쪽에 인터럽트나 상태 레지스터 보고서 상태를 결정하는 로직 추가할 필요 있겠음
+     * @todo R/W 함수에 인터럽트/상태 레지스터 값에 따라 반응하는 로직 추가 요망
      */
     private:
         Status read(const uint16_t address, const uint8_t control, uint8_t* output);
@@ -148,7 +162,8 @@ namespace muffin {
         static const uint8_t mMOSI     = 11;
         static const uint8_t mMISO     = 13;
         static const uint8_t mSCLK     = 12;
-        static const uint8_t mRESET    = 48;
+        const uint8_t mRESET;
+        static const uint8_t mMHz      = 10;
         static SPISettings mSpiConfig;
     private:
         static constexpr uint16_t DEFAULT_EPHEMERAL_PORT = 0xC000;
@@ -157,8 +172,12 @@ namespace muffin {
         w5500::crb_t mCRB;
         bool mHasMacAddress = false;
         SemaphoreHandle_t xSemaphore;
+        /**
+         * @todo DNS 클라이언트에 DNS 서버 정보를 넘기는 게 좋을지 검토 필요 
+         */
         IPAddress mDNS1;
         IPAddress mDNS2;
+        w5500::DHCP* mDHCP = nullptr;
     };
 
     extern W5500* embeddedW5500;

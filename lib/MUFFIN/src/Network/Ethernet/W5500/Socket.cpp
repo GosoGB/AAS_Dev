@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 /**
  * @file Sockets.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
@@ -9,7 +11,7 @@
  * 
  * @copyright Copyright (c) Edgecross Inc. 2025
  */
-#if defined(MT11)
+
 
 
 
@@ -17,6 +19,7 @@
 
 #include "Common/Assert.h"
 #include "Socket.h"
+#include "W5500.h"
 #include "Include/TypeDefinitions.h"
 
 
@@ -88,6 +91,7 @@ namespace muffin { namespace w5500 {
             case static_cast<uint8_t>(ssr_e::INIT_UDP):
             case static_cast<uint8_t>(ssr_e::INIT_MACRAW):
                 mSRB.Status = static_cast<ssr_e>(status);
+                LOG_DEBUG(logger, "Socket Status: %s", Converter::ToString(mSRB.Status));
                 break;
             default:
                 mSRB.Status = ssr_e::UNCERTAIN;
@@ -139,12 +143,12 @@ namespace muffin { namespace w5500 {
     }
 
     
-    int Socket::Available()
+    uint16_t Socket::Available()
     {
         Status ret = retrieveReceivedSize();
         if (ret != Status::Code::GOOD)
         {
-            return -1;
+            return 0;
         }
         else
         {
@@ -154,6 +158,17 @@ namespace muffin { namespace w5500 {
 
 
     Status Socket::Open()
+    {
+        const uint16_t ephemeralPort = mW5500.GetEphemeralPort();
+        return openInternal(ephemeralPort);
+    }
+
+    Status Socket::Open(const uint16_t port)
+    {
+        return openInternal(port);
+    }
+
+    Status Socket::openInternal(const uint16_t port)
     {
         // configure socket mode
         switch (mProtocol)
@@ -194,8 +209,7 @@ namespace muffin { namespace w5500 {
         }
 
         // configure port number
-        const uint16_t portNumber = mW5500.GetEphemeralPort();
-        ret = setSourcePort(portNumber);
+        ret = setSourcePort(port);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO SET SOURCE PORT: %s", ret.c_str());
@@ -271,7 +285,7 @@ namespace muffin { namespace w5500 {
          * @endcode
          */
 
-        clearInterruptAll();        
+        clearInterrupt();        
         return ret;
     }
 
@@ -363,7 +377,7 @@ namespace muffin { namespace w5500 {
             ret = Status::Code::BAD_CONNECTION_REJECTED;
         }
 
-        clearInterruptAll();
+        clearInterrupt();
         return ret;
     }
 
@@ -377,7 +391,7 @@ namespace muffin { namespace w5500 {
 
     Status Socket::Send(const size_t length, const uint8_t data[])
     {
-        // ASSERT((mSRB.Status == ssr_e::ESTABLISHED), "SOCKET IS NOT INITIALIZED FOR UDP MODE");
+        ASSERT((mSRB.Status == ssr_e::ESTABLISHED), "SOCKET IS NOT INITIALIZED FOR UDP MODE");
         ASSERT((mSRB.Mode.PROTOCOL == sock_prtcl_e::TCP), "SOCKET IS NOT IN UDP MODE");
         ASSERT((length > 0), "INVALID DATA LENGTH: %u", length);
         ASSERT((data != nullptr), "INVALID DATA POINTER");
@@ -421,10 +435,10 @@ namespace muffin { namespace w5500 {
     Status Socket::Receive(const size_t length, size_t* actualLength, uint8_t* data)
     {
         // ASSERT((mSRB.Status == ssr_e::LISTEN), "SOCKET IS NOT IN LISTEN MODE(TCP/IP)");
-        ASSERT((mSRB.Mode.PROTOCOL == sock_prtcl_e::TCP), "SOCKET IS NOT IN TCP MODE");
-        ASSERT((length > 0), "INVALID BUFFER LENGTH TO STORE Rx DATA: %u", length);
-        ASSERT((actualLength != nullptr), "INVALID RECEIVED LENGTH POINTER");
-        ASSERT((data != nullptr), "INVALID DATA POINTER");
+        // ASSERT((mSRB.Mode.PROTOCOL == sock_prtcl_e::TCP), "SOCKET IS NOT IN TCP MODE");
+        // ASSERT((length > 0), "INVALID BUFFER LENGTH TO STORE Rx DATA: %u", length);
+        // ASSERT((actualLength != nullptr), "INVALID RECEIVED LENGTH POINTER");
+        // ASSERT((data != nullptr), "INVALID DATA POINTER");
         
         GetStatus();
         if (mSRB.Status == ssr_e::CLOSED)
@@ -576,54 +590,7 @@ namespace muffin { namespace w5500 {
     }
 
 
-    void Socket::clearInterrupt(const sir_e interrupt)
-    {
-        uint8_t interruptRegister = 0xFF;
-        
-        while (true)
-        {
-            Status ret = mW5500.retrieveSRB(mID, srb_addr_e::INTERRUPT_REGISTER, &interruptRegister);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE INTERRUPT REGISTER: %s", ret.c_str());
-                continue;
-            }
-        
-            interruptRegister |= 1 << static_cast<uint8_t>(interrupt);
-            ret = mW5500.writeSRB(mID, srb_addr_e::INTERRUPT_REGISTER, interruptRegister);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO CLEAR INTERRUPT REGISTER: %s", ret.c_str());
-                continue;
-            }
-
-            uint8_t retrievedInterrupt = 0x00;
-            ret = mW5500.retrieveSRB(mID, srb_addr_e::INTERRUPT_REGISTER, &retrievedInterrupt);
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "FAILED TO RETRIEVE INTERRUPT REGISTER: %s", ret.c_str());
-                continue;
-            }
-
-            if (retrievedInterrupt != interruptRegister)
-            {
-                LOG_ERROR(logger, "FAILED TO CLEAR INTERRUPT REGISTER: %s", ret.c_str());
-                continue;
-            }
-            else
-            {
-                mSRB.Interrupt.SEND_OK       = interruptRegister >> static_cast<uint8_t>(sir_e::SEND_OK) & 0x01;
-                mSRB.Interrupt.TIMEOUT       = interruptRegister >> static_cast<uint8_t>(sir_e::TIMEOUT) & 0x01;
-                mSRB.Interrupt.RECEIVED      = interruptRegister >> static_cast<uint8_t>(sir_e::RECEIVED) & 0x01;
-                mSRB.Interrupt.DISCONNECTED  = interruptRegister >> static_cast<uint8_t>(sir_e::DISCONNECTED) & 0x01;
-                mSRB.Interrupt.CONNECTED     = interruptRegister >> static_cast<uint8_t>(sir_e::CONNECTED) & 0x01;
-                break;
-            }
-        }
-    }
-
-
-    void Socket::clearInterruptAll()
+    void Socket::clearInterrupt()
     {
         while (true)
         {
@@ -842,7 +809,7 @@ namespace muffin { namespace w5500 {
             ret = Status::Code::BAD_CONNECTION_CLOSED;
         }
         
-        clearInterruptAll();
+        clearInterrupt();
         return ret;
     }
 
