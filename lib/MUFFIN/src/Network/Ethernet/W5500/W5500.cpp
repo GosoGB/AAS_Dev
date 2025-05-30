@@ -26,6 +26,7 @@
 #include "JARVIS/Config/Network/Ethernet.h"
 #include "Socket.h"
 #include "W5500.h"
+#include "IM/Custom/MacAddress/MacAddress.h"
 
 SPISettings muffin::W5500::mSpiConfig;
 
@@ -36,7 +37,8 @@ namespace muffin {
     
     W5500::W5500(const w5500::if_e idx)
         : mCS(static_cast<uint8_t>(idx))
-        , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 38)
+        // , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 38)
+        , mRESET(48)
         , xSemaphore(NULL)
     {
         pinMode(mCS,     OUTPUT);
@@ -49,6 +51,7 @@ namespace muffin {
         digitalWrite(mRESET,  HIGH);
         
         memset(&mCRB, 0, sizeof(mCRB));
+        mSocketIdFlag.reset();
     }
 
 
@@ -67,7 +70,12 @@ namespace muffin {
                 return Status(Status::Code::BAD_UNEXPECTED_ERROR);
             }
         }
-
+        else
+        {
+            LOG_WARNING(logger,"W5500 has already been initialized");
+            return Status(Status::Code::GOOD);
+        }
+        
         resetW5500();
         initSPI(mMHz);
 
@@ -122,9 +130,11 @@ namespace muffin {
     Status W5500::Connect()
     {
         Status ret(Status::Code::UNCERTAIN);
-
-        if (mCRB.IPv4[0] == 0 && mCRB.IPv4[1] == 0 && mCRB.IPv4[2] == 0 && mCRB.IPv4[3] == 0)
+ 
+        if (memcmp(mCRB.IPv4, &INADDR_NONE[0], sizeof(mCRB.IPv4)) == 0)
         {
+            LOG_WARNING(logger,"mCRB.IPv4[0] : %u, mCRB.IPv4[1] : %u, mCRB.IPv4[2] : %u, mCRB.IPv4[3] : %u",mCRB.IPv4[0],mCRB.IPv4[1],mCRB.IPv4[2],mCRB.IPv4[3])
+            
             if (mDHCP == nullptr)
             {
                 w5500::Socket socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
@@ -152,6 +162,8 @@ namespace muffin {
         ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
         ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
         ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
+
+        return ret;
     }
 
 
@@ -223,6 +235,7 @@ namespace muffin {
 
     void W5500::initSPI(const uint8_t mhz)
     {
+        SPI.end();
         SPI.begin(mSCLK, mMISO, mMOSI, mCS);
         mSpiConfig._clock     = mhz * MHz;
         mSpiConfig._bitOrder  = SPI_MSBFIRST;
@@ -234,11 +247,27 @@ namespace muffin {
     {   
         Microchip24AA02E microchip;
         const bool isLink = w5500::if_e::EMBEDDED != static_cast<w5500::if_e>(mCS);
-
-        if (microchip.Read(isLink, mCRB.MAC) == false)
+        if (isLink)
         {
-            LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
+            for (size_t i = 0; i < 20; i++)
+            {
+                LOG_DEBUG(logger, "------ HERE ------");
+            }
+            
+            mCRB.MAC[0] = 0xDE;
+            mCRB.MAC[1] = 0xAD;
+            mCRB.MAC[2] = 0xBE;
+            mCRB.MAC[3] = 0xEF;
+            mCRB.MAC[4] = 0xFE;
+            mCRB.MAC[5] = 0xEF;
+        }
+        else
+        {
+            if (microchip.Read(isLink, mCRB.MAC) == false)
+            {
+                LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
+                return Status(Status::Code::BAD_DEVICE_FAILURE);
+            }
         }
     
         Status ret = writeCRB(w5500::crb_addr_e::MAC, sizeof(mCRB.MAC), mCRB.MAC);
@@ -250,6 +279,7 @@ namespace muffin {
         
         uint8_t retrievedMAC[6] = { 0 };
         ret = retrieveCRB(w5500::crb_addr_e::MAC, sizeof(retrievedMAC), retrievedMAC);
+        LOG_DEBUG(logger,"retrievedMAC : %02X:%02X:%02X:%02X:%02X:%02X",retrievedMAC[0],retrievedMAC[1],retrievedMAC[2],retrievedMAC[3],retrievedMAC[4],retrievedMAC[5])
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE MAC ADDRESS");
@@ -473,8 +503,11 @@ namespace muffin {
         
         uint8_t result = 0x00;
         result |= SPI.transfer((address >> 8) & 0xFF)    ? 0 << 0 : 1 << 0;
+        
         result |= SPI.transfer(address & 0xFF)           ? 0 << 1 : 1 << 1;
+        
         result |= SPI.transfer(control)                  ? 0 << 2 : 1 << 2;
+        
         SPI.transferBytes(nullptr, output, length);
         
         digitalWrite(mCS, HIGH);
@@ -482,15 +515,15 @@ namespace muffin {
 
 		xSemaphoreGive(xSemaphore);
 
-        if (result != 0)
-        {
-            LOG_ERROR(logger, "FAILED TO READ SPI: UNABLE TO READ DATA FROM 0x%02X", mCS);
-            return Status(Status::Code::BAD_COMMUNICATION_ERROR);
-        }
-        else
-        {
+        // if (result != 0)
+        // {
+        //     LOG_ERROR(logger, "FAILED TO READ SPI: UNABLE TO READ DATA FROM 0x%02X", mCS);
+        //     return Status(Status::Code::BAD_COMMUNICATION_ERROR);
+        // }
+        // else
+        // {
             return Status(Status::Code::GOOD);
-        }
+        // }
     }
 
 
@@ -709,6 +742,7 @@ namespace muffin {
     Status W5500::writeSRB(const w5500::sock_id_e idx, w5500::srb_addr_e address, uint8_t data)
     {
         using namespace w5500;
+        LOG_DEBUG(logger,"SOCKET ID : %d",static_cast<uint8_t>(idx));
         const uint16_t numericAddress   = static_cast<uint16_t>(address);
         const uint8_t  controlPhase     = Converter::ControlPhase(idx, am_e::WRITE);
         return write(numericAddress, controlPhase, data);
@@ -751,6 +785,31 @@ namespace muffin {
         const uint16_t numericAddress   = static_cast<uint16_t>(address);
         const uint8_t  controlPhase     = Converter::ControlPhase(idx, am_e::WRITE);
         return write(numericAddress, controlPhase, length, data);
+    }
+
+    void W5500::SetSocketIdFlag(const w5500::sock_id_e idx)
+    {
+        LOG_WARNING(logger,"IDX : %d",static_cast<uint8_t>(idx));
+        mSocketIdFlag.set(static_cast<uint16_t>(idx));
+    }
+
+    void W5500::ResetSocketIdFlag(const w5500::sock_id_e idx)
+    {
+        mSocketIdFlag.reset(static_cast<uint16_t>(idx));
+    }
+
+    std::pair<Status, w5500::sock_id_e> W5500::GetAvailableSocketId()
+    {
+        for (int i = 6; i >= 0; --i)
+        {
+            if (mSocketIdFlag.test(i) == false)
+            {
+                LOG_DEBUG(logger,"소캣 사용가능 : %d",i);
+                return std::make_pair(Status(Status::Code::GOOD), static_cast<w5500::sock_id_e>(i));
+            }
+        }
+        
+        return std::make_pair(Status(Status::Code::BAD_RESOURCE_UNAVAILABLE), w5500::sock_id_e::TOP);
     }
 
     W5500* ethernet   = nullptr;

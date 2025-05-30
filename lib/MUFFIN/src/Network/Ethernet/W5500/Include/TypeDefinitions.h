@@ -26,7 +26,7 @@ namespace muffin { namespace w5500 {
         : uint8_t
     {
         EMBEDDED   = 10,
-        LINK_01    = 21,
+        LINK_01    = 18,
         LINK_02    = 17
     } if_e;
 

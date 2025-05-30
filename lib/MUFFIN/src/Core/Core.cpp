@@ -237,10 +237,10 @@ namespace muffin {
         }
     #endif 
     #if defined(MT11)
-        W5500 w5500(w5500::if_e::EMBEDDED);
-        w5500.Init();
+        ethernet = new(std::nothrow) W5500(w5500::if_e::EMBEDDED);
+        ethernet->Init();
         char mac[13] = {'\0'};
-        w5500.GetMacAddress(mac);
+        ethernet->GetMacAddress(mac);
         LOG_WARNING(logger,"MAC : %s",mac);
         macAddress.SetMacAddress(mac);
     #endif    

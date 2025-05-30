@@ -37,5 +37,7 @@ namespace muffin {
     void applyModbusRtuCIN(std::vector<jvs::config::Base*>& vectorModbusRTUCIN, jvs::config::Rs485* rs485CIN);
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN);
     void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN);
-    void applayEthernet();
+    void applyEthernet();
+    void applyModbusTcpConfig(W5500* eth, w5500::sock_id_e id, jvs::config::ModbusTCP* cin);
+    void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin);
 }

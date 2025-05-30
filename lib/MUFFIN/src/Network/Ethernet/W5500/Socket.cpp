@@ -42,6 +42,9 @@ namespace muffin { namespace w5500 {
         mSRB.TxFreeSize      = 0x0800;
         mSRB.InterruptMask   = 0x00FF;
         mSRB.FragmentOffset  = 0x4000;
+        LOG_INFO(logger,"SOCKET 생성, ID : %d",static_cast<uint8_t>(mID));
+
+        mW5500.SetSocketIdFlag(mID);
     }
 
 
@@ -60,6 +63,7 @@ namespace muffin { namespace w5500 {
                 break;
             }
         }
+        mW5500.ResetSocketIdFlag(mID);
     }
 
 

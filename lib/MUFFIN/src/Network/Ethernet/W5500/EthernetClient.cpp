@@ -501,6 +501,8 @@ namespace muffin { namespace w5500 {
         if (status != ssr_e::ESTABLISHED)
         {
             mIsConnected = false;
+            
+            LOG_WARNING(logger,"here4");
             return 0;
         }
 

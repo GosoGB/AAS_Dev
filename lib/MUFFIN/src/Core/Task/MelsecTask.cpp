@@ -60,7 +60,7 @@ namespace muffin
 
             for(auto& melsec : MelsecVector)
             {
-                if (!melsec.mMelsecClient.Connected())
+                if (!melsec.mMelsecClient->Connected())
                 {
                     if (!melsec.Connect())
                     {

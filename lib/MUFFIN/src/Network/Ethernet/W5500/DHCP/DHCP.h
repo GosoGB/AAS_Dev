@@ -273,6 +273,8 @@ typedef struct DynamicHostConfigurationProtocolType
         Status sendRequest();
         Status parseAckMessage(const uint8_t* buffer, size_t length);
         Status parseOfferMessage(const uint8_t* buffer, size_t length);
+        static void taskEntryPoint(void* param);
+        void taskLoop();
  
     public:
         /* Reset the DHCP timeout count and retry count. */
@@ -286,6 +288,7 @@ typedef struct DynamicHostConfigurationProtocolType
         uint32_t mLeaseT1        = 0;
         uint32_t mTickCurrent    = 0;
         uint8_t  trialCount      = 0;
+        TaskHandle_t xTaskDhcpHandle = nullptr;
 
     private:
         // uint8_t mMAC[6] = { 0 };    // DHCP_CHADDR

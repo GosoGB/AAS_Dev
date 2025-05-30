@@ -82,7 +82,7 @@ namespace muffin {
             }
         }
 
-        applayEthernet();
+        applyEthernet();
 
         for (auto& pair : *jarvis)
         {
@@ -363,33 +363,50 @@ namespace muffin {
         for (auto& modbusTCPCIN : vectorModbusTCPCIN)
         {
             jvs::config::ModbusTCP* cin = static_cast<jvs::config::ModbusTCP*>(modbusTCPCIN);
-
+        
+    #if defined(MT11)
             const jvs::if_e eth = cin->GetEthernetInterface().second;
-            
-            
             switch (eth)
             {
             case jvs::if_e::EMBEDDED:
-            {   
+            {
+                const auto retSocketID = ethernet->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH0] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                LOG_DEBUG(logger,"SOCKET ID : %d",static_cast<uint8_t>(retSocketID.second));
+                applyModbusTcpConfig(ethernet, retSocketID.second, cin);
                 break;
             }
             case jvs::if_e::LINK_01:
-                
-                break;
-            case jvs::if_e::LINK_02:
-        
-                break;
-            default:
-        
+            {
+                const auto retSocketID = link1W5500->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH1] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                applyModbusTcpConfig(link1W5500, retSocketID.second, cin);
                 break;
             }
-
-            할당 가능한 소켓이 있는지 확인하는 함수 호출해서 확인
-            if (없으면 에러 반환)
-                에러 반환
-            const w5500::sock_id_e idx = std::set 으로 남아있는 소켓 이넘 반환하는 거;
-            ModbusTCP* modbusTCP = new ModbusTCP(W5500 이더넷 인터페이스);
-            
+            case jvs::if_e::LINK_02:
+            {
+                const auto retSocketID = link2W5500->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH2] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                applyModbusTcpConfig(link2W5500, retSocketID.second, cin);
+                break;
+            }
+            default:
+                break;
+            }
+    #else
+            ModbusTCP* modbusTCP = new ModbusTCP();
             Status ret = modbusTCP->Config(cin);
             if (ret != Status::Code::GOOD)
             {
@@ -398,6 +415,7 @@ namespace muffin {
             }
             mConfigVectorMbTCP.emplace_back(*cin);
             ModbusTcpVector.emplace_back(*modbusTCP);
+    #endif
         }
 
         StartModbusTcpTask();
@@ -427,26 +445,52 @@ namespace muffin {
 
         for (auto& melsecCIN : vectorMelsecCIN)
         {
-            Melsec* melsec = new Melsec();
             jvs::config::Melsec* cin = static_cast<jvs::config::Melsec*>(melsecCIN);
 
+    #if defined(MT11)
             const jvs::if_e eth = cin->GetEthernetInterface().second;
             switch (eth)
             {
             case jvs::if_e::EMBEDDED:
-               
-                break;
-            case jvs::if_e::LINK_01:
-                
-                break;
-            case jvs::if_e::LINK_02:
-       
-                break;
-            default:
-     
+            {
+                const auto retSocketID = ethernet->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH0] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                LOG_DEBUG(logger,"EMBEDED SOCKET ID : %d",static_cast<uint8_t>(retSocketID.second));
+                applyMelsecConfig(ethernet, retSocketID.second, cin);
                 break;
             }
-
+            case jvs::if_e::LINK_01:
+            {
+                const auto retSocketID = link1W5500->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH1] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                LOG_DEBUG(logger,"LINK1 SOCKET ID : %d",static_cast<uint8_t>(retSocketID.second));
+                applyMelsecConfig(link1W5500, retSocketID.second, cin);
+                break;
+            }
+            case jvs::if_e::LINK_02:
+            {
+                const auto retSocketID = link2W5500->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH2] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                applyMelsecConfig(link2W5500, retSocketID.second, cin);
+                break;
+            }
+            default:
+                break;
+            }
+    #else
+            Melsec* melsec = new Melsec();
             Status ret = melsec->Config(cin);
             if (ret != Status::Code::GOOD)
             {
@@ -455,6 +499,7 @@ namespace muffin {
             }
             mConfigVectorMelsec.emplace_back(*cin);
             MelsecVector.emplace_back(*melsec);
+    #endif
         }
 
         StartMelsecTask();
@@ -462,22 +507,70 @@ namespace muffin {
 
     }
 
-    void applayEthernet()
+    void applyEthernet()
     {
    #if defined(MT11)
+        if (jvs::config::embeddedEthernet != nullptr)
+        {
+            ethernet->Config(jvs::config::embeddedEthernet);
+            ethernet->Connect();
+        }
+
         if (jvs::config::link1Ethernet != nullptr)
         {
             link1W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_01);
-            link1W5500->Init();
-            // link1W5500->config(jvs::config::link1Ethernet)
+            Status ret = link1W5500->Init();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "LINK1 W5500 INIT ERROR: %s",ret.c_str());
+            }
+
+            link1W5500->Config(jvs::config::link1Ethernet);
+            link1W5500->Connect();
+            
         }
         if (jvs::config::link2Ethernet != nullptr)
         {
             link2W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_02);
-            link2W5500->Init();
-            // link2W5500->config(jvs::config::link2Ethernet)
+            Status ret = link2W5500->Init();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "LINK2 W5500 INIT ERROR: %s",ret.c_str());
+            }
+
+            link2W5500->Config(jvs::config::link2Ethernet);
+            link2W5500->Connect();
         }
     #endif
+    }
+
+    void applyModbusTcpConfig(W5500* eth, w5500::sock_id_e id, jvs::config::ModbusTCP* cin)
+    {
+        ModbusTCP* modbusTCP = new ModbusTCP(*eth, id);
+        
+        Status ret = modbusTCP->Config(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
+            return;
+        }
+        mConfigVectorMbTCP.emplace_back(*cin);
+        ModbusTcpVector.emplace_back(*modbusTCP);
+    }
+
+    void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin)
+    {
+        Melsec* melsec = new Melsec();
+        melsec->SetW5500Client(*eth, id);
+
+        Status ret = melsec->Config(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE MELSEC");
+            return;
+        }
+        mConfigVectorMelsec.emplace_back(*cin);
+        MelsecVector.emplace_back(*melsec);
     }
 
 }

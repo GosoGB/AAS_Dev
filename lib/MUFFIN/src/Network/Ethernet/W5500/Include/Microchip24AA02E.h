@@ -35,6 +35,6 @@ namespace muffin {
         static const uint8_t mSDA = 2;
         static const uint8_t mSCL = 1;
         static const uint8_t mDeviceAddressBOARD  = 0x50;
-        static const uint8_t mDeviceAddressLINK   = 0x00;
+        static const uint8_t mDeviceAddressLINK   = 0x50;
     };
 }

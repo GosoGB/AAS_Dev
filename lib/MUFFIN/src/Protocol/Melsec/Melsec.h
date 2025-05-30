@@ -26,20 +26,23 @@
 #include "JARVIS/Config/Protocol/Melsec.h"
 #include "JARVIS/Include/TypeDefinitions.h"
 #include "Protocol/Melsec/MelsecClient.h"
-
-
+#if defined(MT11)
+    #include "Network/Ethernet/W5500/EthernetClient.h"
+#else
+#endif
 
 namespace muffin {
 
     class Melsec
     {
     public:
-        Melsec(); // @lsj 기본 생성자, 소멸자로 충분한 경우 별도로 작성하지 않는 방향 어떰?
+        Melsec();
         virtual ~Melsec();
     private:
         using AddressRange = im::NumericAddressRange;
 
     public:
+        Status SetW5500Client(W5500& interface, const w5500::sock_id_e sock_id);
         Status Config(jvs::config::Melsec* config);
         void Clear();
         IPAddress GetServerIP();
@@ -61,7 +64,7 @@ namespace muffin {
         modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area);
     
     public:
-        MelsecClient mMelsecClient;
+        MelsecClient* mMelsecClient = nullptr;
 
     private:
         modbus::NodeTable mNodeTable;

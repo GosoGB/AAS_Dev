@@ -19,12 +19,15 @@
 #include <vector>
 
 #include <Arduino.h>
-#include <WiFi.h>
 #include "JARVIS/Include/TypeDefinitions.h"
 #include "Include/MelsecCommonHeader.h"
 #include "MelsecBuilder.h"
 #include "MelsecParser.h"
-
+#if defined(MT11)
+    #include "Network/Ethernet/W5500/EthernetClient.h"
+#else
+    #include "WiFi.h"
+#endif
 
 
 namespace muffin
@@ -32,7 +35,11 @@ namespace muffin
     class MelsecClient
     {
     public:
+#if defined(MT11)
+        MelsecClient(W5500& interface, const w5500::sock_id_e sock_id);
+#else
         MelsecClient();
+#endif
         virtual ~MelsecClient();
     
     public:
@@ -63,7 +70,12 @@ namespace muffin
         // 기존 변수 외에 ASCII 헤더 구성용 변수 추가
         MelsecBuilder mMelsecBuilder;
         MelsecParser mMelsecParser;
-        WiFiClient mClient;
+    public:
+    #if defined(MT11)
+        w5500::EthernetClient* mClient = nullptr;
+    #else
+        WiFiClient* mClient = nullptr;
+    #endif
 
     private:
         bool mIsConnected = false;

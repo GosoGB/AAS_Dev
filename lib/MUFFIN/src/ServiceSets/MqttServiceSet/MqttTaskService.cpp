@@ -933,12 +933,12 @@ namespace muffin {
                                     if (im::IsBitArea(nodeArea))
                                     {
                                         LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
-                                        writeResult = melsec.mMelsecClient.WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                        writeResult = melsec.mMelsecClient->WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
                                     }
                                     else
                                     {
                                         LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
-                                        writeResult = melsec.mMelsecClient.WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                        writeResult = melsec.mMelsecClient->WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
                                     }
                                     xSemaphoreGive(xSemaphoreMelsec);
                                     goto RC_RESPONSE;

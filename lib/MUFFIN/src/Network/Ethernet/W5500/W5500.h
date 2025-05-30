@@ -47,7 +47,7 @@
 #include "IM/Custom/Constants.h"
 #include "Include/TypeDefinitions.h"
 #include "Network/INetwork.h"
-
+#include "Common/DataStructure/bitset.h"
 
 
 namespace muffin {
@@ -178,6 +178,13 @@ namespace muffin {
         IPAddress mDNS1;
         IPAddress mDNS2;
         w5500::DHCP* mDHCP = nullptr;
+    
+    public:
+        void SetSocketIdFlag(const w5500::sock_id_e idx);
+        void ResetSocketIdFlag(const w5500::sock_id_e idx);
+        std::pair<Status, w5500::sock_id_e> GetAvailableSocketId();
+    private:
+        bitset<static_cast<uint16_t>(9)> mSocketIdFlag;
     };
 
     extern W5500* ethernet;

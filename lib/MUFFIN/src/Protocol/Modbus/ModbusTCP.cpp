@@ -30,7 +30,7 @@ namespace muffin {
 
 
 #if defined(MT11)
-    ModbusTCP::ModbusTCP(W5500& interface, sock_id)
+    ModbusTCP::ModbusTCP(W5500& interface, const w5500::sock_id_e sock_id)
     {
         mClient = new w5500::EthernetClient(interface, sock_id);
         mModbusTCPClient = new ModbusTCPClient(*mClient);

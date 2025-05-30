@@ -236,10 +236,10 @@ namespace muffin {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
         
-        if (ethernet->IsConnected() == true)
-        {
-            return Status(Status::Code::GOOD);
-        }
+        // if (ethernet->IsConnected() == true)
+        // {
+        //     return Status(Status::Code::GOOD);
+        // }
 
         Status ret = ethernet->Init();
         if (ret != Status::Code::GOOD)

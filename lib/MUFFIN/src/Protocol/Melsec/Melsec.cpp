@@ -26,11 +26,10 @@
 
 namespace muffin {
 
+
     Melsec::Melsec()
     {
-    #if defined(DEBUG)
-        LOG_VERBOSE(logger, "Constructed at address: %p", this);
-    #endif
+
     }
     
     Melsec::~Melsec()
@@ -40,10 +39,22 @@ namespace muffin {
     #endif
     }
 
+    Status Melsec::SetW5500Client(W5500& interface, const w5500::sock_id_e sock_id)
+    {
+        mMelsecClient = new MelsecClient(interface, sock_id);
+        
+        if (mMelsecClient == nullptr)
+        {
+            return Status(Status::Code::BAD);
+        }
+        
+        return Status(Status::Code::GOOD);
+    }
+
     bool Melsec::Connect()
     {
-        mMelsecClient.SetDataFormat(mDataformat);
-        return (mMelsecClient.Begin(mServerIP.toString().c_str(), mServerPort, mPlcSeries));
+        mMelsecClient->SetDataFormat(mDataformat);
+        return (mMelsecClient->Begin(mServerIP.toString().c_str(), mServerPort, mPlcSeries));
     }
 
     Status Melsec::Config(jvs::config::Melsec* config)
@@ -291,7 +302,7 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             uint16_t response[pollQuantity+1] = {0};  // @lsj 메모리 할당과 초기화는 항상 같이 하는 게 좋아요
-            int result = mMelsecClient.ReadBits(area,startAddress,pollQuantity,response);
+            int result = mMelsecClient->ReadBits(area,startAddress,pollQuantity,response);
             delay(80); // @lsj 딜레이 없이도 데이터 수집에 무리가 없는지 확인 부탁드려요 네!
 
             if (result != pollQuantity) 
@@ -336,7 +347,7 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             uint16_t response[pollQuantity];
-            int result = mMelsecClient.ReadWords(area,startAddress,pollQuantity,response);
+            int result = mMelsecClient->ReadWords(area,startAddress,pollQuantity,response);
             delay(80);
 
             if (result != pollQuantity) 

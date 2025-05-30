@@ -693,40 +693,6 @@ namespace muffin { namespace w5500 {
         return Status(Status::Code::GOOD);
     }
 
-    Status DHCP::Run()
-    {
-        mTickCurrent++;
-        LOG_DEBUG(logger,"mTickCurrent : %d, mLeaseTime : %d ",mTickCurrent,mLeaseTime);
-        if (mTickCurrent > mLeaseT1)
-        {
-            mState = state_e::RENEWING;
-        }
-        else if (mTickCurrent > mLeaseT2)
-        {
-            mState = state_e::REBIND;
-        }
-        else if(mTickCurrent > mLeaseTime)
-        {
-            mState = state_e::RELEASE;
-        }
-
-        Status ret = Status(Status::Code::GOOD);
-
-        switch (mState)
-        {
-        case state_e::RENEWING:
-        case state_e::REBIND:
-            ret = renewingMessage();
-            break;
-        case state_e::RELEASE:
-            ret = Init();
-            break;
-        default:
-            break;
-        }
-        return ret;
-    }
-    
     uint32_t DHCP::GetLeasetime() const
     {
         return mLeaseTime;
@@ -763,6 +729,100 @@ namespace muffin { namespace w5500 {
         return Status(Status::Code::GOOD);
     }
 
+    Status DHCP::Run()
+    {
+        if (xTaskDhcpHandle != NULL)
+        {
+            LOG_WARNING(logger, "THE DHCP TASK HAS ALREADY STARTED");
+            return Status(Status::Code::GOOD);
+        }
+
+        xTaskDhcpHandle = xSemaphoreCreateMutex();
+        if (xTaskDhcpHandle == NULL)
+        {
+            LOG_ERROR(logger, "FAILED TO CREATE DHCP SEMAPHORE");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+        }
+
+        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
+            taskEntryPoint,      // Function to be run inside of the task
+            "DhcpTask",    // The identifier of this task for men
+            2 * 1024,          // Stack memory size to allocate
+            this,               // Task parameters to be passed to the function
+            1,				    // Task Priority for scheduling
+            &xTaskDhcpHandle,  // The identifier of this task for machines
+            1				        // Index of MCU core where the function to run
+        );
+
+        switch (taskCreationResult)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "The dhcp task has been started");
+            return Status(Status::Code::GOOD);
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
+            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
+            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+        }
+
+    }
+
+    void DHCP::taskEntryPoint(void* param) 
+    {
+        DHCP* instance = static_cast<DHCP*>(param);
+        instance->taskLoop();
+    }
+
+    void DHCP::taskLoop()
+    {
+        while (true)
+        {
+
+            size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+        
+            LOG_DEBUG(logger, "[DHCP} Stack Remaind: %u Bytes", RemainedStackSize);
+
+            vTaskDelay(pdMS_TO_TICKS(10000));  // 60초마다
+            
+            mTickCurrent += 10;
+
+            LOG_DEBUG(logger, "Tick: %d, T1: %d, T2: %d, LeaseTime: %d", mTickCurrent, mLeaseT1, mLeaseT2, mLeaseTime);
+
+            if (mTickCurrent >= mLeaseTime)
+            {
+                mState = state_e::RELEASE;
+            }
+            else if (mTickCurrent >= mLeaseT2)
+            {
+                mState = state_e::REBIND;
+            }
+            else if (mTickCurrent >= mLeaseT1)
+            {
+                mState = state_e::RENEWING;
+            }
+
+            switch (mState)
+            {
+                case state_e::RENEWING:
+                case state_e::REBIND:
+                    renewingMessage();
+                    break;
+                case state_e::RELEASE:
+                    Init();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }}
 
 

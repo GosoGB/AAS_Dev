@@ -29,6 +29,7 @@ namespace muffin { namespace w5500 {
     public:
         static uint8_t ControlPhase(const sock_id_e socket, const am_e access)
         {
+            
             bsb_e block = bsb_e::COMMON_REGISTER;
 
             switch (socket)

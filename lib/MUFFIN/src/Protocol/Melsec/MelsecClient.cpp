@@ -25,6 +25,16 @@
 
 namespace muffin
 {
+    #if defined(MT11)
+    MelsecClient::MelsecClient(W5500& interface, const w5500::sock_id_e sock_id)
+    :   mPort(0), 
+        mIP(nullptr), 
+        mPlcSeries(jvs::ps_e::QL_SERIES), 
+        mDataFormat(jvs::df_e::BINARY)
+    {
+        mClient = new w5500::EthernetClient(interface, sock_id);
+    }
+#else
     MelsecClient::MelsecClient() 
     :   mPort(0), 
         mIP(nullptr), 
@@ -33,20 +43,14 @@ namespace muffin
     {
         
     }
+#endif
+
 
 
     MelsecClient::~MelsecClient()
     {   
 
     }
-
-    // void MelsecClient::SetHeader(uint8_t networkNo, uint8_t pcNo, uint16_t ioNo, uint8_t stationNo) 
-    // {
-    //     mCommonHeader.NetworkNumber = networkNo;
-    //     mCommonHeader.PcNumber = pcNo;
-    //     mCommonHeader.IoNumber = ioNo;
-    //     mCommonHeader.StationNumber = stationNo;
-    // }
     
 
     bool MelsecClient::Begin(const char *ip, uint16_t port, jvs::ps_e series) 
@@ -55,7 +59,7 @@ namespace muffin
         mPort = port;
         mPlcSeries = series;
 
-        if (mClient.connect(mIP, mPort)) 
+        if (mClient->connect(mIP, mPort)) 
         {
             mIsConnected = true;
         } 
@@ -75,7 +79,7 @@ namespace muffin
 
     void MelsecClient::Close()
     {
-        mClient.stop();
+        mClient->stop();
         mIsConnected = false;
     }
 
@@ -305,25 +309,26 @@ namespace muffin
 
     int MelsecClient::sendAndReceive(const uint8_t *cmd, int length, uint8_t *responseBuf) 
     {
-        if (!mClient.connected()) 
+        if (!mClient->connected()) 
         {
+            LOG_ERROR(logger,"here???");
             return 0;
         }
         // @lsj 왜 flush가 read 뒤에 나오는 거죠...? write 바로 뒤에 붙어야 하지 않나요??
-        mClient.flush();
+        mClient->flush();
 
-        mClient.write(cmd, length);
+        mClient->write(cmd, length);
 
         uint32_t startTS = millis();
-        while (!mClient.available() && (millis() - startTS) < 1000) 
+        while (!mClient->available() && (millis() - startTS) < 1000) 
         {
             delay(1);
         }
         size_t idx = 0;
         
-        while (mClient.available()>0)
+        while (mClient->available()>0)
         {
-            responseBuf[idx] = mClient.read();
+            responseBuf[idx] = mClient->read();
             idx++;
         }
         

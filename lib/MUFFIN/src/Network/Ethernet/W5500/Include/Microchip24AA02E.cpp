@@ -25,6 +25,12 @@ namespace muffin {
 
     bool Microchip24AA02E::Read(const bool isLINK, uint8_t mac[])
     {
+        // if (isLINK)
+        // {
+        //     mac[0] = 0x0;
+        //     return true;
+        // }
+        
         ASSERT((mac != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
 
         if (Wire.setPins(mSDA, mSCL) == false)
