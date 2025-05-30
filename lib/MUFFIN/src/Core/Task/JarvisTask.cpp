@@ -366,14 +366,13 @@ namespace muffin {
 
             const jvs::if_e eth = cin->GetEthernetInterface().second;
             
-            수정중 김주성
-            
             
             switch (eth)
             {
             case jvs::if_e::EMBEDDED:
-                
+            {   
                 break;
+            }
             case jvs::if_e::LINK_01:
                 
                 break;
@@ -384,8 +383,12 @@ namespace muffin {
         
                 break;
             }
-            
-            ModbusTCP* modbusTCP = new ModbusTCP();
+
+            할당 가능한 소켓이 있는지 확인하는 함수 호출해서 확인
+            if (없으면 에러 반환)
+                에러 반환
+            const w5500::sock_id_e idx = std::set 으로 남아있는 소켓 이넘 반환하는 거;
+            ModbusTCP* modbusTCP = new ModbusTCP(W5500 이더넷 인터페이스);
             
             Status ret = modbusTCP->Config(cin);
             if (ret != Status::Code::GOOD)

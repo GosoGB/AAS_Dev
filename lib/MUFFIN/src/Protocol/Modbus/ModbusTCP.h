@@ -43,7 +43,7 @@ namespace muffin {
     {
     public:
     #if defined(MT11)
-        ModbusTCP(w5500::Socket& socket);
+        ModbusTCP(W5500& interface);
     #else
         ModbusTCP();
     #endif
