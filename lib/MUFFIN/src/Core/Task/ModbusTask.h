@@ -31,5 +31,6 @@ namespace muffin {
     bool HasModbusTcpTask();
 
     extern std::vector<ModbusTCP> ModbusTcpVector;
+    extern std::vector<ModbusTCP> ModbusTcpVectorDynamic;
     extern std::vector<ModbusRTU> ModbusRtuVector;
 }

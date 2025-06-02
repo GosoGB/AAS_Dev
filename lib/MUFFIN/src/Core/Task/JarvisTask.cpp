@@ -553,7 +553,15 @@ namespace muffin {
             return;
         }
         mConfigVectorMbTCP.emplace_back(*cin);
-        ModbusTcpVector.emplace_back(*modbusTCP);
+
+        if (id == w5500::sock_id_e::SOCKET_0)
+        {
+            ModbusTcpVectorDynamic.emplace_back(*modbusTCP);
+        }
+        else
+        {
+            ModbusTcpVector.emplace_back(*modbusTCP);
+        }
     }
 
     void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin)
@@ -568,7 +576,15 @@ namespace muffin {
             return;
         }
         mConfigVectorMelsec.emplace_back(*cin);
-        MelsecVector.emplace_back(*melsec);
+
+        if (id == w5500::sock_id_e::SOCKET_0)
+        {
+            MelsecVectorDynamic.emplace_back(*melsec);
+        }
+        else
+        {
+            MelsecVector.emplace_back(*melsec);
+        }
     }
 #endif
 }

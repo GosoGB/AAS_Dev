@@ -32,6 +32,7 @@ namespace muffin
 {
 
     std::vector<Melsec> MelsecVector;
+    std::vector<Melsec> MelsecVectorDynamic;
     TaskHandle_t xTaskMelsecHandle = NULL;
 
     void implMelsecTask(void* pvParameter)

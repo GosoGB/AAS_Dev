@@ -25,4 +25,5 @@ namespace muffin {
     bool HasMelsecTask();
 
     extern std::vector<Melsec> MelsecVector;
+    extern std::vector<Melsec> MelsecVectorDynamic;
 }

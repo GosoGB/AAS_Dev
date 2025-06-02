@@ -34,6 +34,7 @@
 namespace muffin {
 
     std::vector<ModbusTCP> ModbusTcpVector;
+    std::vector<ModbusTCP> ModbusTcpVectorDynamic;
     std::vector<ModbusRTU> ModbusRtuVector;
 
 
