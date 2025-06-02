@@ -22,5 +22,7 @@
 namespace muffin {
 
     Status InitCatM1Service();
+#if !defined(MODLINK_L)
     Status InitEthernetService();
+#endif 
 }

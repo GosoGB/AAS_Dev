@@ -81,9 +81,9 @@ namespace muffin {
                 break;
             }
         }
-
+#if defined(MT11)
         applyEthernet();
-
+#endif
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
@@ -507,9 +507,9 @@ namespace muffin {
 
     }
 
+#if defined(MT11)
     void applyEthernet()
     {
-   #if defined(MT11)
         if (jvs::config::embeddedEthernet != nullptr)
         {
             ethernet->Config(jvs::config::embeddedEthernet);
@@ -541,13 +541,11 @@ namespace muffin {
             link2W5500->Config(jvs::config::link2Ethernet);
             link2W5500->Connect();
         }
-    #endif
     }
 
     void applyModbusTcpConfig(W5500* eth, w5500::sock_id_e id, jvs::config::ModbusTCP* cin)
     {
         ModbusTCP* modbusTCP = new ModbusTCP(*eth, id);
-        
         Status ret = modbusTCP->Config(cin);
         if (ret != Status::Code::GOOD)
         {
@@ -572,5 +570,5 @@ namespace muffin {
         mConfigVectorMelsec.emplace_back(*cin);
         MelsecVector.emplace_back(*melsec);
     }
-
+#endif
 }

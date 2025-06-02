@@ -29,7 +29,9 @@ namespace muffin {
 
     Melsec::Melsec()
     {
-
+    #if !defined(MT11)
+        mMelsecClient = new MelsecClient();
+    #endif
     }
     
     Melsec::~Melsec()
@@ -38,7 +40,7 @@ namespace muffin {
         LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
-
+#if defined(MT11)
     Status Melsec::SetW5500Client(W5500& interface, const w5500::sock_id_e sock_id)
     {
         mMelsecClient = new MelsecClient(interface, sock_id);
@@ -50,7 +52,7 @@ namespace muffin {
         
         return Status(Status::Code::GOOD);
     }
-
+#endif
     bool Melsec::Connect()
     {
         mMelsecClient->SetDataFormat(mDataformat);

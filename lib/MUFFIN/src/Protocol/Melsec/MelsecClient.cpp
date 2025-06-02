@@ -41,7 +41,7 @@ namespace muffin
         mPlcSeries(jvs::ps_e::QL_SERIES), 
         mDataFormat(jvs::df_e::BINARY)
     {
-        
+        mClient = new WiFiClient();
     }
 #endif
 

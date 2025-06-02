@@ -787,6 +787,7 @@ namespace muffin { namespace http {
             {
                 char* pos = strchr(line, ' ');
                 mContentLength = atoi(++pos);
+                LOG_DEBUG(logger," mContentLength : %d",mContentLength);
             }
             else if (strncmp(line, "Content-Type: application/octet-stream", 38) == 0)
             {
@@ -834,6 +835,7 @@ namespace muffin { namespace http {
         
         uint32_t lastReceiveTime = millis();
         size_t receivedBytes = 0;
+
         while (receivedBytes < mContentLength) 
         {
             if (client->available() > 0) 
@@ -844,12 +846,17 @@ namespace muffin { namespace http {
                 {
                     if ((client->available() == 1) && (client->peek() == '0'))
                     {   
-                        file.write(0);
-                        receivedBytes++;
-                        break;
+                        delay(1);
+                        if ((client->available() == 1))
+                        {
+                            file.write(0);
+                            receivedBytes++;
+                            break;
+                        }
                     }
                 }
-                file.write(client->read());
+    
+                file.write(client->read());       
                 receivedBytes++;
             }
             else
@@ -864,7 +871,7 @@ namespace muffin { namespace http {
                 }
             }
         }
-        
+
         file.write('\0');
         file.flush();
         file.close();

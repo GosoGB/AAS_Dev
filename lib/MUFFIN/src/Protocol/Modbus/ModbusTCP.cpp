@@ -54,22 +54,6 @@ namespace muffin {
 
     Status ModbusTCP::Config(jvs::config::ModbusTCP* config)
     {
-        const jvs::if_e eth = config->GetEthernetInterface().second;
-        switch (eth)
-        {
-        case jvs::if_e::EMBEDDED:
-            break;
-        case jvs::if_e::LINK_01:
-            
-            break;
-        case jvs::if_e::LINK_02:
-    
-            break;
-        default:
-    
-            break;
-        }
-
         addNodeReferences(config->GetSlaveID().second, config->GetNodes().second);
         mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;

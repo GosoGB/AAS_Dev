@@ -103,7 +103,7 @@ namespace muffin {
     #if defined(MODLINK_L) || defined(MODLINK_ML10)
         , mRxBufferSize(15*KILLOBYTE)
     #else
-        , mRxBufferSize(10*KILLOBYTE)
+        , mRxBufferSize(20*KILLOBYTE)
     #endif
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)

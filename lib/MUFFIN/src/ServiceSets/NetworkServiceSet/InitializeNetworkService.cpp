@@ -220,7 +220,7 @@ namespace muffin {
         return ret;
     }
 
-
+#if !defined(MODLINK_L)
     Status InitEthernetService()
     {
         if (jvs::config::embeddedEthernet == nullptr)
@@ -236,10 +236,10 @@ namespace muffin {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
         
-        // if (ethernet->IsConnected() == true)
-        // {
-        //     return Status(Status::Code::GOOD);
-        // }
+        if (ethernet->IsConnected() == true)
+        {
+            return Status(Status::Code::GOOD);
+        }
 
         Status ret = ethernet->Init();
         if (ret != Status::Code::GOOD)
@@ -283,4 +283,5 @@ namespace muffin {
         LOG_INFO(logger,"Initialized ethernet interface");
         return ret;
     }
+#endif
 }

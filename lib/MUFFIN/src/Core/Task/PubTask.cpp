@@ -182,7 +182,7 @@ namespace muffin {
             }
             
             JSON json;
-            const size_t size = 4 * 1024;
+            const size_t size = 20 * 1024;
             char payload[size] = {'\0'};
             json.Serialize(nodeVector, size, sourceTimestamp, payload);
             mqtt::Message message(mqtt::topic_e::DAQ_INPUT, payload);
@@ -205,7 +205,7 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             MSGTask,      // Function to be run inside of the task
             "MSGTask",    // The identifier of this task for men
-            8*KILLOBYTE,			       // Stack memory size to allocate
+            40*KILLOBYTE,			       // Stack memory size to allocate
             NULL,      // Task parameters to be passed to the function
             0,				       // Task Priority for scheduling
             &xTaskMonitorHandle,   // The identifier of this task for machines

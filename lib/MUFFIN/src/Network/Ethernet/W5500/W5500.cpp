@@ -76,7 +76,10 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
         
-        resetW5500();
+        // resetW5500();
+    #if !defined(DEBUG)
+        릴리즈 할 때는 리셋을 다시 살려주세요!
+    #endif
         initSPI(mMHz);
 
         Status ret = setMacAddress();
