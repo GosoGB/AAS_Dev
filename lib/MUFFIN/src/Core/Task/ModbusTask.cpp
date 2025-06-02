@@ -70,7 +70,7 @@ namespace muffin {
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
-            #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
+            #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
                 Status ret = modbusRTU.Poll();
                 if (ret != Status::Code::GOOD)
                 {
@@ -168,7 +168,8 @@ namespace muffin {
 
     void implModbusTcpTask(void* pvParameter)
     {
-        uint32_t statusReportMillis = millis(); 
+        uint32_t statusReportMillis = millis();    
+
         while (true)
         {
         #if defined(DEBUG)
@@ -212,6 +213,29 @@ namespace muffin {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
             }
+        #if defined(MT11)
+            for(auto& modbusTCP : ModbusTcpVectorDynamic)
+            {
+                if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
+                {
+                    LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
+                    modbusTCP.SetTimeoutError();
+                    continue;
+                }
+                else
+                {
+                    LOG_DEBUG(logger,"Modbus TCP Client connected");
+                }
+
+                Status ret = modbusTCP.Poll();
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
+                }
+
+                modbusTCP.mModbusTCPClient->end();
+            }
+        #endif
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);   
         }

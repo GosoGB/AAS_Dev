@@ -54,6 +54,9 @@ namespace muffin {
         Status Config(jvs::config::ModbusTCP* config);
         void Clear();
         void SetTimeoutError();
+    #if defined(MT11)
+        void SetModbusTCPClient(ModbusTCPClient* modbusTcpClient, w5500::EthernetClient* ethClient);
+    #endif
     public:
         IPAddress GetServerIP();
         uint16_t GetServerPort();
@@ -85,6 +88,7 @@ namespace muffin {
     public:
     #if defined(MT11)
         w5500::EthernetClient* mClient = nullptr;
+
     #else
         WiFiClient mClient;
     #endif

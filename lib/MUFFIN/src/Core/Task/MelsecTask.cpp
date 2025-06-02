@@ -41,7 +41,7 @@ namespace muffin
         while (true)
         {
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (30 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif
@@ -49,7 +49,7 @@ namespace muffin
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
         
-                LOG_DEBUG(logger, "[MelSecTask} Stack Remaind: %u Bytes", RemainedStackSize);
+                LOG_INFO(logger, "[MelSecTask} Stack Remaind: %u Bytes", RemainedStackSize);
 
                 deviceStatus.SetTaskRemainedStack(task_name_e::MELSEC_TASK, RemainedStackSize);
             }
@@ -108,7 +108,7 @@ namespace muffin
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implMelsecTask,      // Function to be run inside of the task
             "implMelsecTask",    // The identifier of this task for men
-            8 * KILLOBYTE,          // Stack memory size to allocate
+            5 * KILLOBYTE,          // Stack memory size to allocate
             NULL, // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskMelsecHandle,  // The identifier of this task for machines

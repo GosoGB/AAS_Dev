@@ -80,6 +80,9 @@ namespace muffin { namespace w5500 {
         bool mIsConnected;
         int mTimeout;
     };
+
+    extern EthernetClient* embededEthernetClient;
+    extern EthernetClient* link1EthernetClient;
 }}
 
 #endif

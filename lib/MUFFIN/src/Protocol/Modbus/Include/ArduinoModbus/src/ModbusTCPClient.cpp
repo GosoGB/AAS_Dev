@@ -26,6 +26,11 @@ extern "C" {
 
 #include "ModbusTCPClient.h"
 
+
+ModbusTCPClient* embededModbusTCPClient = nullptr;
+ModbusTCPClient* link1ModbusTCPClient   = nullptr;
+
+
 ModbusTCPClient::ModbusTCPClient(Client& client) :
   ModbusClient(30 * 1000),
   _client(&client)

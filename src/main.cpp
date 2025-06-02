@@ -21,7 +21,6 @@
 #endif
 
 
-
 void setup()
 {
     MUFFIN muffin;
@@ -33,6 +32,9 @@ void loop()
 #if defined(DEBUG)
     LOG_DEBUG(muffin::logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
     LOG_DEBUG(muffin::logger, "Remained Flash: %u Bytes", LittleFS.totalBytes() - LittleFS.usedBytes());
+#if defined(MT11)
+    LOG_DEBUG(muffin::logger, "Remained PSRAM : %d bytes", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+#endif
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 #else
     vTaskDelete(NULL);

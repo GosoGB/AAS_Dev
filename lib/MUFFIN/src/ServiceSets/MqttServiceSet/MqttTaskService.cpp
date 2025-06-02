@@ -150,7 +150,6 @@ namespace muffin {
 
             for (; trialCount < MAX_RETRY_COUNT; ++trialCount)
             {
-                LOG_DEBUG(logger,"MSG : %s",message.second.GetPayload());
                 ret = mqttClient->Publish(mutex.second, message.second);
                 if (ret == Status::Code::GOOD)
                 {
@@ -886,7 +885,76 @@ namespace muffin {
                             
                         }
                     }
-                    
+
+            #if defined(MT11)
+                    for (auto& modbusTCP : ModbusTcpVectorDynamic)
+                    {
+                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
+                        {
+                            continue;
+                        }
+                        
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
+                            {
+                                if (nodeId == ret.second->GetNodeID())
+                                {   
+                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
+                                    if (retSlaveID.first != Status(Status::Code::GOOD))
+                                    {
+                                        retSlaveID.second = 0;
+                                    }
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                        
+                                    if (retBit != -1)
+                                    {
+                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }
+                                    
+                                    writeResult = 0;
+                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1)
+                                    {
+                                        LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
+                                    switch (nodeArea)
+                                    {
+                                    case jvs::node_area_e::COILS:
+                                        writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    case jvs::node_area_e::HOLDING_REGISTER:
+                                        writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    default:
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
+                                        break;
+                                    }
+                                    
+                                    modbusTCP.mModbusTCPClient->end();
+
+                                    xSemaphoreGive(xSemaphoreModbusTCP);
+
+                                    goto RC_RESPONSE;
+                                }
+                            }
+                        }
+                    }
+                #endif
                 }
             }
 
@@ -987,7 +1055,7 @@ namespace muffin {
                                     }
                                     
                                     writeResult = 0;
-                                #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
+                                #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
                                     if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");

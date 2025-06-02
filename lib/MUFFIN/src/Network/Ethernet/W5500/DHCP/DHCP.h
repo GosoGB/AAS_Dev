@@ -177,7 +177,7 @@ typedef struct DynamicHostConfigurationProtocolType
     uint8_t  yiaddr[4];   // IPv4 address that a server assigns to a client.
     uint8_t  siaddr[4];   // IPv4 address of the server to be used in the next phase of the DHCP process. 
     uint8_t  giaddr[4];   // IPv4 address of the first DHCP relay agent.
-    uint8_t  chaddr[10];  // MAC address of a client. This field must be consistent with the Htype and Hlen fields. 
+    uint8_t  chaddr[16];  // MAC address of a client. This field must be consistent with the Htype and Hlen fields. 
     uint8_t  sname[64];   // Name of the server from which a client obtains the configuration. This field is optional and is filled in by a DHCP server.
     uint8_t  file[128];   // Boot file name specified by the DHCP server for a DHCP client. This field is optional.
     uint8_t  options[MAX_SIZE_OPT];  // DHCP options field.

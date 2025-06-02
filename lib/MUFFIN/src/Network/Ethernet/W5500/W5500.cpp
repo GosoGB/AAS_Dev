@@ -133,6 +133,7 @@ namespace muffin {
     Status W5500::Connect()
     {
         Status ret(Status::Code::UNCERTAIN);
+        w5500::Socket* socket = nullptr;
  
         if (memcmp(mCRB.IPv4, &INADDR_NONE[0], sizeof(mCRB.IPv4)) == 0)
         {
@@ -140,14 +141,15 @@ namespace muffin {
             
             if (mDHCP == nullptr)
             {
-                w5500::Socket socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
-                mDHCP = new w5500::DHCP(socket);
+                socket = new w5500::Socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
+                mDHCP = new w5500::DHCP(*socket);
             }
-            
+
             ret = mDHCP->Init();
             if (ret != muffin::Status::Code::GOOD)
             {
                 LOG_ERROR(muffin::logger, "FAILED TO INITIALIZE DHCP CLIENT: %s", ret.c_str());
+                delete socket;
                 return ret;
             }
 
@@ -156,6 +158,7 @@ namespace muffin {
              *       실행 결과도 확인할 것
              */
             ret = mDHCP->Run();
+
         }
         
 
@@ -282,7 +285,7 @@ namespace muffin {
         
         uint8_t retrievedMAC[6] = { 0 };
         ret = retrieveCRB(w5500::crb_addr_e::MAC, sizeof(retrievedMAC), retrievedMAC);
-        LOG_DEBUG(logger,"retrievedMAC : %02X:%02X:%02X:%02X:%02X:%02X",retrievedMAC[0],retrievedMAC[1],retrievedMAC[2],retrievedMAC[3],retrievedMAC[4],retrievedMAC[5])
+        LOG_DEBUG(logger,"retrievedMAC : %02X:%02X:%02X:%02X:%02X:%02X",retrievedMAC[0],retrievedMAC[1],retrievedMAC[2],retrievedMAC[3],retrievedMAC[4],retrievedMAC[5]);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE MAC ADDRESS");
@@ -413,7 +416,8 @@ namespace muffin {
 
     Status W5500::GetMacAddress(uint8_t mac[])
     {
-        LOG_DEBUG(logger, "HAS MAC: %s", mHasMacAddress ? "true" : "false");
+        LOG_INFO(logger, "HAS MAC: %s", mHasMacAddress ? "true" : "false");
+        LOG_INFO(logger, "this=%p, mCRB.MAC=%p", this, mCRB.MAC);
         if (mHasMacAddress == false)
         {
             memset(mac, 0, sizeof(mCRB.MAC));
@@ -745,7 +749,7 @@ namespace muffin {
     Status W5500::writeSRB(const w5500::sock_id_e idx, w5500::srb_addr_e address, uint8_t data)
     {
         using namespace w5500;
-        LOG_DEBUG(logger,"SOCKET ID : %d",static_cast<uint8_t>(idx));
+        // LOG_DEBUG(logger,"SOCKET ID : %d",static_cast<uint8_t>(idx));
         const uint16_t numericAddress   = static_cast<uint16_t>(address);
         const uint8_t  controlPhase     = Converter::ControlPhase(idx, am_e::WRITE);
         return write(numericAddress, controlPhase, data);
@@ -792,7 +796,6 @@ namespace muffin {
 
     void W5500::SetSocketIdFlag(const w5500::sock_id_e idx)
     {
-        LOG_WARNING(logger,"IDX : %d",static_cast<uint8_t>(idx));
         mSocketIdFlag.set(static_cast<uint16_t>(idx));
     }
 

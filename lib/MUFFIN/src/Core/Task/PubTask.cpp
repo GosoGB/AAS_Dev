@@ -53,9 +53,19 @@ namespace muffin {
         
         return false;
     }
+    
 
     void MSGTask(void* pvParameter)
     {
+        const size_t batchSize = 4 * 1024;
+        char* batchPayload = static_cast<char*>(malloc(4 * 1024));
+        if (batchPayload == nullptr) 
+        {
+            LOG_ERROR(logger, "Failed to allocate batchPayload buffer");
+            return;
+        }
+        memset(batchPayload, 0, batchSize);
+
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
@@ -68,18 +78,18 @@ namespace muffin {
         while (true)
         {
             vTaskDelay(100 / portTICK_PERIOD_MS);
-            
+
             bool isSuccessPolling = true;
             uint64_t sourceTimestamp = GetTimestampInMillis();
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (30 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
-                LOG_DEBUG(logger, "[MSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                LOG_INFO(logger, "[MSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
                 
                 deviceStatus.SetTaskRemainedStack(task_name_e::PUBLISH_MSG_TASK, RemainedStackSize);
             }
@@ -170,8 +180,6 @@ namespace muffin {
                     {
                         ret.second.Value = "MFM_NULL";
                     }
-
-                    
                     nodeVector.emplace_back(ret.second);
                 }
             }
@@ -180,13 +188,19 @@ namespace muffin {
             {
                 continue;
             }
-            
+
             JSON json;
-            const size_t size = 20 * 1024;
-            char payload[size] = {'\0'};
-            json.Serialize(nodeVector, size, sourceTimestamp, payload);
-            mqtt::Message message(mqtt::topic_e::DAQ_INPUT, payload);
-            mqtt::cdo.Store(message);
+            const size_t TESTSIZE = 200;
+            LOG_INFO(logger,"nodeVector.size() : %u",nodeVector.size());
+            for (size_t i = 0; i < nodeVector.size(); i += TESTSIZE) 
+            {
+                memset(batchPayload, 0, batchSize);
+                size_t end = std::min(i + TESTSIZE, nodeVector.size());
+                std::vector<json_datum_t> batch(nodeVector.begin() + i, nodeVector.begin() + end);
+                json.Serialize(batch, batchSize, sourceTimestamp, batchPayload);
+                mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
+                mqtt::cdo.Store(message);
+            }
         }
     }
 
@@ -205,7 +219,11 @@ namespace muffin {
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             MSGTask,      // Function to be run inside of the task
             "MSGTask",    // The identifier of this task for men
-            40*KILLOBYTE,			       // Stack memory size to allocate
+    #if defined(MT11)
+            8*KILLOBYTE,			       // Stack memory size to allocate
+    #else
+            3*KILLOBYTE,			       // Stack memory size to allocate
+    #endif
             NULL,      // Task parameters to be passed to the function
             0,				       // Task Priority for scheduling
             &xTaskMonitorHandle,   // The identifier of this task for machines

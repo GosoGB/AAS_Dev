@@ -40,7 +40,7 @@ namespace muffin {
         const uint8_t size = 64;
         char buffer[size] = {'\0'};
 
-    #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
+    #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
         snprintf(buffer, size, "%s,%llu,%s,%s,null",
             macAddress.GetEthernet(),
             GetTimestampInMillis(),

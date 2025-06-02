@@ -129,16 +129,14 @@ namespace muffin {
     }
 
 
-    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t sourceTimestamp,char output[])
+    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t sourceTimestamp, char* output)
     {
-        ASSERT((size >= UINT8_MAX), "OUTPUT BUFFER MUST BE GREATER THAN UINT8 MAX");
-
         JsonDocument doc;
 
         doc["mv"]    = ESP32_FW_VERSION;                             // MFM 버전
         doc["tp"]    = 1;                                            // JSON 스키마 유형
         doc["ts"]    = msgVector.at(0).SourceTimestamp;              // 메시지 생성 시점 
-        doc["mac"]    = macAddress.GetEthernet();                     // 디바이스 식별자
+        doc["mac"]   = macAddress.GetEthernet();                     // 디바이스 식별자
    
         JsonArray nidArray = doc["id"].to<JsonArray>();             // Node 식별자 배열
         JsonArray valueArray = doc["val"].to<JsonArray>();           // 데이터 배열
@@ -330,8 +328,8 @@ namespace muffin {
         JsonDocument doc;
     #if defined(MODLINK_L)
         doc["deviceType"] = "MODLINK-L";
-    #elif defined(MODLINK_ML10)
-        doc["deviceType"] = "MODLINK-ML10";
+    #elif defined(ML10)
+        doc["deviceType"] = "ML10";
     #elif defined(MT10)
         doc["deviceType"] = "MT10";
     #elif defined(MT11)

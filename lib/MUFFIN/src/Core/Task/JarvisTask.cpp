@@ -81,6 +81,18 @@ namespace muffin {
                 break;
             }
         }
+#if defined(MT10) || defined(MT11) || defined(MB10) 
+        for (auto& pair : *jarvis)
+        {
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::ETHERNET)
+            {
+                InitEthernetService();
+                break;
+            }
+        }
+#endif
+
 #if defined(MT11)
         applyEthernet();
 #endif
@@ -202,8 +214,8 @@ namespace muffin {
 
     void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10) 
-        ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND MODLINK-ML10");
+    #if defined(MODLINK_L) || defined(ML10) 
+        ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND ML10");
         jvs::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
         if (cin->GetPortIndex().second == jvs::prt_e::PORT_2)
         {
@@ -276,7 +288,7 @@ namespace muffin {
             return;
         }
 
-    #if defined(MODLINK_L) || defined(MODLINK_ML10) || defined(MT11)
+    #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
         ModbusRtuVector.clear();
         mConfigVectorMbRTU.clear();
         
@@ -343,7 +355,7 @@ namespace muffin {
 
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(ML10)
         ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MT10");
     #endif
         if (s_HasNode == false)
@@ -377,6 +389,11 @@ namespace muffin {
                     continue;
                 }
                 LOG_DEBUG(logger,"SOCKET ID : %d",static_cast<uint8_t>(retSocketID.second));
+                if (w5500::embededEthernetClient == nullptr)
+                {
+                    w5500::embededEthernetClient = new w5500::EthernetClient(*ethernet, w5500::sock_id_e::SOCKET_0);
+                    embededModbusTCPClient = new ModbusTCPClient(*w5500::embededEthernetClient);
+                }
                 applyModbusTcpConfig(ethernet, retSocketID.second, cin);
                 break;
             }
@@ -387,6 +404,12 @@ namespace muffin {
                 {
                     LOG_ERROR(logger,"[ETH1] NO AVAILABLE SOCKET");
                     continue;
+                }
+                if (w5500::link1EthernetClient == nullptr)
+                {
+                    w5500::link1EthernetClient = new w5500::EthernetClient(*link1W5500, w5500::sock_id_e::SOCKET_0);
+                    link1ModbusTCPClient = new ModbusTCPClient(*w5500::link1EthernetClient);
+                    LOG_WARNING(logger, "link1ModbusTCPClient points to: %p", (void*)link1ModbusTCPClient);
                 }
                 applyModbusTcpConfig(link1W5500, retSocketID.second, cin);
                 break;
@@ -424,7 +447,7 @@ namespace muffin {
 
     void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(ML10)
         ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MT10");
     #endif
 
@@ -556,6 +579,18 @@ namespace muffin {
 
         if (id == w5500::sock_id_e::SOCKET_0)
         {
+            switch (cin->GetEthernetInterface().second)
+            {
+            case jvs::if_e::EMBEDDED:
+                modbusTCP->SetModbusTCPClient(embededModbusTCPClient, w5500::embededEthernetClient);
+                break;
+            case jvs::if_e::LINK_01:
+                modbusTCP->SetModbusTCPClient(link1ModbusTCPClient, w5500::link1EthernetClient);
+                break;
+            default:
+                break;
+            }
+
             ModbusTcpVectorDynamic.emplace_back(*modbusTCP);
         }
         else

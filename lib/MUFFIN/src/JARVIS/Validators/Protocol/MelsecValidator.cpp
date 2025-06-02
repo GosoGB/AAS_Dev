@@ -48,8 +48,8 @@ namespace muffin { namespace jvs {
 
     std::pair<rsc_e, std::string> MelsecValidator::validateMelsec(const JsonArray array, cin_vector* outVector)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        const std::string message = "MELSEC IS NOT SUPPORTED ON MODLINK-L OR MODLINK-ML10";
+    #if defined(MODLINK_L) || defined(ML10)
+        const std::string message = "MELSEC IS NOT SUPPORTED ON MODLINK-L OR ML10";
         return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
     #else
         for (JsonObject cin : array)

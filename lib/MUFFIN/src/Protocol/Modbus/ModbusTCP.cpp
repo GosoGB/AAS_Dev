@@ -32,8 +32,12 @@ namespace muffin {
 #if defined(MT11)
     ModbusTCP::ModbusTCP(W5500& interface, const w5500::sock_id_e sock_id)
     {
-        mClient = new w5500::EthernetClient(interface, sock_id);
-        mModbusTCPClient = new ModbusTCPClient(*mClient);
+        if (sock_id != w5500::sock_id_e::SOCKET_0)
+        {
+            mClient = new w5500::EthernetClient(interface, sock_id);
+            mModbusTCPClient = new ModbusTCPClient(*mClient);
+        }
+        
     }
 #else
     ModbusTCP::ModbusTCP()
@@ -560,4 +564,11 @@ namespace muffin {
             node->VariableNode.UpdateError();
         }
     }
+#if defined(MT11)
+    void ModbusTCP::SetModbusTCPClient(ModbusTCPClient* modbusTcpClient, w5500::EthernetClient* ethClient)
+    {
+        mModbusTCPClient = modbusTcpClient;
+        mClient = ethClient;
+    }
+#endif
 }

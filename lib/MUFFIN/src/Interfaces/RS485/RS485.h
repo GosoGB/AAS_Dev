@@ -8,7 +8,7 @@
  * @date 2024-10-21
  * @version 1.0.0
  * 
- * @note 하드웨어 개발팀의 김병우 수석께 확인한 결과 MODLINK-L, MODLINK-ML10 모델의 경우
+ * @note 하드웨어 개발팀의 김병우 수석께 확인한 결과 MODLINK-L, ML10 모델의 경우
  *       MAX485 칩셋의 DE/RE 핀은 ESP32에 연결되어 있지 않습니다. MAX485 칩셋 실장 시 
  *       회로 상에서 TxD 신호에 따라 DE/RE 핀이 자동으로 연동되게 설계되어 있습니다.
  * 
@@ -85,7 +85,7 @@ namespace muffin {
         uint8_t mPortIndexForDebugging = 0;
     #endif
     private:
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(ML10)
         static constexpr uint8_t RX_PIN_NUMBER = 16;
         static constexpr uint8_t TX_PIN_NUMBER = 17;
     #elif defined(MT10)

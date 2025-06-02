@@ -42,9 +42,12 @@ namespace muffin { namespace w5500 {
         mSRB.TxFreeSize      = 0x0800;
         mSRB.InterruptMask   = 0x00FF;
         mSRB.FragmentOffset  = 0x4000;
-        LOG_INFO(logger,"SOCKET 생성, ID : %d",static_cast<uint8_t>(mID));
-
-        mW5500.SetSocketIdFlag(mID);
+        LOG_DEBUG(logger,"SOCKET 생성, ID : %d",static_cast<uint8_t>(mID));
+        if (mID != sock_id_e::SOCKET_0)
+        {
+            mW5500.SetSocketIdFlag(mID);
+        }
+        
     }
 
 
@@ -95,7 +98,7 @@ namespace muffin { namespace w5500 {
             case static_cast<uint8_t>(ssr_e::INIT_UDP):
             case static_cast<uint8_t>(ssr_e::INIT_MACRAW):
                 mSRB.Status = static_cast<ssr_e>(status);
-                LOG_DEBUG(logger, "Socket Status: %s", Converter::ToString(mSRB.Status));
+                // LOG_DEBUG(logger, "Socket Status: %s", Converter::ToString(mSRB.Status));
                 break;
             default:
                 mSRB.Status = ssr_e::UNCERTAIN;
@@ -240,7 +243,7 @@ namespace muffin { namespace w5500 {
             return Status(Status::Code::BAD);
         }
 
-        LOG_INFO(logger, "[#%u] The socket has been opened", static_cast<uint8_t>(mID));
+        LOG_DEBUG(logger, "[#%u] The socket has been opened", static_cast<uint8_t>(mID));
         return ret;
     }
 
@@ -263,7 +266,7 @@ namespace muffin { namespace w5500 {
             GetStatus();
             if (mSRB.Status == ssr_e::CLOSED)
             {
-                LOG_INFO(logger, "[#%u] The socket has been closed", static_cast<uint8_t>(mID));
+                LOG_DEBUG(logger, "[#%u] The socket has been closed", static_cast<uint8_t>(mID));
                 break;
             }
             else
@@ -563,7 +566,7 @@ namespace muffin { namespace w5500 {
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 continue;
             }
-            LOG_DEBUG(logger, "Retrieved command: 0x%02X", retrievedCommand)
+            LOG_DEBUG(logger, "Retrieved command: 0x%02X", retrievedCommand);
         }
     }
 

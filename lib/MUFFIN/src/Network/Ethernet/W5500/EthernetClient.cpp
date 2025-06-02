@@ -21,7 +21,8 @@
 
 namespace muffin { namespace w5500 {
 
-
+    EthernetClient* embededEthernetClient = nullptr;
+    EthernetClient* link1EthernetClient   = nullptr;
     class EthernetClientRxBuffer
     {
     public:
@@ -206,13 +207,10 @@ namespace muffin { namespace w5500 {
     
     void EthernetClient::stop()
     {
-        if (mSocket != nullptr)
-        {
-            mSocket->Close();
-            mSocket = nullptr;
-            mRxBuffer = nullptr;
-            mIsConnected = false;
-        }
+        mSocket->Close();
+        mIsConnected = false;
+        mRxBuffer = nullptr;
+        
     }
 
 
@@ -225,7 +223,13 @@ namespace muffin { namespace w5500 {
     int EthernetClient::connect(IPAddress ip, uint16_t port, int32_t timeout_ms)
     {
         mTimeout = timeout_ms;
-
+        if (mSocket == nullptr)
+        {
+            LOG_WARNING(logger,"SOCKET IS NULL!!!!!!!!!!!!");
+            return 0;
+            
+        }
+        
         Status ret = mSocket->Open();
         if (ret != Status::Code::GOOD)
         {
@@ -240,6 +244,7 @@ namespace muffin { namespace w5500 {
             return 0;
         }
         
+
         mRxBuffer.reset(new EthernetClientRxBuffer(*mSocket, 1436));
         mIsConnected = true;
         return 1;
@@ -502,7 +507,6 @@ namespace muffin { namespace w5500 {
         {
             mIsConnected = false;
             
-            LOG_WARNING(logger,"here4");
             return 0;
         }
 

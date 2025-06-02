@@ -61,8 +61,8 @@ namespace muffin { namespace jvs {
      */
     std::pair<rsc_e, std::string> SerialPortValidator::validateRS232(const JsonArray array, cin_vector* outVector)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        const std::string message = "RS-232 IS NOT SUPPORTED ON MODLINK-L OR MODLINK-ML10";
+    #if defined(MODLINK_L) || defined(ML10)
+        const std::string message = "RS-232 IS NOT SUPPORTED ON MODLINK-L OR ML10";
         return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
     #else
         for (JsonObject cin : array)
@@ -166,7 +166,7 @@ namespace muffin { namespace jvs {
          *       만약 두 개의 CIN이 들어온다면 ERROR 코드 대신 WARNING
          *       코드를 반환하도록 코드를 수정해야 합니다.
          */
-    #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
+    #if !defined(MODLINK_L) && !defined(ML10)
         for (JsonObject cin : array)
         {
     #else
@@ -250,7 +250,7 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, "FAILED TO EMPLACE: RS-485 CONFIG INSTANCE");
             }
 
-    #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
+    #if !defined(MODLINK_L) && !defined(ML10)
         }
         
         return std::make_pair(rsc_e::GOOD, "GOOD");
@@ -358,7 +358,7 @@ namespace muffin { namespace jvs {
         case 2:
             return std::make_pair(rsc_e::GOOD, prt_e::PORT_2);
         
-        #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
+        #if !defined(MODLINK_L) && !defined(ML10)
         case 3:
             return std::make_pair(rsc_e::GOOD, prt_e::PORT_3);
         #endif

@@ -29,7 +29,9 @@
 
 
 namespace muffin {
-
+#if defined(MT11)
+    static bool s_IsBegin = false;
+#endif
     ModbusRTU::ModbusRTU()
     {
     #if defined(DEBUG)
@@ -129,9 +131,12 @@ namespace muffin {
             const jvs::sbit_e stopBit   = portConfig->GetStopBit().second;
             
             SerialConfig serialConfig = convert2SerialConfig(dataBit, stopBit, parityBit);
-
-            Serial2.begin(Convert.ToUInt32(baudrate),serialConfig, RX_PIN, TX_PIN);
-            ModbusRTUClient.begin(*RS485_LINK2, Convert.ToUInt32(baudrate), serialConfig);
+            if (s_IsBegin == false)
+            {
+                Serial2.begin(Convert.ToUInt32(baudrate),serialConfig, RX_PIN, TX_PIN);
+                ModbusRTUClient.begin(*RS485_LINK2, Convert.ToUInt32(baudrate), serialConfig);
+                s_IsBegin = true;
+            }
             return Status(Status::Code::GOOD);
         }
     #endif

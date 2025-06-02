@@ -47,39 +47,84 @@ namespace muffin { namespace w5500 {
 
         mState = state_e::INIT;
 
-        mSocket.Open(static_cast<uint16_t>(dhcp_port_e::CLIENT));
-        Status ret = sendDiscoverMessage();
+        
+        Status ret = mSocket.Open(static_cast<uint16_t>(dhcp_port_e::CLIENT));
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger,"FAIL TO SEND DISCOVER MESSAGE : %s",ret.c_str());
+            LOG_ERROR(logger,"FAIL TO OPEN SOCKET : %s",ret.c_str());
             return ret;
         }
+        
+        size_t failCount = 1;
+        while (failCount < 6)
+        {
+            ret = sendDiscoverMessage();
+            if (ret == Status::Code::GOOD)
+            {
+                break;
+            }
+            LOG_WARNING(logger,"FAIL TO SEND DISCOVER MESSAGE [#%u] : %s",failCount,ret.c_str());
+            failCount++;
+            delay(1000);
+        }
+        
+        if (failCount == 6)
+        {
+            LOG_ERROR(logger,"FAIL TO SEND DISCOVER MESSAGE");
+            return Status(Status::Code::BAD);
+        }
+        
         
         size_t actualLength = 0;
         size_t receiveLength = mSocket.Available();
         uint8_t receiveOfferData[receiveLength] = {0};
         LOG_INFO(logger,"avilable : %u\n", receiveLength);
-        mSocket.Receive(receiveLength, &actualLength, receiveOfferData);
-        ret = parseOfferMessage(receiveOfferData, actualLength);
+        ret = mSocket.Receive(receiveLength, &actualLength, receiveOfferData);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger,"FAIL TO RECIEVE OFFER MESSAGE : %s",ret.c_str());
+            LOG_ERROR(logger,"FAIL TO RECEIVE OFFER MESSAGE : %s",ret.c_str());
             mSocket.Close();
             return ret;
         }
 
-        ret = sendRequest();
+        ret = parseOfferMessage(receiveOfferData, actualLength);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger,"FAIL TO SEND REQUEST MESSAGE : %s",ret.c_str());
+            LOG_ERROR(logger,"FAIL TO PARSE OFFER MESSAGE : %s",ret.c_str());
             mSocket.Close();
             return ret;
+        }
+
+        failCount = 1;
+        while (failCount < 6)
+        {
+            ret = sendRequest();
+            if (ret == Status::Code::GOOD)
+            {
+                break;
+            }
+            LOG_WARNING(logger,"FAIL TO SEND REQUEST MESSAGE [#%u] : %s",failCount,ret.c_str());
+            failCount++;
+            delay(1000);
+        }
+        
+        if (failCount == 5)
+        {
+            LOG_ERROR(logger,"FAIL TO SEND REQUEST MESSAGE");
+            return Status(Status::Code::BAD);
         }
 
         actualLength = 0;
         receiveLength = mSocket.Available();
+        LOG_WARNING(logger,"receiveLength : %u",receiveLength);
         uint8_t receiveAckData[receiveLength] = {0};
-        mSocket.Receive(receiveLength, &actualLength, receiveAckData);
+        ret = mSocket.Receive(receiveLength, &actualLength, receiveAckData);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"FAIL TO RECEIVE ACK MESSAGE : %s",ret.c_str());
+            mSocket.Close();
+            return ret;
+        }
         ret = parseAckMessage(receiveAckData, actualLength);
         if (ret != Status::Code::GOOD)
         {
@@ -92,6 +137,7 @@ namespace muffin { namespace w5500 {
         mSocket.mW5500.setGateway(IPAddress(mAllocatedGW[0], mAllocatedGW[1], mAllocatedGW[2], mAllocatedGW[3]));
         mSocket.mW5500.setSubnetmask(IPAddress(mAllocatedSNM[0], mAllocatedSNM[1], mAllocatedSNM[2], mAllocatedSNM[3]));
         mSocket.Close();
+
         return Status(Status::Code::GOOD);
     }
 
@@ -252,9 +298,15 @@ namespace muffin { namespace w5500 {
         uint16_t timeoutMillis = 2000;
         uint32_t currentMillis = millis();
 
+        Status ret = mSocket.SendTo(hostIP,static_cast<uint16_t>(dhcp_port_e::SERVER),sizeof(buff),buff);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"FAIL TO SEND DISCOVER MSG");
+            return ret;
+        }
+        
         while (mSocket.Available() == 0)
         {
-            Status ret = mSocket.SendTo(hostIP,static_cast<uint16_t>(dhcp_port_e::SERVER),sizeof(buff),buff);
             if (millis() - currentMillis > timeoutMillis)
             {
                 LOG_ERROR(logger,"TIMEOUT ERROR: FAIL TO SEND DISCOVER");
@@ -263,6 +315,7 @@ namespace muffin { namespace w5500 {
         }
 
         mState = state_e::DISCOVER;
+
         return Status(Status::Code::GOOD);
     }
 
@@ -411,14 +464,19 @@ namespace muffin { namespace w5500 {
         uint16_t timeoutMillis = 2000;
         uint32_t currentMillis = millis();
 
+        Status ret = mSocket.SendTo(hostIP,static_cast<uint16_t>(dhcp_port_e::SERVER),sizeof(buff),buff);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"FAIL TO SEND DISCOVER MSG");
+            return ret;
+        }
+        
         while (mSocket.Available() == 0)
         {
-            mSocket.SendTo(hostIP,static_cast<uint16_t>(dhcp_port_e::SERVER),sizeof(buff),buff);
-            delay(1000);
             if (millis() - currentMillis > timeoutMillis)
             {
-                LOG_ERROR(logger,"TIMEOUT ERROR: FAIL TO SEND REQUEST");
-                return Status(Status::Code::BAD);
+                LOG_ERROR(logger,"TIMEOUT ERROR: FAIL TO SEND DISCOVER");
+                return Status(Status::Code::BAD_TIMEOUT);
             }
         }
 
@@ -560,6 +618,7 @@ namespace muffin { namespace w5500 {
         mState = state_e::REQUEST;
         LOG_INFO(logger, "Success offer message parsing");
 
+
         return Status(Status::Code::GOOD);
     }
 
@@ -690,6 +749,7 @@ namespace muffin { namespace w5500 {
         mLeaseT1 = (mLeaseTime / 2);                // T1
         mLeaseT2 = (mLeaseTime * (0.75));           // T2
         LOG_INFO(logger, "mLeaseTime :%d, mLeaseT1 :%d, mLeaseT2 :%d",mLeaseTime, mLeaseT1,mLeaseT2);
+
         return Status(Status::Code::GOOD);
     }
 
@@ -744,13 +804,14 @@ namespace muffin { namespace w5500 {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
+
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
-            taskEntryPoint,      // Function to be run inside of the task
-            "DhcpTask",    // The identifier of this task for men
-            2 * 1024,          // Stack memory size to allocate
-            this,               // Task parameters to be passed to the function
-            1,				    // Task Priority for scheduling
-            &xTaskDhcpHandle,  // The identifier of this task for machines
+            taskEntryPoint,         // Function to be run inside of the task
+            "DhcpTask",             // The identifier of this task for men
+            4 * 1024,               // Stack memory size to allocate
+            this,                   // Task parameters to be passed to the function
+            1,				        // Task Priority for scheduling
+            &xTaskDhcpHandle,       // The identifier of this task for machines
             1				        // Index of MCU core where the function to run
         );
 
@@ -785,14 +846,9 @@ namespace muffin { namespace w5500 {
     {
         while (true)
         {
-
-            size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
-        
-            LOG_DEBUG(logger, "[DHCP} Stack Remaind: %u Bytes", RemainedStackSize);
-
-            vTaskDelay(pdMS_TO_TICKS(10000));  // 60초마다
+            vTaskDelay(pdMS_TO_TICKS(60000));  // 60초마다
             
-            mTickCurrent += 10;
+            mTickCurrent += 60;
 
             LOG_DEBUG(logger, "Tick: %d, T1: %d, T2: %d, LeaseTime: %d", mTickCurrent, mLeaseT1, mLeaseT2, mLeaseTime);
 
