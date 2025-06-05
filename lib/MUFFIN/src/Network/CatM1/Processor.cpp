@@ -100,10 +100,10 @@ namespace muffin {
      */
     Processor::Processor()
         : mSerial(HardwareSerial(1))
-    #if defined(MODLINK_L) || defined(ML10)
-        , mRxBufferSize(15*KILLOBYTE)
+    #if defined(MT11)
+    , mRxBufferSize(100*KILLOBYTE)
     #else
-        , mRxBufferSize(100*KILLOBYTE)
+    , mRxBufferSize(15*KILLOBYTE)
     #endif
         , mRxBuffer(mRxBufferSize)
         , mTimeoutMillis(50)

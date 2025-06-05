@@ -314,13 +314,11 @@ namespace muffin
             LOG_ERROR(logger,"here???");
             return 0;
         }
-        // @lsj 왜 flush가 read 뒤에 나오는 거죠...? write 바로 뒤에 붙어야 하지 않나요??
-        mClient->flush();
 
         mClient->write(cmd, length);
 
         uint32_t startTS = millis();
-        while (!mClient->available() && (millis() - startTS) < 1000) 
+        while (!mClient->available() && (millis() - startTS) < 2000) 
         {
             delay(1);
         }

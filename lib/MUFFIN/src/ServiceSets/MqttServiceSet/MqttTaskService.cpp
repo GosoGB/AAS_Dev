@@ -960,6 +960,70 @@ namespace muffin {
 
             if (mConfigVectorMelsec.size() != 0)
             {
+            #if defined(MT11)
+                for (auto& melsecConfig : mConfigVectorMelsec)
+                {
+                    for (auto& melsec : MelsecVector)
+                    {
+                        if (melsec.GetServerIP() != melsecConfig.GetIPv4().second || melsec.GetServerPort() != melsecConfig.GetPort().second)
+                        {
+                            continue;
+                        }
+                        
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = melsecConfig.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
+                            {
+                                if (nodeId == ret.second->GetNodeID())
+                                {   
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
+
+                                    if (retBit != -1)
+                                    {
+                                        modbus::datum_t registerData =  melsec.GetAddressValue(1, modbusAddress.Numeric, nodeArea);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }      
+                                    
+                                    writeResult = 0;
+                                    if (xSemaphoreTake(xSemaphoreMelsec, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MELSEC] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    LOG_DEBUG(logger, "[MELSEC] 원격제어 : %u",retConvertModbus.second);
+                                    if (!melsec.Connect())
+                                    {
+                                        LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                                        goto RC_RESPONSE;
+                                    } 
+                                    
+
+                                    if (im::IsBitArea(nodeArea))
+                                    {
+                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient->WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                    }
+                                    else
+                                    {
+                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient->WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                    }
+
+                                    melsec.mMelsecClient->Close();
+                                    xSemaphoreGive(xSemaphoreMelsec);
+                                    goto RC_RESPONSE;
+                                }   
+                            }       
+                        }
+                    }                    
+                }
+            #endif
                 for (auto& melsecConfig : mConfigVectorMelsec)
                 {
                     for (auto& melsec : MelsecVector)

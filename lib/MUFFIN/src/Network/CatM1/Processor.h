@@ -41,7 +41,11 @@ namespace muffin {
         virtual ~Processor();
     private:
         HardwareSerial mSerial;
+    #if defined(MT11)
+        const uint32_t mRxBufferSize;
+    #else
         const uint16_t mRxBufferSize;
+    #endif
         CircularBuffer mRxBuffer;
         const uint16_t mTimeoutMillis;
     #ifdef MODLINK_L

@@ -476,37 +476,21 @@ namespace muffin {
             {
             case jvs::if_e::EMBEDDED:
             {
-                const auto retSocketID = ethernet->GetAvailableSocketId();
-                if (retSocketID.first.ToCode() != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger,"[ETH0] NO AVAILABLE SOCKET");
-                    continue;
-                }
-                LOG_DEBUG(logger,"EMBEDED SOCKET ID : %d",static_cast<uint8_t>(retSocketID.second));
-                applyMelsecConfig(ethernet, retSocketID.second, cin);
+               /**
+                 * @todo Melsec은 1번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
+                 * 
+                 */
+                applyMelsecConfig(ethernet, w5500::sock_id_e::SOCKET_1, cin);
                 break;
             }
             case jvs::if_e::LINK_01:
             {
-                const auto retSocketID = link1W5500->GetAvailableSocketId();
-                if (retSocketID.first.ToCode() != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger,"[ETH1] NO AVAILABLE SOCKET");
-                    continue;
-                }
-                LOG_DEBUG(logger,"LINK1 SOCKET ID : %d",static_cast<uint8_t>(retSocketID.second));
-                applyMelsecConfig(link1W5500, retSocketID.second, cin);
+                applyMelsecConfig(link1W5500, w5500::sock_id_e::SOCKET_1, cin);
                 break;
             }
             case jvs::if_e::LINK_02:
             {
-                const auto retSocketID = link2W5500->GetAvailableSocketId();
-                if (retSocketID.first.ToCode() != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger,"[ETH2] NO AVAILABLE SOCKET");
-                    continue;
-                }
-                applyMelsecConfig(link2W5500, retSocketID.second, cin);
+                applyMelsecConfig(link2W5500, w5500::sock_id_e::SOCKET_1, cin);
                 break;
             }
             default:
@@ -612,7 +596,7 @@ namespace muffin {
         }
         mConfigVectorMelsec.emplace_back(*cin);
 
-        if (id == w5500::sock_id_e::SOCKET_0)
+        if (id == w5500::sock_id_e::SOCKET_1)
         {
             MelsecVectorDynamic.emplace_back(*melsec);
         }

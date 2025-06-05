@@ -808,6 +808,15 @@ namespace muffin {
     {
         for (int i = 6; i >= 0; --i)
         {
+            /**
+             * @todo Melsec은 1번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
+             * 
+             */
+            if (i == 1)
+            {
+                continue;
+            }
+            
             if (mSocketIdFlag.test(i) == false)
             {
                 LOG_DEBUG(logger,"소캣 사용가능 : %d",i);
