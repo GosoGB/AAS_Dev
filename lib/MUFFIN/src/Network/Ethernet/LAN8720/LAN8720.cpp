@@ -31,6 +31,7 @@ extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t *esp_
 
 namespace muffin {
 
+    std::string ntpServer = "time.google.com";
 
     LAN8720::LAN8720()
     {
@@ -147,12 +148,20 @@ namespace muffin {
 
     Status LAN8720::SyncNTP()
     {
-        const char* ntpServer = "time.google.com";
         const char* ntpServer2 = "time.windows.com";
         const long gmtOffset_sec = 32400;
         const int daylightOffset_sec = 0;
 
-        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, ntpServer2);
+        if (ntpServer == "time.google.com")
+        {
+            LOG_INFO(logger,"HERE , ntpServer : %s",ntpServer.c_str());
+            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer.c_str(), ntpServer2);
+        }
+        else 
+        {
+            LOG_INFO(logger,"HERE2 , ntpServer : %s",ntpServer.c_str());
+            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer.c_str(), ntpServer.c_str());
+        }
         
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {

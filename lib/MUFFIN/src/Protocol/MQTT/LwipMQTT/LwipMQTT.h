@@ -52,7 +52,8 @@ namespace muffin { namespace mqtt {
         TimerHandle_t xTimer = NULL;
     public:
         static PubSubClient mClient;
-        WiFiClientSecure mNIC;
+        WiFiClientSecure mSecureNIC;
+        WiFiClient mNIC;
     private:
         const BrokerInfo mBrokerInfo;
         const Message mMessageLWT;

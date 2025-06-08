@@ -67,9 +67,17 @@ namespace muffin { namespace mqtt {
             }
         );
         LOG_INFO(logger, "Set a callback for subscription event");
-
-        mNIC.setCACert(ROOT_CA_CRT);
-        mClient.setClient(mNIC);
+        
+        if(mBrokerInfo.GetPort() == 8883)
+        {
+            mSecureNIC.setCACert(ROOT_CA_CRT);
+            mClient.setClient(mSecureNIC);
+        }
+        else
+        {
+            mClient.setClient(mNIC);
+        }
+    
         mClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
         mClient.setKeepAlive(KEEP_ALIVE);
      

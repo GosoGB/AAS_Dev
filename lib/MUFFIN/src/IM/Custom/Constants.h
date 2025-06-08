@@ -62,10 +62,12 @@ namespace muffin {
     constexpr const char* INIT_FILE_PATH         = "/init_config.csv";
     constexpr const char* JARVIS_PATH            = "/jarvis_config.json";
     constexpr const char* JARVIS_PATH_FETCHED    = "/jarvis_fetched.json";
+    constexpr const char* SERVICE_URL_PATH       = "/service_url.json";
     constexpr const char* OTA_REQUEST_PATH       = "/ota_request.json";
     constexpr const char* OTA_CHUNK_PATH_ESP32   = "/ota_chunk_esp32.csv";
     constexpr const char* OTA_CHUNK_PATH_MEGA    = "/ota_chunk_mega2560.csv";
     constexpr const char* LWIP_HTTP_PATH         = "/http_response";
+    
 
     typedef enum class TaskName
         : uint8_t

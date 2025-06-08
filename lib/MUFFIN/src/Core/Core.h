@@ -52,10 +52,14 @@ namespace muffin {
         Status readInitConfig(init_cfg_t* output);
         static Status writeInitConfig(const init_cfg_t& config);
         bool isResetByPanic();
-        Status createDefaultJARVIS();
-        Status loadJarvisConfig();
         void unloadJarvisConfig();
         void PublishStatusEventMessageService(init_cfg_t* output);
+
+    private:
+        Status createDefaultJARVIS();
+        Status createDefaultServiceUrl();
+        Status loadJarvisConfig();
+        Status loadServiceUrlConfig();
     };
 
     extern Core core;

@@ -37,6 +37,7 @@
 
 namespace muffin {
 
+    extern std::string ntpServer;
 
     class LAN8720 : public INetwork
     {
