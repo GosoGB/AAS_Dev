@@ -311,19 +311,16 @@ namespace muffin
     {
         if (!mClient->connected()) 
         {
-            LOG_ERROR(logger,"here???");
             return 0;
         }
-
         mClient->write(cmd, length);
 
         uint32_t startTS = millis();
-        while (!mClient->available() && (millis() - startTS) < 2000) 
+        while (!mClient->available() && (millis() - startTS) < 4000) 
         {
             delay(1);
         }
         size_t idx = 0;
-        
         while (mClient->available()>0)
         {
             responseBuf[idx] = mClient->read();

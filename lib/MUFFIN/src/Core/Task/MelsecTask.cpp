@@ -93,7 +93,7 @@ namespace muffin
                 } 
                 else
                 {
-                    LOG_INFO(logger,"melsec Client connected");
+                    LOG_DEBUG(logger,"melsec Client connected");
                 }
 
                 Status ret = melsec.Poll();
