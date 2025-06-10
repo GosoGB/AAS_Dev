@@ -315,6 +315,13 @@ namespace muffin
         }
         mClient->write(cmd, length);
 
+        // Serial.print("SEND DATA : ");
+        // for (size_t i = 0; i < length; i++)
+        // {
+        //     Serial.print((char)cmd[i]);
+        // }
+        // Serial.print("\r\n\r\n");
+
         uint32_t startTS = millis();
         while (!mClient->available() && (millis() - startTS) < 4000) 
         {
@@ -326,6 +333,14 @@ namespace muffin
             responseBuf[idx] = mClient->read();
             idx++;
         }
+
+        // Serial.print("RESPONSE DATA : ");
+        // for (size_t i = 0; i < idx; i++)
+        // {
+        //     Serial.print((char)responseBuf[i]);
+        // }
+        
+        // Serial.print("\r\n\r\n");
         
         return idx;
     }

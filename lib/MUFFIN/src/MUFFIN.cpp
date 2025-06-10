@@ -15,10 +15,11 @@
 
 #include "Core/Core.h"
 #include "MUFFIN.h"
-
+#include "esp_task_wdt.h"
 
 
 void MUFFIN::Start()
 {
+    esp_task_wdt_init(15, true);
     muffin::core.Init();
 }

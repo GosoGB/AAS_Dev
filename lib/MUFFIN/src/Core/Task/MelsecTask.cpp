@@ -66,13 +66,9 @@ namespace muffin
                     if (!melsec.Connect())
                     {
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
-                        melsec.SetTimeoutError();
+                        melsec.SetTimeoutError();           
                         continue;
                     } 
-                    else
-                    {
-                        LOG_INFO(logger,"melsec Client connected");
-                    }
                 }
                 
                 Status ret = melsec.Poll();
@@ -80,6 +76,8 @@ namespace muffin
                 {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
+
+                melsec.mMelsecClient->Close();
             }
 
         #if defined(MT11)
