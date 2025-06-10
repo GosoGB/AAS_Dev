@@ -73,10 +73,15 @@ namespace muffin
     public:
     #if defined(MT11)
         w5500::EthernetClient* mClient = nullptr;
+        uint8_t mReqFrame[512];
+        uint8_t mRespFrame[1024];
     #else
         WiFiClient* mClient = nullptr;
+        uint8_t mReqFrame[256];
+        uint8_t mRespFrame[512];
     #endif
 
+        
     private:
         bool mIsConnected = false;
         MelsecCommonHeader mCommonHeader;
@@ -84,5 +89,6 @@ namespace muffin
         const char *mIP;
         jvs::ps_e mPlcSeries;
         jvs::df_e mDataFormat;
+
     };
 } 

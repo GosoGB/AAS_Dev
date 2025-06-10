@@ -222,7 +222,7 @@ namespace muffin {
     #if defined(MT11)
             8*KILLOBYTE,			       // Stack memory size to allocate
     #else
-            3*KILLOBYTE,			       // Stack memory size to allocate
+            4*KILLOBYTE,			       // Stack memory size to allocate
     #endif
             NULL,      // Task parameters to be passed to the function
             0,				       // Task Priority for scheduling
