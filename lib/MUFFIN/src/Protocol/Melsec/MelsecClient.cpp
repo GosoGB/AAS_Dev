@@ -90,22 +90,22 @@ namespace muffin
             return 0;
         }
         
-        uint8_t reqFrame[1024];  // @lsj 생성과 초기화를 동시에 하는 게 좋아요 아니면 적어도 memset으로 초기화해주거나
-        uint8_t respFrame[1024];
+        memset(mReqFrame,0,sizeof(mReqFrame));
+        memset(mRespFrame,0,sizeof(mRespFrame));
         
         size_t idx = 0;
 
         if (mDataFormat == jvs::df_e::ASCII) 
         {
-            idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, value, reqFrame);
-            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, value, mReqFrame);
+            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
                 return false;
             }
 
-            Status ret = mMelsecParser.ParseWriteResponseASCII(respFrame, respSize, false);
+            Status ret = mMelsecParser.ParseWriteResponseASCII(mRespFrame, respSize, false);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -116,15 +116,15 @@ namespace muffin
         } 
         else 
         {
-            idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, value, reqFrame);
-            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, value, mReqFrame);
+            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
                 return false;
             }
 
-            Status ret = mMelsecParser.ParseWriteResponseBinary(respFrame, respSize, false);
+            Status ret = mMelsecParser.ParseWriteResponseBinary(mRespFrame, respSize, false);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -155,21 +155,22 @@ namespace muffin
             return 0;
         }
 
-        uint8_t reqFrame[1024];
-        uint8_t respFrame[1024];
+        memset(mReqFrame,0,sizeof(mReqFrame));
+        memset(mRespFrame,0,sizeof(mRespFrame));
+
         size_t idx = 0;
 
         if (mDataFormat == jvs::df_e::ASCII) 
         {
-            idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, value, reqFrame);
-            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, value, mReqFrame);
+            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
                 return false;
             }
 
-            Status ret = mMelsecParser.ParseWriteResponseASCII(respFrame, respSize, true);
+            Status ret = mMelsecParser.ParseWriteResponseASCII(mRespFrame, respSize, true);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -180,15 +181,15 @@ namespace muffin
         } 
         else 
         {
-            idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, value, reqFrame);
-            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, value, mReqFrame);
+            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
                 return false;
             }
 
-            Status ret = mMelsecParser.ParseWriteResponseBinary(respFrame, respSize, false);
+            Status ret = mMelsecParser.ParseWriteResponseBinary(mRespFrame, respSize, false);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -206,15 +207,16 @@ namespace muffin
         {
             return 0;
         }
-        
-        uint8_t reqFrame[1024];
-        uint8_t respFrame[1024];
+
+        memset(mReqFrame,0,sizeof(mReqFrame));
+        memset(mRespFrame,0,sizeof(mRespFrame));
+       
         size_t idx = 0;
     
         if (mDataFormat == jvs::df_e::ASCII) 
         {
-            idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, reqFrame);
-            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, mReqFrame);
+            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
@@ -222,7 +224,7 @@ namespace muffin
                 return 0;
             }
 
-            Status ret = mMelsecParser.ParseReadResponseASCII(respFrame, respSize, false, buffer);
+            Status ret = mMelsecParser.ParseReadResponseASCII(mRespFrame, respSize, false, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -233,8 +235,8 @@ namespace muffin
         }
         else
         {
-            idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, reqFrame);
-            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, mReqFrame);
+            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
@@ -243,7 +245,7 @@ namespace muffin
             }
             
             
-            Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, count, false, buffer);
+            Status ret = mMelsecParser.ParseReadResponseBinary(mRespFrame, respSize, count, false, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -262,14 +264,15 @@ namespace muffin
             return 0;
         }
 
-        uint8_t reqFrame[1024];
-        uint8_t respFrame[1024];
+        memset(mReqFrame,0,sizeof(mReqFrame));
+        memset(mRespFrame,0,sizeof(mRespFrame));
+
         size_t idx = 0;
     
         if (mDataFormat == jvs::df_e::ASCII) 
         {
-            idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, reqFrame);
-            size_t respSize =  sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, mReqFrame);
+            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
@@ -277,7 +280,7 @@ namespace muffin
                 return 0;
             }
 
-            Status ret = mMelsecParser.ParseReadResponseASCII(respFrame, respSize, true, buffer);
+            Status ret = mMelsecParser.ParseReadResponseASCII(mRespFrame, respSize, true, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());
@@ -288,15 +291,15 @@ namespace muffin
         }
         else
         {
-            idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, reqFrame);
-            size_t respSize = sendAndReceive(reqFrame, idx, respFrame);
+            idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, mReqFrame);
+            size_t respSize = sendAndReceive(mReqFrame, idx, mRespFrame);
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
                 Close();
                 return 0;
             }
-            Status ret = mMelsecParser.ParseReadResponseBinary(respFrame, respSize, count, true, buffer);
+            Status ret = mMelsecParser.ParseReadResponseBinary(mRespFrame, respSize, count, true, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
                 LOG_ERROR(logger, "ERROR : %s",ret.c_str());

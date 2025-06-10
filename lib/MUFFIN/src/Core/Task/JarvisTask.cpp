@@ -595,15 +595,8 @@ namespace muffin {
             return;
         }
         mConfigVectorMelsec.emplace_back(*cin);
-
-        if (id == w5500::sock_id_e::SOCKET_1)
-        {
-            MelsecVectorDynamic.emplace_back(*melsec);
-        }
-        else
-        {
-            MelsecVector.emplace_back(*melsec);
-        }
+        MelsecVector.emplace_back(*melsec);
+        
     }
 #endif
 }

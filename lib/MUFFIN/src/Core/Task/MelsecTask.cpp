@@ -32,7 +32,6 @@ namespace muffin
 {
 
     std::vector<Melsec> MelsecVector;
-    std::vector<Melsec> MelsecVectorDynamic;
     TaskHandle_t xTaskMelsecHandle = NULL;
 
     void implMelsecTask(void* pvParameter)
@@ -66,7 +65,8 @@ namespace muffin
                     if (!melsec.Connect())
                     {
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
-                        melsec.SetTimeoutError();           
+                        melsec.SetTimeoutError();     
+                        melsec.mMelsecClient->Close();      
                         continue;
                     } 
                 }
@@ -80,30 +80,6 @@ namespace muffin
                 melsec.mMelsecClient->Close();
             }
 
-        #if defined(MT11)
-            for(auto& melsec : MelsecVectorDynamic)
-            {
-                if (!melsec.Connect())
-                {
-                    LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
-                    melsec.SetTimeoutError();
-                    continue;
-                } 
-                else
-                {
-                    LOG_DEBUG(logger,"melsec Client connected");
-                }
-
-                Status ret = melsec.Poll();
-                if (ret != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
-                }
-
-                melsec.mMelsecClient->Close();
-                
-            }
-        #endif
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
         }
@@ -134,7 +110,7 @@ namespace muffin
     #if defined(MT11)
             10 * KILLOBYTE,          // Stack memory size to allocate
     #else
-            5 * KILLOBYTE,          // Stack memory size to allocate
+            4 * KILLOBYTE,          // Stack memory size to allocate
     #endif
             NULL, // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
