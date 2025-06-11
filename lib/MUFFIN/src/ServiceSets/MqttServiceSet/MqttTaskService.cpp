@@ -535,29 +535,50 @@ namespace muffin {
 
         Status ret = Status(Status::Code::UNCERTAIN);
 
-        if (doc["mc"].isNull() == false)
-        {
-            JsonArray mc = doc["mc"].as<JsonArray>();
-            ret =  RemoteControllToMachine(&messageconfig, mc);
-        }
-        else if(doc["md"].isNull() == false)
-        {
-            JsonArray md = doc["md"].as<JsonArray>();
-            ret = RemoteControllToModlink(&messageconfig, md);
-        }
-        else
+        bool isValid = true;
+        isValid &= doc.containsKey("mc");
+        isValid &= doc.containsKey("md");
+        
+        if (isValid == false)
         {
             messageconfig.ResponseCode = 900;
             messageconfig.Description = "NOT FOUND KEY : MC or MD";
+
+            messageconfig.SourceTimestamp  = GetTimestampInMillis();
+            serializedPayload = json.Serialize(messageconfig);
+            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
+            ret = mqtt::cdo.Store(message);
+            if (ret != Status::Code::GOOD)
+            {
+                /**
+                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
+                 * 
+                 */
+                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
+            }
+
+            return ret;
         }
+        
+        JsonArray mc = doc["mc"].as<JsonArray>();
+        JsonArray md = doc["md"].as<JsonArray>();
+        
+   
+        if (!mc.isNull() && mc.size() > 0) 
+        {
+            ret = RemoteControllToMachine(&messageconfig, mc);
+        }    
+        else if (!md.isNull() && md.size() > 0) 
+        {
+            ret = RemoteControllToModlink(&messageconfig, md);
+        }
+
 
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger,"REMOTE CONTROL ERROR ! %s",ret.c_str());
-    
         }
         
-
         messageconfig.SourceTimestamp  = GetTimestampInMillis();
         serializedPayload = json.Serialize(messageconfig);
         mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
@@ -571,7 +592,6 @@ namespace muffin {
             LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
         }
         return ret;
-        
     }
 
     Status subscribeMessages(init_cfg_t& params)
