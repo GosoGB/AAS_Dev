@@ -35,7 +35,16 @@ namespace muffin { namespace http {
     Status LwipHTTP::Init()
     {
         mFlags.reset();
-        mClientSecure.setCACert(ROOT_CA_CRT);
+
+    #if defined(MT11)
+        mClient = new w5500::EthernetClient(*ethernet, w5500::sock_id_e::SOCKET_5);
+        mClientSecure  = new SSLClient(mClient);
+    #else
+        mClient = new WiFiClient();
+        mClientSecure = new WiFiClientSecure();
+        mClientSecure->setCACert(ROOT_CA_CRT);
+    #endif
+        
         return Status(Status::Code::GOOD);
     }
     
@@ -234,7 +243,7 @@ namespace muffin { namespace http {
 
     Status LwipHTTP::getHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
+        if (mClient->connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
@@ -247,7 +256,7 @@ namespace muffin { namespace http {
             return ret;
         }
         
-        mClient.print(header.ToString().c_str());
+        mClient->print(header.ToString().c_str());
 
         mRSC = 0;
         ret = processResponseHeader(timeout);
@@ -311,13 +320,13 @@ namespace muffin { namespace http {
         }
 
     TEARDOWN:
-        mClient.stop();
+        mClient->stop();
         return ret;
     }
 
     Status LwipHTTP::getHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        if (mClientSecure.connect(header.GetHost().c_str(), header.GetPort()) == false)
+        if (mClientSecure->connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
@@ -330,8 +339,8 @@ namespace muffin { namespace http {
             return ret;
         }
 
-        mClientSecure.print(header.ToString().c_str());
-        mClientSecure.flush();
+        mClientSecure->print(header.ToString().c_str());
+        mClientSecure->flush();
 
         mRSC = 0;
         mContentLength = 0;
@@ -397,13 +406,13 @@ namespace muffin { namespace http {
         }
 
     TEARDOWN:
-        mClientSecure.stop();
+        mClientSecure->stop();
         return ret;
     }
 
     Status LwipHTTP::postHTTP(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
+        if (mClient->connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
@@ -416,7 +425,7 @@ namespace muffin { namespace http {
             return ret;
         }
         
-        mClient.print(header.ToString().c_str());
+        mClient->print(header.ToString().c_str());
 
         mRSC = 0;
         ret = processResponseHeader(timeout);
@@ -480,13 +489,13 @@ namespace muffin { namespace http {
         }
 
     TEARDOWN:
-        mClient.stop();
+        mClient->stop();
         return ret;
     }
 
     Status LwipHTTP::postHTTP(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
-        if (mClient.connect(header.GetHost().c_str(), header.GetPort()) == false)
+        if (mClient->connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
@@ -506,8 +515,8 @@ namespace muffin { namespace http {
             return ret;
         }
         
-        mClient.print(header.ToString().c_str());
-        mClient.print(body.ToString().c_str());
+        mClient->print(header.ToString().c_str());
+        mClient->print(body.ToString().c_str());
 
         if ((mRSC % 200) < 100)
         {
@@ -562,13 +571,13 @@ namespace muffin { namespace http {
         }
 
     TEARDOWN:
-        mClient.stop();
+        mClient->stop();
         return ret;
     }
 
     Status LwipHTTP::postHTTPS(RequestHeader& header, const RequestParameter& parameter, const uint16_t timeout)
     {
-        if (mClientSecure.connect(header.GetHost().c_str(), header.GetPort()) == false)
+        if (mClientSecure->connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
@@ -581,7 +590,7 @@ namespace muffin { namespace http {
             return ret;
         }
         
-        mClientSecure.print(header.ToString().c_str());
+        mClientSecure->print(header.ToString().c_str());
 
         mRSC = 0;
         ret = processResponseHeader(timeout);
@@ -646,13 +655,13 @@ namespace muffin { namespace http {
         }
 
     TEARDOWN:
-        mClientSecure.stop();
+        mClientSecure->stop();
         return ret;
     }
 
     Status LwipHTTP::postHTTPS(RequestHeader& header, const RequestBody& body, const uint16_t timeout)
     {
-        if (mClientSecure.connect(header.GetHost().c_str(), header.GetPort()) == false)
+        if (mClientSecure->connect(header.GetHost().c_str(), header.GetPort()) == false)
         {
             LOG_ERROR(logger, "FAILED TO CONNECT: %s:%u", header.GetHost().c_str(), header.GetPort());
             return Status(Status::Code::BAD_SERVER_NOT_CONNECTED);
@@ -672,8 +681,8 @@ namespace muffin { namespace http {
             return ret;
         }
         
-        mClientSecure.print(header.ToString().c_str());
-        mClientSecure.print(body.ToString().c_str());
+        mClientSecure->print(header.ToString().c_str());
+        mClientSecure->print(body.ToString().c_str());
 
         if ((mRSC % 200) < 100)
         {
@@ -728,7 +737,7 @@ namespace muffin { namespace http {
         }
 
     TEARDOWN:
-        mClientSecure.stop();
+        mClientSecure->stop();
         return ret;
     }
 
@@ -742,7 +751,11 @@ namespace muffin { namespace http {
         char line[size] = {0};
         uint8_t idx = 0;
 
-        WiFiClient* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? &mClient : &mClientSecure;
+    #if defined(MT11)
+        Client* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? static_cast<Client*>(mClient) : static_cast<Client*>(mClientSecure);
+    #else
+        WiFiClient* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? mClient : mClientSecure;
+    #endif
 
         while ((millis() - startedMillis) < (timeout * SECOND_IN_MILLIS))
         {
@@ -808,7 +821,12 @@ namespace muffin { namespace http {
 
     Status LwipHTTP::saveResponseBody()
     {
-        WiFiClient* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? &mClient : &mClientSecure;
+    #if defined(MT11)
+        Client* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? static_cast<Client*>(mClient) : static_cast<Client*>(mClientSecure);
+    #else
+        WiFiClient* client = mFlags.test(static_cast<uint8_t>(flag_e::HTTP)) ? mClient : mClientSecure;
+    #endif
+    
         Status ret(Status::Code::UNCERTAIN);
 
         File file = esp32FS.Open(LWIP_HTTP_PATH, "w", true);

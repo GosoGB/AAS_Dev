@@ -23,6 +23,8 @@
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "LAN8720.h"
+#include "Network/Ethernet/EthernetFactory.h"
+
 
 extern void tcpipInit();
 extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t *esp_netif); /* from WiFiGeneric */
@@ -30,8 +32,6 @@ extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t *esp_
 
 
 namespace muffin {
-
-    std::string ntpServer = "time.google.com";
 
     LAN8720::LAN8720()
     {

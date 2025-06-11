@@ -36,6 +36,14 @@ namespace muffin { namespace mqtt {
 
     Status LwipMQTT::Init()
     {
+
+        #if defined(MT11)
+            mNIC = new w5500::EthernetClient(*ethernet,w5500::sock_id_e::SOCKET_6);
+        #else
+            mNIC = new WiFiClient();
+        #endif
+
+
         xTimer = xTimerCreate(
             "lwip_mqtt_loop",   // pcTimerName
             SECOND_IN_MILLIS,   // xTimerPeriod,
@@ -68,15 +76,32 @@ namespace muffin { namespace mqtt {
         );
         LOG_INFO(logger, "Set a callback for subscription event");
         
+    #if defined(MT11)
         if(mBrokerInfo.GetPort() == 8883)
         {
-            mSecureNIC.setCACert(ROOT_CA_CRT);
-            mClient.setClient(mSecureNIC);
+            if (mSecureNIC == nullptr)
+            {
+                mSecureNIC = new SSLClient(mNIC);
+            }
+            mSecureNIC->setCACert(ROOT_CA_CRT);
+            mClient.setClient(*mSecureNIC);
         }
         else
         {
-            mClient.setClient(mNIC);
+            mClient.setClient(*mNIC);
         }
+    #else
+        if(mBrokerInfo.GetPort() == 8883)
+        {
+            mSecureNIC = new WiFiClientSecure();
+            mSecureNIC->setCACert(ROOT_CA_CRT);
+            mClient.setClient(*mSecureNIC);
+        }
+        else
+        {
+            mClient.setClient(*mNIC);
+        }
+    #endif
     
         mClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
         mClient.setKeepAlive(KEEP_ALIVE);

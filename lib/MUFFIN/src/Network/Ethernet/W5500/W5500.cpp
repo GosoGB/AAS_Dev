@@ -18,7 +18,7 @@
 
 
 #include <esp32-hal-gpio.h>
-
+#include <vector>
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Include/Converter.h"
@@ -26,7 +26,11 @@
 #include "JARVIS/Config/Network/Ethernet.h"
 #include "Socket.h"
 #include "W5500.h"
+#include "DNS.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
+#include "Network/Ethernet/EthernetFactory.h"
+#include "Common/Time/TimeUtils.h"
+
 
 SPISettings muffin::W5500::mSpiConfig;
 
@@ -199,23 +203,204 @@ namespace muffin {
         return retrievedPHY & 0x01;
     }
 
-
     bool W5500::IsConnected()
     {
         const bool isUp = getLinkStatus();
         return isUp;
     }
 
-
     IPAddress W5500::GetIPv4() const
     {
         return INADDR_NONE;
     }
 
+    Status W5500::sendNTPMessage(w5500::Socket& socket, IPAddress ip)
+    {
+        uint8_t packet[48] = {0};
+
+        packet[0]  = 0b11100011; // LI=3, VN=4, Mode=3
+        packet[1]  = 0;          // Stratum
+        packet[2]  = 6;          // Poll
+        packet[3]  = 0xEC;       // Precision
+        packet[12] = 49;         // '1'
+        packet[13] = 0x4E;       // 'N'
+        packet[14] = 49;         // '1'
+        packet[15] = 52;         // '4'
+
+        // for (size_t i = 0; i < sizeof(packet); i++)
+        // {
+        //     Serial.printf("%02X ",packet[i]);
+        // }
+
+        // Serial.println();
+
+        Status ret = socket.SendTo(ip, 123, sizeof(packet), packet);
+        if (ret != Status::Code::GOOD) 
+        {
+            LOG_ERROR(logger, "FAIL TO SEND NTP REQUEST");
+            return ret;
+        }
+
+        uint32_t startTime = millis();
+        const uint16_t timeoutMs = 2000;
+
+        while (socket.Available() < 48) 
+        {
+            if (millis() - startTime > timeoutMs) 
+            {
+                LOG_ERROR(logger, "TIMEOUT WAITING FOR NTP RESPONSE");
+                return Status(Status::Code::BAD_TIMEOUT);
+            }
+        }
+
+        return Status(Status::Code::GOOD);
+    } 
+        
+    Status W5500::parseNTPMessage(w5500::Socket& socket, const uint8_t* buffer, size_t length)
+    {
+        if (length < 48) 
+        {
+            LOG_ERROR(logger, "NTP RESPONSE TOO SHORT (%u bytes)", length);
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        // LOG_INFO(logger,"receiveData.size() : %u\n", length);
+        // for (size_t i = 0; i < length; i++)
+        // {
+        //     Serial.printf("%02X ",buffer[i]);
+        // }
+        // Serial.println();
+
+
+        /**
+         * @todo 현재 응답 패킷 중 검증에 대한 부분이 표준과 맞지 않습니다. 추후에는 해당 필드들을 모두 검사해 유효한 Timestamp인지 확인하는 로직이 추가 되어야 합니다.
+         * @김주성 @이상진
+         * 
+         */
+        // uint8_t li_vn_mode = buffer[0];
+        // uint8_t mode = li_vn_mode & 0x07;
+        // uint8_t version = (li_vn_mode >> 3) & 0x07;
+        // uint8_t li = (li_vn_mode >> 6) & 0x03;
+        // uint8_t stratum = buffer[1];
+        // if (mode != 4) 
+        // {
+        //     LOG_WARNING(logger, "UNEXPECTED NTP MODE: %u (expected 4)", mode);
+        // }
+
+        // if (stratum == 0 || stratum > 15) 
+        // {
+        //     LOG_WARNING(logger, "SUSPICIOUS STRATUM VALUE: %u", stratum);
+        // }
+
+        // if (li != 0) 
+        // {
+        //     LOG_INFO(logger, "LEAP SECOND WARNING FLAG SET (LI=%u)", li);
+        // }
+
+    
+        uint32_t ntpSeconds = (buffer[40] << 24) | (buffer[41] << 16) |
+                          (buffer[42] << 8)  | (buffer[43]);
+
+        if (ntpSeconds == 0) 
+        {
+            LOG_ERROR(logger, "INVALID TRANSMIT TIMESTAMP (0)");
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }   
+
+
+        const uint32_t NTP_UNIX_OFFSET = 2208988800UL;
+        uint32_t unixSeconds = ntpSeconds - NTP_UNIX_OFFSET;
+
+        Status ret = SetSystemTime(unixSeconds);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET SYSTEM TIME: %s", ret.c_str());
+            return ret;
+        }
+        
+        const std::string tz = "Asia/Seoul";
+        ret = SetTimezone(tz);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
+            return ret;
+        }
+
+        LOG_INFO(logger, "Synchronized with NTP in timezone: %s", tz.c_str());
+
+        return Status(Status::Code::GOOD);
+    }
 
     Status W5500::SyncNTP()
     {
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        const std::string defaultTZ = "UTC";
+        Status ret = SetTimezone(defaultTZ);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
+            return ret;
+        }
+
+        w5500::Socket socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
+        w5500::DNS dns(socket);
+        ret = dns.Init(IPAddress(8, 8, 8, 8));
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INITIALIZE DNS: %s", ret.c_str());
+            return ret;
+        }
+
+        IPAddress resolvedNtpIPv4;
+        ret = dns.GetHostByName(ntpServer.c_str(), &resolvedNtpIPv4);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RESOLVE HOST: %s", ret.c_str());
+            return ret;
+        }
+
+        LOG_DEBUG(logger,"NTP SERVER IP : %s",resolvedNtpIPv4.toString().c_str());
+
+        size_t failCount = 1;
+        while (failCount < 6)
+        {
+            ret = sendNTPMessage(socket, resolvedNtpIPv4);
+            if (ret == Status::Code::GOOD)
+            {
+                break;
+            }
+            LOG_WARNING(logger,"FAIL TO SEND NTP MESSAGE [#%u] : %s",failCount,ret.c_str());
+            failCount++;
+            delay(1000);
+        }
+        
+        if (failCount == 6)
+        {
+            LOG_ERROR(logger,"FAIL TO SEND NTP MESSAGE");
+            return Status(Status::Code::BAD);
+        }
+
+        size_t actualLength = 0;
+        size_t receiveLength = socket.Available();
+        uint8_t receiveData[receiveLength] = {0};
+
+        LOG_INFO(logger,"avilable : %u\n", receiveLength);
+        ret = socket.Receive(receiveLength, &actualLength, receiveData);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"FAIL TO RECEIVE NTP MESSAGE : %s",ret.c_str());
+            socket.Close();
+            return ret;
+        }
+
+        ret = parseNTPMessage(socket, receiveData, actualLength);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"FAIL TO PARSE OFFER MESSAGE : %s",ret.c_str());
+            socket.Close();
+            return ret;
+        }
+        
+        return Status(Status::Code::GOOD);
     }
 
     std::pair<Status, size_t> W5500::TakeMutex()

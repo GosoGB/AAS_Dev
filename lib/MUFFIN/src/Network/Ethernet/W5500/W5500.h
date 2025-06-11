@@ -90,6 +90,13 @@ namespace muffin {
         Status GetMacAddress(uint8_t mac[]);
         Status GetMacAddress(char mac[]);
         uint16_t GetEphemeralPort();
+
+    private:
+        Status sendNTPMessage(w5500::Socket& socket, IPAddress ip); 
+        Status parseNTPMessage(w5500::Socket& socket, const uint8_t* buffer, size_t length);
+
+
+        
     private:
         /**
          * @brief W5500 모듈을 리셋합니다.

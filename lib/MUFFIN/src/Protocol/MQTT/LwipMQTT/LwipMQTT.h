@@ -24,7 +24,8 @@
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Message.h"
 #include "Protocol/MQTT/LwipMQTT/PubSubClient.h"
-
+#include "Network/Ethernet/W5500/EthernetClient.h"
+#include "Network/Ethernet/W5500/SSLClient/SSLClient.h"
 
 
 namespace muffin { namespace mqtt {
@@ -52,8 +53,14 @@ namespace muffin { namespace mqtt {
         TimerHandle_t xTimer = NULL;
     public:
         static PubSubClient mClient;
-        WiFiClientSecure mSecureNIC;
-        WiFiClient mNIC;
+    #if defined(MT11)
+        w5500::EthernetClient* mNIC = nullptr;
+        SSLClient* mSecureNIC = nullptr;
+        
+    #else
+        WiFiClient* mNIC = nullptr;
+        WiFiClientSecure* mSecureNIC = nullptr;
+    #endif
     private:
         const BrokerInfo mBrokerInfo;
         const Message mMessageLWT;

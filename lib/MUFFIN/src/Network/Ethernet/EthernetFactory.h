@@ -23,7 +23,8 @@
 
 namespace muffin {
 
-
+    extern std::string ntpServer;
+    
     class EthernetFactory
     {
     public:

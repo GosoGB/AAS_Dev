@@ -69,6 +69,7 @@
 #include "Network/CatM1/CatM1.h"
 #include "Network/Ethernet/W5500/W5500.h"
 #include "Network/Ethernet/LAN8720/LAN8720.h"
+#include "Network/Ethernet/EthernetFactory.h"
 #include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
 
 

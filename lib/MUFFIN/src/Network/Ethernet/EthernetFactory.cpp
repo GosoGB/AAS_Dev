@@ -22,8 +22,9 @@
 
 
 namespace muffin {
-
-
+    
+    std::string ntpServer = "time.google.com";
+    
     INetwork* EthernetFactory::Create()
     {
         if (ethernet == nullptr)
