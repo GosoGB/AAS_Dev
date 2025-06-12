@@ -206,7 +206,6 @@ namespace muffin
     {
         // @lsj 파서가 여러 개 생성될 수 있다면 static을 사용하는 게 메모리 사용량을 줄이는 데 도움이 됩니다
         constexpr size_t HEADER_SIZE = 18;
-        constexpr size_t ENDCODE_SIZE = 4;
 
         if (length < HEADER_SIZE) 
         {
@@ -214,7 +213,6 @@ namespace muffin
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
         }
 
-        size_t outCount = 0;
         char lenBuf[5] = {0};
         memcpy(lenBuf, &frame[14], 4);
         size_t receiveLength = strtoul(lenBuf, nullptr, 16);
@@ -242,8 +240,6 @@ namespace muffin
     {
         constexpr size_t HEADER_SIZE = 9;
         constexpr size_t ENDCODE_SIZE = 2;
-
-        size_t outCount = 0;
 
         if (length < HEADER_SIZE + ENDCODE_SIZE) 
         {

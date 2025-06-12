@@ -43,7 +43,7 @@ namespace muffin {
 
     public:
 #if defined(MT11)
-        Status SetW5500Client(W5500& interface, const w5500::sock_id_e sock_id);
+        Status SetClient(MelsecClient* client);
 #endif
         Status Config(jvs::config::Melsec* config);
         void Clear();

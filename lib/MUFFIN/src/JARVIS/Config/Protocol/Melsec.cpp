@@ -3,7 +3,7 @@
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief Modbus TCP 프로토콜 설정 형식을 표현하는 클래스를 정의합니다.
+ * @brief Melsec 프로토콜 설정 형식을 표현하는 클래스를 정의합니다.
  * 
  * @date 2025-03-31
  * @version 1.4.0
@@ -23,7 +23,7 @@
 namespace muffin { namespace jvs { namespace config {
 
     Melsec::Melsec()
-        : Base(cfg_key_e::MODBUS_TCP)
+        : Base(cfg_key_e::MELSEC)
     {
     }
 

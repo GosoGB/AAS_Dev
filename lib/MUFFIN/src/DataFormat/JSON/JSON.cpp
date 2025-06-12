@@ -235,9 +235,10 @@ namespace muffin {
 
         doc["mv"]     = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
+        doc["at"]     = static_cast<uint8_t>(msg.AlarmTpye);
         doc["nid"]    = msg.NodeID;
         doc["ts"]     = msg.SourceTimestamp;
-        doc["val"]  = msg.Value;
+        doc["val"]    = msg.Value;
 
         serializeJson(doc, output, size);
     }

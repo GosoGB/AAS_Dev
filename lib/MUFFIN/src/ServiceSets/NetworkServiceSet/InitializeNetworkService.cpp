@@ -235,7 +235,7 @@ namespace muffin {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ETHERNET INTERFACE");
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
-        
+
         if (ethernet->IsConnected() == true)
         {
             return Status(Status::Code::GOOD);
@@ -248,7 +248,7 @@ namespace muffin {
             return ret;
         }
         LOG_INFO(logger, "Initialized Ethernet interface");
-        
+
         ret = ethernet->Config(jvs::config::embeddedEthernet);
         if (ret != Status::Code::GOOD)
         {
@@ -265,6 +265,12 @@ namespace muffin {
         }
         LOG_INFO(logger, "Ethernet has connected");
     
+        if (jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
+        {
+            LOG_INFO(logger,"Initialized ethernet interface");
+            return Status(Status::Code::GOOD);
+        }
+        
         const uint32_t startedMillis = millis();
         do
         {

@@ -3,7 +3,7 @@
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @brief Modbus TCP 프로토콜 설정 형식을 표현하는 클래스를 선언합니다.
+ * @brief Melsec 프로토콜 설정 형식을 표현하는 클래스를 선언합니다.
  * 
  * @date 2025-03-31
  * @version 1.4.0

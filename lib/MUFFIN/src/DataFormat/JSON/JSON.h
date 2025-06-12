@@ -123,6 +123,7 @@ namespace muffin {
     {
         mqtt::topic_e Topic;
         uint64_t SourceTimestamp;
+        jvs::alarm_pub_type_e AlarmTpye;
         char NodeID[5];
         std::string Value;
     } push_struct_t;

@@ -12,10 +12,10 @@
 
 
 
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <functional>
+#include "esp_heap_caps.h"
 #include <esp32-hal.h>
 
 #include "DataFormat/JSON/JSON.h"
@@ -58,14 +58,20 @@ namespace muffin {
     void MSGTask(void* pvParameter)
     {
         const size_t batchSize = 4 * 1024;
+    #if defined(MT11)
+        char* batchPayload = static_cast<char*>(
+            heap_caps_malloc(batchSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)
+        );
+    #else
         char* batchPayload = static_cast<char*>(malloc(4 * 1024));
+    #endif
         if (batchPayload == nullptr) 
         {
             LOG_ERROR(logger, "Failed to allocate batchPayload buffer");
             return;
         }
         memset(batchPayload, 0, batchSize);
-
+        
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
@@ -82,14 +88,14 @@ namespace muffin {
             bool isSuccessPolling = true;
             uint64_t sourceTimestamp = GetTimestampInMillis();
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (30 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
         #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
-                LOG_INFO(logger, "[MSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                LOG_DEBUG(logger, "[MSGTask] Stack Remaind: %u Bytes", RemainedStackSize);
                 
                 deviceStatus.SetTaskRemainedStack(task_name_e::PUBLISH_MSG_TASK, RemainedStackSize);
             }
@@ -149,6 +155,7 @@ namespace muffin {
                     if (ret.first != true)
                     {
                         ret.second.Value = "MFM_NULL";
+                        ret.second.SourceTimestamp = GetTimestampInMillis();
                     }
 
                     if (node->GetTopic() == mqtt::topic_e::DAQ_PARAM)
@@ -190,8 +197,8 @@ namespace muffin {
             }
 
             JSON json;
-            const size_t TESTSIZE = 200;
-            LOG_INFO(logger,"nodeVector.size() : %u",nodeVector.size());
+            const size_t TESTSIZE = 150;
+            LOG_DEBUG(logger,"nodeVector.size() : %u",nodeVector.size());
             for (size_t i = 0; i < nodeVector.size(); i += TESTSIZE) 
             {
                 memset(batchPayload, 0, batchSize);

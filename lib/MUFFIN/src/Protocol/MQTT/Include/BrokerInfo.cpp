@@ -23,7 +23,7 @@
 
 namespace muffin { namespace mqtt {
 
-    BrokerInfo::BrokerInfo(const char* host, const uint16_t port, const uint16_t keepalive, const socket_e socketID, const char* username, const char* password, const version_e version, const bool enableSSL)
+    BrokerInfo::BrokerInfo(const char* host, const uint16_t port, const uint16_t keepalive, const socket_e socketID, const char* username, const char* password, const version_e version, const bool enableSSL, const bool enableValidateCert)
         : mHost(host)
         , mPort(port)
         , mKeepAlive(keepalive)
@@ -32,13 +32,14 @@ namespace muffin { namespace mqtt {
         , mPassword(password)
         , mVersion(version)
         , mEnableSSL(enableSSL)
+        , mEnableValidateCert(enableValidateCert)
     {
         ASSERT((strlen(host) < 101), "HOST NAME CAN'T EXCEED 100 BYTES");
         ASSERT((0 < port), "INVALID PORT NUMBER");
         ASSERT((keepalive < 3601), "INVALID KEEP ALIVE");
     }
     
-    BrokerInfo::BrokerInfo(const char* clientID, const char* host, const uint16_t port, const uint16_t keepalive, const socket_e socketID, const char* username, const char* password, const version_e version, const bool enableSSL)
+    BrokerInfo::BrokerInfo(const char* clientID, const char* host, const uint16_t port, const uint16_t keepalive, const socket_e socketID, const char* username, const char* password, const version_e version, const bool enableSSL, const bool enableValidateCert)
         : mHost(host)
         , mPort(port)
         , mKeepAlive(keepalive)
@@ -48,6 +49,7 @@ namespace muffin { namespace mqtt {
         , mVersion(version)
         , mClientID(clientID)
         , mEnableSSL(enableSSL)
+        , mEnableValidateCert(enableValidateCert)
     {
         ASSERT((strlen(host) < 101), "HOST NAME CAN'T EXCEED 100 BYTES");
         ASSERT((0 < port), "INVALID PORT NUMBER");
@@ -65,6 +67,7 @@ namespace muffin { namespace mqtt {
         , mVersion(std::move(obj.mVersion))
         , mClientID(std::move(obj.mClientID))
         , mEnableSSL(std::move(obj.mEnableSSL))
+        , mEnableValidateCert(std::move(obj.mEnableValidateCert))
     {
     }
 
@@ -76,15 +79,16 @@ namespace muffin { namespace mqtt {
     {
         if (this != &obj)
         {
-            mHost        = obj.mHost;
-            mPort        = obj.mPort;
-            mKeepAlive   = obj.mKeepAlive;
-            mSocketID    = obj.mSocketID;
-            mUsername    = obj.mUsername;
-            mPassword    = obj.mPassword;
-            mVersion     = obj.mVersion;
-            mClientID    = obj.mClientID;
-            mEnableSSL   = obj.mEnableSSL;
+            mHost               = obj.mHost;
+            mPort               = obj.mPort;
+            mKeepAlive          = obj.mKeepAlive;
+            mSocketID           = obj.mSocketID;
+            mUsername           = obj.mUsername;
+            mPassword           = obj.mPassword;
+            mVersion            = obj.mVersion;
+            mClientID           = obj.mClientID;
+            mEnableSSL          = obj.mEnableSSL;
+            mEnableValidateCert = obj.mEnableValidateCert;
         }
 
         return *this;
@@ -93,15 +97,16 @@ namespace muffin { namespace mqtt {
     bool BrokerInfo::operator==(const BrokerInfo& obj)
     {
         return (
-            mHost        == obj.mHost         &&
-            mPort        == obj.mPort         &&
-            mKeepAlive   == obj.mKeepAlive    &&
-            mSocketID    == obj.mSocketID     &&
-            mUsername    == obj.mUsername     &&
-            mPassword    == obj.mPassword     &&
-            mVersion     == obj.mVersion      &&
-            mClientID    == obj.mClientID     &&
-            mEnableSSL   == obj.mEnableSSL
+            mHost               == obj.mHost         &&
+            mPort               == obj.mPort         &&
+            mKeepAlive          == obj.mKeepAlive    &&
+            mSocketID           == obj.mSocketID     &&
+            mUsername           == obj.mUsername     &&
+            mPassword           == obj.mPassword     &&
+            mVersion            == obj.mVersion      &&
+            mClientID           == obj.mClientID     &&
+            mEnableSSL          == obj.mEnableSSL    &&
+            mEnableValidateCert == obj.mEnableValidateCert
         );
     }
 
@@ -204,6 +209,12 @@ namespace muffin { namespace mqtt {
         return Status(Status::Code::GOOD);
     }
 
+    Status BrokerInfo::EnableValidateCert(const bool enableValidateCert)
+    {
+        mEnableValidateCert = enableValidateCert;
+        return Status(Status::Code::GOOD);
+    }
+
     const char* BrokerInfo::GetHost() const
     {
         return mHost.c_str();
@@ -256,6 +267,11 @@ namespace muffin { namespace mqtt {
     bool BrokerInfo::IsSslEnabled() const
     {
         return mEnableSSL;
+    }
+
+    bool BrokerInfo::IsValidateCert() const
+    {
+        return mEnableValidateCert;
     }
 
     socket_e BrokerInfo::GetSocketID() const

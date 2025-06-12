@@ -511,15 +511,6 @@ namespace muffin { namespace jvs {
                 }
                 result = setEthernetConfig(cin, config::link1Ethernet);
                 break;
-            case static_cast<uint8_t>(if_e::LINK_02):
-
-                config::link2Ethernet = new(std::nothrow) config::Ethernet();
-                if (config::link2Ethernet == nullptr)
-                {
-                    return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR CIN: LINK2 ETHERNET");
-                }
-                result = setEthernetConfig(cin, config::link2Ethernet);
-                break;
         #endif 
             default:
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, "INVALID ETHERNET INTERFACES");

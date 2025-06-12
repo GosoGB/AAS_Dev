@@ -120,6 +120,7 @@ namespace muffin {
         Status ret = lwipMQTT->Init();
         if (ret == Status::Code::GOOD)
         {
+            log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
             LOG_INFO(logger, "Initialized LwIP MQTT Client");
             if (mqttClient == nullptr)
             {
