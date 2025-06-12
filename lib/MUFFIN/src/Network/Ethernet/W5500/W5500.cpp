@@ -41,8 +41,7 @@ namespace muffin {
     
     W5500::W5500(const w5500::if_e idx)
         : mCS(static_cast<uint8_t>(idx))
-        // , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 38)
-        , mRESET(48)
+        , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 17)
         , xSemaphore(NULL)
     {
         pinMode(mCS,     OUTPUT);
@@ -80,10 +79,7 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
         
-        // resetW5500();
-    #if !defined(DEBUG)
-        릴리즈 할 때는 리셋을 다시 살려주세요!
-    #endif
+        resetW5500();
         initSPI(mMHz);
 
         Status ret = setMacAddress();
@@ -141,8 +137,6 @@ namespace muffin {
  
         if (memcmp(mCRB.IPv4, &INADDR_NONE[0], sizeof(mCRB.IPv4)) == 0)
         {
-            LOG_WARNING(logger,"mCRB.IPv4[0] : %u, mCRB.IPv4[1] : %u, mCRB.IPv4[2] : %u, mCRB.IPv4[3] : %u",mCRB.IPv4[0],mCRB.IPv4[1],mCRB.IPv4[2],mCRB.IPv4[3])
-            
             if (mDHCP == nullptr)
             {
                 socket = new w5500::Socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
@@ -164,15 +158,13 @@ namespace muffin {
             ret = mDHCP->Run();
 
         }
+        else
+        {
+            ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
+            ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
+            ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
+        }
         
-
-        /**
-         * @todo 실행 결과 확인할 것
-         */
-        ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
-        ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
-        ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
-
         return ret;
     }
 
@@ -383,7 +375,6 @@ namespace muffin {
         size_t receiveLength = socket.Available();
         uint8_t receiveData[receiveLength] = {0};
 
-        LOG_INFO(logger,"avilable : %u\n", receiveLength);
         ret = socket.Receive(receiveLength, &actualLength, receiveData);
         if (ret != Status::Code::GOOD)
         {
@@ -437,28 +428,11 @@ namespace muffin {
     Status W5500::setMacAddress()
     {   
         Microchip24AA02E microchip;
-        const bool isLink = w5500::if_e::EMBEDDED != static_cast<w5500::if_e>(mCS);
-        if (isLink)
+        const bool isLINK = mCS == static_cast<uint8_t>(w5500::if_e::LINK_01);
+        if (microchip.Read(isLINK, mCRB.MAC) == false)
         {
-            for (size_t i = 0; i < 20; i++)
-            {
-                LOG_DEBUG(logger, "------ HERE ------");
-            }
-            
-            mCRB.MAC[0] = 0xDE;
-            mCRB.MAC[1] = 0xAD;
-            mCRB.MAC[2] = 0xBE;
-            mCRB.MAC[3] = 0xEF;
-            mCRB.MAC[4] = 0xFE;
-            mCRB.MAC[5] = 0xEF;
-        }
-        else
-        {
-            if (microchip.Read(isLink, mCRB.MAC) == false)
-            {
-                LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
+            LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
     
         Status ret = writeCRB(w5500::crb_addr_e::MAC, sizeof(mCRB.MAC), mCRB.MAC);
@@ -470,7 +444,6 @@ namespace muffin {
         
         uint8_t retrievedMAC[6] = { 0 };
         ret = retrieveCRB(w5500::crb_addr_e::MAC, sizeof(retrievedMAC), retrievedMAC);
-        LOG_DEBUG(logger,"retrievedMAC : %02X:%02X:%02X:%02X:%02X:%02X",retrievedMAC[0],retrievedMAC[1],retrievedMAC[2],retrievedMAC[3],retrievedMAC[4],retrievedMAC[5]);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE MAC ADDRESS");
@@ -512,14 +485,14 @@ namespace muffin {
     Status W5500::setDNS1(const IPAddress ipv4)
     {
         mDNS1 = ipv4;
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        return Status(Status::Code::GOOD);
     }
 
 
     Status W5500::setDNS2(const IPAddress ipv4)
     {
         mDNS2 = ipv4;
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        return Status(Status::Code::GOOD);
     }
 
 
@@ -651,6 +624,15 @@ namespace muffin {
 
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -687,6 +669,16 @@ namespace muffin {
 
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
+            
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -841,6 +833,15 @@ namespace muffin {
     {
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -864,6 +865,15 @@ namespace muffin {
     {
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -989,6 +999,16 @@ namespace muffin {
         mSocketIdFlag.reset(static_cast<uint16_t>(idx));
     }
 
+    IPAddress W5500::GetDNS1()
+    {
+        return mDNS1;
+    }
+
+    IPAddress W5500::GetDNS2()
+    {
+        return mDNS2;
+    }
+
     std::pair<Status, w5500::sock_id_e> W5500::GetAvailableSocketId()
     {
         for (int i = 6; i >= 0; --i)
@@ -1014,7 +1034,6 @@ namespace muffin {
 
     W5500* ethernet   = nullptr;
     W5500* link1W5500 = nullptr;
-    W5500* link2W5500 = nullptr;
 }
 
 

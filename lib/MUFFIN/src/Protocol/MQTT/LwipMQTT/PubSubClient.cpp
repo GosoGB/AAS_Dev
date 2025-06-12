@@ -690,22 +690,43 @@ uint16_t PubSubClient::writeString(const char* string, uint8_t* buf, uint16_t po
 }
 
 
-boolean PubSubClient::connected() {
+boolean PubSubClient::connected()
+{
+    static bool isDisconnectEvent = false;
+
     boolean rc;
-    if (_client == NULL ) {
+    if (_client == NULL) 
+    {
         rc = false;
-    } else {
+    } 
+    else 
+    {
         rc = (int)_client->connected();
-        if (!rc) {
-            if (this->_state == MQTT_CONNECTED) {
+
+        if (!rc) 
+        {
+            if (this->_state == MQTT_CONNECTED) 
+            {
                 this->_state = MQTT_CONNECTION_LOST;
                 _client->flush();
                 _client->stop();
             }
-        } else {
+        }
+        else 
+        {
+            isDisconnectEvent = false;
             return this->_state == MQTT_CONNECTED;
         }
     }
+
+    if ((_state != MQTT_CONNECTED) && (isDisconnectEvent == false))
+    {
+        isDisconnectEvent = true;
+        _client->flush();
+        _client->stop();
+        rc = false;
+    }
+
     return rc;
 }
 

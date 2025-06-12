@@ -21,7 +21,8 @@
 #include "JARVIS/Config/Interfaces/Rs485.h"
 #include "JARVIS/Validators/ValidationResult.h"
 #include "Protocol/MQTT/Include/Message.h"
-
+#include "Protocol/Melsec/MelsecClient.h"
+#include "Protocol/EthernetIP/ciplibs/eip_session.h"
 
 
 namespace muffin {
@@ -40,7 +41,9 @@ namespace muffin {
     void applyEthernet();
 #if defined(MT11)
     void applyModbusTcpConfig(W5500* eth, w5500::sock_id_e id, jvs::config::ModbusTCP* cin);
-    void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin);
+    void applyMelsecConfig(MelsecClient* client, jvs::config::Melsec* cin);
+    void applyEthernetIpCIN(std::vector<jvs::config::Base*>& vectorEthernetIpCIN);
+    void applyEthernetIpConfig(EIPSession eipSession, jvs::config::EthernetIP* cin);
 #endif
 
 }

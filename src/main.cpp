@@ -5,7 +5,7 @@
  * @brief MUFFIN 프레임워크가 적용된 펌웨어의 진입점입니다.
  * 
  * @date 2025-01-20
- * @version 1.3.1
+ * @version 1.5.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -13,29 +13,32 @@
 
 
 
-#include <MUFFIN.h>
-#if defined(DEBUG)
-    #include <Esp.h>
-    #include <Common/Logger/Logger.h>
-    #include <LittleFS.h>
-#endif
-
-
-void setup()
-{
+ #include <MUFFIN.h>
+ #if defined(DEBUG)
+     #include <Esp.h>
+     #include <Common/Logger/Logger.h>
+     #include <LittleFS.h>
+ #endif
+ 
+ 
+ 
+ void setup()
+ {
     MUFFIN muffin;
     muffin.Start();
-}
+ }
+ 
 
 void loop()
 {
+
 #if defined(DEBUG)
     LOG_DEBUG(muffin::logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
     LOG_DEBUG(muffin::logger, "Remained Flash: %u Bytes", LittleFS.totalBytes() - LittleFS.usedBytes());
 #if defined(MT11)
     LOG_DEBUG(muffin::logger, "Remained PSRAM : %d bytes", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 #endif
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    vTaskDelay(10000 / portTICK_PERIOD_MS);
 #else
     vTaskDelete(NULL);
     /**

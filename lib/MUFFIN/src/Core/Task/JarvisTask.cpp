@@ -21,6 +21,7 @@
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
 #include "Core/Task/MelsecTask.h"
+#include "Core/Task/EthernetIpTask.h"
 #include "Core/Task/PubTask.h"
 #include "DataFormat/JSON/JSON.h"
 
@@ -33,6 +34,7 @@
 
 #include "JARVIS/JARVIS.h"
 #include "JARVIS/Config/Operation/Operation.h"
+#include "JARVIS/Config/Protocol/EthernetIP.h"
 #include "JarvisTask.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
@@ -42,6 +44,7 @@
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Melsec/Melsec.h"
+#include "Protocol/EthernetIP/EthernetIP.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
@@ -53,6 +56,8 @@
 #include "Network/Ethernet/W5500/W5500.h"
 #include "Storage/CatFS/CatFS.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
+
+
 
 #include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
 
@@ -81,6 +86,7 @@ namespace muffin {
                 break;
             }
         }
+
 #if defined(MT10) || defined(MT11) || defined(MB10) 
         for (auto& pair : *jarvis)
         {
@@ -96,6 +102,39 @@ namespace muffin {
 #if defined(MT11)
         applyEthernet();
 #endif
+
+    #if defined(MT10) || defined(MT11) || defined(MB10) 
+        for (auto& pair : *jarvis)
+        {
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::MELSEC)
+            {
+                applyMelsecCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
+                break;
+            }
+        }
+    #endif
+
+    #if defined(MT11) 
+        for (auto& pair : *jarvis)
+        {
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::ETHERNET_IP)
+            {
+                applyEthernetIpCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
+                break;
+            }
+        }
+    #endif
+
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
@@ -151,18 +190,13 @@ namespace muffin {
                 }
                 break;
             case jvs::cfg_key_e::MELSEC:
-                applyMelsecCIN(pair.second);
-                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                {
-                    delete *it;
-                }
-                break;
             case jvs::cfg_key_e::NODE:
             case jvs::cfg_key_e::LTE_CatM1:
             case jvs::cfg_key_e::OPERATION:
             case jvs::cfg_key_e::RS232:
             case jvs::cfg_key_e::WIFI4:
             case jvs::cfg_key_e::ETHERNET:
+            case jvs::cfg_key_e::ETHERNET_IP:
                 break;
             
             default:
@@ -409,20 +443,8 @@ namespace muffin {
                 {
                     w5500::link1EthernetClient = new w5500::EthernetClient(*link1W5500, w5500::sock_id_e::SOCKET_0);
                     link1ModbusTCPClient = new ModbusTCPClient(*w5500::link1EthernetClient);
-                    LOG_WARNING(logger, "link1ModbusTCPClient points to: %p", (void*)link1ModbusTCPClient);
                 }
                 applyModbusTcpConfig(link1W5500, retSocketID.second, cin);
-                break;
-            }
-            case jvs::if_e::LINK_02:
-            {
-                const auto retSocketID = link2W5500->GetAvailableSocketId();
-                if (retSocketID.first.ToCode() != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger,"[ETH2] NO AVAILABLE SOCKET");
-                    continue;
-                }
-                applyModbusTcpConfig(link2W5500, retSocketID.second, cin);
                 break;
             }
             default:
@@ -445,6 +467,56 @@ namespace muffin {
         StartTaskMSG();
     }
 
+#if defined(MT11)
+    void applyEthernetIpCIN(std::vector<jvs::config::Base*>& vectorEthernetIpCIN)
+    {
+        if (jvs::config::operation.GetPlanExpired().second == true)
+        {
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: ETHERNETIP TASK IS NOT GOING TO START");
+            return;
+        }
+
+        EthernetIpVector.clear();
+        mConfigVectorEthernetIP.clear();
+
+        for (auto& ethetnetIpCIN : vectorEthernetIpCIN)
+        {
+            jvs::config::EthernetIP* cin = static_cast<jvs::config::EthernetIP*>(ethetnetIpCIN);
+            const jvs::if_e eth = cin->GetEthernetInterface().second;
+            switch (eth)
+            {
+            case jvs::if_e::EMBEDDED:
+            {
+               /**
+                 * @todo Ethernet/IP는 2번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
+                 * 
+                 */
+                if (embeddedEipSession_t.client == nullptr)
+                {
+                    embeddedEipSession_t.client = new w5500::EthernetClient(*ethernet, w5500::sock_id_e::SOCKET_2);
+                }
+                applyEthernetIpConfig(embeddedEipSession_t, cin);
+                break;
+            }
+            case jvs::if_e::LINK_01:
+            {
+                if (link1EipSession_t.client == nullptr)
+                {
+                    link1EipSession_t.client = new w5500::EthernetClient(*link1W5500, w5500::sock_id_e::SOCKET_2);
+                }
+                applyEthernetIpConfig(link1EipSession_t, cin);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+
+        StartEthernetIpTask();
+        StartTaskMSG();
+    }
+#endif
+
     void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
     {
     #if defined(MODLINK_L) || defined(ML10)
@@ -459,7 +531,7 @@ namespace muffin {
 
         if (jvs::config::operation.GetPlanExpired().second == true)
         {
-            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MELSEC TASK IS NOT GOING TO START");
             return;
         }
 
@@ -480,17 +552,22 @@ namespace muffin {
                  * @todo Melsec은 1번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
                  * 
                  */
-                applyMelsecConfig(ethernet, w5500::sock_id_e::SOCKET_1, cin);
+                if (embededMelsecClient == nullptr)
+                {
+                    embededMelsecClient = new MelsecClient(*ethernet, w5500::sock_id_e::SOCKET_1);
+                }
+                
+                applyMelsecConfig(embededMelsecClient, cin);
                 break;
             }
             case jvs::if_e::LINK_01:
             {
-                applyMelsecConfig(link1W5500, w5500::sock_id_e::SOCKET_1, cin);
-                break;
-            }
-            case jvs::if_e::LINK_02:
-            {
-                applyMelsecConfig(link2W5500, w5500::sock_id_e::SOCKET_1, cin);
+                if (link1MelsecClient == nullptr)
+                {
+                    link1MelsecClient = new MelsecClient(*link1W5500, w5500::sock_id_e::SOCKET_1);
+                }
+
+                applyMelsecConfig(link1MelsecClient, cin);
                 break;
             }
             default:
@@ -520,7 +597,7 @@ namespace muffin {
         if (jvs::config::embeddedEthernet != nullptr)
         {
             ethernet->Config(jvs::config::embeddedEthernet);
-            ethernet->Connect();
+            ethernet->Connect();   
         }
 
         if (jvs::config::link1Ethernet != nullptr)
@@ -535,18 +612,6 @@ namespace muffin {
             link1W5500->Config(jvs::config::link1Ethernet);
             link1W5500->Connect();
             
-        }
-        if (jvs::config::link2Ethernet != nullptr)
-        {
-            link2W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_02);
-            Status ret = link2W5500->Init();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "LINK2 W5500 INIT ERROR: %s",ret.c_str());
-            }
-
-            link2W5500->Config(jvs::config::link2Ethernet);
-            link2W5500->Connect();
         }
     }
 
@@ -583,10 +648,10 @@ namespace muffin {
         }
     }
 
-    void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin)
+    void applyMelsecConfig(MelsecClient* client, jvs::config::Melsec* cin)
     {
         Melsec* melsec = new Melsec();
-        melsec->SetW5500Client(*eth, id);
+        melsec->SetClient(client);
 
         Status ret = melsec->Config(cin);
         if (ret != Status::Code::GOOD)
@@ -596,6 +661,23 @@ namespace muffin {
         }
         mConfigVectorMelsec.emplace_back(*cin);
         MelsecVector.emplace_back(*melsec);
+        
+    }
+
+    void applyEthernetIpConfig(EIPSession eipSession, jvs::config::EthernetIP* cin)
+    {
+        ethernetIP::EthernetIP* ethernetip = new ethernetIP::EthernetIP(eipSession);
+
+        Status ret = ethernetip->Config(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNETIP");
+            return;
+        }
+
+        mConfigVectorEthernetIP.emplace_back(*cin);
+        EthernetIpVector.emplace_back(*ethernetip);
+
         
     }
 #endif

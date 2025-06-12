@@ -30,6 +30,7 @@
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Protocol/ModbusTCP.h"
 #include "JARVIS/Config/Protocol/Melsec.h"
+#include "JARVIS/Config/Protocol/EthernetIP.h"
 #include "JARVIS/Config/Network/Ethernet.h"
 #include "JARVIS/Validators/ValidationResult.h"
 
@@ -40,6 +41,8 @@ namespace muffin {
     extern std::vector<muffin::jvs::config::ModbusRTU> mConfigVectorMbRTU;
     extern std::vector<muffin::jvs::config::ModbusTCP> mConfigVectorMbTCP;
     extern std::vector<muffin::jvs::config::Melsec> mConfigVectorMelsec;
+    extern std::vector<muffin::jvs::config::EthernetIP> mConfigVectorEthernetIP;
+    
     extern muffin::jvs::config::Ethernet mEthernet; 
     extern uint32_t s_PollingIntervalInMillis;
     extern uint16_t s_PublishIntervalInSeconds;

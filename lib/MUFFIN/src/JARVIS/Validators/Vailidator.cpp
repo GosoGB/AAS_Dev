@@ -29,6 +29,7 @@
 #include "JARVIS/Validators/Operation/OperationValidator.h"
 #include "JARVIS/Validators/Protocol/ModbusValidator.h"
 #include "JARVIS/Validators/Protocol/MelsecValidator.h"
+#include "JARVIS/Validators/Protocol/EthernetIpValidator.h"
 #include "Validator.h"
 
 
@@ -137,6 +138,9 @@ namespace muffin { namespace jvs {
                     break;
                 case cfg_key_e::MELSEC:
                     ret = validateMelsec(key, cinArray, mProtocolVersion, &outputVector);
+                    break;
+                case cfg_key_e::ETHERNET_IP:
+                    ret = validateEthernetIP(key, cinArray, mProtocolVersion, &outputVector);
                     break;
                 case cfg_key_e::OPERATION:
                     ret = validateOperation(cinArray, mProtocolVersion);
@@ -440,6 +444,15 @@ namespace muffin { namespace jvs {
         ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
         
         MelsecValidator validator;
+        return validator.Inspect(key, json, outputVector);
+    }
+
+    std::pair<rsc_e, std::string> Validator::validateEthernetIP(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector)
+    {
+        ASSERT((outputVector != nullptr), "OUTPUT PARAMETER <outputVector> CANNOT BE A NULL POINTER");
+        ASSERT((outputVector->size() == 0), "OUTPUT PARAMETER <outputVector> MUST BE EMPTY");
+        
+        EthernetIpValidator validator;
         return validator.Inspect(key, json, outputVector);
     }
 

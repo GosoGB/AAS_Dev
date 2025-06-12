@@ -149,7 +149,19 @@ namespace muffin {
             } 
             else 
             {
-                valueArray.add(msg.Value);
+                if (msg.isArray)
+                {
+                    JsonArray subArray = valueArray.add<JsonArray>();
+                    for (const auto& val : msg.ArrayValue) 
+                    {
+                        subArray.add(val); 
+                    }   
+                }
+                else
+                {
+                    valueArray.add(msg.Value);
+                }
+                
             }
             nidArray.add(msg.NodeID);
         }
@@ -235,9 +247,10 @@ namespace muffin {
 
         doc["mv"]     = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
+        doc["at"]     = static_cast<uint8_t>(msg.AlarmTpye);
         doc["nid"]    = msg.NodeID;
         doc["ts"]     = msg.SourceTimestamp;
-        doc["val"]  = msg.Value;
+        doc["val"]    = msg.Value;
 
         serializeJson(doc, output, size);
     }

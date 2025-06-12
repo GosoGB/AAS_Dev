@@ -58,7 +58,11 @@ namespace muffin {
         mTaskResources[0].RemainedStackSize = -1;
 
         strcpy(mTaskResources[1].TaskName, "PublishMSGTask");
+    #if defined(MT11)
         mTaskResources[1].TotalStackSize    = 8 * KILLOBYTE;
+    #else
+        mTaskResources[1].TotalStackSize    = 4 * KILLOBYTE;
+    #endif
         mTaskResources[1].RemainedStackSize = -1;
 
         strcpy(mTaskResources[2].TaskName, "ModbusRtuTask");
@@ -90,8 +94,16 @@ namespace muffin {
         mTaskResources[8].RemainedStackSize = -1;
 
         strcpy(mTaskResources[9].TaskName, "MelsecTask");
-        mTaskResources[9].TotalStackSize    = 8 * KILLOBYTE;
+    #if defined(MT11)
+        mTaskResources[9].TotalStackSize    = 10 * KILLOBYTE;
+    #else
+        mTaskResources[9].TotalStackSize    = 4 * KILLOBYTE;
+    #endif    
         mTaskResources[9].RemainedStackSize = -1;
+
+        strcpy(mTaskResources[10].TaskName, "EthernetIpTask");
+        mTaskResources[10].TotalStackSize    = 10 * KILLOBYTE;
+        mTaskResources[10].RemainedStackSize = -1;
 
     }
 
@@ -181,8 +193,11 @@ namespace muffin {
         case task_name_e::CATM1_MONITORING_TASK:
             mTaskResources[8].RemainedStackSize = remainedStack;
             break;
-            case task_name_e::MELSEC_TASK:
+        case task_name_e::MELSEC_TASK:
             mTaskResources[9].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::ETHERNET_IP_TASK:
+            mTaskResources[10].RemainedStackSize = remainedStack;
             break;
         default:
             LOG_ERROR(logger,"NOT DEFINED TAKSNAME : %d",task);

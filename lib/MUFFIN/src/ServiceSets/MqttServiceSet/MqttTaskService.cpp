@@ -25,8 +25,10 @@
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
 #include "Core/Task/MelsecTask.h"
+#include "Core/Task/EthernetIpTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Melsec/MelsecMutex.h"
+#include "Protocol/EthernetIP/EthernetIpMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Melsec/Melsec.h"
@@ -64,6 +66,7 @@ muffin::CallbackUpdateInitConfig cbUpdateInitConfig = nullptr;
 
 namespace muffin {
 
+
     Status manageConnection()
     {
         if (mqttClient == nullptr)
@@ -76,7 +79,6 @@ namespace muffin {
         {
             return Status(Status::Code::GOOD);
         }
-        LOG_WARNING(logger, "MQTT CLIENT IS NOT CONNECTED");
         
         INetwork* snic = RetrieveServiceNicService();
         std::pair<Status, size_t> mutex = snic->TakeMutex();
@@ -130,12 +132,14 @@ namespace muffin {
         {
             return Status(Status::Code::GOOD);
         }
+
         INetwork* snic = RetrieveServiceNicService();
         std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
             return mutex.first;
         }
+        
         Status ret(Status::Code::UNCERTAIN);
         while (mqtt::cdo.Count() > 0)
         {
@@ -243,7 +247,7 @@ namespace muffin {
         }
         
         const auto version = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
-        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second != jvs::prtcl_ver_e::VERSEOIN_4))
+        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second > jvs::prtcl_ver_e::VERSEOIN_5))
         {
             response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
             response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
@@ -661,11 +665,7 @@ namespace muffin {
 
         while (true)
         {
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (600 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3600 * SECOND_IN_MILLIS))
-        #endif
             {
                 /**
                  * @todo 현재 DeviceStatus에 필요한 정보를 mqttTask에서 생성하고, COD로 넘겨주고 있음 추후에는 이 기능을 별도의 task로 빼서 구현해야함
@@ -698,8 +698,8 @@ namespace muffin {
                 mqtt::cdo.Store(message);
 
             }
-
-            if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
+            
+            if (uint32_t(millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
             {
                 if (manageConnection() == Status::Code::BAD_NOT_EXECUTABLE)
                 {
@@ -707,6 +707,7 @@ namespace muffin {
                 }
                 reconnectMillis = millis();
             }
+            
             publishMessages();
             subscribeMessages(params);
             vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
@@ -743,7 +744,7 @@ namespace muffin {
                                                  "implMqttTask",   // The identifier of this task for men
                                                  8*KILLOBYTE,	   // Stack memory size to allocate
                                                  &config,		   // Task parameters to be passed to the function
-                                                 0,				   // Task Priority for scheduling
+                                                 25,		       // Task Priority for scheduling
                                                  &xHandle,         // The identifier of this task for machines
                                                  1);			   // Index of MCU core where the function to run
 
@@ -826,8 +827,153 @@ namespace muffin {
 
             return ret.first;
         }
+    
+        uint8_t writeResult = 0;
+#if defined(MT11)
+        if (mConfigVectorEthernetIP.size() != 0)
+        {
+            for (auto& EIP : mConfigVectorEthernetIP)
+            {
+                for (auto& ethernetIP : EthernetIpVector)
+                {
+                    if (ethernetIP.mEipSession.targetIP != EIP.GetIPv4().second || ethernetIP.mEipSession.targetPort != EIP.GetPort().second)
+                    {
+                        continue;
+                    }
 
-        retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
+                    std::pair<muffin::Status, std::vector<std::string>> retVector = EIP.GetNodes();
+                    if (retVector.first == Status(Status::Code::GOOD))
+                    {
+                        for (auto& nodeId : retVector.second )
+                        {
+                            if (nodeId == ret.second->GetNodeID())
+                            {   
+                                std::string tagName = ret.second->VariableNode.GetAddress().String;
+                                int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                                std::string value = remoteData.at(0).second;
+                                cip_data_t datum = ethernetIP.GetSingleAddressValue(tagName);
+
+                                datum.RawData.clear();
+                                if (retBit != -1)
+                                {
+                                    bool bitValue = value == "0" ? 0 : 1;
+                                    switch (datum.DataType)
+                                    {
+                                    case CipDataType::SINT:
+                                    {
+                                        uint8_t convertValue = bitWrite(datum.Value.SINT, retBit, bitValue);
+                                        datum.RawData.emplace_back(static_cast<uint8_t>(convertValue));
+                                        break;
+                                    }
+                                    case CipDataType::INT:
+                                    {
+                                        uint16_t convertValue = bitWrite(datum.Value.INT, retBit, bitValue);
+            
+                                        datum.RawData.emplace_back(static_cast<uint8_t>(convertValue & 0xFF));         // Byte 0 (LSB)
+                                        datum.RawData.emplace_back(static_cast<uint8_t>((convertValue >> 8) & 0xFF));  // Byte 1 (MSB)
+                                        break;
+                                    }
+                                    case CipDataType::DINT:
+                                    {    
+                                        uint32_t convertValue = bitWrite(datum.Value.DINT, retBit, bitValue);
+                                        for (int i = 0; i < 4; ++i) 
+                                        {
+                                            datum.RawData.emplace_back(static_cast<uint8_t>((convertValue >> (8 * i)) & 0xFF));
+                                        }
+                                        break;
+                                    }
+                                    case CipDataType::LINT:
+                                    {
+                                        uint64_t convertValue = bitWrite(datum.Value.LINT, retBit, bitValue);
+                                        for (int i = 0; i < 8; ++i) 
+                                        {
+                                            datum.RawData.emplace_back(static_cast<uint8_t>((convertValue >> (8 * i)) & 0xFF));
+                                        }
+                                        break;
+                                    }
+                                    default:
+                                        LOG_ERROR(logger,"BIT INDEXING IS NOT SUPPORTED FOR THIS DATA TYPE");
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    Status res = ethernetIP.StringConvertToCipData(value, &datum);
+                                    if (res != Status::Code::GOOD)
+                                    {
+                                        LOG_ERROR(logger,"FAIL TO CONVERT STRING TO CIP DATA, ret : %s",res.c_str());
+                                        message->SourceTimestamp   = GetTimestampInMillis();
+                                        message->ResponseCode  = 900;
+                                        message->Description = "FAIL TO CONVERT STRING TO CIP DATA : " + remoteData.at(0).first;
+
+                                        return res;
+                                    }
+                                    
+                                }
+
+                                writeResult = 0;
+                                if (xSemaphoreTake(xSemaphoreEthernetIP, 10000)  != pdTRUE)
+                                {
+                                    LOG_WARNING(logger, "[EthernetIP] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                    goto RC_RESPONSE;
+                                }
+                                cip_data_t response;
+
+                                uint8_t MAX_TRIAL_COUNT = 3;
+                                uint8_t trialCount = 0;
+                                
+                                for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
+                                {  
+                                    if (ethernetIP.Connect())
+                                    {
+                                        break;
+                                    }
+
+                                    LOG_WARNING(logger,"[#%d] ethernetIP Client failed to connect!, serverIP : %s, serverPort: %d",trialCount, ethernetIP.mEipSession.targetIP.toString().c_str(), ethernetIP.mEipSession.targetPort);
+                                    ethernetIP.mEipSession.client->stop();
+                                    ethernetIP.mEipSession.connected = false;
+                                    delay(80);
+                                }
+
+                                if (trialCount == MAX_TRIAL_COUNT)
+                                {
+                                    LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                                    xSemaphoreGive(xSemaphoreEthernetIP);
+                                    goto RC_RESPONSE;
+                                }
+
+                                if (writeTag(ethernetIP.mEipSession, tagName, datum, response))
+                                {
+                                    if (response.Code == 0x00) 
+                                    {
+                                        LOG_DEBUG(logger,"[writeSingleTag] Write OK.\n");  
+                                        writeResult = 1;  
+                                    } 
+                                    else 
+                                    {
+                                        LOG_ERROR(logger,"[writeSingleTag] Write ERROR, Code = 0x%02X\n", response.Code);
+                                    }        
+                                }
+                                
+                                ethernetIP.mEipSession.client->stop();
+                                ethernetIP.mEipSession.connected = false;
+
+                                xSemaphoreGive(xSemaphoreEthernetIP);
+                                goto RC_RESPONSE;
+
+                            }
+                        }
+                    }
+                
+                }
+            }
+            
+        }
+        
+#endif
+#if defined(MT10) || defined(MB10) || defined(MT11)
+
+        retConvertModbus = ret.second->VariableNode.StringConvertWordData(remoteData.at(0).second);
         if (retConvertModbus.first != Status::Code::GOOD)
         {
             message->SourceTimestamp = GetTimestampInMillis();
@@ -836,320 +982,332 @@ namespace muffin {
 
            return retConvertModbus.first;
         }
-        else
+
+        if (mConfigVectorMbTCP.size() != 0)
         {
-            uint8_t writeResult = 0;
-    #if defined(MT10) || defined(MB10) || defined(MT11)
-            if (mConfigVectorMbTCP.size() != 0)
+            for (auto& TCP : mConfigVectorMbTCP)
             {
-                for (auto& TCP : mConfigVectorMbTCP)
+                for (auto& modbusTCP : ModbusTcpVector)
                 {
-                    for (auto& modbusTCP : ModbusTcpVector)
+                    if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
                     {
-                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
+                        continue;
+                    }
+                    
+                    std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
+                    if (retVector.first == Status(Status::Code::GOOD))
+                    {
+                        for (auto& nodeId : retVector.second )
                         {
-                            continue;
-                        }
-                        
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {   
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
-                        
-                                    if (retBit != -1)
-                                    {
-                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto RC_RESPONSE;
-                                    }
-
-                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
-                                    switch (nodeArea)
-                                    {
-                                    case jvs::node_area_e::COILS:
-                                        writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jvs::node_area_e::HOLDING_REGISTER:
-                                        writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
-                                        break;
-                                    }
-
-                                    xSemaphoreGive(xSemaphoreModbusTCP);
-
-                                    goto RC_RESPONSE;
+                            if (nodeId == ret.second->GetNodeID())
+                            {   
+                                std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
+                                if (retSlaveID.first != Status(Status::Code::GOOD))
+                                {
+                                    retSlaveID.second = 0;
+                                }
+                                jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                    
+                                if (retBit != -1)
+                                {
+                                    modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
+                                    LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                    retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                    LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
                                 }
                                 
+                                writeResult = 0;
+                                if (xSemaphoreTake(xSemaphoreModbusTCP, 10000)  != pdTRUE)
+                                {
+                                    LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                    goto RC_RESPONSE;
+                                }
+
+                                LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
+                                switch (nodeArea)
+                                {
+                                case jvs::node_area_e::COILS:
+                                    writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                    break;
+                                case jvs::node_area_e::HOLDING_REGISTER:
+                                    writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                    break;
+                                default:
+                                    LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
+                                    break;
+                                }
+
+                                xSemaphoreGive(xSemaphoreModbusTCP);
+
+                                goto RC_RESPONSE;
                             }
                             
                         }
+                        
                     }
+                }
 
-            #if defined(MT11)
-                    for (auto& modbusTCP : ModbusTcpVectorDynamic)
+        #if defined(MT11)
+                for (auto& modbusTCP : ModbusTcpVectorDynamic)
+                {
+                    if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
                     {
-                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
+                        continue;
+                    }
+                    
+                    std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
+                    if (retVector.first == Status(Status::Code::GOOD))
+                    {
+                        for (auto& nodeId : retVector.second )
                         {
-                            continue;
-                        }
-                        
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {   
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
-                        
-                                    if (retBit != -1)
-                                    {
-                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto RC_RESPONSE;
-                                    }
-
-                                    if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1)
-                                    {
-                                        LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
-                                        goto RC_RESPONSE;
-                                    }
-
-                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
-                                    switch (nodeArea)
-                                    {
-                                    case jvs::node_area_e::COILS:
-                                        writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jvs::node_area_e::HOLDING_REGISTER:
-                                        writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
-                                        break;
-                                    }
-                                    
-                                    modbusTCP.mModbusTCPClient->end();
-
-                                    xSemaphoreGive(xSemaphoreModbusTCP);
-
+                            if (nodeId == ret.second->GetNodeID())
+                            {   
+                                std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
+                                if (retSlaveID.first != Status(Status::Code::GOOD))
+                                {
+                                    retSlaveID.second = 0;
+                                }
+                                jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                    
+                                if (retBit != -1)
+                                {
+                                    modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
+                                    LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                    retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                    LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                }
+                                
+                                writeResult = 0;
+                                if (xSemaphoreTake(xSemaphoreModbusTCP, 10000)  != pdTRUE)
+                                {
+                                    LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
                                     goto RC_RESPONSE;
                                 }
-                            }
-                        }
-                    }
-                #endif
-                }
-            }
 
-            if (mConfigVectorMelsec.size() != 0)
-            {
-                for (auto& melsecConfig : mConfigVectorMelsec)
-                {
-                    for (auto& melsec : MelsecVector)
-                    {
-                        if (melsec.GetServerIP() != melsecConfig.GetIPv4().second || melsec.GetServerPort() != melsecConfig.GetPort().second)
-                        {
-                            continue;
-                        }
-                        
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = melsecConfig.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {   
-                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
-
-                                    if (retBit != -1)
-                                    {
-                                        modbus::datum_t registerData =  melsec.GetAddressValue(1, modbusAddress.Numeric, nodeArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }      
-                                    
-                                    writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreMelsec, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MELSEC] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto RC_RESPONSE;
-                                    }
-
-                                    if (!melsec.Connect())
-                                    {
-                                        LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
-                                        goto RC_RESPONSE;
-                                    } 
-
-                                    LOG_DEBUG(logger, "[MELSEC] 원격제어 : %u",retConvertModbus.second);
-                                    
-                                    
-                                    if (im::IsBitArea(nodeArea))
-                                    {
-                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
-                                        writeResult = melsec.mMelsecClient->WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
-                                    }
-                                    else
-                                    {
-                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
-                                        writeResult = melsec.mMelsecClient->WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
-                                    }
-
-                                    melsec.mMelsecClient->Close();
-                                    xSemaphoreGive(xSemaphoreMelsec);
-                                    goto RC_RESPONSE;
-                                }   
-                            }       
-                        }
-                    }                    
-                }
-            }
-    #endif
-
-            if (mConfigVectorMbRTU.size() != 0)
-            {
-                for (auto& RTU : mConfigVectorMbRTU)
-                {
-                    for (auto& modbusRTU : ModbusRtuVector)
-                    {
-                        if (RTU.GetPort().second != modbusRTU.mPort)
-                        {
-                            continue;
-                        }
-
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
+                                if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1)
                                 {
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-
-                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
-                        
-                                    if (retBit != -1)
-                                    {
-                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
-                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto RC_RESPONSE;
-                                    }
-
-                                    switch (nodeArea)
-                                    {
-                                    case jvs::node_area_e::COILS:
-                                        writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jvs::node_area_e::HOLDING_REGISTER:
-                                        writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
-                                        break;
-                                    }
-
-                                    
-                                    if (writeResult != 1)
-                                    {
-                                        if (ModbusRTUClient.lastError() != nullptr)
-                                        {
-                                            LOG_ERROR(logger,"FAIL TO REMOTE CONTROLL : %s",ModbusRTUClient.lastError());
-                                            ModbusRTUClient.clearError();
-                                        }
-                                    }
-                                    
-                                    xSemaphoreGive(xSemaphoreModbusRTU);
-                                    
+                                    LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
                                     goto RC_RESPONSE;
-                                #else
-                                    spear_remote_control_msg_t msg;
-                                    msg.Link = modbusRTU.mPort;
-                                    msg.SlaveID = retSlaveID.second;
-                                    msg.Area = nodeArea;
-                                    msg.Address = modbusAddress.Numeric;
-                                    msg.Value = retConvertModbus.second;
-                                    Status result = spear.ExecuteService(msg);
-                                    if (result == Status(Status::Code::GOOD))
-                                    {
-                                        writeResult = 1;
-                                    }
-                                #endif
+                                }
+
+                                LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
+                                switch (nodeArea)
+                                {
+                                case jvs::node_area_e::COILS:
+                                    writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                    break;
+                                case jvs::node_area_e::HOLDING_REGISTER:
+                                    writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                    break;
+                                default:
+                                    LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
                                     break;
                                 }
+                                
+                                modbusTCP.mModbusTCPClient->end();
+
+                                xSemaphoreGive(xSemaphoreModbusTCP);
+
+                                goto RC_RESPONSE;
+                            }
+                        }
+                    }
+                }
+            #endif
+            }
+        }
+
+        if (mConfigVectorMelsec.size() != 0)
+        {
+            for (auto& melsecConfig : mConfigVectorMelsec)
+            {
+                for (auto& melsec : MelsecVector)
+                {
+                    if (melsec.GetServerIP() != melsecConfig.GetIPv4().second || melsec.GetServerPort() != melsecConfig.GetPort().second)
+                    {
+                        continue;
+                    }
+                    
+                    std::pair<muffin::Status, std::vector<std::string>> retVector = melsecConfig.GetNodes();
+                    if (retVector.first == Status(Status::Code::GOOD))
+                    {
+                        for (auto& nodeId : retVector.second )
+                        {
+                            if (nodeId == ret.second->GetNodeID())
+                            {   
+                                jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                int16_t retBit = ret.second->VariableNode.GetBitIndex();
+
+                                if (retBit != -1)
+                                {
+                                    modbus::datum_t registerData =  melsec.GetAddressValue(1, modbusAddress.Numeric, nodeArea);
+                                    LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                    retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                    LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                }      
+                                
+                                writeResult = 0;
+                                if (xSemaphoreTake(xSemaphoreMelsec, 10000)  != pdTRUE)
+                                {
+                                    LOG_WARNING(logger, "[MELSEC] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                    goto RC_RESPONSE;
+                                }
+
+                                uint8_t MAX_TRIAL_COUNT = 3;
+                                uint8_t trialCount = 0;
+
+                                for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
+                                {
+                                    if (melsec.Connect())
+                                    {
+                                        break;
+                                    }
+
+                                    LOG_WARNING(logger,"[#%d] melsec Client failed to connect!, serverIP : %s, serverPort: %d",trialCount, melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                                    melsec.mMelsecClient->Close();
+                                    delay(80);
+                                }
+
+                                if (trialCount == MAX_TRIAL_COUNT)
+                                {
+                                    LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                                    xSemaphoreGive(xSemaphoreMelsec);
+                                    goto RC_RESPONSE;
+                                }
+
+                                LOG_DEBUG(logger, "[MELSEC] 원격제어 : %u",retConvertModbus.second);
+                                
+                                if (im::IsBitArea(nodeArea))
+                                {
+                                    LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
+                                    writeResult = melsec.mMelsecClient->WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                }
+                                else
+                                {
+                                    LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
+                                    writeResult = melsec.mMelsecClient->WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                }
+
+                                melsec.mMelsecClient->Close();
+                                xSemaphoreGive(xSemaphoreMelsec);
+                                goto RC_RESPONSE;
+                            }   
+                        }       
+                    }
+                }                    
+            }
+        }
+#endif
+
+        if (mConfigVectorMbRTU.size() != 0)
+        {
+            for (auto& RTU : mConfigVectorMbRTU)
+            {
+                for (auto& modbusRTU : ModbusRtuVector)
+                {
+                    if (RTU.GetPort().second != modbusRTU.mPort)
+                    {
+                        continue;
+                    }
+
+                    std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
+                    if (retVector.first == Status(Status::Code::GOOD))
+                    {
+                        for (auto& nodeId : retVector.second )
+                        {
+                            if (nodeId == ret.second->GetNodeID())
+                            {
+                                std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
+                                if (retSlaveID.first != Status(Status::Code::GOOD))
+                                {
+                                    retSlaveID.second = 0;
+                                }
+
+                                jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                    
+                                if (retBit != -1)
+                                {
+                                    modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
+                                    LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                    retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                    LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                }
+                                
+                                writeResult = 0;
+                            #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
+                                if (xSemaphoreTake(xSemaphoreModbusRTU, 10000)  != pdTRUE)
+                                {
+                                    LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                    goto RC_RESPONSE;
+                                }
+
+                                switch (nodeArea)
+                                {
+                                case jvs::node_area_e::COILS:
+                                    writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                    break;
+                                case jvs::node_area_e::HOLDING_REGISTER:
+                                    writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                    break;
+                                default:
+                                    LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
+                                    break;
+                                }
+
+                                
+                                if (writeResult != 1)
+                                {
+                                    if (ModbusRTUClient.lastError() != nullptr)
+                                    {
+                                        LOG_ERROR(logger,"FAIL TO REMOTE CONTROLL : %s",ModbusRTUClient.lastError());
+                                        ModbusRTUClient.clearError();
+                                    }
+                                }
+                                
+                                xSemaphoreGive(xSemaphoreModbusRTU);
+                                
+                                goto RC_RESPONSE;
+                            #else
+                                spear_remote_control_msg_t msg;
+                                msg.Link = modbusRTU.mPort;
+                                msg.SlaveID = retSlaveID.second;
+                                msg.Area = nodeArea;
+                                msg.Address = modbusAddress.Numeric;
+                                msg.Value = retConvertModbus.second;
+                                Status result = spear.ExecuteService(msg);
+                                if (result == Status(Status::Code::GOOD))
+                                {
+                                    writeResult = 1;
+                                }
+                            #endif
+                                break;
                             }
                         }
                     }
                 }
             }
-            
-RC_RESPONSE:
-            if (writeResult == 1)
-            {
-                message->ResponseCode = 200;
-            }
-            else
-            {
-                message->ResponseCode  = 900;
-                message->Description = "UNEXPECTED ERROR";
-            }
-            
-            return Status(Status::Code::GOOD);
         }
+        
+RC_RESPONSE:
+        if (writeResult == 1)
+        {
+            message->ResponseCode = 200;
+        }
+        else
+        {
+            message->ResponseCode  = 900;
+            message->Description = "UNEXPECTED ERROR";
+        }
+        
+        return Status(Status::Code::GOOD);
+        
     }
 
     Status RemoteControllToModlink(remote_controll_struct_t* message, JsonArray& md)

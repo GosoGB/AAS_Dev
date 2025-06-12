@@ -39,16 +39,12 @@ namespace muffin
         uint32_t statusReportMillis = millis(); 
         while (true)
         {
-        #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (30 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
+            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
         
-                LOG_INFO(logger, "[MelSecTask} Stack Remaind: %u Bytes", RemainedStackSize);
+                LOG_DEBUG(logger, "[MelSecTask} Stack Remaind: %u Bytes", RemainedStackSize);
 
                 deviceStatus.SetTaskRemainedStack(task_name_e::MELSEC_TASK, RemainedStackSize);
             }
@@ -60,13 +56,21 @@ namespace muffin
 
             for(auto& melsec : MelsecVector)
             {
+                if (xSemaphoreTake(xSemaphoreMelsec, 2000)  != pdTRUE)
+                {
+                    LOG_WARNING(logger, "[MELSEC] THE READ MODULE IS BUSY. TRY LATER.");
+                    continue;
+                }
+
                 if (!melsec.mMelsecClient->Connected())
                 {
                     if (!melsec.Connect())
                     {
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
                         melsec.SetTimeoutError();     
-                        melsec.mMelsecClient->Close();      
+                        melsec.mMelsecClient->Close(); 
+                        
+                        xSemaphoreGive(xSemaphoreMelsec);   
                         continue;
                     } 
                 }
@@ -78,6 +82,7 @@ namespace muffin
                 }
 
                 melsec.mMelsecClient->Close();
+                xSemaphoreGive(xSemaphoreMelsec);
             }
 
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));

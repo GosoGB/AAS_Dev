@@ -16,10 +16,14 @@
 #include "Core/Core.h"
 #include "MUFFIN.h"
 #include "esp_task_wdt.h"
+#include "Network/Ethernet/W5500/SSLClient/ssl__client.h"
 
 
 void MUFFIN::Start()
 {
+#if defined(MT11)
+    configure_psram_allocator_for_mbedtls();
+#endif
     esp_task_wdt_init(15, true);
     muffin::core.Init();
 }

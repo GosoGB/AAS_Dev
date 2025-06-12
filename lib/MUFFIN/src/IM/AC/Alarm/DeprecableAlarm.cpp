@@ -154,11 +154,7 @@ namespace muffin {
 
         while (true)
         {
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -190,23 +186,46 @@ namespace muffin {
                         break;
                     }
 
-                    switch (cin.GetType().second)
+                    if (datum.DataType == jvs::dt_e::ARRAY)
                     {
-                    case jvs::alarm_type_e::ONLY_LCL:
-                        strategyLCL(cin, datum, reference.second->VariableNode);
-                        break;
-                    case jvs::alarm_type_e::ONLY_UCL:
-                        strategyUCL(cin, datum, reference.second->VariableNode);
-                        break;
-                    case jvs::alarm_type_e::LCL_AND_UCL:
-                        strategyLclAndUcl(cin, datum, reference.second->VariableNode);
-                        break;
-                    case jvs::alarm_type_e::CONDITION:
-                        strategyCondition(cin, datum, reference.second->VariableNode);
-                        break;
-                    default:
-                        break;
+                        switch (cin.GetType().second)
+                        {
+                        case jvs::alarm_type_e::ONLY_LCL:
+                            strategyArrayLCL(cin, datum, reference.second->VariableNode);
+                            break;
+                        // case jvs::alarm_type_e::ONLY_UCL:
+                        //     strategyArrayUCL(cin, datum, reference.second->VariableNode);
+                        //     break;
+                        // case jvs::alarm_type_e::LCL_AND_UCL:
+                        //     strategyArrayLclAndUcl(cin, datum, reference.second->VariableNode);
+                        //     break;
+                        // case jvs::alarm_type_e::CONDITION:
+                        //     strategyCondition(cin, datum, reference.second->VariableNode);
+                        //     break;
+                        default:
+                            break;
+                        }
                     }
+                    else
+                    {
+                        switch (cin.GetType().second)
+                        {
+                        case jvs::alarm_type_e::ONLY_LCL:
+                            strategyLCL(cin, datum, reference.second->VariableNode);
+                            break;
+                        case jvs::alarm_type_e::ONLY_UCL:
+                            strategyUCL(cin, datum, reference.second->VariableNode);
+                            break;
+                        case jvs::alarm_type_e::LCL_AND_UCL:
+                            strategyLclAndUcl(cin, datum, reference.second->VariableNode);
+                            break;
+                        case jvs::alarm_type_e::CONDITION:
+                            strategyCondition(cin, datum, reference.second->VariableNode);
+                            break;
+                        default:
+                            break;
+                        }
+                    }   
                 }
             }
 
@@ -214,13 +233,75 @@ namespace muffin {
         }
     }
 
+    void AlarmMonitor::strategyArrayLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    {
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        const float lcl = cin.GetLCL().second;
+        std::vector<float> valueVector;
+        valueVector.reserve(datum.ArrayValue.size());
+
+
+        for (auto val : datum.ArrayValue)
+        {
+            const float value = convertToFloat(val, datum.ArrayDataType);
+            valueVector.emplace_back(value);
+        }
+
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_LCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_LCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
+
+        const bool isNewAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::LCL) == false;
+        
+        
+        // bool isAlarmCondition = value < lcl;
+        bool isAlarmCondition = false;
+        size_t index = 0;
+        for (size_t i = 0; i < valueVector.size(); i++)
+        {
+            if (valueVector.at(i) < lcl)
+            {
+                isAlarmCondition = false;
+                index = i;
+            }
+        }
+        
+        
+        // if (isNewAlarm == true)
+        // {
+        //     if (isAlarmCondition == true)
+        //     {
+        //         activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
+        //         LOG_DEBUG(logger,"하한값 알람 발생, %s",node.GetNodeID());
+        //     }
+        //     else
+        //     {
+        //         return;
+        //     }
+        // }
+        // else
+        // {
+        //     if (isAlarmCondition == true)
+        //     {
+        //         return;
+        //     }
+        //     else
+        //     {
+        //         deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
+        //         LOG_DEBUG(logger,"하한값 알람 종료, %s",node.GetNodeID());
+        //     }
+        // }
+    }
+
+
     void AlarmMonitor::strategyLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
     {
         ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
         ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         const float lcl = cin.GetLCL().second;
-        const float value = convertToFloat(datum);
+        const float value = convertToFloat(datum.Value, datum.DataType);
         const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_LCL;
         ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_LCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
 
@@ -259,7 +340,7 @@ namespace muffin {
         ASSERT((datum.DataType != jvs::dt_e::STRING), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         const float ucl = cin.GetUCL().second;
-        const float value = convertToFloat(datum);
+        const float value = convertToFloat(datum.Value, datum.DataType);
         const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_UCL;
         ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_UCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
 
@@ -300,7 +381,7 @@ namespace muffin {
 
         const float ucl = cin.GetUCL().second;
         const float lcl = cin.GetLCL().second;
-        const float value = convertToFloat(datum);
+        const float value = convertToFloat(datum.Value, datum.DataType);
 
         const bool isNewLclAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::LCL) == false;
         const bool isNewUclAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::UCL) == false;
@@ -464,36 +545,36 @@ namespace muffin {
         return false;
     }
 
-    float AlarmMonitor::convertToFloat(const im::var_data_t& datum)
+    float AlarmMonitor::convertToFloat(const im::var_value_u& datum, jvs::dt_e type)
     {
-        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
-        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((type != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((type != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
 
         /**
          * @todo double 타입을 처리할 수 있도록 코드를 수정해야 합니다.
          */
-        switch (datum.DataType)
+        switch (type)
         {
         case jvs::dt_e::INT8:
-            return static_cast<float>(datum.Value.Int8);
+            return static_cast<float>(datum.Int8);
         case jvs::dt_e::UINT8:
-            return static_cast<float>(datum.Value.UInt8);
+            return static_cast<float>(datum.UInt8);
         case jvs::dt_e::INT16:
-            return static_cast<float>(datum.Value.Int16);
+            return static_cast<float>(datum.Int16);
         case jvs::dt_e::UINT16:
-            return static_cast<float>(datum.Value.UInt16);
+            return static_cast<float>(datum.UInt16);
         case jvs::dt_e::INT32:
-            return static_cast<float>(datum.Value.Int32);
+            return static_cast<float>(datum.Int32);
         case jvs::dt_e::UINT32:
-            return static_cast<float>(datum.Value.UInt32);
+            return static_cast<float>(datum.UInt32);
         case jvs::dt_e::INT64:
-            return static_cast<float>(datum.Value.Int64);
+            return static_cast<float>(datum.Int64);
         case jvs::dt_e::UINT64:
-            return static_cast<float>(datum.Value.UInt64);
+            return static_cast<float>(datum.UInt64);
         case jvs::dt_e::FLOAT32:
-            return static_cast<float>(datum.Value.Float32);
+            return static_cast<float>(datum.Float32);
         case jvs::dt_e::FLOAT64:
-            return static_cast<float>(datum.Value.Float64);
+            return static_cast<float>(datum.Float64);
         default:
             return 0.0f;
         }
@@ -594,12 +675,15 @@ namespace muffin {
         {
         case jvs::alarm_type_e::ONLY_LCL:
             alarm.AlarmTpye = jvs::alarm_pub_type_e::LCL;
+            push.AlarmTpye = jvs::alarm_pub_type_e::LCL;
             break;
         case jvs::alarm_type_e::ONLY_UCL:
             alarm.AlarmTpye = jvs::alarm_pub_type_e::UCL;
+            push.AlarmTpye = jvs::alarm_pub_type_e::UCL;
             break;
         case jvs::alarm_type_e::CONDITION:
             alarm.AlarmTpye = jvs::alarm_pub_type_e::CONDITION;
+            push.AlarmTpye = jvs::alarm_pub_type_e::CONDITION;
             break;
         default:
             break;

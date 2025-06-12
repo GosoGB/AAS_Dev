@@ -44,6 +44,8 @@ namespace muffin { namespace jvs { namespace config {
         void SetSlaveID(const uint8_t sid);
         void SetNodes(std::vector<std::string>&& nodes) noexcept;
         void SetEthernetInterface(const if_e eth);
+        void SetScanRate(const uint16_t sr);
+
     public:
         std::pair<Status, if_e> GetEthernetInterface() const;
         std::pair<Status, nic_e> GetNIC() const;
@@ -51,13 +53,15 @@ namespace muffin { namespace jvs { namespace config {
         std::pair<Status, uint16_t> GetPort() const;
         std::pair<Status, uint8_t> GetSlaveID() const;
         std::pair<Status, std::vector<std::string>> GetNodes() const;
+        std::pair<Status, uint16_t> GetScanRate() const;
     private:
         bool mIsNicSet              = false;
         bool mIsIPv4Set             = false;
         bool mIsNodesSet            = false;
         bool mIsPortSet             = false;
         bool mIsSlaveIdSet          = false;
-        bool mIsEthernetInterface   = false;
+        bool mIsEthernetInterfaceSet   = false;
+        bool mIsScanRateSet          = false;
     private:
         if_e mEthernetInterface;
         nic_e mNIC;
@@ -65,5 +69,6 @@ namespace muffin { namespace jvs { namespace config {
         std::vector<std::string> mNodes;
         uint16_t mPort;
         uint8_t mSlaveID;
+        uint16_t mScanRate;
     };
 }}}

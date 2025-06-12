@@ -48,11 +48,7 @@ namespace muffin {
 
         while (true)
         {
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -66,7 +62,7 @@ namespace muffin {
             {
                 continue;
             }
-            uint32_t startTS = millis();
+            
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
@@ -84,7 +80,7 @@ namespace muffin {
                 }
             #endif
             }
-            LOG_DEBUG(logger,"polling time : %d", millis() - startTS);
+
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
         }
@@ -172,11 +168,7 @@ namespace muffin {
 
         while (true)
         {
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -193,12 +185,19 @@ namespace muffin {
             
             for(auto& modbusTCP : ModbusTcpVector)
             {
+                if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
+                {
+                    LOG_WARNING(logger, "[MODBUS TCP] THE READ MODULE IS BUSY. TRY LATER.");
+                    continue;
+                }
+
                 if (!modbusTCP.mModbusTCPClient->connected()) 
                 {
                     if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
                     {
                         LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
                         modbusTCP.SetTimeoutError();
+                        xSemaphoreGive(xSemaphoreModbusTCP);
                         continue;
                     } 
                     else
@@ -212,14 +211,25 @@ namespace muffin {
                 {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
+
+                xSemaphoreGive(xSemaphoreModbusTCP);
+
             }
         #if defined(MT11)
             for(auto& modbusTCP : ModbusTcpVectorDynamic)
             {
+                if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
+                {
+                    LOG_WARNING(logger, "[MODBUS TCP] THE READ MODULE IS BUSY. TRY LATER.");
+                    continue;
+                }
+
                 if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
                 {
                     LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
                     modbusTCP.SetTimeoutError();
+                    
+                    xSemaphoreGive(xSemaphoreModbusTCP);
                     continue;
                 }
                 else
@@ -234,6 +244,8 @@ namespace muffin {
                 }
 
                 modbusTCP.mModbusTCPClient->end();
+                
+                xSemaphoreGive(xSemaphoreModbusTCP);
             }
         #endif
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));

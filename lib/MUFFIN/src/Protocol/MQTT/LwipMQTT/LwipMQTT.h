@@ -46,8 +46,6 @@ namespace muffin { namespace mqtt {
         virtual Status ResetTEMP() override;
     private:
         const char* getState();
-        static void vTimerCallback(TimerHandle_t xTimer);
-        static void implTimerCallback();
         void callback(char* topic, byte * payload, unsigned int length);
     private:
         TimerHandle_t xTimer = NULL;
@@ -56,7 +54,6 @@ namespace muffin { namespace mqtt {
     #if defined(MT11)
         w5500::EthernetClient* mNIC = nullptr;
         SSLClient* mSecureNIC = nullptr;
-        
     #else
         WiFiClient* mNIC = nullptr;
         WiFiClientSecure* mSecureNIC = nullptr;
@@ -64,7 +61,13 @@ namespace muffin { namespace mqtt {
     private:
         const BrokerInfo mBrokerInfo;
         const Message mMessageLWT;
+    #if defined(MT11)
+        const uint16_t BUFFER_SIZE = 2048;
+    #else
         const uint16_t BUFFER_SIZE = 1024;
+    #endif
         const uint8_t KEEP_ALIVE  =  10;
+    public:
+        static void implLwipMqttTask(void* pvParameter);
     };
 }}

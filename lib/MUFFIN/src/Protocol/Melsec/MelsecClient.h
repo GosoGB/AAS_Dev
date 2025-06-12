@@ -32,6 +32,7 @@
 
 namespace muffin
 {
+
     class MelsecClient
     {
     public:
@@ -44,7 +45,7 @@ namespace muffin
     
     public:
         // Initialize communication with the PLC
-        bool Begin(const char *ip, uint16_t port, jvs::ps_e series = jvs::ps_e::QL_SERIES);
+        bool Begin(IPAddress ip, uint16_t port, jvs::ps_e series = jvs::ps_e::QL_SERIES);
         bool Connected(); // @lsj IsConnected 같은 식으로 이름을 짓는 게 어떨까요?
         void Close();
 
@@ -83,12 +84,16 @@ namespace muffin
 
         
     private:
+        uint8_t MAX_TRIAL_COUNT = 3;
         bool mIsConnected = false;
         MelsecCommonHeader mCommonHeader;
         uint16_t mPort;
-        const char *mIP;
+        IPAddress mIP;
         jvs::ps_e mPlcSeries;
         jvs::df_e mDataFormat;
 
     };
+
+    extern MelsecClient* embededMelsecClient;
+    extern MelsecClient* link1MelsecClient;
 } 

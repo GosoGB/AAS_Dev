@@ -39,17 +39,21 @@ namespace muffin { namespace jvs { namespace config {
         void SetPort(const prt_e prt);
         void SetSlaveID(const uint8_t sid);
         void SetNodes(std::vector<std::string>&& nodes) noexcept;
+        void SetScanRate(const uint16_t sr);
     public:
         std::pair<Status, prt_e> GetPort() const;
         std::pair<Status, uint8_t> GetSlaveID() const;
         std::pair<Status, std::vector<std::string>> GetNodes() const;
+        std::pair<Status, uint16_t> GetScanRate() const;
     private:
         bool mIsNodesSet   = false;
         bool mIsPortSet    = false;
         bool mIsSlaveIdSet = false;
+        bool mIsScanRateSet          = false;
     private:
         std::vector<std::string> mNodes;
         prt_e mPort;
         uint8_t mSlaveID;
+        uint16_t mScanRate;
     };
 }}}

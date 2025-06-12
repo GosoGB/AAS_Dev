@@ -19,6 +19,7 @@
 #include <sys/_stdint.h>
 
 #include "Common/Status.h"
+#include "Common/Sync/Mutex.hpp"
 #include "Socket.h"
 #include "W5500.h"
 
@@ -79,6 +80,7 @@ namespace muffin { namespace w5500 {
         std::shared_ptr<EthernetClientRxBuffer> mRxBuffer;
         bool mIsConnected;
         int mTimeout;
+        Mutex mMutex;
     };
 
     extern EthernetClient* embededEthernetClient;

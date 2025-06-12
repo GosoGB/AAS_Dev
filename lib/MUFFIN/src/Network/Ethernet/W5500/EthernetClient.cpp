@@ -14,9 +14,10 @@
 
 
 #include "Common/Assert.h"
+#include "Common/Sync/LockGuard.hpp"
 #include "DNS.h"
 #include "EthernetClient.h"
-
+#include "esp_heap_caps.h" 
 
 
 namespace muffin { namespace w5500 {
@@ -38,7 +39,8 @@ namespace muffin { namespace w5500 {
     
         ~EthernetClientRxBuffer()
         {
-            free(mBuffer);
+            // free(mBuffer);
+            heap_caps_free(mBuffer);
         }
     
         bool failed()
@@ -133,7 +135,8 @@ namespace muffin { namespace w5500 {
         {
             if (!mBuffer)
             {
-                mBuffer = (uint8_t *)malloc(mSize);
+                // mBuffer = (uint8_t *)malloc(mSize);
+                mBuffer = (uint8_t *)heap_caps_malloc(mSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
                 if (!mBuffer)
                 {
                     log_e("Not enough memory to allocate buffer");
@@ -207,10 +210,17 @@ namespace muffin { namespace w5500 {
     
     void EthernetClient::stop()
     {
+        if (mSocket == nullptr)
+        {
+            LOG_WARNING(logger, "Socket is already stopped or uninitialized.");
+            return;
+        }
+
+        mSocket->Disconnect();
+        vTaskDelay(100 / portTICK_PERIOD_MS);
         mSocket->Close();
         mIsConnected = false;
         mRxBuffer = nullptr;
-        
     }
 
 
@@ -227,7 +237,6 @@ namespace muffin { namespace w5500 {
         {
             LOG_WARNING(logger,"SOCKET IS NULL!!!!!!!!!!!!");
             return 0;
-            
         }
         
         Status ret = mSocket->Open();
@@ -257,16 +266,21 @@ namespace muffin { namespace w5500 {
     }
 
     
+    /**
+     * @note
+     * 메인 DNS 서버만 사용하게 구현되어 있습니다.
+     * 
+     * @todo
+     * 혹시라도 DNS 서버 다운으로 인해 보조 DNS를 사용해야 하는데
+     * 그렇게 못해서 문제가 생긴 케이스가 발견되면 보조 DNS까지 구현
+     * 해야 합니다.
+     */
     int EthernetClient::connect(const char* host, uint16_t port, int32_t timeout_ms)
     {
         Socket socket(mSocket->mW5500, sock_id_e::SOCKET_7, sock_prtcl_e::UDP);
+        
         DNS dns(socket);
-    #if !defined(DEBUG)
-        dns.Init 할 때 MFM에서 설정 받거나 DHCP에서 받은
-        DNS 서버 주소를 사용할 수 있도록 수정해야 함!
-    #else
-        Status ret = dns.Init(IPAddress(8, 8, 8, 8));
-    #endif
+        Status ret = dns.Init(mSocket->mW5500.GetDNS1());
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO INITIALIZE DNS: %s", ret.c_str());
@@ -311,11 +325,13 @@ namespace muffin { namespace w5500 {
 
     size_t EthernetClient::write(const uint8_t* buf, size_t size)
     {
+        LockGuard lock(mMutex);
+
         int res = 0;
         int retry = MAX_TRIAL_COUNT;
         size_t totalBytesSent = 0;
         size_t bytesRemaining = size;
-        LOG_DEBUG(logger, "bytesRemaining: %u", bytesRemaining);
+        // LOG_DEBUG(logger, "bytesRemaining: %u", bytesRemaining);
 
         if (mIsConnected == false)
         {
@@ -327,7 +343,7 @@ namespace muffin { namespace w5500 {
         {
             retry--;
             ret = mSocket->Send(bytesRemaining, buf);
-            LOG_DEBUG(logger, "mSocket->Send: ret: %s", ret.c_str());
+            // LOG_DEBUG(logger, "mSocket->Send: ret: %s", ret.c_str());
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO SEND DATA: %s", ret.c_str());
@@ -344,7 +360,7 @@ namespace muffin { namespace w5500 {
             }
             res = size;
             totalBytesSent = res;
-            LOG_DEBUG(logger, "Sent data: %u bytes(%u bytes)", res, size);
+            // LOG_DEBUG(logger, "Sent data: %u bytes(%u bytes)", res, size);
             
             if (totalBytesSent >= size)
             {// completed successfully
@@ -370,7 +386,10 @@ namespace muffin { namespace w5500 {
 
     size_t EthernetClient::write(Stream &stream)
     {
-        uint8_t* buf = (uint8_t*)malloc(1360);
+        LockGuard lock(mMutex);
+        
+        // uint8_t* buf = (uint8_t*)malloc(1360);
+        uint8_t* buf = (uint8_t *)heap_caps_malloc(1360, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         if (!buf)
         {
             return 0;
@@ -386,13 +405,16 @@ namespace muffin { namespace w5500 {
             available = stream.available();
         }
 
-        free(buf);
+        // free(buf);
+        heap_caps_free(buf);
         return written;
     }
 
 
     int EthernetClient::read(uint8_t* buf, size_t size)
     {
+        LockGuard lock(mMutex);
+        
         int res = -1;
         if (mRxBuffer)
         {
@@ -411,6 +433,8 @@ namespace muffin { namespace w5500 {
 
     int EthernetClient::peek()
     {
+        LockGuard lock(mMutex);
+        
         int res = -1;
         if (mRxBuffer)
         {
@@ -454,7 +478,10 @@ namespace muffin { namespace w5500 {
 
         size_t toRead = 0;
         size_t actualLength = 0;
-        uint8_t* buf = (uint8_t*)malloc(CLIENT_BUFFER_SIZE);
+        // uint8_t* buf = (uint8_t*)malloc(CLIENT_BUFFER_SIZE);
+        
+        uint8_t* buf = (uint8_t *)heap_caps_malloc(CLIENT_BUFFER_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
 
         if (!buf)
         {
@@ -477,7 +504,8 @@ namespace muffin { namespace w5500 {
             remained -= actualLength;
         }
 
-        free(buf);
+        // free(buf);
+        heap_caps_free(buf);
     }
 
 

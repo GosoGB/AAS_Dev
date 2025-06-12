@@ -72,5 +72,7 @@ namespace muffin {
     private:
         modbus::NodeTable mNodeTable;
         modbus::PolledDataTable mPolledDataTable;
+
+        uint16_t mScanRate;
     };
 }

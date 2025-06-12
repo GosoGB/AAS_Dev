@@ -132,6 +132,9 @@ namespace muffin { namespace jvs {
         case static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_4):
             mContainerLength = 13;
             goto DEFINED_VERSION_FOUND;
+        case static_cast<uint8_t>(prtcl_ver_e::VERSEOIN_5):
+            mContainerLength = 14;
+            goto DEFINED_VERSION_FOUND;
         default:
             goto UNSUPPORTED_VERSION;
         }
@@ -324,6 +327,8 @@ namespace muffin { namespace jvs {
         prtcl_ver_e::VERSEOIN_1,
         prtcl_ver_e::VERSEOIN_2,
         prtcl_ver_e::VERSEOIN_3,
-        prtcl_ver_e::VERSEOIN_4
+        prtcl_ver_e::VERSEOIN_4,
+        prtcl_ver_e::VERSEOIN_5
+        
     };
 }}

@@ -42,7 +42,7 @@ namespace muffin { namespace w5500 {
         mSRB.TxFreeSize      = 0x0800;
         mSRB.InterruptMask   = 0x00FF;
         mSRB.FragmentOffset  = 0x4000;
-        LOG_DEBUG(logger,"SOCKET 생성, ID : %d",static_cast<uint8_t>(mID));
+        // LOG_DEBUG(logger,"SOCKET 생성, ID : %d",static_cast<uint8_t>(mID));
         if (mID != sock_id_e::SOCKET_0)
         {
             mW5500.SetSocketIdFlag(mID);
@@ -233,8 +233,8 @@ namespace muffin { namespace w5500 {
         }
         
         waitCommandCleared();
-        
         GetStatus();
+      
         if ((mProtocol == sock_prtcl_e::TCP    && mSRB.Status != ssr_e::INIT_TCP) ||
             (mProtocol == sock_prtcl_e::UDP    && mSRB.Status != ssr_e::INIT_UDP) ||
             (mProtocol == sock_prtcl_e::MACRAW && mSRB.Status != ssr_e::INIT_MACRAW))
@@ -243,7 +243,7 @@ namespace muffin { namespace w5500 {
             return Status(Status::Code::BAD);
         }
 
-        LOG_DEBUG(logger, "[#%u] The socket has been opened", static_cast<uint8_t>(mID));
+        // LOG_DEBUG(logger, "[#%u] The socket has been opened", static_cast<uint8_t>(mID));
         return ret;
     }
 
@@ -266,7 +266,7 @@ namespace muffin { namespace w5500 {
             GetStatus();
             if (mSRB.Status == ssr_e::CLOSED)
             {
-                LOG_DEBUG(logger, "[#%u] The socket has been closed", static_cast<uint8_t>(mID));
+                // LOG_DEBUG(logger, "[#%u] The socket has been closed", static_cast<uint8_t>(mID));
                 break;
             }
             else
@@ -391,8 +391,48 @@ namespace muffin { namespace w5500 {
 
     Status Socket::Disconnect()
     {
-        LOG_ERROR(logger, "SOCKET DISCONNECT NOT IMPLEMENTED");
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        uint8_t command = static_cast<uint8_t>(scr_e::DISCONNECT);
+        Status ret = mW5500.writeSRB(mID, srb_addr_e::COMMAND, command);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DISCONNECT SOCKET: %s", ret.c_str());
+            return ret;
+        }
+        
+        uint8_t trialCount = 0;
+        for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
+        {
+            GetStatus();
+            if (mSRB.Status == ssr_e::CLOSED)
+            {
+                // LOG_DEBUG(logger, "[#%u] The socket has been disconnected", static_cast<uint8_t>(mID));
+                break;
+            }
+            else
+            {
+                // LOG_DEBUG(logger, "[#%u] SOCKET NOT DISCONNECT: %s", static_cast<uint8_t>(mID), Converter::ToString(mSRB.Status));
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+        }
+        
+        if (trialCount == MAX_TRIAL_COUNT)
+        {
+            LOG_ERROR(logger, "FAILED TO DISCONNECT THE SOCKET #%02u", static_cast<uint8_t>(mID));
+            return Status(Status::Code::BAD);
+        }
+        
+        /**
+         * @brief Release the sock_io_mode of SOCKETn.
+         * @code {.cpp}
+         *      sock_io_mode &= ~(1<<sn); 
+         *      sock_remained_size[sn] = 0;
+         *      sock_is_sending &= ~(1<<sn);
+         *      sock_pack_info[sn] = PACK_NONE;
+         * @endcode
+         */
+
+        clearInterrupt();        
+        return ret;
     }
 
 
@@ -463,7 +503,7 @@ namespace muffin { namespace w5500 {
 
         const uint16_t lengthToRead = mSRB.RxReceivedSize > length ? length : mSRB.RxReceivedSize;
         *actualLength = 0;
-        LOG_DEBUG(logger, "lengthToRead: %u", lengthToRead);
+        // LOG_DEBUG(logger, "lengthToRead: %u", lengthToRead);
         ret = implementReceive(lengthToRead, data);
         if (ret != Status::Code::GOOD)
         {
@@ -540,7 +580,7 @@ namespace muffin { namespace w5500 {
 
         const uint16_t lengthToRead = mSRB.RxReceivedSize > length ? length : mSRB.RxReceivedSize;
         *actualLength = 0;
-        LOG_DEBUG(logger, "lengthToRead: %u", lengthToRead);
+        // LOG_DEBUG(logger, "lengthToRead: %u", lengthToRead);
         ret = implementReceive(lengthToRead, data);
         if (ret != Status::Code::GOOD)
         {
@@ -566,7 +606,7 @@ namespace muffin { namespace w5500 {
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 continue;
             }
-            LOG_DEBUG(logger, "Retrieved command: 0x%02X", retrievedCommand);
+            // LOG_DEBUG(logger, "Retrieved command: 0x%02X", retrievedCommand);
         }
     }
 
@@ -579,14 +619,15 @@ namespace muffin { namespace w5500 {
         while (retrievedInterrupt == 0)
         {
         #if defined(DEBUG)
-            GetStatus();
         #endif
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+        GetStatus();
             ret = mW5500.retrieveSRB(mID, srb_addr_e::INTERRUPT_REGISTER, &retrievedInterrupt);
             if (ret != Status::Code::GOOD)
             {
                 continue;
             }
-            LOG_DEBUG(logger, "Retrieved interrupt: 0x%02X", retrievedInterrupt);
+            // LOG_DEBUG(logger, "Retrieved interrupt: 0x%02X", retrievedInterrupt);
         }
 
         mSRB.Interrupt.SEND_OK       = (retrievedInterrupt >> 4) & 0x01;
@@ -727,7 +768,7 @@ namespace muffin { namespace w5500 {
         }
 
         mSRB.SourcePort = port;
-        LOG_DEBUG(logger, "SOCKET #%u SOURCE PORT: %u", static_cast<uint8_t>(mID), mSRB.SourcePort);
+        // LOG_DEBUG(logger, "SOCKET #%u SOURCE PORT: %u", static_cast<uint8_t>(mID), mSRB.SourcePort);
         return ret;
     }
 
@@ -772,7 +813,7 @@ namespace muffin { namespace w5500 {
             LOG_ERROR(logger, "FAILED TO RETRIEVE TX WRITE POINTER: %s", ret.c_str());
             return ret;
         }
-        LOG_DEBUG(logger, "TX WRITE POINTER: %u", writePointer);
+        // LOG_DEBUG(logger, "TX WRITE POINTER: %u", writePointer);
         
         // write data to the Tx buffer
         const bsb_e bsb = static_cast<bsb_e>(4*static_cast<uint8_t>(mID) + 0x02);
@@ -831,12 +872,12 @@ namespace muffin { namespace w5500 {
             LOG_ERROR(logger, "FAILED TO RETRIEVE RX READ POINTER: %s", ret.c_str());
             return ret;
         }
-        LOG_DEBUG(logger, "RX READ POINTER: %u", readPointer);
+        // LOG_DEBUG(logger, "RX READ POINTER: %u", readPointer);
         
         // read data from the Rx buffer
         const bsb_e bsb = static_cast<bsb_e>(4*static_cast<uint8_t>(mID) + 0x03);
         const uint8_t controlPhase  = Converter::ControlPhase(bsb, am_e::READ);
-        LOG_DEBUG(logger, "length to read: %u", length);
+        // LOG_DEBUG(logger, "length to read: %u", length);
         ret = mW5500.read(readPointer, controlPhase, length, data);
         if (ret != Status::Code::GOOD)
         {

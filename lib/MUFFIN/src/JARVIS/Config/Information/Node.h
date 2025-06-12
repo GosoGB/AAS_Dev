@@ -52,8 +52,14 @@ namespace muffin { namespace jvs { namespace config {
         void SetFormatString(const std::string& format);
         void SetAttributeEvent(const bool hasEvent);
         void SetTopic(const mqtt::topic_e topic);
+        void SetArrayIndex(const std::vector<std::array<uint16_t, 2>> arrayindex);
+        void SetArraySamepleInterval(const uint16_t arraySampleInterval);
+        void SetPrecision(const uint8_t precision);
     
     public:
+        std::pair<Status, uint8_t> GetPrecision() const;
+        std::pair<Status, uint16_t> GetArraySamepleInterval() const;
+        std::pair<Status, std::vector<std::array<uint16_t, 2>>> GetArrayIndex() const;
         std::pair<Status, mqtt::topic_e> GetTopic() const;
         std::pair<Status, const char*> GetNodeID() const;
         std::pair<Status, adtp_e> GetAddressType() const;
@@ -70,20 +76,23 @@ namespace muffin { namespace jvs { namespace config {
     private:
         typedef enum class SetFlagEnum : uint8_t
         {
-            NODE_ID             =  0,
-            ADDRESS_TYPE        =  1,
-            ADDRESS             =  2,
-            NODE_AREA           =  3,
-            BIT_INDEX           =  4,
-            ADDRESS_QUANTITY    =  5,
-            NUMERIC_SCALE       =  6,
-            NUMERIC_OFFSET      =  7,
-            DATA_UNIT_ORDERS    =  8,
-            DATA_TYPE           =  9,
-            FORMAT_STRING       = 10,
-            TOPIC               = 11,
-            ATTRIBUTE_EVENT     = 12,
-            TOP                 = 13
+            NODE_ID               =  0,
+            ADDRESS_TYPE          =  1,
+            ADDRESS               =  2,
+            NODE_AREA             =  3,
+            BIT_INDEX             =  4,
+            ADDRESS_QUANTITY      =  5,
+            NUMERIC_SCALE         =  6,
+            NUMERIC_OFFSET        =  7,
+            DATA_UNIT_ORDERS      =  8,
+            DATA_TYPE             =  9,
+            FORMAT_STRING         = 10,
+            TOPIC                 = 11,
+            ATTRIBUTE_EVENT       = 12,
+            ARRAY_INDEX           = 13,
+            ARRAY_SAMPLE_INTERVAL = 14,
+            PRECISION             = 15,
+            TOP                   = 16
         } set_flag_e;
         bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
@@ -99,6 +108,9 @@ namespace muffin { namespace jvs { namespace config {
         std::vector<dt_e> mVectorDataTypes;
         std::string mFormatString;
         mqtt::topic_e mTopic;
+        std::vector<std::array<uint16_t, 2>> mArrayIndex;
+        uint16_t mArraySampleInterval;
+        uint8_t mPrecision;
         bool mHasAttributeEvent;
     };
 }}}

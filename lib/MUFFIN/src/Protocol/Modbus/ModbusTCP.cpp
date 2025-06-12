@@ -61,6 +61,7 @@ namespace muffin {
         addNodeReferences(config->GetSlaveID().second, config->GetNodes().second);
         mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
+        mScanRate = config->GetScanRate().second;
         return Status(Status::Code::GOOD);
     }
 
@@ -165,12 +166,6 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
-            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-        }
-
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
             const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
@@ -216,7 +211,7 @@ namespace muffin {
                 }
             }
         }
-        xSemaphoreGive(xSemaphoreModbusTCP);
+        
         return ret;
     }
 
@@ -329,8 +324,8 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
+            delay(mScanRate);
             mModbusTCPClient->requestFrom(slaveID, COILS, startAddress, pollQuantity);
-            delay(80);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 
@@ -376,8 +371,8 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
+            delay(mScanRate);
             mModbusTCPClient->requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
-            delay(80);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 
@@ -424,8 +419,8 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
+            delay(mScanRate);
             mModbusTCPClient->requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
-            delay(80);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 
@@ -473,8 +468,8 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
+            delay(mScanRate);
             mModbusTCPClient->requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
-            delay(80);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 

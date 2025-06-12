@@ -34,6 +34,7 @@ namespace muffin { namespace im {
         const char* GetNodeID() const;
         mqtt::topic_e GetTopic() const;
         bool HasAttributeEvent() const;
+        bool IsArrayNode() const;
     public:
         Variable VariableNode;
         Method MethodNode;

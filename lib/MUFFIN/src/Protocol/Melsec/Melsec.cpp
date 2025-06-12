@@ -41,9 +41,9 @@ namespace muffin {
     #endif
     }
 #if defined(MT11)
-    Status Melsec::SetW5500Client(W5500& interface, const w5500::sock_id_e sock_id)
+    Status Melsec::SetClient(MelsecClient* client)
     {
-        mMelsecClient = new MelsecClient(interface, sock_id);
+        mMelsecClient = client;
         
         if (mMelsecClient == nullptr)
         {
@@ -54,9 +54,9 @@ namespace muffin {
     }
 #endif
     bool Melsec::Connect()
-    {
+    {   
         mMelsecClient->SetDataFormat(mDataformat);
-        return (mMelsecClient->Begin(mServerIP.toString().c_str(), mServerPort, mPlcSeries));
+        return (mMelsecClient->Begin(mServerIP, mServerPort, mPlcSeries));
     }
 
     Status Melsec::Config(jvs::config::Melsec* config)
@@ -72,6 +72,8 @@ namespace muffin {
         mServerPort = config->GetPort().second;
         mPlcSeries  = config->GetPlcSeies().second;
         mDataformat = config->GetDataFormat().second;
+        mScanRate   = config->GetScanRate().second;
+        
         return Status(Status::Code::GOOD);
     }
 
@@ -97,6 +99,7 @@ namespace muffin {
             }
             
             im::Node* reference = result.second;
+            
             ret = mNodeTable.Update(slaveID, *reference);
             if (ret != Status::Code::GOOD)
             {
@@ -167,12 +170,6 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        if (xSemaphoreTake(xSemaphoreMelsec, 2000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "[MELSEC] THE READ MODULE IS BUSY. TRY LATER.");
-            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-        }
-
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
             const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
@@ -210,7 +207,6 @@ namespace muffin {
                 }
             }
         }
-        xSemaphoreGive(xSemaphoreMelsec);
         return ret;
     }
 
@@ -304,9 +300,9 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             uint16_t response[pollQuantity+1] = {0};  // @lsj 메모리 할당과 초기화는 항상 같이 하는 게 좋아요
+            delay(mScanRate); // @lsj 딜레이 없이도 데이터 수집에 무리가 없는지 확인 부탁드려요 네!
             int result = mMelsecClient->ReadBits(area,startAddress,pollQuantity,response);
-            delay(80); // @lsj 딜레이 없이도 데이터 수집에 무리가 없는지 확인 부탁드려요 네!
-
+            
             if (result != pollQuantity) 
             {
                 ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
@@ -349,8 +345,8 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             uint16_t response[pollQuantity];
+            delay(mScanRate);
             int result = mMelsecClient->ReadWords(area,startAddress,pollQuantity,response);
-            delay(80);
 
             if (result != pollQuantity) 
             {
