@@ -115,7 +115,7 @@ int client_net_recv_timeout(void *ctx, unsigned char *buf, size_t len, uint32_t 
     return 0;
   }
 
-  timeout += 6000;
+  timeout += 10;
   // log_v("Timeout set to %u", timeout);
 
   unsigned long start = millis();
