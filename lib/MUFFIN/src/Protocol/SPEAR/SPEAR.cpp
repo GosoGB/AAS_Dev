@@ -13,7 +13,7 @@
 
 
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+#if defined(MT10) || defined(MB10)
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
@@ -861,7 +861,7 @@ namespace muffin {
         bool isValid = true;
         isValid &= daq->Link == static_cast<jvs::prt_e>(response["1"].as<uint8_t>());
         isValid &= daq->SlaveID == response["2"].as<uint8_t>();
-        isValid &= daq->Area == static_cast<jvs::mb_area_e>(response["3"].as<uint8_t>());
+        isValid &= daq->Area == static_cast<jvs::node_area_e>(response["3"].as<uint16_t>());
         isValid &= daq->Address == response["4"].as<uint16_t>();
         isValid &= daq->Quantity == response["5"].as<uint16_t>();
 

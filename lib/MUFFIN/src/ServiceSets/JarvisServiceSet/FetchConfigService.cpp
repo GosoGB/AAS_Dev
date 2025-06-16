@@ -4,8 +4,8 @@
  * 
  * @brief MFM 서버로부터 최신 설정 정보를 가져오는 함수를 정의합니다.
  * 
- * @date 2025-01-24
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -23,7 +23,6 @@
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "Network/CatM1/CatM1.h"
-#include "Network/Ethernet/Ethernet.h"
 #include "Protocol/HTTP/IHTTP.h"
 #include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
@@ -39,9 +38,12 @@ namespace muffin {
         char buffer[32] = {'\0'};
     #if defined(MODLINK_L)
         snprintf(buffer, sizeof(buffer), "MODLINK-L/%s", FW_VERSION_ESP32.GetSemanticVersion());
-    #elif defined(MODLINK_T2)
-        snprintf(buffer, sizeof(buffer), "MODLINK-T2/%s", FW_VERSION_ESP32.GetSemanticVersion());
-    #endif
+    #elif defined(MT10)
+        snprintf(buffer, sizeof(buffer), "MT10/%s", FW_VERSION_ESP32.GetSemanticVersion());
+    #elif defined(MT11)
+        snprintf(buffer, sizeof(buffer), "MT11/%s", FW_VERSION_ESP32.GetSemanticVersion());
+   
+        #endif
 
         http::RequestHeader header(
             rest_method_e::GET, 
@@ -112,7 +114,7 @@ namespace muffin {
             PublishResponseJARVIS(response);
             return ret;
         }
-
+          
         LOG_INFO(logger,"payload : %s",payload.c_str());
 
         File file = esp32FS.Open(JARVIS_PATH_FETCHED, "w", true);
@@ -140,7 +142,7 @@ namespace muffin {
         }
         snic->ReleaseMutex();
 
-        ret = Status::Code::GOOD;
-        return ret; 
+        // ret = Status::Code::GOOD;
+        return Status(Status::Code::GOOD);
     }
 }

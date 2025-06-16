@@ -43,26 +43,26 @@ namespace muffin { namespace mqtt {
     typedef enum class topic_e
         : uint8_t
     {
-        LAST_WILL                   = 0,
-        JARVIS_REQUEST              = 1,
-        JARVIS_RESPONSE             = 2,
-        JARVIS_INTERFACE_REQUEST    = 3,
-        JARVIS_INTERFACE_RESPONSE   = 4,
-        JARVIS_STATUS               = 5,
-        DAQ_INPUT                   = 6,
-        DAQ_OUTPUT                  = 7,
-        DAQ_PARAM                   = 8,
-        ALARM                       = 9,
-        ERROR                       = 10,
-        PUSH                        = 11,
-        OPERATION                   = 12,
-        UPTIME                      = 13,
-        FINISHEDGOODS               = 14,
-        FOTA_CONFIG                 = 15,
-        FOTA_UPDATE                 = 16,
-        FOTA_STATUS                 = 17,
-        REMOTE_CONTROL_REQUEST      = 18,
-        REMOTE_CONTROL_RESPONSE     = 19
+        LAST_WILL                       = 0,
+        JARVIS_REQUEST                  = 1,
+        JARVIS_RESPONSE                 = 2,
+        JARVIS_INTERFACE_REQUEST        = 3,
+        JARVIS_INTERFACE_RESPONSE       = 4,
+        JARVIS_STATUS                   = 5,
+        DAQ_INPUT                       = 6,
+        DAQ_OUTPUT                      = 7,
+        DAQ_PARAM                       = 8,
+        ALARM                           = 9,
+        ERROR                           = 10,
+        PUSH                            = 11,
+        OPERATION                       = 12,
+        UPTIME                          = 13,
+        FINISHEDGOODS                   = 14,
+        FOTA_CONFIG                     = 15,
+        FOTA_UPDATE                     = 16,
+        FOTA_STATUS                     = 17,
+        REMOTE_CONTROL_REQUEST          = 18,
+        REMOTE_CONTROL_RESPONSE         = 19
     } topic_e;  
 
     typedef enum class MqttQoSEnum

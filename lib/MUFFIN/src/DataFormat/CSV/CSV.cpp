@@ -47,7 +47,7 @@ namespace muffin {
         output->PanicResetCount   = Convert.ToInt8(buffer[0]);
         output->HasPendingJARVIS  = Convert.ToInt8(buffer[1]);
         output->HasPendingUpdate  = Convert.ToInt8(buffer[2]);
-        output->ReconfigCode     = Convert.ToInt8(buffer[3]);
+        output->ReconfigCode      = Convert.ToInt8(buffer[3]);
 
         if ((output->PanicResetCount  < -1 && 6 < output->PanicResetCount ) ||
             (output->HasPendingJARVIS < -1 && 2 < output->HasPendingJARVIS) ||

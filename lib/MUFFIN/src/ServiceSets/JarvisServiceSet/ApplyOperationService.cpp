@@ -23,6 +23,7 @@
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "DataFormat/CSV/CSV.h"
 #include "Protocol/SPEAR/SPEAR.h"
+#include "Core/Core.h"
 
 
 
@@ -40,7 +41,7 @@ namespace muffin {
             initConfig.PanicResetCount   = 0;
             initConfig.HasPendingJARVIS  = 0;
             initConfig.HasPendingUpdate  = 0;
-            initConfig.ReconfigCode      = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_FACTORY_RESET);;
+            initConfig.ReconfigCode      = static_cast<uint8_t>(reconfiguration_code_e::JARVIS_USER_FACTORY_RESET);
             const uint8_t size = 20;
             char buffer[size] = {'\0'};
 
@@ -87,7 +88,7 @@ namespace muffin {
         
     TEARDOWN:
         vTaskDelay((5 * SECOND_IN_MILLIS) / portTICK_PERIOD_MS);
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         spear.Reset();
     #endif 
         esp_restart();
@@ -100,12 +101,15 @@ namespace muffin {
             executeFactoryReset();
         }
 
+        s_PollingIntervalInMillis = (jvs::config::operation.GetIntervalPolling().second * 1000);
+        s_PublishIntervalInSeconds = jvs::config::operation.GetIntervalServer().second;
+        
         switch (jvs::config::operation.GetServerNIC().second)
         {
         case jvs::snic_e::LTE_CatM1:
             return InitCatM1Service();
     
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         case jvs::snic_e::Ethernet:
             return InitEthernetService();
     #endif

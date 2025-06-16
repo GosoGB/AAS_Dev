@@ -17,6 +17,7 @@
 #include <freertos/task.h>
 
 #include "Core/Core.h"
+#include "Core/Task/PubTask.h"
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
@@ -33,18 +34,15 @@
 namespace muffin {
 
     std::vector<ModbusTCP> ModbusTcpVector;
+    std::vector<ModbusTCP> ModbusTcpVectorDynamic;
     std::vector<ModbusRTU> ModbusRtuVector;
+
 
     TaskHandle_t xTaskModbusRtuHandle = NULL;
     TaskHandle_t xTaskModbusTcpHandle = NULL;
-    static uint32_t s_PollingIntervalInMillis = 1000;
 
-    void SetPollingInterval(const uint16_t pollingInterval)
-    {
-        s_PollingIntervalInMillis = 1000 * pollingInterval;
-    }
 
-    void implModbusRtuTask(void* pvParameters)
+    void implModbusRtuTask(void* pvParameter)
     {
         uint32_t statusReportMillis = millis(); 
 
@@ -64,11 +62,14 @@ namespace muffin {
                 deviceStatus.SetTaskRemainedStack(task_name_e::MODBUS_RTU_TASK, RemainedStackSize);
             }
 
-            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
+            if (g_DaqTaskSetFlag.test((static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK)) == true))
+            {
+                continue;
+            }
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
-            #if defined(MODLINK_L) || defined(MODLINK_ML10)
+            #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
                 Status ret = modbusRTU.Poll();
                 if (ret != Status::Code::GOOD)
                 {
@@ -82,6 +83,9 @@ namespace muffin {
                 }
             #endif
             }
+            
+            g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
+            vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
         }
     }
 
@@ -115,6 +119,7 @@ namespace muffin {
         {
         case pdPASS:
             LOG_INFO(logger, "The Modbus RTU task has been started");
+            g_DaqTaskEnableFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
             // return Status(Status::Code::GOOD);
             break;
 
@@ -142,7 +147,7 @@ namespace muffin {
             LOG_WARNING(logger, "NO MODBUS RTU TASK TO STOP!");
             return;
         }
-        
+        g_DaqTaskEnableFlag.reset(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
         vTaskDelete(xTaskModbusRtuHandle);
         xTaskModbusRtuHandle = NULL;
         LOG_INFO(logger, "STOPPED THE MODBUS RTU TASK");
@@ -160,9 +165,9 @@ namespace muffin {
         }
     }
 
-    void implModbusTcpTask(void* pvParameters)
+    void implModbusTcpTask(void* pvParameter)
     {
-        uint32_t statusReportMillis = millis(); 
+        uint32_t statusReportMillis = millis();    
 
         while (true)
         {
@@ -180,27 +185,57 @@ namespace muffin {
                 deviceStatus.SetTaskRemainedStack(task_name_e::MODBUS_TCP_TASK, RemainedStackSize);
             }
 
+            if (g_DaqTaskSetFlag.test((static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK)) == true))
+            {
+                continue;
+            }
+            
             for(auto& modbusTCP : ModbusTcpVector)
             {
-                if (!modbusTCP.mModbusTCPClient.connected()) 
+                if (!modbusTCP.mModbusTCPClient->connected()) 
                 {
-                    if (modbusTCP.mModbusTCPClient.begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
+                    if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
                     {
                         LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
+                        modbusTCP.SetTimeoutError();
                         continue;
                     } 
                     else
                     {
                         LOG_DEBUG(logger,"Modbus TCP Client connected");
                     }
-                    
                 }
+
                 Status ret = modbusTCP.Poll();
                 if (ret != Status::Code::GOOD)
                 {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
             }
+        #if defined(MT11)
+            for(auto& modbusTCP : ModbusTcpVectorDynamic)
+            {
+                if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
+                {
+                    LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
+                    modbusTCP.SetTimeoutError();
+                    continue;
+                }
+                else
+                {
+                    LOG_DEBUG(logger,"Modbus TCP Client connected");
+                }
+
+                Status ret = modbusTCP.Poll();
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
+                }
+
+                modbusTCP.mModbusTCPClient->end();
+            }
+        #endif
+            g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);   
         }
     }
@@ -229,7 +264,7 @@ namespace muffin {
             implModbusTcpTask,      // Function to be run inside of the task
             "implModbusTcpTask",    // The identifier of this task for men
             5 * KILLOBYTE,		    // Stack memory size to allocate
-            NULL,			        // Task parameters to be passed to the function
+            NULL,       // Task parameters to be passed to the function
             0,				        // Task Priority for scheduling
             &xTaskModbusTcpHandle,       // The identifier of this task for machines
             1				        // Index of MCU core where the function to run
@@ -243,6 +278,7 @@ namespace muffin {
         {
         case pdPASS:
             LOG_INFO(logger, "The Modbus TCP task has been started");
+            g_DaqTaskEnableFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));
             // return Status(Status::Code::GOOD);
             break;
 
@@ -271,7 +307,7 @@ namespace muffin {
             LOG_WARNING(logger, "NO MODBUS TCP TASK TO STOP!");
             return;
         }
-        
+        g_DaqTaskEnableFlag.reset(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));
         vTaskDelete(xTaskModbusTcpHandle);
         xTaskModbusTcpHandle = NULL;
         LOG_INFO(logger, "STOPPED THE MODBUS TCP TASK");

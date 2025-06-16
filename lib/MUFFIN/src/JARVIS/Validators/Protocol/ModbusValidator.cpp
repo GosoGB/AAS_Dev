@@ -31,12 +31,12 @@ namespace muffin { namespace jvs {
     {
     }
 
-    std::pair<rsc_e, std::string> ModbusValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector)
+    std::pair<rsc_e, std::string> ModbusValidator::Inspect(const cfg_key_e key, const JsonArray arrayCIN, prtcl_ver_e protocolVersion, cin_vector* outVector)
     {
         ASSERT((arrayCIN.isNull() == false), "INPUT PARAMETER <arrayCIN> CANNOT BE NULL");
         ASSERT((arrayCIN.size() != 0), "INPUT PARAMETER <arrayCIN> CANNOT BE 0 IN LENGTH");
         ASSERT((outVector != nullptr), "OUTPUT PARAMETER <outVector> CANNOT BE A NULL POINTER");
-
+        mProtocolVersion = protocolVersion;
         switch (key)
         {
         case cfg_key_e::MODBUS_RTU:
@@ -50,8 +50,8 @@ namespace muffin { namespace jvs {
 
     std::pair<rsc_e, std::string> ModbusValidator::validateModbusTCP(const JsonArray array, cin_vector* outVector)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        const std::string message = "MODBUS TCP IS NOT SUPPORTED ON MODLINK-L OR MODLINK-ML10";
+    #if defined(MODLINK_L) || defined(ML10)
+        const std::string message = "MODBUS TCP IS NOT SUPPORTED ON MODLINK-L OR ML10";
         return std::make_pair(rsc_e::BAD_UNSUPPORTED_CONFIGURATION, message);
     #else
         for (JsonObject cin : array)
@@ -73,11 +73,14 @@ namespace muffin { namespace jvs {
             const std::string ip    = cin["ip"].as<std::string>();
             const std::string iface = cin["iface"].as<std::string>();
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
-     
+          
+
             const auto retIP      = convertToIPv4(ip);
             const auto retIface   = convertToIface(iface);
             auto retNodes         = convertToNodes(nodes);
             const auto retSID     = convertToSlaveID(sid);
+
+            
 
             if (prt == 0)
             {
@@ -115,12 +118,27 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc_e::BAD_OUT_OF_MEMORY, "FAILED TO ALLOCATE MEMORY FOR MODBUS TCP CONFIG");
             }
 
+            if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+            {
+                const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
+                const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
+                if (retEths.first != rsc_e::GOOD)
+                {
+                    return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
+                }
+                modbusTCP->SetEthernetInterface(retEths.second);
+            }
+            else
+            {
+                modbusTCP->SetEthernetInterface(if_e::EMBEDDED);
+            }
+            
             modbusTCP->SetSlaveID(retSID.second);
             modbusTCP->SetIPv4(retIP.second);
             modbusTCP->SetPort(prt);
             modbusTCP->SetNIC(retIface.second);
             modbusTCP->SetNodes(std::move(retNodes.second));
-
+            
             
             rsc = emplaceCIN(static_cast<config::Base*>(modbusTCP), outVector);
             if (rsc != rsc_e::GOOD)
@@ -250,6 +268,12 @@ namespace muffin { namespace jvs {
         isValid &= json.containsKey("prt");
         isValid &= json.containsKey("iface");
         isValid &= json.containsKey("nodes");
+
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+        {
+            isValid &= json.containsKey("eths");  
+        }
+
        
         if (isValid == true)
         {
@@ -274,6 +298,12 @@ namespace muffin { namespace jvs {
         isValid &= json["sid"].is<uint8_t>();
         isValid &= json["iface"].is<std::string>();
         isValid &= json["nodes"].is<JsonArray>();
+
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
+        {
+            isValid &= json["eths"].isNull() == false;
+            isValid &= json["eths"].is<uint8_t>(); 
+        }
 
         if (isValid == true)
         {
@@ -313,7 +343,7 @@ namespace muffin { namespace jvs {
         case 2:
             return std::make_pair(rsc_e::GOOD, prt_e::PORT_2);
         
-        #if !defined(MODLINK_L) && !defined(MODLINK_ML10)
+        #if !defined(MODLINK_L) && !defined(ML10)
         case 3:
             return std::make_pair(rsc_e::GOOD, prt_e::PORT_3);
         #endif
@@ -423,6 +453,21 @@ namespace muffin { namespace jvs {
         else
         {
             return std::make_pair(rsc_e::GOOD, slaveID);
+        }
+    }
+
+    std::pair<rsc_e, if_e> ModbusValidator::convertToEthernetInterfaces(uint8_t eths)
+    {
+        switch (eths)
+        {
+        case 0:
+            return std::make_pair(rsc_e::GOOD, if_e::EMBEDDED);
+        case 1:
+            return std::make_pair(rsc_e::GOOD, if_e::LINK_01);
+        case 2:
+            return std::make_pair(rsc_e::GOOD, if_e::LINK_02);
+        default:
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, if_e::EMBEDDED);
         }
     }
 

@@ -37,6 +37,7 @@ namespace muffin { namespace modbus {
         Status Remove(const uint8_t slaveID, NodeRef& node);
         void Clear();
     public:
+        std::pair<Status, std::vector<im::Node*>> RetrieveEntireNode() const;
         std::pair<Status, std::set<uint8_t>> RetrieveEntireSlaveID() const;
         std::pair<Status, std::vector<im::Node*>> RetrieveNodeBySlaveID(const uint8_t slaveID) const;
     private:

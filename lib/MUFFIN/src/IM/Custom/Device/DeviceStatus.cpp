@@ -32,7 +32,7 @@ namespace muffin {
         : mStatus(Status::Code::UNCERTAIN)
     {
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         mEthernetStatusReport.Enabled = false;
         mEthernetStatusReport.LocalIP = "0.0.0.0";
         mEthernetStatusReport.Status  = "UNKNOWN";
@@ -46,7 +46,7 @@ namespace muffin {
         mCatM1StatusReport.SINR      = INT16_MIN;
 #endif
 
-   #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
+   #if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
       mWiFiStatusReport.Enabled  = false;
       mWiFiStatusReport.LocalIP  = "0.0.0.0";
       mWiFiStatusReport.Status   = "UNKNOWN";
@@ -54,11 +54,15 @@ namespace muffin {
    #endif
 
         strcpy(mTaskResources[0].TaskName, "MqttTask");
-        mTaskResources[0].TotalStackSize    = 4 * KILLOBYTE;
+        mTaskResources[0].TotalStackSize    = 8 * KILLOBYTE;
         mTaskResources[0].RemainedStackSize = -1;
 
-        strcpy(mTaskResources[1].TaskName, "cyclicalsMSGTask");
+        strcpy(mTaskResources[1].TaskName, "PublishMSGTask");
+    #if defined(MT11)
+        mTaskResources[1].TotalStackSize    = 8 * KILLOBYTE;
+    #else
         mTaskResources[1].TotalStackSize    = 4 * KILLOBYTE;
+    #endif
         mTaskResources[1].RemainedStackSize = -1;
 
         strcpy(mTaskResources[2].TaskName, "ModbusRtuTask");
@@ -88,6 +92,14 @@ namespace muffin {
         strcpy(mTaskResources[8].TaskName, "CatM1ConnectedTask");
         mTaskResources[8].TotalStackSize    = 4 * KILLOBYTE;
         mTaskResources[8].RemainedStackSize = -1;
+
+        strcpy(mTaskResources[9].TaskName, "MelsecTask");
+    #if defined(MT11)
+        mTaskResources[9].TotalStackSize    = 10 * KILLOBYTE;
+    #else
+        mTaskResources[9].TotalStackSize    = 4 * KILLOBYTE;
+    #endif
+        mTaskResources[9].RemainedStackSize = -1;
 
     }
 
@@ -153,7 +165,7 @@ namespace muffin {
         case task_name_e::MQTT_TASK:
             mTaskResources[0].RemainedStackSize = remainedStack;
             break;
-        case task_name_e::CYCLICALS_MSG_TASK:
+        case task_name_e::PUBLISH_MSG_TASK:
             mTaskResources[1].RemainedStackSize = remainedStack;
             break;
         case task_name_e::MODBUS_RTU_TASK:
@@ -174,8 +186,11 @@ namespace muffin {
         case task_name_e::CATM1_PROCESSOR_TASK:
             mTaskResources[7].RemainedStackSize = remainedStack;
             break;
-            case task_name_e::CATM1_MONITORING_TASK:
+        case task_name_e::CATM1_MONITORING_TASK:
             mTaskResources[8].RemainedStackSize = remainedStack;
+            break;
+            case task_name_e::MELSEC_TASK:
+            mTaskResources[9].RemainedStackSize = remainedStack;
             break;
         default:
             LOG_ERROR(logger,"NOT DEFINED TAKSNAME : %d",task);
@@ -194,7 +209,7 @@ namespace muffin {
     }
 
 #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
     void DeviceStatus::SetReportEthernet(const eth_report_t report)
     {
         mEthernetStatusReport = report;
@@ -207,7 +222,7 @@ namespace muffin {
     }
 #endif
 
-#if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
+#if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
     void DeviceStatus::SetReportWiFi(const wifi_report_t report)
     {
         mWiFiStatusReport = report;
@@ -224,7 +239,7 @@ namespace muffin {
         JsonObject firmwareESP32          = firmware["esp32"].to<JsonObject>();
         firmwareESP32["semanticVersion"]  = FW_VERSION_ESP32.GetSemanticVersion();
         firmwareESP32["versionCode"]      = FW_VERSION_ESP32.GetVersionCode();
-	#if defined(MODLINK_T2)
+	#if defined(MT10)
         JsonObject firmwareATmega2560          = firmware["atmega2560"].to<JsonObject>();
         firmwareATmega2560["semanticVersion"]  = FW_VERSION_MEGA2560.GetSemanticVersion();
         firmwareATmega2560["versionCode"]      = FW_VERSION_MEGA2560.GetVersionCode();
@@ -251,7 +266,7 @@ namespace muffin {
         JsonObject firmwareESP32          = firmware["esp32"].to<JsonObject>();
         firmwareESP32["semanticVersion"]  = FW_VERSION_ESP32.GetSemanticVersion();
         firmwareESP32["versionCode"]      = FW_VERSION_ESP32.GetVersionCode();
-	#if defined(MODLINK_T2)
+	#if defined(MT10)
         JsonObject firmwareATmega2560          = firmware["atmega2560"].to<JsonObject>();
         firmwareATmega2560["semanticVersion"]  = FW_VERSION_MEGA2560.GetSemanticVersion();
         firmwareATmega2560["versionCode"]      = FW_VERSION_MEGA2560.GetVersionCode();
@@ -278,7 +293,7 @@ namespace muffin {
         JsonObject network  = doc["network"].to<JsonObject>();
         {
     #if !defined(V_OLA_T10) || !defined(V_OLA_H10)
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MT10) || defined(MB10) || defined(MT11)
             if (mEthernetStatusReport.Enabled == true)
             {
                 JsonObject ethernet = network["ethernet"].to<JsonObject>();
@@ -301,7 +316,7 @@ namespace muffin {
             }
     #endif
 
-        #if defined(MODLINK_B) || defined(V_OLA_T10) || defined(V_OLA_H10)
+        #if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
             if (mWiFiStatusReport.Enabled == true)
             {
                 JsonObject wifi = network["wifi"].to<JsonObject>();

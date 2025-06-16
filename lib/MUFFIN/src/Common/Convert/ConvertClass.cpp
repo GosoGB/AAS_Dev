@@ -32,6 +32,7 @@
 #include "JARVIS/Config/Operation/Operation.h"
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Protocol/ModbusTCP.h"
+#include "JARVIS/Config/Protocol/Melsec.h"
 
 
 
@@ -232,6 +233,8 @@ namespace muffin {
             return "node";
         case cfg_key_e::ALARM:
             return "alarm";
+        case cfg_key_e::MELSEC:
+            return "mc";
         case cfg_key_e::OPERATION_TIME:
             return "optime";
         case cfg_key_e::PRODUCTION_INFO:
@@ -259,7 +262,7 @@ namespace muffin {
         default:
             ASSERT(
                 (
-                    (prtcl_ver_e::VERSEOIN_1 <= input) && (input <= prtcl_ver_e::VERSEOIN_3)
+                    (prtcl_ver_e::VERSEOIN_1 <= input) && (input <= prtcl_ver_e::VERSEOIN_4)
                 ), "UNDEFINED OR UNSUPPORTED JARVIS PROTOCOL VERSION: %u", ToUInt8(input)
             );
             return "";
@@ -333,6 +336,10 @@ namespace muffin {
             else if (input == "prod")
             {
                 return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::PRODUCTION_INFO);
+            }
+            else if (input == "mc")
+            {
+                return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::MELSEC);
             }
             else
             {
@@ -443,5 +450,11 @@ namespace muffin {
     {
         ASSERT((config->GetCategory() == jvs::cfg_key_e::MODBUS_TCP), "CATEGORY DOES NOT MATCH");
         return static_cast<jvs::config::ModbusTCP*>(config);
+    }
+
+    jvs::config::Melsec* ConvertClass::ToMelsecCIN(jvs::config::Base* config)
+    {
+        ASSERT((config->GetCategory() == jvs::cfg_key_e::MELSEC), "CATEGORY DOES NOT MATCH");
+        return static_cast<jvs::config::Melsec*>(config);
     }
 }

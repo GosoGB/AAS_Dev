@@ -72,5 +72,9 @@ namespace muffin { namespace jvs { namespace config {
     };
 
 
-    extern Ethernet* ethernet;
+    extern Ethernet* embeddedEthernet;
+#if defined(MT11)
+    extern Ethernet* link1Ethernet;
+    extern Ethernet* link2Ethernet;
+#endif
 }}}

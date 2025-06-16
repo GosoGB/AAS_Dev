@@ -13,6 +13,7 @@
 
 
 
+#include <string.h>
 #include "Common/Assert.h"
 #include "MacAddress.h"
 
@@ -28,6 +29,14 @@ namespace muffin {
             std::cerr << "\n\n\033[31mFATAL ERROR: FAILED TO READ MAC ADDRESS" << std::endl;
             std::abort();
         }
+    }
+
+    Status MacAddress::SetMacAddress(char mac[])
+    {
+        strncpy(mEthernet, mac, sizeof(mEthernet) - 1);
+        mEthernet[sizeof(mEthernet) - 1] = '\0';
+
+        return Status(Status::Code::GOOD);
     }
 
     const char* MacAddress::GetEthernet()

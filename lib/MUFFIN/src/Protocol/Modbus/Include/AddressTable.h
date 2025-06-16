@@ -34,8 +34,8 @@ namespace muffin { namespace modbus {
     private:
         using AddressRange = im::NumericAddressRange;
     public:
-        Status Update(const uint8_t slaveID, const jvs::mb_area_e area, const AddressRange& range);
-        Status Remove(const uint8_t slaveID, const jvs::mb_area_e area, const AddressRange& range);
+        Status Update(const uint8_t slaveID, const jvs::node_area_e area, const AddressRange& range);
+        Status Remove(const uint8_t slaveID, const jvs::node_area_e area, const AddressRange& range);
         void Clear();
     public:
         std::pair<Status, std::set<uint8_t>> RetrieveEntireSlaveID() const;
@@ -45,6 +45,7 @@ namespace muffin { namespace modbus {
         void printCell(const uint8_t cellWidth, const char* value, uint8_t* castedBuffer) const;
         void printCell(const uint8_t cellWidth, const uint16_t value, uint8_t* castedBuffer) const;
         void printAddressTable() const;
+        std::string convertToStr(jvs::node_area_e area) const;
     #else
         /**
          * @todo release 빌드 시에는 csv 형태로 로그를 만들어서 서버로 전송해야 함

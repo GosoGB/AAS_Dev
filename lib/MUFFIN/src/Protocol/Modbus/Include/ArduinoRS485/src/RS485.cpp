@@ -204,4 +204,7 @@ void RS485Class::setDelays(int predelay, int postdelay)
 }
 
 
-RS485Class* RS485 = nullptr;
+RS485Class* RS485_LINK1 = nullptr;
+#if defined(MT11)
+RS485Class* RS485_LINK2 = nullptr;
+#endif

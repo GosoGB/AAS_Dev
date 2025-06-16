@@ -22,59 +22,13 @@
 #include "Common/Assert.h"
 #include "Common/Convert/ConvertClass.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Variable.h"
 
 
 
 namespace muffin { namespace im {
-
-/*
-    void logData(const var_data_t& data)
-    {
-        switch (data.DataType)
-        {
-        case jvs::dt_e::BOOLEAN:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Boolean == true ? "true" : "false");
-            break;
-        case jvs::dt_e::INT8:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int8);
-            break;
-        case jvs::dt_e::UINT8:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt8);
-            break;
-        case jvs::dt_e::INT16:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int16);
-            break;
-        case jvs::dt_e::UINT16:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt16);
-            break;
-        case jvs::dt_e::INT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %d", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int32);
-            break;
-        case jvs::dt_e::UINT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %u", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt32);
-            break;
-        case jvs::dt_e::INT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %lld", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Int64);
-            break;
-        case jvs::dt_e::UINT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %llu", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.UInt64);
-            break;
-        case jvs::dt_e::FLOAT32:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float32);
-            break;
-        case jvs::dt_e::FLOAT64:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %.3f", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.Float64);
-            break;
-        case jvs::dt_e::STRING:
-            LOG_INFO(logger,"[NodeID: %s][UID: %s]: %s", mNodeID.c_str(), mDeprecableUID.c_str(), data.Value.String.Data);
-            break;
-        default:
-            break;
-        }
-    }
-*/
 
     Variable::Variable(const jvs::config::Node* cin)
         : mCIN(cin)
@@ -112,9 +66,9 @@ namespace muffin { namespace im {
             -1;
     }
 
-    jvs::mb_area_e Variable::GetModbusArea() const
+    jvs::node_area_e Variable::GetNodeArea() const
     {
-        return mCIN->GetModbusArea().second;
+        return mCIN->GetNodeArea().second;
     }
 
 
@@ -436,6 +390,45 @@ namespace muffin { namespace im {
         return result;
     }
 
+    void Variable::UpdateError()
+    {
+        removeOldestHistory();
+
+        var_data_t variableData;
+        variableData.StatusCode     = Status::Code::BAD;
+        variableData.Timestamp      = 0;
+        variableData.HasValue       = false;
+        variableData.HasStatus      = false;
+        variableData.HasTimestamp   = false;
+
+        if (mDataBuffer.size() == 0)
+        {
+            variableData.IsEventType  = true;
+            variableData.HasNewEvent  = true;
+        }
+        else
+        {
+            const var_data_t lastestHistory = mDataBuffer.back();
+            variableData.IsEventType  = (lastestHistory.StatusCode != variableData.StatusCode);
+            variableData.HasNewEvent  = (lastestHistory.StatusCode != variableData.StatusCode);
+        }
+
+        variableData.HasNewEvent = isEventOccured(variableData);
+        variableData.IsEventType = variableData.HasNewEvent;
+        mHasNewEvent = variableData.HasNewEvent;
+        
+        try
+        {
+            mDataBuffer.emplace_back(variableData);
+            // logData(variableData);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(logger, "FAILED TO EMPLACE DATA: %s", e.what());
+        }
+
+    }
+
     void Variable::Update(const std::vector<poll_data_t>& polledData)
     {
         removeOldestHistory();
@@ -492,6 +485,7 @@ namespace muffin { namespace im {
 
 
     CHECK_EVENT:
+
         if (variableData.StatusCode != Status::Code::GOOD)
         {
             variableData.HasValue = false;
@@ -507,76 +501,12 @@ namespace muffin { namespace im {
                 variableData.IsEventType  = (lastestHistory.StatusCode != variableData.StatusCode);
                 variableData.HasNewEvent  = (lastestHistory.StatusCode != variableData.StatusCode);
             }
-            goto EMPLACE_DATA;
+
         }
 
         variableData.HasNewEvent = isEventOccured(variableData);
         variableData.IsEventType = variableData.HasNewEvent;
-        if (variableData.HasNewEvent == true)
-        {
-            json_datum_t daq;
-            strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
-            
-            if (strncmp(daq.UID, "DI", 2) == 0 || strncmp(daq.UID, "DO", 2) == 0 || strncmp(daq.UID, "P", 1) == 0)
-            {
-                daq.SourceTimestamp = variableData.Timestamp;
-                daq.Topic = strncmp(daq.UID, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
-                            strncmp(daq.UID, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
-                            mqtt::topic_e::DAQ_PARAM;
-    
-                switch (variableData.DataType)
-                {
-                case jvs::dt_e::BOOLEAN:
-                    daq.Value = variableData.Value.Boolean ? "true" : "false";
-                    break;
-                case jvs::dt_e::FLOAT32 :
-                    daq.Value = Float32ConvertToString(variableData.Value.Float32);
-                    break;
-                case jvs::dt_e::FLOAT64:
-                    daq.Value = Float64ConvertToString(variableData.Value.Float64);
-                    break;
-                case jvs::dt_e::INT16:
-                    daq.Value = std::to_string(variableData.Value.Int16);
-                    break;
-                case jvs::dt_e::INT32:
-                    daq.Value = std::to_string(variableData.Value.Int32);
-                    break;
-                case jvs::dt_e::INT64:
-                    daq.Value = std::to_string(variableData.Value.Int64);
-                    break;
-                case jvs::dt_e::INT8 :
-                    daq.Value = std::to_string(variableData.Value.Int8);
-                    break;
-                case jvs::dt_e::STRING:
-                    daq.Value = std::string(variableData.Value.String.Data);
-                    break;
-                case jvs::dt_e::UINT16:
-                    daq.Value = std::to_string(variableData.Value.UInt16);
-                    break;
-                case jvs::dt_e::UINT32:
-                    daq.Value = std::to_string(variableData.Value.UInt32);
-                    break;
-                case jvs::dt_e::UINT64:
-                    daq.Value = std::to_string(variableData.Value.UInt64);
-                    break;
-                case jvs::dt_e::UINT8:
-                    daq.Value = std::to_string(variableData.Value.UInt8);
-                    break;
-                default:
-                    break;
-                }
-                
-                JSON json;
-                const size_t size = UINT8_MAX;
-                char payload[size] = {'\0'};
-                json.Serialize(daq, size, payload);
-                
-                mqtt::Message message(daq.Topic, payload);
-                mqtt::cdo.Store(message);
-            }
-        }
-
-    EMPLACE_DATA:
+        mHasNewEvent = variableData.HasNewEvent;
         try
         {
             mDataBuffer.emplace_back(variableData);
@@ -1010,7 +940,7 @@ namespace muffin { namespace im {
         flattenToByteArray(polledData, &vectorFlattened);
         castByteVector(mCIN->GetDataTypes().second.front(), vectorFlattened, outputCastedData);
 
-        if ((mCIN->GetModbusArea().first == Status::Code::GOOD) && 
+        if ((mCIN->GetNodeArea().first == Status::Code::GOOD) && 
             (outputCastedData->ValueType == jvs::dt_e::STRING))
         {
             for (size_t i = 0; i < outputCastedData->Value.String.Length - 1; i += 2)
@@ -1042,6 +972,19 @@ namespace muffin { namespace im {
         }
 
         const var_data_t lastestHistory = mDataBuffer.back();
+
+        if (variableData.StatusCode != Status::Code::GOOD)
+        {
+            if (lastestHistory.StatusCode != variableData.StatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        
         switch (variableData.DataType)
         {
         case jvs::dt_e::BOOLEAN:
@@ -1198,25 +1141,29 @@ namespace muffin { namespace im {
         return std::string(buffer);
     }
 
+    mqtt::topic_e Variable::GetTopic() const
+    {
+        return mCIN->GetTopic().second;
+    }
+
     std::pair<bool, json_datum_t> Variable::CreateDaqStruct()
     {
         json_datum_t daq;
+
+        strncpy(daq.NodeID, mCIN->GetNodeID().second, sizeof(daq.NodeID));
+
         if (RetrieveCount() == 0)
         {
             return std::make_pair(false, daq);
         }
-    
+        
         var_data_t variableData = RetrieveData();
+        daq.SourceTimestamp = variableData.Timestamp;
+        daq.Topic = mCIN->GetTopic().second;
         if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
         {
             return std::make_pair(false, daq);
         }
-
-        daq.SourceTimestamp = variableData.Timestamp;
-        strncpy(daq.UID, mCIN->GetDeprecableUID().second, sizeof(daq.UID));
-        daq.Topic = strncmp(mCIN->GetDeprecableUID().second, "DI", 2) == 0 ? mqtt::topic_e::DAQ_INPUT  :
-                    strncmp(mCIN->GetDeprecableUID().second, "DO", 2) == 0 ? mqtt::topic_e::DAQ_OUTPUT :
-                    mqtt::topic_e::DAQ_PARAM;
 
         switch (variableData.DataType)
         {
@@ -1259,7 +1206,7 @@ namespace muffin { namespace im {
         default:
             break;
         }
-
+        
         return std::make_pair(true, daq);
     }
 
@@ -1319,6 +1266,7 @@ namespace muffin { namespace im {
             if (mCIN->GetNumericOffset().first == Status::Code::GOOD)
             {
                floatTemp = Convert.ToFloat(data) - mCIN->GetNumericOffset().second;
+              
                if (mCIN->GetNumericScale().first == Status::Code::BAD)
                {
                     //현재 구조에서 offset이 있는데 scale이 없는 경우가 있을지는 모르겠다.
@@ -1340,13 +1288,12 @@ namespace muffin { namespace im {
                 else
                 {
                     float value = Convert.ToFloat(data) / denominator;
-
-                    uint16_t result = static_cast<uint16_t>(std::ceil(value));
+                    uint16_t result = static_cast<uint16_t>(std::round(value));
                     return std::make_pair(Status(Status::Code::GOOD), result);
                 }
             }
 
-            LOG_INFO(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
+            LOG_DEBUG(logger, "Raw data : %s, Convert Modbus data : %u" , data.c_str(), Convert.ToUInt16(data));
             return std::make_pair(Status(Status::Code::GOOD), Convert.ToUInt16(data));
         }
         else

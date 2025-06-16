@@ -4,10 +4,10 @@
  * 
  * @brief 수신한 JARIVS 설정 정보를 검증하여 유효하다면 적용하는 태스크를 선언합니다.
  * 
- * @date 2024-10-20
- * @version 1.0.0
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
- * @copyright Copyright (c) Edgecross Inc. 2024
+ * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
 
 
@@ -36,4 +36,11 @@ namespace muffin {
 
     void applyModbusRtuCIN(std::vector<jvs::config::Base*>& vectorModbusRTUCIN, jvs::config::Rs485* rs485CIN);
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN);
+    void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN);
+    void applyEthernet();
+#if defined(MT11)
+    void applyModbusTcpConfig(W5500* eth, w5500::sock_id_e id, jvs::config::ModbusTCP* cin);
+    void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin);
+#endif
+
 }

@@ -40,7 +40,7 @@ namespace muffin { namespace im {
         }
 
         memcpy(sink->Data, src, sink->Length);
-        return Status(Status::Code::GOOD);;
+        return Status(Status::Code::GOOD);
     }
 
     Status ConvertString(const std::string& src, string_t* sink)

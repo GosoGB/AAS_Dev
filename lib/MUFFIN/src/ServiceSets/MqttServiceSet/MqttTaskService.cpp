@@ -4,8 +4,8 @@
  * 
  * @brief MQTT 태스크를 실행하고 정지하는 서비스를 정의합니다.
  * 
- * @date 2025-03-13
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -24,9 +24,12 @@
 
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
+#include "Core/Task/MelsecTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
+#include "Protocol/Melsec/MelsecMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
+#include "Protocol/Melsec/Melsec.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 
 #include "JARVIS/JARVIS.h"
@@ -36,7 +39,6 @@
 #include "IM/Custom/Constants.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "Network/CatM1/CatM1.h"
-#include "Network/Ethernet/Ethernet.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
@@ -51,12 +53,13 @@
 #include "ServiceSets/NetworkServiceSet/RetrieveServiceNicService.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
+#include "IM/Node/Include/Utility.h"
+
 
 
 static TaskHandle_t xHandle = NULL;
 static uint8_t RECONNECT_TRIAL_COUNT = 0;
 muffin::CallbackUpdateInitConfig cbUpdateInitConfig = nullptr;
-
 
 
 namespace muffin {
@@ -111,7 +114,7 @@ namespace muffin {
         {
             LOG_ERROR(logger, "FAILED TO RECONNECT TO THE BROKER");
             LOG_INFO(logger, "Restart the device");
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MT10) || defined(MB10)
             spear.Reset();
         #endif 
             esp_restart();
@@ -240,7 +243,7 @@ namespace muffin {
         }
         
         const auto version = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
-        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second != jvs::prtcl_ver_e::VERSEOIN_3))
+        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second != jvs::prtcl_ver_e::VERSEOIN_4))
         {
             response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
             response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
@@ -284,7 +287,7 @@ namespace muffin {
             if (ret == Status::Code::GOOD)
             {
                 LOG_INFO(logger,"Device will be reset due to JARVIS request");
-            #if defined(MODLINK_T2) || defined(MODLINK_B)
+            #if defined(MT10) || defined(MB10)
                 spear.Reset();
             #endif
                 esp_restart();
@@ -319,14 +322,14 @@ namespace muffin {
     Status setEthernet(jarvis_interface_struct_t* response)
     {
         response->Ethernet.IsEthernetSet = true;
-        response->Ethernet.EnableDHCP = jvs::config::ethernet->GetDHCP().second;
+        response->Ethernet.EnableDHCP = jvs::config::embeddedEthernet->GetDHCP().second;
         if (response->Ethernet.EnableDHCP == false)
         {
-            response->Ethernet.StaticIPv4   = jvs::config::ethernet->GetStaticIPv4().second;
-            response->Ethernet.Subnetmask   = jvs::config::ethernet->GetSubnetmask().second;
-            response->Ethernet.Gateway      = jvs::config::ethernet->GetGateway().second;
-            response->Ethernet.DNS1         = jvs::config::ethernet->GetDNS1().second;
-            response->Ethernet.DNS2         = jvs::config::ethernet->GetDNS2().second;
+            response->Ethernet.StaticIPv4   = jvs::config::embeddedEthernet->GetStaticIPv4().second;
+            response->Ethernet.Subnetmask   = jvs::config::embeddedEthernet->GetSubnetmask().second;
+            response->Ethernet.Gateway      = jvs::config::embeddedEthernet->GetGateway().second;
+            response->Ethernet.DNS1         = jvs::config::embeddedEthernet->GetDNS1().second;
+            response->Ethernet.DNS2         = jvs::config::embeddedEthernet->GetDNS2().second;
         }
     
         return Status(Status::Code::GOOD);
@@ -390,7 +393,7 @@ namespace muffin {
     {
         if (params.HasPendingUpdate == true)
         {
-            #if defined(MODLINK_T2) || defined(MODLINK_B)
+            #if defined(MT10) || defined(MB10)
                 spear.Reset();
             #endif
                 esp_restart();
@@ -465,11 +468,12 @@ namespace muffin {
         LOG_INFO(logger, "MQTT service has been")
 
         LOG_INFO(logger,"Device will be reset due to OTA request");
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         spear.Reset();
     #endif
         esp_restart();
     }
+
 
     Status processMessageRemoteControl(const char* payload)
     {
@@ -510,7 +514,8 @@ namespace muffin {
             }
             
             messageconfig.SourceTimestamp = GetTimestampInMillis(); 
-            messageconfig.ResponseCode    = "900 :" + Description;
+            messageconfig.ResponseCode    = 900;
+            messageconfig.Description = Description;
 
             serializedPayload = json.Serialize(messageconfig);
             mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
@@ -526,324 +531,23 @@ namespace muffin {
             return retJSON;
         }
 
-        /**
-         * @todo JSON Message에 대해 Validator 구현해야함
-         */
-        JsonArray request = doc["req"].as<JsonArray>();
-        messageconfig.RequestData = request;
-        std::vector<std::pair<std::string, std::string>> remoteData;
-        messageconfig.ID = doc["id"].as<std::string>();
-        for (JsonObject obj : request)
-        {
-            std::string uid = obj["uid"].as<std::string>(); 
-            std::string value = obj["val"].as<std::string>(); 
-            
-            remoteData.emplace_back(uid, value); 
-        }
+        messageconfig.ID = doc["id"].as<uint32_t>();
 
-        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
-        std::pair<bool,std::vector<std::string>> retUCL;
-        std::pair<bool,std::vector<std::string>> retLCL;
-        retUCL = alarmMonitor.GetUclUid();
-        retLCL = alarmMonitor.GetLclUid();
+        Status ret = Status(Status::Code::UNCERTAIN);
 
-        if (retUCL.first == true)
-        {
-            for (auto& uclUid : retUCL.second )
-            {
-                if (uclUid == remoteData.at(0).first)
-                {
-                   bool result = alarmMonitor.ConvertUCL(uclUid,remoteData.at(0).second);
-                   if (result)
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "200";                
-                   }
-                   else
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "900";
-                   }
-
-                    serializedPayload = json.Serialize(messageconfig);
-                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    Status ret = mqtt::cdo.Store(message);
-                    if (ret != Status::Code::GOOD)
-                    {
-                        /**
-                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                         * 
-                         */
-                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-                    }
-                    return ret;
-                }
-            }
-        }
+        bool isValid = true;
+        isValid &= doc.containsKey("mc");
+        isValid &= doc.containsKey("md");
         
-        if (retLCL.first == true)
+        if (isValid == false)
         {
-            for (auto& lclUid : retLCL.second )
-            {
-                if (lclUid == remoteData.at(0).first)
-                {
-                   bool result = alarmMonitor.ConvertLCL(lclUid,remoteData.at(0).second);
-                   if (result)
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "200";
-                   }
-                   else
-                   {
-                        messageconfig.SourceTimestamp   = GetTimestampInMillis();
-                        messageconfig.ResponseCode      = "900";
-                   }
+            messageconfig.ResponseCode = 900;
+            messageconfig.Description = "NOT FOUND KEY : MC or MD";
 
-                    serializedPayload = json.Serialize(messageconfig);
-                    mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-                    Status ret = mqtt::cdo.Store(message);
-                    if (ret != Status::Code::GOOD)
-                    {
-                        /**
-                         * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                         * 
-                         */
-                        LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-                    }
-                    return ret;
-                }
-                
-            }
-            
-        }
-
-         /**
-         * @todo 스카우터,프로직스 기준으로 제어명령은 한개밖에 들어오지 않아 고정으로 설정해두었음 remoteData.at(0), 추후 변경시 수정해야함
-         */
-
-
-        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-        
-        std::pair<Status, im::Node*> ret = nodeStore.GetNodeReferenceUID(remoteData.at(0).first);
-        std::pair<Status, uint16_t> retConvertModbus = std::make_pair(Status(Status::Code::UNCERTAIN),0);
-        
-        if (ret.first != Status::Code::GOOD)
-        {
-            messageconfig.SourceTimestamp   = GetTimestampInMillis();
-            messageconfig.ResponseCode  = "900 : UNDEFINED UID : " + remoteData.at(0).first;
-
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status retCDO = mqtt::cdo.Store(message);
-            if (retCDO != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return ret.first;
-        }
-
-        retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
-        if (retConvertModbus.first != Status::Code::GOOD)
-        {
-            messageconfig.SourceTimestamp = GetTimestampInMillis();
-            messageconfig.ResponseCode    = "900 : " + retConvertModbus.first.ToString();
-            serializedPayload = json.Serialize(messageconfig);
-            mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
-            if (ret != Status::Code::GOOD)
-            {
-                /**
-                 * @todo Store 실패시 falsh 메모리에 저장하는 방법
-                 * 
-                 */
-                LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
-            }
-            return retConvertModbus.first;
-        }
-        else
-        {
-            uint8_t writeResult = 0;
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
-            if (mVectorModbusTCP.size() != 0)
-            {
-                for (auto& TCP : mVectorModbusTCP)
-                {
-                    for (auto& modbusTCP : ModbusTcpVector)
-                    {
-                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
-                        {
-                            continue;
-                        }
-                        
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {   
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
-                        
-                                    if (retBit != -1)
-                                    {
-                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto RC_RESPONSE;
-                                    }
-
-                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
-                                    switch (modbusArea)
-                                    {
-                                    case jvs::mb_area_e::COILS:
-                                        writeResult = modbusTCP.mModbusTCPClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jvs::mb_area_e::HOLDING_REGISTER:
-                                        writeResult = modbusTCP.mModbusTCPClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
-                                        break;
-                                    }
-
-                                    xSemaphoreGive(xSemaphoreModbusTCP);
-
-                                    goto RC_RESPONSE;
-                                }
-                                
-                            }
-                            
-                        }
-                    }
-                    
-                }
-            }
-    #endif
-
-            if (mVectorModbusRTU.size() != 0)
-            {
-                for (auto& RTU : mVectorModbusRTU)
-                {
-                    for (auto& modbusRTU : ModbusRtuVector)
-                    {
-                        if (RTU.GetPort().second != modbusRTU.mPort)
-                        {
-                            continue;
-                        }
-
-                        std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
-                        if (retVector.first == Status(Status::Code::GOOD))
-                        {
-                            for (auto& nodeId : retVector.second )
-                            {
-                                if (nodeId == ret.second->GetNodeID())
-                                {
-                                    std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
-                                    if (retSlaveID.first != Status(Status::Code::GOOD))
-                                    {
-                                        retSlaveID.second = 0;
-                                    }
-
-                                    jvs::mb_area_e modbusArea = ret.second->VariableNode.GetModbusArea();
-                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
-                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
-                        
-                                    if (retBit != -1)
-                                    {
-                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, modbusArea);
-                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
-                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
-                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
-                                    }
-                                    
-                                    writeResult = 0;
-                                #if defined(MODLINK_L) || defined(MODLINK_ML10)
-                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
-                                    {
-                                        LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
-                                        goto RC_RESPONSE;
-                                    }
-
-                                    switch (modbusArea)
-                                    {
-                                    case jvs::mb_area_e::COILS:
-                                        writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    case jvs::mb_area_e::HOLDING_REGISTER:
-                                        writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
-                                        break;
-                                    default:
-                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", modbusArea);
-                                        break;
-                                    }
-
-                                    
-                                    if (writeResult != 1)
-                                    {
-                                        if (ModbusRTUClient.lastError() != nullptr)
-                                        {
-                                            LOG_ERROR(logger,"FAIL TO REMOTE CONTROLL : %s",ModbusRTUClient.lastError());
-                                            ModbusRTUClient.clearError();
-                                        }
-                                    }
-                                    
-                                    xSemaphoreGive(xSemaphoreModbusRTU);
-                                    
-                                    goto RC_RESPONSE;
-                                #else
-                                    spear_remote_control_msg_t msg;
-                                    msg.Link = modbusRTU.mPort;
-                                    msg.SlaveID = retSlaveID.second;
-                                    msg.Area = modbusArea;
-                                    msg.Address = modbusAddress.Numeric;
-                                    msg.Value = retConvertModbus.second;
-                                    
-                                    Status result = spear.ExecuteService(msg);
-                                    if (result == Status(Status::Code::GOOD))
-                                    {
-                                        writeResult = 1;
-                                    }
-                                #endif
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-RC_RESPONSE:
-            if (writeResult == 1)
-            {
-                messageconfig.ResponseCode = "200";
-            }
-            else
-            {
-                messageconfig.ResponseCode = "900 : UNEXPECTED ERROR";
-            }
             messageconfig.SourceTimestamp  = GetTimestampInMillis();
             serializedPayload = json.Serialize(messageconfig);
-
             mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
-            Status ret = mqtt::cdo.Store(message);
+            ret = mqtt::cdo.Store(message);
             if (ret != Status::Code::GOOD)
             {
                 /**
@@ -852,9 +556,42 @@ RC_RESPONSE:
                  */
                 LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
             }
+
             return ret;
         }
         
+        JsonArray mc = doc["mc"].as<JsonArray>();
+        JsonArray md = doc["md"].as<JsonArray>();
+        
+   
+        if (!mc.isNull() && mc.size() > 0) 
+        {
+            ret = RemoteControllToMachine(&messageconfig, mc);
+        }    
+        else if (!md.isNull() && md.size() > 0) 
+        {
+            ret = RemoteControllToModlink(&messageconfig, md);
+        }
+
+
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"REMOTE CONTROL ERROR ! %s",ret.c_str());
+        }
+        
+        messageconfig.SourceTimestamp  = GetTimestampInMillis();
+        serializedPayload = json.Serialize(messageconfig);
+        mqtt::Message message(mqtt::topic_e::REMOTE_CONTROL_RESPONSE, serializedPayload);
+        ret = mqtt::cdo.Store(message);
+        if (ret != Status::Code::GOOD)
+        {
+            /**
+             * @todo Store 실패시 falsh 메모리에 저장하는 방법
+             * 
+             */
+            LOG_ERROR(logger, "FAIL TO SAVE MESSAGE IN CDO STORE");
+        }
+        return ret;
     }
 
     Status subscribeMessages(init_cfg_t& params)
@@ -888,7 +625,7 @@ RC_RESPONSE:
 
         case mqtt::topic_e::JARVIS_INTERFACE_REQUEST:
             return processMessageJarvisStatus(message.second.GetPayload());
-            
+        
         case mqtt::topic_e::FOTA_UPDATE:
             ret = processMessageUpdate(params, message.second.GetPayload());
             if (ret == Status::Code::GOOD)
@@ -903,7 +640,7 @@ RC_RESPONSE:
 
         case mqtt::topic_e::REMOTE_CONTROL_REQUEST:
             return processMessageRemoteControl(message.second.GetPayload());
-
+        
         default:
             ASSERT(false, "UNDEFINED TOPIC: 0x%02X", static_cast<uint8_t>(message.second.GetTopicCode()));
             return Status(Status::Code::BAD_INVALID_ARGUMENT);
@@ -956,12 +693,10 @@ RC_RESPONSE:
                     }
                 }
                 
-                
                 const std::string payload =  deviceStatus.ToStringCyclical();
                 mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
                 mqtt::cdo.Store(message);
 
-                
             }
 
             if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
@@ -1064,6 +799,414 @@ RC_RESPONSE:
         }
         
         LOG_INFO(logger, "Stopping the MQTT service");
+        return Status(Status::Code::GOOD);
+    }
+
+    Status RemoteControllToMachine(remote_controll_struct_t* message, JsonArray& mc)
+    {
+        std::vector<std::pair<std::string, std::string>> remoteData;
+        for (JsonObject obj : mc)
+        {
+            std::string nid = obj["nid"].as<std::string>(); 
+            std::string value = obj["val"].as<std::string>(); 
+            
+            remoteData.emplace_back(nid, value); 
+        }
+
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        
+        std::pair<Status, im::Node*> ret = nodeStore.GetNodeReference(remoteData.at(0).first);
+        std::pair<Status, uint16_t> retConvertModbus = std::make_pair(Status(Status::Code::UNCERTAIN),0);
+
+        if (ret.first != Status::Code::GOOD)
+        {
+            message->SourceTimestamp   = GetTimestampInMillis();
+            message->ResponseCode  = 900;
+            message->Description = "UNDEFINED NODEID : " + remoteData.at(0).first;
+
+            return ret.first;
+        }
+
+        retConvertModbus = ret.second->VariableNode.ConvertModbusData(remoteData.at(0).second);
+        if (retConvertModbus.first != Status::Code::GOOD)
+        {
+            message->SourceTimestamp = GetTimestampInMillis();
+            message->ResponseCode  = 900;
+            message->Description = retConvertModbus.first.ToString();
+
+           return retConvertModbus.first;
+        }
+        else
+        {
+            uint8_t writeResult = 0;
+    #if defined(MT10) || defined(MB10) || defined(MT11)
+            if (mConfigVectorMbTCP.size() != 0)
+            {
+                for (auto& TCP : mConfigVectorMbTCP)
+                {
+                    for (auto& modbusTCP : ModbusTcpVector)
+                    {
+                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
+                        {
+                            continue;
+                        }
+                        
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
+                            {
+                                if (nodeId == ret.second->GetNodeID())
+                                {   
+                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
+                                    if (retSlaveID.first != Status(Status::Code::GOOD))
+                                    {
+                                        retSlaveID.second = 0;
+                                    }
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                        
+                                    if (retBit != -1)
+                                    {
+                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }
+                                    
+                                    writeResult = 0;
+                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
+                                    switch (nodeArea)
+                                    {
+                                    case jvs::node_area_e::COILS:
+                                        writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    case jvs::node_area_e::HOLDING_REGISTER:
+                                        writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    default:
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
+                                        break;
+                                    }
+
+                                    xSemaphoreGive(xSemaphoreModbusTCP);
+
+                                    goto RC_RESPONSE;
+                                }
+                                
+                            }
+                            
+                        }
+                    }
+
+            #if defined(MT11)
+                    for (auto& modbusTCP : ModbusTcpVectorDynamic)
+                    {
+                        if (modbusTCP.GetServerIP() != TCP.GetIPv4().second || modbusTCP.GetServerPort() != TCP.GetPort().second)
+                        {
+                            continue;
+                        }
+                        
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = TCP.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
+                            {
+                                if (nodeId == ret.second->GetNodeID())
+                                {   
+                                    std::pair<muffin::Status, uint8_t> retSlaveID =  TCP.GetSlaveID();
+                                    if (retSlaveID.first != Status(Status::Code::GOOD))
+                                    {
+                                        retSlaveID.second = 0;
+                                    }
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                        
+                                    if (retBit != -1)
+                                    {
+                                        modbus::datum_t registerData =  modbusTCP.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }
+                                    
+                                    writeResult = 0;
+                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1)
+                                    {
+                                        LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    LOG_DEBUG(logger, "[MODBUS TCP] 원격제어 : %u",retConvertModbus.second);
+                                    switch (nodeArea)
+                                    {
+                                    case jvs::node_area_e::COILS:
+                                        writeResult = modbusTCP.mModbusTCPClient->coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    case jvs::node_area_e::HOLDING_REGISTER:
+                                        writeResult = modbusTCP.mModbusTCPClient->holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    default:
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
+                                        break;
+                                    }
+                                    
+                                    modbusTCP.mModbusTCPClient->end();
+
+                                    xSemaphoreGive(xSemaphoreModbusTCP);
+
+                                    goto RC_RESPONSE;
+                                }
+                            }
+                        }
+                    }
+                #endif
+                }
+            }
+
+            if (mConfigVectorMelsec.size() != 0)
+            {
+                for (auto& melsecConfig : mConfigVectorMelsec)
+                {
+                    for (auto& melsec : MelsecVector)
+                    {
+                        if (melsec.GetServerIP() != melsecConfig.GetIPv4().second || melsec.GetServerPort() != melsecConfig.GetPort().second)
+                        {
+                            continue;
+                        }
+                        
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = melsecConfig.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
+                            {
+                                if (nodeId == ret.second->GetNodeID())
+                                {   
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
+
+                                    if (retBit != -1)
+                                    {
+                                        modbus::datum_t registerData =  melsec.GetAddressValue(1, modbusAddress.Numeric, nodeArea);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }      
+                                    
+                                    writeResult = 0;
+                                    if (xSemaphoreTake(xSemaphoreMelsec, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MELSEC] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    if (!melsec.Connect())
+                                    {
+                                        LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                                        goto RC_RESPONSE;
+                                    } 
+
+                                    LOG_DEBUG(logger, "[MELSEC] 원격제어 : %u",retConvertModbus.second);
+                                    
+                                    
+                                    if (im::IsBitArea(nodeArea))
+                                    {
+                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea, modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient->WriteBit(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                    }
+                                    else
+                                    {
+                                        LOG_DEBUG(logger,"AREA : %d, ADDRESS : %d",nodeArea,modbusAddress.Numeric);
+                                        writeResult = melsec.mMelsecClient->WriteWord(nodeArea, modbusAddress.Numeric, retConvertModbus.second);
+                                    }
+
+                                    melsec.mMelsecClient->Close();
+                                    xSemaphoreGive(xSemaphoreMelsec);
+                                    goto RC_RESPONSE;
+                                }   
+                            }       
+                        }
+                    }                    
+                }
+            }
+    #endif
+
+            if (mConfigVectorMbRTU.size() != 0)
+            {
+                for (auto& RTU : mConfigVectorMbRTU)
+                {
+                    for (auto& modbusRTU : ModbusRtuVector)
+                    {
+                        if (RTU.GetPort().second != modbusRTU.mPort)
+                        {
+                            continue;
+                        }
+
+                        std::pair<muffin::Status, std::vector<std::string>> retVector = RTU.GetNodes();
+                        if (retVector.first == Status(Status::Code::GOOD))
+                        {
+                            for (auto& nodeId : retVector.second )
+                            {
+                                if (nodeId == ret.second->GetNodeID())
+                                {
+                                    std::pair<muffin::Status, uint8_t> retSlaveID =  RTU.GetSlaveID();
+                                    if (retSlaveID.first != Status(Status::Code::GOOD))
+                                    {
+                                        retSlaveID.second = 0;
+                                    }
+
+                                    jvs::node_area_e nodeArea = ret.second->VariableNode.GetNodeArea();
+                                    jvs::addr_u modbusAddress = ret.second->VariableNode.GetAddress();
+                                    int16_t retBit = ret.second->VariableNode.GetBitIndex();
+                        
+                                    if (retBit != -1)
+                                    {
+                                        modbus::datum_t registerData =  modbusRTU.GetAddressValue(retSlaveID.second, modbusAddress.Numeric, nodeArea);
+                                        LOG_DEBUG(logger, "RAW DATA : %u ", registerData.Value);
+                                        retConvertModbus.second = bitWrite(registerData.Value, retBit, retConvertModbus.second);
+                                        LOG_DEBUG(logger, "RAW Data after bit index conversion : %u ", retConvertModbus.second);
+                                    }
+                                    
+                                    writeResult = 0;
+                                #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
+                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
+                                    {
+                                        LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
+                                        goto RC_RESPONSE;
+                                    }
+
+                                    switch (nodeArea)
+                                    {
+                                    case jvs::node_area_e::COILS:
+                                        writeResult = ModbusRTUClient.coilWrite(retSlaveID.second, modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    case jvs::node_area_e::HOLDING_REGISTER:
+                                        writeResult = ModbusRTUClient.holdingRegisterWrite(retSlaveID.second,modbusAddress.Numeric,retConvertModbus.second);
+                                        break;
+                                    default:
+                                        LOG_ERROR(logger,"THIS AREA IS NOT SUPPORTED, AREA : %d ", nodeArea);
+                                        break;
+                                    }
+
+                                    
+                                    if (writeResult != 1)
+                                    {
+                                        if (ModbusRTUClient.lastError() != nullptr)
+                                        {
+                                            LOG_ERROR(logger,"FAIL TO REMOTE CONTROLL : %s",ModbusRTUClient.lastError());
+                                            ModbusRTUClient.clearError();
+                                        }
+                                    }
+                                    
+                                    xSemaphoreGive(xSemaphoreModbusRTU);
+                                    
+                                    goto RC_RESPONSE;
+                                #else
+                                    spear_remote_control_msg_t msg;
+                                    msg.Link = modbusRTU.mPort;
+                                    msg.SlaveID = retSlaveID.second;
+                                    msg.Area = nodeArea;
+                                    msg.Address = modbusAddress.Numeric;
+                                    msg.Value = retConvertModbus.second;
+                                    Status result = spear.ExecuteService(msg);
+                                    if (result == Status(Status::Code::GOOD))
+                                    {
+                                        writeResult = 1;
+                                    }
+                                #endif
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+RC_RESPONSE:
+            if (writeResult == 1)
+            {
+                message->ResponseCode = 200;
+            }
+            else
+            {
+                message->ResponseCode  = 900;
+                message->Description = "UNEXPECTED ERROR";
+            }
+            
+            return Status(Status::Code::GOOD);
+        }
+    }
+
+    Status RemoteControllToModlink(remote_controll_struct_t* message, JsonArray& md)
+    {
+        /**
+         * @todo 1.4.0 에서는 하나의 설정 값만 입력 받는다. 
+         * 
+         */
+        JsonObject obj = md[0]; // 추후 변경이 필요한 로직
+   
+        std::string nodeID = obj["nid"].as<std::string>();
+        uint8_t limitType = obj["tp"].as<uint8_t>();
+        std::string val = obj["val"].as<std::string>();
+        
+        AlarmMonitor& alarmMonitor = AlarmMonitor::GetInstance();
+        
+        
+        if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::UCL))
+        {
+            LOG_DEBUG(logger,"상한 알람 값 변경, %s",nodeID.c_str());
+            Status result = alarmMonitor.ConvertUCL(nodeID, val);
+            if (result == Status::Code::GOOD)
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode      = 200;                
+            }
+            else
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode    = 900;
+                message->Description  = "FAIL TO SETING UCL";
+            }
+        }
+        else if (limitType == static_cast<uint8_t>(jvs::alarm_pub_type_e::LCL))
+        {
+            LOG_DEBUG(logger,"하한 알람 값 변경, %s",nodeID.c_str());
+            Status result = alarmMonitor.ConvertLCL(nodeID, val);
+            if (result == Status::Code::GOOD)
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode      = 200;                
+            }
+            else
+            {
+                message->SourceTimestamp   = GetTimestampInMillis();
+                message->ResponseCode    = 900;
+                message->Description  = "FAIL TO SETING LCL";
+            }
+
+        }
+        else
+        {
+            message->SourceTimestamp   = GetTimestampInMillis();
+            message->ResponseCode    = 900;
+            message->Description  = "LIMIT TPYE ERROR : " + limitType;
+        }
+
         return Status(Status::Code::GOOD);
     }
 }

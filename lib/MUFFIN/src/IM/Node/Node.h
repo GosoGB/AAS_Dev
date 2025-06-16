@@ -16,6 +16,7 @@
 #pragma once
 
 #include "Common/Status.h"
+#include "Protocol/MQTT/Include/TypeDefinitions.h"
 #include "JARVIS/Config/Information/Node.h"
 #include "Method.h"
 #include "Variable.h"
@@ -31,7 +32,7 @@ namespace muffin { namespace im {
         ~Node() {}
     public:
         const char* GetNodeID() const;
-        const char* GetUID() const;
+        mqtt::topic_e GetTopic() const;
         bool HasAttributeEvent() const;
     public:
         Variable VariableNode;

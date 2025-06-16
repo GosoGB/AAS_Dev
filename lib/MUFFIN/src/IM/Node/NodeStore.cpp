@@ -75,7 +75,7 @@ namespace muffin { namespace im {
     {
         try
         {
-            uint32_t prev = ESP.getFreeHeap();
+            // uint32_t prev = ESP.getFreeHeap();
             LOG_DEBUG(logger, "Remained Heap: %u Bytes", ESP.getFreeHeap());
             
             void* block = memoryPool.Allocate(28);
@@ -123,19 +123,6 @@ namespace muffin { namespace im {
         }
     }
 
-    std::pair<Status, Node*> NodeStore::GetNodeReferenceUID(const std::string& UID)
-    {
-        for (auto& node : mMapNode)
-        {
-            const std::string& mUID = node.second->GetUID();
-            if (mUID == UID)
-            {
-                return std::make_pair(Status(Status::Code::GOOD), node.second);
-            }
-        }
-        return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), nullptr);
-    }
-
     std::vector<Node*> NodeStore::GetCyclicalNode()
     {
         std::vector<Node*> cyclicalNodeVector;
@@ -151,6 +138,20 @@ namespace muffin { namespace im {
         return cyclicalNodeVector;
     }
 
+    std::vector<Node*> NodeStore::GetEventNode()
+    {
+        std::vector<Node*> EventNodeVector;
+
+        for (auto& node : mMapNode)
+        {
+            if (node.second->HasAttributeEvent() == true)
+            {
+                EventNodeVector.emplace_back(node.second);
+            }
+        }
+        
+        return EventNodeVector;
+    }
 
     NodeStore* NodeStore::mInstance = nullptr;
 }}

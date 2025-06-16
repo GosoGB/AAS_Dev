@@ -31,9 +31,9 @@ namespace muffin {
 
     typedef struct ProductionCountType
     {
-        uint64_t Total;
-        uint64_t Good;
-        uint64_t NG;
+        uint64_t Total  = 0;
+        uint64_t Good   = 0;
+        uint64_t NG     = 0;
     } product_count_t;
 
     class ProductionInfo

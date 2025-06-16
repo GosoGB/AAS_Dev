@@ -110,15 +110,53 @@ namespace muffin {
         JsonDocument doc;
         std::string payload;
 
+        doc["mv"]  = ESP32_FW_VERSION;
         doc["id"]  = _struct.ID;
         doc["ts"]  = _struct.SourceTimestamp;
         doc["rsc"] = _struct.ResponseCode;
-        doc["req"] = _struct.RequestData;
+        if (_struct.ResponseCode == 200)
+        {
+            doc["dsc"]= nullptr;
+        }
+        else
+        {
+            doc["dsc"]= _struct.Description;
+        }
 
         serializeJson(doc,payload);
 
         return payload;
     }
+
+
+    void JSON::Serialize(const std::vector<json_datum_t>& msgVector, const uint16_t size, const uint64_t sourceTimestamp, char* output)
+    {
+        JsonDocument doc;
+
+        doc["mv"]    = ESP32_FW_VERSION;                             // MFM 버전
+        doc["tp"]    = 1;                                            // JSON 스키마 유형
+        doc["ts"]    = sourceTimestamp;                                 // 메시지 생성 시점 
+        doc["mac"]   = macAddress.GetEthernet();                     // 디바이스 식별자
+   
+        JsonArray nidArray = doc["id"].to<JsonArray>();             // Node 식별자 배열
+        JsonArray valueArray = doc["val"].to<JsonArray>();           // 데이터 배열
+
+        for (const auto& msg : msgVector)
+        {
+            if (msg.Value == "MFM_NULL") 
+            {
+                valueArray.add(nullptr);
+            } 
+            else 
+            {
+                valueArray.add(msg.Value);
+            }
+            nidArray.add(msg.NodeID);
+        }
+
+        serializeJson(doc, output, size);
+    }
+
 
     void JSON::Serialize(const json_datum_t& msg, const uint16_t size, char output[])
     {
@@ -126,11 +164,19 @@ namespace muffin {
 
         JsonDocument doc;
 
+
+        doc["mv"]     = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
-        doc["uid"]    = msg.UID;
-        doc["value"]  = msg.Value;
-        doc["mv"]     = ESP32_FW_VERSION;
+        doc["nid"]    = msg.NodeID;
+        if (msg.Value == "MFM_NULL") 
+        {
+            doc["val"]  = nullptr;
+        } 
+        else 
+        {
+            doc["val"]  = msg.Value;
+        }
 
         serializeJson(doc, output, size);
     }
@@ -141,14 +187,14 @@ namespace muffin {
         
         JsonDocument doc;
 
-        doc["mac"]    = macAddress.GetEthernet();
-        doc["tp"]     = msg.Type;
-        doc["ts"]     = msg.TimeStarted;
-        doc["tf"]     = msg.TimeFinished;
-        doc["uid"]    = msg.UID;
-        doc["id"]     = msg.UUID;
         doc["mv"]     = ESP32_FW_VERSION;
-        doc["value"]  = msg.Value;
+        doc["as"]     = static_cast<uint8_t>(msg.AlarmState);
+        doc["at"]     = static_cast<uint8_t>(msg.AlarmTpye);
+        doc["ts"]      = msg.SourceTimestamp;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["id"]     = msg.UUID;
+        doc["nid"]    = msg.NodeID;
+        doc["val"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }
@@ -158,11 +204,11 @@ namespace muffin {
         ASSERT((size >= 128), "OUTPUT BUFFER MUST BE GREATER THAN 128");
         
         JsonDocument doc;
-
+        
+        doc["mv"]      = ESP32_FW_VERSION;
         doc["mac"]     = macAddress.GetEthernet();
         doc["ts"]      = msg.SourceTimestamp;
         doc["status"]  = msg.Status;
-        doc["mv"]      = ESP32_FW_VERSION;
 
         serializeJson(doc, output, size);
     }
@@ -173,9 +219,10 @@ namespace muffin {
         
         JsonDocument doc;
 
+        doc["mv"]  = ESP32_FW_VERSION;
         doc["mac"]    = macAddress.GetEthernet();
         doc["ts"]     = msg.SourceTimestamp;
-        doc["value"]  = msg.Value;
+        doc["val"]  = msg.Value;
 
         serializeJson(doc, output, size);
     }
@@ -186,11 +233,12 @@ namespace muffin {
         
         JsonDocument doc;
 
-        doc["mac"]    = macAddress.GetEthernet();
-        doc["uid"]    = msg.UID;
-        doc["ts"]     = msg.SourceTimestamp;
         doc["mv"]     = ESP32_FW_VERSION;
-        doc["value"]  = msg.Value;
+        doc["mac"]    = macAddress.GetEthernet();
+        doc["at"]     = static_cast<uint8_t>(msg.AlarmTpye);
+        doc["nid"]    = msg.NodeID;
+        doc["ts"]     = msg.SourceTimestamp;
+        doc["val"]    = msg.Value;
 
         serializeJson(doc, output, size);
     }
@@ -199,7 +247,8 @@ namespace muffin {
     {// 512 bytes
         JsonDocument doc;
         std::string payload;
-
+        
+        doc["mv"]  = ESP32_FW_VERSION;
         doc["ts"] =  _struct.SourceTimestamp;
         JsonArray ifArray = doc["if"].to<JsonArray>();
         JsonObject interface = ifArray.add<JsonObject>();
@@ -209,7 +258,7 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             interface["snic"] = "lte";
             break;
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         case jvs::snic_e::Ethernet:
             interface["snic"] = "eth";
             break;
@@ -280,16 +329,18 @@ namespace muffin {
         JsonDocument doc;
     #if defined(MODLINK_L)
         doc["deviceType"] = "MODLINK-L";
-    #elif defined(MODLINK_ML10)
-        doc["deviceType"] = "MODLINK-ML10";
-    #elif defined(MODLINK_T2)
-        doc["deviceType"] = "MODLINK-T2";
+    #elif defined(ML10)
+        doc["deviceType"] = "ML10";
+    #elif defined(MT10)
+        doc["deviceType"] = "MT10";
+    #elif defined(MT11)
+        doc["deviceType"] = "MT11";
     #endif
         doc["mac"]  =  macAddress.GetEthernet();
         JsonObject mcu1 = doc["mcu1"].to<JsonObject>();
         mcu1["vc"] = _struct.VersionCodeMcu1;  
         mcu1["version"] = _struct.VersionMcu1;
-    #if defined(MODLINK_T2)
+    #if defined(MT10)
         JsonObject mcu2 = doc["mcu2"].to<JsonObject>();
         mcu2["vc"] = _struct.VersionCodeMcu2;  
         mcu2["version"] = _struct.VersionMcu2; 
@@ -321,12 +372,12 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]   = msg.Head.Code;
+        doc["c"] = msg.Head.Code;
         doc["s"] = msg.Head.Status;
         
-        JsonObject response          = doc["r"].to<JsonObject>();
-        response["1"]  = msg.SemanticVersion;
-        response["2"]      = msg.VersionCode;
+        JsonObject response = doc["r"].to<JsonObject>();
+        response["1"]       = msg.SemanticVersion;
+        response["2"]       = msg.VersionCode;
 
         serializeJson(doc, output, size);
     }
@@ -335,13 +386,13 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]   = msg.Head.Code;
+        doc["c"] = msg.Head.Code;
         doc["s"] = msg.Head.Status;
         
-        JsonObject response     = doc["r"].to<JsonObject>();
-        response["1"]    = msg.Remained;
-        response["2"]    = msg.UsedHeap;
-        response["3"]    = msg.UsedStack;
+        JsonObject response = doc["r"].to<JsonObject>();
+        response["1"]       = msg.Remained;
+        response["2"]       = msg.UsedHeap;
+        response["3"]       = msg.UsedStack;
 
         serializeJson(doc, output, size);
     }
@@ -350,9 +401,9 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]   = msg.Head.Code;
-        doc["s"]   = msg.Head.Status;
-        doc["r"]   = msg.StatusCode;
+        doc["c"] = msg.Head.Code;
+        doc["s"] = msg.Head.Status;
+        doc["r"] = msg.StatusCode;
 
         serializeJson(doc, output, size);
     }
@@ -361,14 +412,14 @@ namespace muffin {
     {
         JsonDocument doc;
 
-        doc["c"]  = msg.Head.Code;
+        doc["c"] = msg.Head.Code;
         
         JsonObject body = doc["b"].to<JsonObject>();
-        body["1"]   = static_cast<uint8_t>(msg.Link);
-        body["2"]   = static_cast<uint8_t>(msg.SlaveID);
-        body["3"]   = static_cast<uint8_t>(msg.Area);
-        body["4"]   = static_cast<uint16_t>(msg.Address);
-        body["5"]   = static_cast<uint16_t>(msg.Value);
+        body["1"] = static_cast<uint8_t>(msg.Link);
+        body["2"] = static_cast<uint8_t>(msg.SlaveID);
+        body["3"] = static_cast<uint8_t>(msg.Area);
+        body["4"] = static_cast<uint16_t>(msg.Address);
+        body["5"] = static_cast<uint16_t>(msg.Value);
         
         serializeJson(doc, output, size);
     }

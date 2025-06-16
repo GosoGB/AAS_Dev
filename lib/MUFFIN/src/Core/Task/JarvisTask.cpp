@@ -4,8 +4,8 @@
  * 
  * @brief 수신한 JARIVS 설정 정보를 검증하여 유효하다면 적용하는 태스크를 정의합니다.
  * 
- * @date 2025-01-23
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -20,7 +20,8 @@
 #include "Common/Convert/ConvertClass.h"
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
-#include "Core/Task/CyclicalPubTask.h"
+#include "Core/Task/MelsecTask.h"
+#include "Core/Task/PubTask.h"
 #include "DataFormat/JSON/JSON.h"
 
 #include "IM/Custom/Constants.h"
@@ -40,6 +41,7 @@
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/ModbusTCP.h"
+#include "Protocol/Melsec/Melsec.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
@@ -47,7 +49,8 @@
 #include "Protocol/SPEAR/SPEAR.h"
 
 #include "Storage/ESP32FS/ESP32FS.h"
-#include "Network/Ethernet/Ethernet.h"
+#include "Network/Ethernet/EthernetFactory.h"
+#include "Network/Ethernet/W5500/W5500.h"
 #include "Storage/CatFS/CatFS.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
 
@@ -78,17 +81,21 @@ namespace muffin {
                 break;
             }
         }
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+#if defined(MT10) || defined(MT11) || defined(MB10) 
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::ETHERNET)
             {
                 InitEthernetService();
+                break;
             }
         }
-    #endif
+#endif
 
+#if defined(MT11)
+        applyEthernet();
+#endif
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
@@ -138,6 +145,13 @@ namespace muffin {
                 break;
             case jvs::cfg_key_e::MODBUS_TCP:
                 applyModbusTcpCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
+                break;
+            case jvs::cfg_key_e::MELSEC:
+                applyMelsecCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
@@ -200,19 +214,19 @@ namespace muffin {
 
     void applyRS485CIN(std::vector<jvs::config::Base*>& vectorRS485CIN)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND MODLINK-ML10");
+    #if defined(MODLINK_L) || defined(ML10) 
+        ASSERT((vectorRS485CIN.size() == 1), "THERE MUST BE ONLY ONE RS-485 CIN FOR MODLINK-L AND ML10");
         jvs::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
         if (cin->GetPortIndex().second == jvs::prt_e::PORT_2)
         {
-            RS485 = new(std::nothrow) RS485Class(Serial2, 17, -1, -1);
-            if (RS485 == nullptr)
+            RS485_LINK1 = new(std::nothrow) RS485Class(Serial2, 17, -1, -1);
+            if (RS485_LINK1 == nullptr)
             {
                 LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
             }
         }
 
-    #elif defined(MODLINK_T2) || defined(MODLINK_B)
+    #elif defined(MT10) || defined(MB10)
         for (auto& Rs485CIN : vectorRS485CIN)
         {
             size_t count = 0;
@@ -226,6 +240,35 @@ namespace muffin {
                 }
                 delay(100);
             }            
+        }
+    #elif defined(MT11)
+        {
+            jvs::config::Rs485* cin = Convert.ToRS485CIN(vectorRS485CIN[0]);
+            if (cin->GetPortIndex().second == jvs::prt_e::PORT_3)
+            {   
+                uint8_t TX_PIN  = 38;
+                
+                RS485_LINK2 = new(std::nothrow) RS485Class(Serial2, TX_PIN, -1, -1);
+                if (RS485_LINK2 == nullptr)
+                {
+                    LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
+                }
+            }
+            else if (cin->GetPortIndex().second == jvs::prt_e::PORT_2)
+            {   
+                uint8_t TX_PIN  = 17;
+              
+                /**
+                 * @todo 현재 CATM1 시리얼 포트와 HardwareSerial UART 핀이 곂치기 때문에 반드시 테스트 후 처리 해야함 @김주성 @이상진
+                 * 
+                 */
+                RS485_LINK1 = new(std::nothrow) RS485Class(Serial2, TX_PIN, -1, -1);
+                if (RS485_LINK1 == nullptr)
+                {
+                    LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR RS485 INTERFACE");
+                }
+            }
+            
         }
 
     #endif
@@ -245,9 +288,9 @@ namespace muffin {
             return;
         }
 
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
         ModbusRtuVector.clear();
-        mVectorModbusRTU.clear();
+        mConfigVectorMbRTU.clear();
         
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
         {
@@ -261,18 +304,17 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
-            mVectorModbusRTU.emplace_back(*cin);
+            mConfigVectorMbRTU.emplace_back(*cin);
             ModbusRtuVector.emplace_back(*modbusRTU);
         }
 
-        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mConfigVectorMbRTU size : %d",mConfigVectorMbRTU.size());
 
-        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartTaskMSG();
     #else
         ModbusRtuVector.clear();
-        mVectorModbusRTU.clear();
+        mConfigVectorMbRTU.clear();
         
         std::set<jvs::prt_e> link;
         for (auto& modbusRTUCIN : vectorModbusRTUCIN)
@@ -287,11 +329,11 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS RTU");
                 return;
             }
-            mVectorModbusRTU.emplace_back(*cin);
+            mConfigVectorMbRTU.emplace_back(*cin);
             ModbusRtuVector.emplace_back(*modbusRTU);
         }
 
-        LOG_INFO(logger, "Configured Modbus RTU protocol, mVectorModbusRTU size : %d",mVectorModbusRTU.size());
+        LOG_INFO(logger, "Configured Modbus RTU protocol, mConfigVectorMbRTU size : %d",mConfigVectorMbRTU.size());
         
         size_t count = 0;
         while (count < 5)
@@ -306,15 +348,107 @@ namespace muffin {
         }
 
         StartModbusRtuTask();
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartTaskMSG();
     #endif
         
     }
 
     void applyModbusTcpCIN(std::vector<jvs::config::Base*>& vectorModbusTCPCIN)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MODLINK-T2");
+    #if defined(MODLINK_L) || defined(ML10)
+        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MT10");
+    #endif
+        if (s_HasNode == false)
+        {
+            LOG_WARNING(logger, "NO NODE");
+            return;
+        }
+
+        if (jvs::config::operation.GetPlanExpired().second == true)
+        {
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
+            return;
+        }
+        mConfigVectorMbTCP.clear();
+        ModbusTcpVector.clear();
+        
+        for (auto& modbusTCPCIN : vectorModbusTCPCIN)
+        {
+            jvs::config::ModbusTCP* cin = static_cast<jvs::config::ModbusTCP*>(modbusTCPCIN);
+        
+    #if defined(MT11)
+            const jvs::if_e eth = cin->GetEthernetInterface().second;
+            switch (eth)
+            {
+            case jvs::if_e::EMBEDDED:
+            {
+                const auto retSocketID = ethernet->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH0] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                LOG_DEBUG(logger,"SOCKET ID : %d",static_cast<uint8_t>(retSocketID.second));
+                if (w5500::embededEthernetClient == nullptr)
+                {
+                    w5500::embededEthernetClient = new w5500::EthernetClient(*ethernet, w5500::sock_id_e::SOCKET_0);
+                    embededModbusTCPClient = new ModbusTCPClient(*w5500::embededEthernetClient);
+                }
+                applyModbusTcpConfig(ethernet, retSocketID.second, cin);
+                break;
+            }
+            case jvs::if_e::LINK_01:
+            {
+                const auto retSocketID = link1W5500->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH1] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                if (w5500::link1EthernetClient == nullptr)
+                {
+                    w5500::link1EthernetClient = new w5500::EthernetClient(*link1W5500, w5500::sock_id_e::SOCKET_0);
+                    link1ModbusTCPClient = new ModbusTCPClient(*w5500::link1EthernetClient);
+                    LOG_WARNING(logger, "link1ModbusTCPClient points to: %p", (void*)link1ModbusTCPClient);
+                }
+                applyModbusTcpConfig(link1W5500, retSocketID.second, cin);
+                break;
+            }
+            case jvs::if_e::LINK_02:
+            {
+                const auto retSocketID = link2W5500->GetAvailableSocketId();
+                if (retSocketID.first.ToCode() != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger,"[ETH2] NO AVAILABLE SOCKET");
+                    continue;
+                }
+                applyModbusTcpConfig(link2W5500, retSocketID.second, cin);
+                break;
+            }
+            default:
+                break;
+            }
+    #else
+            ModbusTCP* modbusTCP = new ModbusTCP();
+            Status ret = modbusTCP->Config(cin);
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
+                return;
+            }
+            mConfigVectorMbTCP.emplace_back(*cin);
+            ModbusTcpVector.emplace_back(*modbusTCP);
+    #endif
+        }
+
+        StartModbusTcpTask();
+        StartTaskMSG();
+    }
+
+    void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
+    {
+    #if defined(MODLINK_L) || defined(ML10)
+        ASSERT((true), "ETHERNET MUST BE CONFIGURE FOR MODLINK-B AND MT10");
     #endif
 
         if (s_HasNode == false)
@@ -328,25 +462,141 @@ namespace muffin {
             LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
             return;
         }
-        ModbusTcpVector.clear();
-        mVectorModbusTCP.clear();
-        
-        for (auto& modbusTCPCIN : vectorModbusTCPCIN)
+
+        mConfigVectorMelsec.clear();
+        MelsecVector.clear();
+
+        for (auto& melsecCIN : vectorMelsecCIN)
         {
-            ModbusTCP* modbusTCP = new ModbusTCP();
-            jvs::config::ModbusTCP* cin = static_cast<jvs::config::ModbusTCP*>(modbusTCPCIN);
-            Status ret = modbusTCP->Config(cin);
+            jvs::config::Melsec* cin = static_cast<jvs::config::Melsec*>(melsecCIN);
+
+    #if defined(MT11)
+            const jvs::if_e eth = cin->GetEthernetInterface().second;
+            switch (eth)
+            {
+            case jvs::if_e::EMBEDDED:
+            {
+               /**
+                 * @todo Melsec은 1번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
+                 * 
+                 */
+                applyMelsecConfig(ethernet, w5500::sock_id_e::SOCKET_1, cin);
+                break;
+            }
+            case jvs::if_e::LINK_01:
+            {
+                applyMelsecConfig(link1W5500, w5500::sock_id_e::SOCKET_1, cin);
+                break;
+            }
+            case jvs::if_e::LINK_02:
+            {
+                applyMelsecConfig(link2W5500, w5500::sock_id_e::SOCKET_1, cin);
+                break;
+            }
+            default:
+                break;
+            }
+    #else
+            Melsec* melsec = new Melsec();
+            Status ret = melsec->Config(cin);
             if (ret != Status::Code::GOOD)
             {
-                LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
+                LOG_ERROR(logger, "FAILED TO CONFIGURE MELSEC");
                 return;
             }
-            mVectorModbusTCP.emplace_back(*cin);
-            ModbusTcpVector.emplace_back(*modbusTCP);
+            mConfigVectorMelsec.emplace_back(*cin);
+            MelsecVector.emplace_back(*melsec);
+    #endif
         }
 
-        SetPollingInterval(jvs::config::operation.GetIntervalPolling().second);
-        StartModbusTcpTask();
-        StartTaskCyclicalsMSG(jvs::config::operation.GetIntervalServer().second);
+        StartMelsecTask();
+        StartTaskMSG();
+
     }
+
+#if defined(MT11)
+    void applyEthernet()
+    {
+        if (jvs::config::embeddedEthernet != nullptr)
+        {
+            ethernet->Config(jvs::config::embeddedEthernet);
+            ethernet->Connect();
+        }
+
+        if (jvs::config::link1Ethernet != nullptr)
+        {
+            link1W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_01);
+            Status ret = link1W5500->Init();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "LINK1 W5500 INIT ERROR: %s",ret.c_str());
+            }
+
+            link1W5500->Config(jvs::config::link1Ethernet);
+            link1W5500->Connect();
+            
+        }
+        if (jvs::config::link2Ethernet != nullptr)
+        {
+            link2W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_02);
+            Status ret = link2W5500->Init();
+            if (ret != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "LINK2 W5500 INIT ERROR: %s",ret.c_str());
+            }
+
+            link2W5500->Config(jvs::config::link2Ethernet);
+            link2W5500->Connect();
+        }
+    }
+
+    void applyModbusTcpConfig(W5500* eth, w5500::sock_id_e id, jvs::config::ModbusTCP* cin)
+    {
+        ModbusTCP* modbusTCP = new ModbusTCP(*eth, id);
+        Status ret = modbusTCP->Config(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE MODBUS TCP");
+            return;
+        }
+        mConfigVectorMbTCP.emplace_back(*cin);
+
+        if (id == w5500::sock_id_e::SOCKET_0)
+        {
+            switch (cin->GetEthernetInterface().second)
+            {
+            case jvs::if_e::EMBEDDED:
+                modbusTCP->SetModbusTCPClient(embededModbusTCPClient, w5500::embededEthernetClient);
+                break;
+            case jvs::if_e::LINK_01:
+                modbusTCP->SetModbusTCPClient(link1ModbusTCPClient, w5500::link1EthernetClient);
+                break;
+            default:
+                break;
+            }
+
+            ModbusTcpVectorDynamic.emplace_back(*modbusTCP);
+        }
+        else
+        {
+            ModbusTcpVector.emplace_back(*modbusTCP);
+        }
+    }
+
+    void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin)
+    {
+        Melsec* melsec = new Melsec();
+        melsec->SetW5500Client(*eth, id);
+
+        Status ret = melsec->Config(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE MELSEC");
+            return;
+        }
+        mConfigVectorMelsec.emplace_back(*cin);
+        MelsecVector.emplace_back(*melsec);
+        
+    }
+#endif
 }

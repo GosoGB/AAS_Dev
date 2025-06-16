@@ -28,6 +28,7 @@ namespace muffin {
         virtual ~MacAddress() {}
 
     public:
+        Status SetMacAddress(char mac[]);
         const char* GetEthernet();
         const char* GetWiFiClient();
         const char* GetWiFiServer();

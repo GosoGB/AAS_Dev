@@ -107,33 +107,42 @@ namespace muffin {
 	}
 
 	time_t CalculateTimestampNextMinuteStarts(const time_t currentTimestamp)
-	{
-		const tm* localTime = localtime(&currentTimestamp);
+    {
+        const tm* localTime = localtime(&currentTimestamp);
 
-		const int currentHour    = localTime->tm_hour;
-		const int currentMinute  = localTime->tm_min;
+        const int currentHour    = localTime->tm_hour;
+        const int currentMinute  = localTime->tm_min;
 
-		int nextHour    = currentHour;
-		int nextMinute  = currentMinute + 1;
+        int nextHour    = currentHour;
+        int nextMinute  = currentMinute + 1;
 
-		if (nextMinute >= 60)
-		{
-			nextMinute = 0;
-			++nextHour;
+        int nextDay = localTime->tm_mday;
+        int nextMonth = localTime->tm_mon;
+        int nextYear = localTime->tm_year;
 
-			if (nextHour >= 24)
-			{
-				nextHour = 0;
-			}
-		}
+        if (nextMinute >= 60)
+        {
+            nextMinute = 0;
+            ++nextHour;
 
-		tm nextLocalTime = *localTime;
-		nextLocalTime.tm_hour = nextHour;
-		nextLocalTime.tm_min  = nextMinute;
-		nextLocalTime.tm_sec  = 0;
+            if (nextHour >= 24)
+            {
+                nextHour = 0;
+                ++nextDay;
+            }
+        }
 
-		return mktime(&nextLocalTime);
-	}
+        tm nextLocalTime = *localTime;
+        nextLocalTime.tm_hour = nextHour;
+        nextLocalTime.tm_min  = nextMinute;
+        nextLocalTime.tm_sec  = 0;
+
+        nextLocalTime.tm_mday = nextDay;
+        nextLocalTime.tm_mon = nextMonth;
+        nextLocalTime.tm_year = nextYear;
+
+        return mktime(&nextLocalTime);
+    }
 
 	uint64_t GetTimestampInMillis()
 	{

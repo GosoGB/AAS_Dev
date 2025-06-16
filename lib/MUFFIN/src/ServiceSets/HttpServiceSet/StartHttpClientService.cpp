@@ -51,7 +51,7 @@ namespace muffin {
         return ret;
     }
 
-#if defined(MODLINK_T2) || defined(MODLINK_B)
+#if defined(MT10) || defined(MB10) || defined(MT11)
     static Status strategyInitEthernet()
     {
         http::LwipHTTP* lwipHTTP = new(std::nothrow) http::LwipHTTP();
@@ -102,7 +102,7 @@ namespace muffin {
             ret = strategyInitCatM1(mutex.second);
             catM1->ReleaseMutex();
             return ret;
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         case jvs::snic_e::Ethernet:
             return strategyInitEthernet();
     #endif

@@ -25,8 +25,8 @@ namespace muffin { namespace jvs { namespace config {
     Rs232::Rs232()
         : Base(cfg_key_e::RS232)
     {
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
-        ASSERT(false, "RS-232 CANNOT BE USED WITH MODLINK-L AND MODLINK-ML10");
+    #if defined(MODLINK_L) || defined(ML10)
+        ASSERT(false, "RS-232 CANNOT BE USED WITH MODLINK-L AND ML10");
     #endif
 
     }

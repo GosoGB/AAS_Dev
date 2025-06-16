@@ -41,6 +41,7 @@ namespace muffin { namespace im {
 
     public:
         std::vector<Node*> GetCyclicalNode();
+        std::vector<Node*> GetEventNode();
     private:
         NodeStore();
         virtual ~NodeStore();
@@ -52,7 +53,6 @@ namespace muffin { namespace im {
         Status Remove(const std::string& nodeID);
         void Clear();
         std::pair<Status, Node*> GetNodeReference(const std::string& nodeID);
-        std::pair<Status, Node*> GetNodeReferenceUID(const std::string& UID);
     private:
         std::map<std::string, Node*> mMapNode;
     };

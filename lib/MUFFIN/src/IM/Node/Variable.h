@@ -42,10 +42,11 @@ namespace muffin { namespace im {
         jvs::addr_u GetAddress() const;
         uint8_t GetQuantity() const;
         int16_t GetBitIndex() const;
-        jvs::mb_area_e GetModbusArea() const;
+        jvs::node_area_e GetNodeArea() const;
 
     public:
         void Update(const std::vector<poll_data_t>& polledData);
+        void UpdateError();
     private:
         void implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData);
         void removeOldestHistory();
@@ -72,6 +73,7 @@ namespace muffin { namespace im {
         std::pair<Status, uint16_t> ConvertModbusData(std::string& data);
     public:
         std::pair<bool, json_datum_t> CreateDaqStruct();
+        mqtt::topic_e GetTopic() const;
     private:
         void castWithDataUnitOrder(const std::vector<poll_data_t>& polledData, std::vector<casted_data_t>* outputCastedData);
         void castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData);
@@ -79,7 +81,9 @@ namespace muffin { namespace im {
     private:
         // virtual void strategySingleDataType() override;
         // void strategySingleDataType();
-
+    
+    public:
+        bool mHasNewEvent = false;
     private:
         // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
         bool mInitEvent = true;

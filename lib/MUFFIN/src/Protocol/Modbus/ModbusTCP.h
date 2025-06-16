@@ -30,7 +30,11 @@
 #include "JARVIS/Include/TypeDefinitions.h"
 #include "Protocol/Modbus/Include/ArduinoRS485/src/ArduinoRS485.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusTCPClient.h"
-#include "WiFi.h"
+#if defined(MT11)
+    #include "Network/Ethernet/W5500/EthernetClient.h"
+#else
+    #include "WiFi.h"
+#endif
 
 
 namespace muffin {
@@ -38,13 +42,21 @@ namespace muffin {
     class ModbusTCP
     {
     public:
+    #if defined(MT11)
+        ModbusTCP(W5500& interface, const w5500::sock_id_e sock_id);
+    #else
         ModbusTCP();
+    #endif
         virtual ~ModbusTCP();
     private:
         using AddressRange = im::NumericAddressRange;
     public:
         Status Config(jvs::config::ModbusTCP* config);
         void Clear();
+        void SetTimeoutError();
+    #if defined(MT11)
+        void SetModbusTCPClient(ModbusTCPClient* modbusTcpClient, w5500::EthernetClient* ethClient);
+    #endif
     public:
         IPAddress GetServerIP();
         uint16_t GetServerPort();
@@ -56,7 +68,7 @@ namespace muffin {
 
     public:
         Status Poll();
-        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area);
+        modbus::datum_t GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area);
     private:
         Status implementPolling();
         Status updateVariableNodes();
@@ -74,7 +86,12 @@ namespace muffin {
         IPAddress mServerIP;
         uint16_t mServerPort;
     public:
-        WiFiClient mWifiClient;
-        ModbusTCPClient mModbusTCPClient;
+    #if defined(MT11)
+        w5500::EthernetClient* mClient = nullptr;
+
+    #else
+        WiFiClient mClient;
+    #endif
+    ModbusTCPClient* mModbusTCPClient = nullptr;
     };
 }

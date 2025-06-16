@@ -146,6 +146,42 @@ namespace muffin { namespace modbus {
         }
     }
 
+    std::pair<Status, std::vector<im::Node*>> NodeTable::RetrieveEntireNode() const
+    {
+        std::vector<im::Node*> entireNodeVector;
+        entireNodeVector.reserve(mMapNodeReferenceBySlave.size());
+
+        const auto retrievedSlaveInfo = RetrieveEntireSlaveID();
+        if (retrievedSlaveInfo.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE SLAVE ID FOR RETRIEVE ENTIRE NODE: %s", retrievedSlaveInfo.first.c_str());
+            return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), std::vector<im::Node*>());
+        }
+
+        for (const auto& slaveID : retrievedSlaveInfo.second)
+        {
+            const auto retrievedNodeInfo = RetrieveNodeBySlaveID(slaveID);
+            if (retrievedNodeInfo.first.ToCode() != Status::Code::GOOD)
+            {
+                LOG_ERROR(logger, "FAILED TO RETRIEVE NODE REFERENCES: %s", retrievedNodeInfo.first.c_str());
+                return std::make_pair(Status(Status::Code::BAD_NOT_FOUND), std::vector<im::Node*>());
+            }
+
+            try
+            {
+                entireNodeVector.insert(entireNodeVector.end(),
+                                        retrievedNodeInfo.second.begin(),
+                                        retrievedNodeInfo.second.end());
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR(logger, "FAILED TO INSERT NODE REFERENCES: %s", e.what());
+            }
+        }
+        
+        return std::make_pair(Status(Status::Code::GOOD), entireNodeVector); 
+    }
+
 #if defined(DEBUG)
     void NodeTable::printCell(const uint8_t cellWidth, const char* value, uint8_t* castedBuffer) const
     {

@@ -216,7 +216,7 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
-    bool CatM1::IsConnected() const
+    bool CatM1::IsConnected()
     {
         if (mState == state_e::SUCCEDDED_TO_GET_IP)
         {
@@ -441,17 +441,28 @@ namespace muffin {
             
             if (rxd.find(expected) != std::string::npos)
             {
-                if (rxd.find("+COPS: 0,0,\"SKTelecom\",8") != std::string::npos ||
-                    rxd.find("+COPS: 1,0,\"SKTelecom\",8") != std::string::npos)
+                const size_t posMode              = 1 + rxd.find(" ");
+                const size_t posFormat            = 1 + rxd.find(",", posMode + 1);
+                const size_t posOperator          = 1 + rxd.find(",", posFormat + 1);
+                const size_t posAccessTechnology  = 1 + rxd.find(",", posOperator + 1);
+
+                if ((posMode == std::string::npos)           || 
+                    (posFormat == std::string::npos)         || 
+                    (posOperator == std::string::npos)       || 
+                    (posAccessTechnology == std::string::npos))
                 {
-                    LOG_INFO(logger, "Status: available, Operator: SKTeleco(45012), Access: LTE Cat.M1");
+                    LOG_DEBUG(logger, "%s", rxd.c_str());
                     return Status(Status::Code::GOOD);
                 }
-                else
-                {
-                    LOG_WARNING(logger, "NOT IMPLEMENTED YET: %s", rxd.c_str());
-                    return Status(Status::Code::BAD_NOT_IMPLEMENTED);
-                }
+                
+                const std::string mode               = rxd.substr(posMode, posFormat - posMode - 1);
+                const std::string format             = rxd.substr(posFormat, posOperator - posFormat - 1);
+                const std::string operatorName       = rxd.substr(posOperator + 1, posAccessTechnology - posOperator - 3);
+                const std::string accessTechnology   = rxd.substr(posAccessTechnology, 1);
+                LOG_DEBUG(logger, "Mode: %s, Format: %s, Operator: %s, Access Technology: %s", 
+                    mode.c_str(), format.c_str(), operatorName.c_str(), accessTechnology.c_str());
+                
+                return Status(Status::Code::GOOD);
             }
             else if (rxd.find("ERROR") != std::string::npos)
             {

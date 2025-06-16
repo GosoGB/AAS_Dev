@@ -46,15 +46,14 @@ namespace muffin {
         void Add(jvs::config::Alarm* cin);
         void Clear();
         bool HasError() const;
+        bool isContainNode(std::string nid);
     public:
         void StartTask();
         void StopTask();
 
     public:
-        std::pair<bool,std::vector<std::string>> GetUclUid();
-        std::pair<bool,std::vector<std::string>> GetLclUid();
-        bool ConvertUCL(std::string ucluid, std::string ucl);
-        bool ConvertLCL(std::string lcluid, std::string lcl);
+        Status ConvertUCL(std::string nid, std::string ucl);
+        Status ConvertLCL(std::string nid, std::string lcl);
     private:
         static void wrapImplTask(void* pvParams);
         void implTask();
@@ -62,18 +61,16 @@ namespace muffin {
         void strategyUCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
         void strategyLclAndUcl(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
         void strategyCondition(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
-        bool isActiveAlarm(const std::string& uid);
+        bool isActiveAlarm(const std::string& nid, const jvs::alarm_pub_type_e type);
         float convertToFloat(const im::var_data_t& datum);
-        json_alarm_t retrieveActiveAlarm(const std::string& uid);
+        json_alarm_t retrieveActiveAlarm(const std::string& nid);
         std::string createAlarmUUID();
         void activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node, const std::string& value);
         void deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const std::string& value);
 
     private:
-        void pubLclToScautr( jvs::config::Alarm& cin, const im::Variable& node);
-        void pubUclToScautr( jvs::config::Alarm& cin, const im::Variable& node);
-        void updateFlashUclValue(std::string nodeid, float ucl);
-        void updateFlashLclValue(std::string nodeid, float lcl);
+        Status updateFlashUclValue(std::string nodeid, float ucl);
+        Status updateFlashLclValue(std::string nodeid, float lcl);
     private:
         using node_reference = std::reference_wrapper<std::pair<const std::string, im::Node*>>;
         std::vector<jvs::config::Alarm> mVectorConfig;

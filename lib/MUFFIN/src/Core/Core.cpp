@@ -41,10 +41,11 @@
 #include "Protocol/SPEAR/SPEAR.h"
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Task/JarvisTask.h"
-#include "Task/CyclicalPubTask.h"
+#include "Task/PubTask.h"
 #include "Protocol/Modbus/ModbusMutex.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Modbus/ModbusRTU.h"
+#include "Protocol/Melsec/MelsecClient.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Operation/Operation.h"
@@ -66,12 +67,17 @@
 
 #include "CLI/CLI.h"
 #include "Network/CatM1/CatM1.h"
+#include "Network/Ethernet/W5500/W5500.h"
 
 
 namespace muffin {
 
-    std::vector<muffin::jvs::config::ModbusRTU> mVectorModbusRTU;
-    std::vector<muffin::jvs::config::ModbusTCP> mVectorModbusTCP;
+    std::vector<muffin::jvs::config::ModbusRTU> mConfigVectorMbRTU;
+    std::vector<muffin::jvs::config::ModbusTCP> mConfigVectorMbTCP;
+    std::vector<muffin::jvs::config::Melsec> mConfigVectorMelsec;
+    
+    uint32_t s_PollingIntervalInMillis = 1000;
+    uint16_t s_PublishIntervalInSeconds = 60;
 
     void listDir(const char* dirname, const uint8_t levels)
     {
@@ -204,7 +210,7 @@ namespace muffin {
         settimeofday(&tv, NULL);
         
         logger.Init();
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
         {
@@ -224,16 +230,26 @@ namespace muffin {
             }
             
             delay(2000);
+    #if !defined(MT11)
             spear.Reset();
+    #endif
             esp_restart();
         }
     #endif 
+    #if defined(MT11)
+        ethernet = new(std::nothrow) W5500(w5500::if_e::EMBEDDED);
+        ethernet->Init();
+        char mac[13] = {'\0'};
+        ethernet->GetMacAddress(mac);
+        LOG_WARNING(logger,"MAC : %s",mac);
+        macAddress.SetMacAddress(mac);
+    #endif    
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
         LOG_INFO(logger, "Semantic Version: %s,  Version Code: %u", 
             FW_VERSION_ESP32.GetSemanticVersion(),
             FW_VERSION_ESP32.GetVersionCode());
 
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10)
         {
             uint8_t trialCount = 0;    
             while (spear.Init() != Status::Code::GOOD)
@@ -453,7 +469,7 @@ namespace muffin {
                 delay(1);
             }
             
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MT10) || defined(MB10)
             spear.Reset();
         #endif 
             esp_restart();
@@ -483,12 +499,12 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO UPDATE: %s", ret.c_str());
             }
             
-        #if defined(MODLINK_T2) || defined(MODLINK_B)
+        #if defined(MT10) || defined(MB10)
             spear.Reset();
         #endif 
             esp_restart();
         }
-
+        
         esp32FS.Remove(LWIP_HTTP_PATH);
         
         ApplyJarvisTask();
@@ -639,7 +655,7 @@ namespace muffin {
         }
 
         JsonDocument doc;
-        doc["ver"] = "v3";
+        doc["ver"] = "v4";
 
         JsonObject cnt = doc["cnt"].to<JsonObject>();
         cnt["rs232"].to<JsonArray>();
@@ -652,6 +668,7 @@ namespace muffin {
         cnt["alarm"].to<JsonArray>();
         cnt["optime"].to<JsonArray>();
         cnt["prod"].to<JsonArray>();
+        cnt["mc"].to<JsonArray>();
 
         JsonArray catm1 = cnt["catm1"].to<JsonArray>();
         JsonObject _catm1 = catm1.add<JsonObject>();
@@ -719,7 +736,6 @@ namespace muffin {
 
         jvs::ValidationResult result = jarvis->Validate(doc);
         doc.clear();
-
         if (result.GetRSC() >= jvs::rsc_e::BAD)
         {
             ret = Status::Code::BAD_DATA_LOST;

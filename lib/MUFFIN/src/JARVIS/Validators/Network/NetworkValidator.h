@@ -37,12 +37,16 @@ namespace muffin { namespace jvs {
         virtual ~NetworkValidator() {}
     private:
         using cin_vector = std::vector<config::Base*>;
-    public:
-        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN);
     private:
-        std::pair<rsc_e, std::string> validateEthernet(const JsonArray array);
+        prtcl_ver_e mProtocolVersion;
+    public:
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, prtcl_ver_e ProtocolVersion, cin_vector* outVector);
+    private:
+        std::pair<rsc_e, std::string> validateEthernet(const JsonArray array, cin_vector* outVector);
         rsc_e validateMandatoryKeysEthernet(const JsonObject json);
         rsc_e validateMandatoryValuesEthernet(const JsonObject json);
+    private:    
+        std::pair<rsc_e, std::string> setEthernetConfig(const JsonObject obj, config::Ethernet* eth);
     private:
         std::pair<rsc_e, std::string> validateWiFi4(const JsonArray array, cin_vector* outVector);
         rsc_e validateMandatoryKeysWiFi4(const JsonObject json);
@@ -50,6 +54,7 @@ namespace muffin { namespace jvs {
     private:
         rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
+        std::pair<rsc_e, if_e> convertToEthernetInterfaces(uint8_t eths);
         std::pair<rsc_e, bool> convertToDHCP(JsonVariant dhcp);
         std::pair<rsc_e, bool> convertToEAP(JsonVariant eap);
         std::pair<rsc_e, wifi_auth_mode_t> convertToAuth(JsonVariant auth);

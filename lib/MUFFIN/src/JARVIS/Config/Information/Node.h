@@ -23,6 +23,7 @@
 #include "Common/Status.h"
 #include "JARVIS/Include/Base.h"
 #include "JARVIS/Include/DataUnitOrder.h"
+#include "Protocol/MQTT/Include/TypeDefinitions.h"
 
 
 
@@ -41,7 +42,7 @@ namespace muffin { namespace jvs { namespace config {
         void SetNodeID(const char* nodeID);
         void SetAddressType(const adtp_e type);
         void SetAddrress(const addr_u address);
-        void SetModbusArea(const mb_area_e area);
+        void SetNodeArea(const node_area_e area);
         void SetBitIndex(const uint8_t index);
         void SetNumericAddressQuantity(const uint8_t quantity);
         void SetNumericScale(const scl_e scale);
@@ -49,13 +50,15 @@ namespace muffin { namespace jvs { namespace config {
         void SetDataUnitOrders(const std::vector<DataUnitOrder>&& orders) noexcept;
         void SetDataTypes(const std::vector<dt_e>&& dt) noexcept;
         void SetFormatString(const std::string& format);
-        void SetDeprecableUID(const char* uid);
         void SetAttributeEvent(const bool hasEvent);
+        void SetTopic(const mqtt::topic_e topic);
+    
     public:
+        std::pair<Status, mqtt::topic_e> GetTopic() const;
         std::pair<Status, const char*> GetNodeID() const;
         std::pair<Status, adtp_e> GetAddressType() const;
         std::pair<Status, addr_u> GetAddrress() const;
-        std::pair<Status, mb_area_e> GetModbusArea() const;
+        std::pair<Status, node_area_e> GetNodeArea() const;
         std::pair<Status, uint8_t> GetBitIndex() const;
         std::pair<Status, uint8_t> GetNumericAddressQuantity() const;
         std::pair<Status, scl_e> GetNumericScale() const;
@@ -63,7 +66,6 @@ namespace muffin { namespace jvs { namespace config {
         std::pair<Status, std::vector<DataUnitOrder>> GetDataUnitOrders() const;
         std::pair<Status, std::vector<dt_e>> GetDataTypes() const;
         std::pair<Status, std::string> GetFormatString() const;
-        std::pair<Status, const char*> GetDeprecableUID() const;
         std::pair<Status, bool> GetAttributeEvent() const;
     private:
         typedef enum class SetFlagEnum : uint8_t
@@ -71,7 +73,7 @@ namespace muffin { namespace jvs { namespace config {
             NODE_ID             =  0,
             ADDRESS_TYPE        =  1,
             ADDRESS             =  2,
-            MODBUS_AREA         =  3,
+            NODE_AREA           =  3,
             BIT_INDEX           =  4,
             ADDRESS_QUANTITY    =  5,
             NUMERIC_SCALE       =  6,
@@ -79,7 +81,7 @@ namespace muffin { namespace jvs { namespace config {
             DATA_UNIT_ORDERS    =  8,
             DATA_TYPE           =  9,
             FORMAT_STRING       = 10,
-            DEPRECABLE_UID      = 11,
+            TOPIC               = 11,
             ATTRIBUTE_EVENT     = 12,
             TOP                 = 13
         } set_flag_e;
@@ -88,7 +90,7 @@ namespace muffin { namespace jvs { namespace config {
         char mNodeID[5];
         adtp_e mAddressType;
         addr_u mAddress;
-        mb_area_e mModbusArea;
+        node_area_e mNodeArea;
         uint8_t mBitIndex;
         uint8_t mAddressQuantity;
         scl_e mNumericScale;
@@ -96,7 +98,7 @@ namespace muffin { namespace jvs { namespace config {
         std::vector<DataUnitOrder> mVectorDataUnitOrders;
         std::vector<dt_e> mVectorDataTypes;
         std::string mFormatString;
-        char mDeprecableUID[5];
+        mqtt::topic_e mTopic;
         bool mHasAttributeEvent;
     };
 }}}

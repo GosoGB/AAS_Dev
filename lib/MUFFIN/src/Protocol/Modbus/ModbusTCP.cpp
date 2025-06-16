@@ -29,13 +29,25 @@
 namespace muffin {
 
 
-    ModbusTCP::ModbusTCP()
-    : mModbusTCPClient(mWifiClient)
+#if defined(MT11)
+    ModbusTCP::ModbusTCP(W5500& interface, const w5500::sock_id_e sock_id)
     {
+        if (sock_id != w5500::sock_id_e::SOCKET_0)
+        {
+            mClient = new w5500::EthernetClient(interface, sock_id);
+            mModbusTCPClient = new ModbusTCPClient(*mClient);
+        }
+        
+    }
+#else
+    ModbusTCP::ModbusTCP()
+    {
+        mModbusTCPClient = new ModbusTCPClient(mClient);
     #if defined(DEBUG)
         LOG_VERBOSE(logger, "Constructed at address: %p", this);
     #endif
     }
+#endif
     
     ModbusTCP::~ModbusTCP()
     {   
@@ -81,7 +93,7 @@ namespace muffin {
                 return ret;
             }
 
-            const jvs::mb_area_e area = reference->VariableNode.GetModbusArea();
+            const jvs::node_area_e area = reference->VariableNode.GetNodeArea();
             const AddressRange range = createAddressRange(reference->VariableNode.GetAddress().Numeric, reference->VariableNode.GetQuantity());
     
             ret = mAddressTable.Update(slaveID, area, range);
@@ -105,7 +117,7 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        const jvs::mb_area_e area = node.VariableNode.GetModbusArea();
+        const jvs::node_area_e area = node.VariableNode.GetNodeArea();
         const AddressRange range = createAddressRange(node);
 
         ret = mAddressTable.Remove(slaveID, area, range);
@@ -181,16 +193,16 @@ namespace muffin {
                 
                 switch (area)
                 {
-                case jvs::mb_area_e::COILS:
+                case jvs::node_area_e::COILS:
                     ret = pollCoil(slaveID, addressSetToPoll);
                     break;
-                case jvs::mb_area_e::DISCRETE_INPUT:
+                case jvs::node_area_e::DISCRETE_INPUT:
                     ret = pollDiscreteInput(slaveID, addressSetToPoll);
                     break;
-                case jvs::mb_area_e::INPUT_REGISTER:
+                case jvs::node_area_e::INPUT_REGISTER:
                     ret = pollInputRegister(slaveID, addressSetToPoll);
                     break;
-                case jvs::mb_area_e::HOLDING_REGISTER:
+                case jvs::node_area_e::HOLDING_REGISTER:
                     ret = pollHoldingRegister(slaveID, addressSetToPoll);
                     break;
                 default:
@@ -233,7 +245,7 @@ namespace muffin {
             {
                 const uint16_t address  = node->VariableNode.GetAddress().Numeric;
                 const uint16_t quantity = node->VariableNode.GetQuantity();
-                const jvs::mb_area_e area = node->VariableNode.GetModbusArea();
+                const jvs::node_area_e area = node->VariableNode.GetNodeArea();
 
                 modbus::datum_t datum;
                 datum.Address = address;
@@ -253,14 +265,15 @@ namespace muffin {
                  */
                 switch (area)
                 {
-                case jvs::mb_area_e::COILS:
+                case jvs::node_area_e::COILS:
                     datum = mPolledDataTable.RetrieveCoil(slaveID, address);
                     goto BIT_MEMORY;
-                case jvs::mb_area_e::DISCRETE_INPUT:
+                case jvs::node_area_e::DISCRETE_INPUT:
                     datum = mPolledDataTable.RetrieveDiscreteInput(slaveID, address);
                 BIT_MEMORY:
                     if (datum.IsOK == false)
                     {
+                        LOG_ERROR(logger,"TCP POLLING ERROR");
                         polledData.StatusCode = Status::Code::BAD;
                         polledData.Value.Boolean = datum.Value == 1 ? true : false;
                     }
@@ -273,7 +286,7 @@ namespace muffin {
                     vectorPolledData.emplace_back(polledData);
                     node->VariableNode.Update(vectorPolledData);
                     break;
-                case jvs::mb_area_e::INPUT_REGISTER:
+                case jvs::node_area_e::INPUT_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
@@ -284,12 +297,12 @@ namespace muffin {
                         vectorPolledData.emplace_back(polledData);
                     }
                     goto REGISTER_MEMORY;
-                case jvs::mb_area_e::HOLDING_REGISTER:
+                case jvs::node_area_e::HOLDING_REGISTER:
                     vectorPolledData.reserve(quantity);
                     for (size_t i = 0; i < quantity; ++i)
                     {
                         datum = mPolledDataTable.RetrieveHoldingRegister(slaveID, address + i);
-                        polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;
+                        polledData.StatusCode = datum.IsOK ? Status::Code::GOOD : Status::Code::BAD;                     
                         polledData.ValueType = jvs::dt_e::UINT16;
                         polledData.Value.UInt16 = datum.Value;
                         vectorPolledData.emplace_back(polledData);
@@ -316,10 +329,10 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            mModbusTCPClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
+            mModbusTCPClient->requestFrom(slaveID, COILS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = mModbusTCPClient.lastError();
-            // mModbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient->lastError();
+            // mModbusTCPClient->clearError();
 
             // if (lastError != nullptr)
             // {
@@ -336,7 +349,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = mModbusTCPClient.read();
+                const int8_t value = mModbusTCPClient->read();
                 
                 switch (value)
                 {
@@ -363,10 +376,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            mModbusTCPClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
+            mModbusTCPClient->requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = mModbusTCPClient.lastError();
-            // mModbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient->lastError();
+            // mModbusTCPClient->clearError();
 
             // if (lastError != nullptr)
             // {
@@ -384,7 +397,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int8_t value = mModbusTCPClient.read();
+                const int8_t value = mModbusTCPClient->read();
                 switch (value)
                 {
                 case 1:
@@ -411,10 +424,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            mModbusTCPClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
+            mModbusTCPClient->requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = mModbusTCPClient.lastError();
-            // mModbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient->lastError();
+            // mModbusTCPClient->clearError();
 
             // if (lastError != nullptr)
             // {
@@ -432,14 +445,14 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = mModbusTCPClient.read();
+                const int32_t value = mModbusTCPClient->read();
                 
                 if (value == -1)
                 {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
                     ret = Status::Code::BAD_DATA_LOST;
                     mPolledDataTable.UpdateInputRegister(slaveID, address, INVALID_VALUE);
-                    return ret;
+                    // return ret;
                 }
                 else
                 {
@@ -460,10 +473,10 @@ namespace muffin {
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            mModbusTCPClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
+            mModbusTCPClient->requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
             delay(80);
-            // const char* lastError = mModbusTCPClient.lastError();
-            // mModbusTCPClient.clearError();
+            // const char* lastError = mModbusTCPClient->lastError();
+            // mModbusTCPClient->clearError();
 
             // if (lastError != nullptr)
             // {
@@ -481,7 +494,7 @@ namespace muffin {
             for (size_t i = 0; i < pollQuantity; i++)
             {
                 const uint16_t address = startAddress + i;
-                const int32_t value = mModbusTCPClient.read();
+                const int32_t value = mModbusTCPClient->read();
                 
                 // LOG_WARNING(logger, "[HOLDING REGISTERS][Address: %u] value : %d", address, value);
                 if (value == -1)
@@ -489,7 +502,7 @@ namespace muffin {
                     LOG_ERROR(logger, "DATA LOST: INVALID VALUE");
                     ret = Status::Code::BAD_DATA_LOST;
                     mPolledDataTable.UpdateHoldingRegister(slaveID, address, INVALID_VALUE);
-                    return ret;
+                    // return ret;
                 }
                 else
                 {
@@ -501,22 +514,22 @@ namespace muffin {
         return ret;
     }
 
-    modbus::datum_t ModbusTCP::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::mb_area_e area)
+    modbus::datum_t ModbusTCP::GetAddressValue(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area)
     {
         modbus::datum_t data;
         data.IsOK = false;
         switch (area)
         {
-        case jvs::mb_area_e::COILS :
+        case jvs::node_area_e::COILS :
             data = mPolledDataTable.RetrieveCoil(slaveID,address);
             break;
-        case jvs::mb_area_e::DISCRETE_INPUT :
+        case jvs::node_area_e::DISCRETE_INPUT :
             data = mPolledDataTable.RetrieveDiscreteInput(slaveID,address);
             break;
-        case jvs::mb_area_e::INPUT_REGISTER :
+        case jvs::node_area_e::INPUT_REGISTER :
             data = mPolledDataTable.RetrieveInputRegister(slaveID,address);
             break;
-        case jvs::mb_area_e::HOLDING_REGISTER :
+        case jvs::node_area_e::HOLDING_REGISTER :
             data = mPolledDataTable.RetrieveHoldingRegister(slaveID,address);
             break;
         default:
@@ -536,4 +549,26 @@ namespace muffin {
     {
         return mServerPort;
     }
+
+    void ModbusTCP::SetTimeoutError()
+    {
+        const auto RetrieveEntireNode = mNodeTable.RetrieveEntireNode();
+        if (RetrieveEntireNode.first.ToCode() != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE SLAVE ID FOR POLLING: %s", RetrieveEntireNode.first.c_str());
+            return;
+        }
+
+        for (const auto& node : RetrieveEntireNode.second)
+        {
+            node->VariableNode.UpdateError();
+        }
+    }
+#if defined(MT11)
+    void ModbusTCP::SetModbusTCPClient(ModbusTCPClient* modbusTcpClient, w5500::EthernetClient* ethClient)
+    {
+        mModbusTCPClient = modbusTcpClient;
+        mClient = ethClient;
+    }
+#endif
 }

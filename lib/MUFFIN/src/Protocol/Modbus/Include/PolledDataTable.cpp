@@ -142,6 +142,30 @@ namespace muffin { namespace modbus {
         return it->second.UpdateHoldingRegister(address, value);
     }
 
+    datum_t PolledDataTable::RetrieveBitArea(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area) const
+    {
+        auto it = mMapPolledDataBySlave.find(slaveID);
+        if (it == mMapPolledDataBySlave.end())
+        {
+            datum_t datum { .Address = address, .Value = false, .IsOK = false };
+            return datum;
+        }
+        
+        return it->second.RetrieveBitArea(address, area);
+    }
+
+    datum_t PolledDataTable::RetrieveWordArea(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area) const
+    {
+        auto it = mMapPolledDataBySlave.find(slaveID);
+        if (it == mMapPolledDataBySlave.end())
+        {
+            datum_t datum { .Address = address, .Value = false, .IsOK = false };
+            return datum;
+        }
+        
+        return it->second.RetrieveWordArea(address, area);
+    }
+
     datum_t PolledDataTable::RetrieveCoil(const uint8_t slaveID, const uint16_t address) const
     {
         auto it = mMapPolledDataBySlave.find(slaveID);
@@ -193,5 +217,62 @@ namespace muffin { namespace modbus {
     void PolledDataTable::Clear()
     {
         mMapPolledDataBySlave.clear();
+    }
+
+
+    Status PolledDataTable::UpdateBitArea(const uint8_t slaveID, const uint16_t address, const int8_t value, const jvs::node_area_e area)
+    {
+        Status ret(Status::Code::UNCERTAIN);
+
+        auto it = mMapPolledDataBySlave.find(slaveID);
+        if (it == mMapPolledDataBySlave.end())
+        {
+            try
+            {
+                auto result = mMapPolledDataBySlave.emplace(slaveID, PolledData());
+                it = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), slaveID);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), slaveID);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+
+        return it->second.UpdateBitArea(address, value, area);
+    }
+
+    Status PolledDataTable::UpdateWordArea(const uint8_t slaveID, const uint16_t address, const int32_t value, const jvs::node_area_e area)
+    {
+        Status ret(Status::Code::UNCERTAIN);
+
+        auto it = mMapPolledDataBySlave.find(slaveID);
+        if (it == mMapPolledDataBySlave.end())
+        {
+            try
+            {
+                auto result = mMapPolledDataBySlave.emplace(slaveID, PolledData());
+                it = result.first;
+                ASSERT((result.second == true), "FAILED TO EMPLACE NEW PAIR SINCE IT ALREADY EXISTS WHICH DOESN'T MAKE ANY SENSE");
+            }
+            catch(const std::bad_alloc& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), slaveID);
+                return Status(Status::Code::BAD_OUT_OF_MEMORY);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(logger, "%s: %u", e.what(), slaveID);
+                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            }
+        }
+
+        return it->second.UpdateWordArea(address, value, area);
     }
 }}

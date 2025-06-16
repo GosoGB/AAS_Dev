@@ -13,7 +13,7 @@
 
 
 
-#if defined(MODLINK_T2)
+#if defined(MT10)
 
 
 

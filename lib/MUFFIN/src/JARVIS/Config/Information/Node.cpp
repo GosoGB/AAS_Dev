@@ -35,11 +35,10 @@ namespace muffin { namespace jvs { namespace config {
         if (this != &obj)
         {
             strncpy(mNodeID, obj.mNodeID, sizeof(mNodeID));
-            strncpy(mDeprecableUID, obj.mDeprecableUID, sizeof(mDeprecableUID));
 
             mAddressType            = obj.mAddressType;
             mAddress                = obj.mAddress;
-            mModbusArea             = obj.mModbusArea;
+            mNodeArea               = obj.mNodeArea;
             mBitIndex               = obj.mBitIndex;
             mAddressQuantity        = obj.mAddressQuantity;
             mNumericScale           = obj.mNumericScale;
@@ -47,6 +46,7 @@ namespace muffin { namespace jvs { namespace config {
             mVectorDataUnitOrders   = obj.mVectorDataUnitOrders;
             mVectorDataTypes        = obj.mVectorDataTypes;
             mFormatString           = obj.mFormatString;
+            mTopic                  = obj.mTopic;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
         }
         
@@ -59,7 +59,7 @@ namespace muffin { namespace jvs { namespace config {
             mNodeID                 == obj.mNodeID                  &&
             mAddressType            == obj.mAddressType             &&
             mAddress.Numeric        == obj.mAddress.Numeric         &&
-            mModbusArea             == obj.mModbusArea              &&
+            mNodeArea               == obj.mNodeArea                &&
             mBitIndex               == obj.mBitIndex                &&
             mAddressQuantity        == obj.mAddressQuantity         &&
             mNumericScale           == obj.mNumericScale            &&
@@ -67,7 +67,7 @@ namespace muffin { namespace jvs { namespace config {
             std::equal(mVectorDataUnitOrders.begin(), mVectorDataUnitOrders.end(), obj.mVectorDataUnitOrders.begin()) &&
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
-            mDeprecableUID          == obj.mDeprecableUID           &&
+            mTopic                  == obj.mTopic                   &&
             mHasAttributeEvent      == obj.mHasAttributeEvent
         );
     }
@@ -91,7 +91,7 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true && type != adtp_e::NUMERIC)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_AREA)) == true && type != adtp_e::NUMERIC)
                     {
                         return false;
                     }
@@ -115,13 +115,13 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::ADDRESS));
     }
 
-    void Node::SetModbusArea(const mb_area_e area)
+    void Node::SetNodeArea(const node_area_e area)
     {
         ASSERT((mSetFlags.test(static_cast<uint8_t>(set_flag_e::ADDRESS_TYPE)) == true), "ADDRESS TYPE MUST BE SET BEFOREHAND");
         ASSERT((mAddressType == adtp_e::NUMERIC), "ADDRESS TYPE MUST BE SET TO NUMERIC");
 
-        mModbusArea = area;
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::MODBUS_AREA));
+        mNodeArea = area;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::NODE_AREA));
     }
 
     void Node::SetBitIndex(const uint8_t index)
@@ -156,9 +156,9 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_AREA)) == true)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mNodeArea == node_area_e::COILS || mNodeArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -235,9 +235,9 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_AREA)) == true)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mNodeArea == node_area_e::COILS || mNodeArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -310,9 +310,9 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_AREA)) == true)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mNodeArea == node_area_e::COILS || mNodeArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -333,9 +333,9 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_AREA)) == true)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mNodeArea == node_area_e::COILS || mNodeArea == node_area_e::DISCRETE_INPUT)
                         {
                             if (dt.size() != 1)
                             {
@@ -369,9 +369,9 @@ namespace muffin { namespace jvs { namespace config {
             (
                 [&]()
                 {
-                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
-                    {// mb_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
-                        if (mModbusArea == mb_area_e::COILS || mModbusArea == mb_area_e::DISCRETE_INPUT)
+                    if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_AREA)) == true)
+                    {// node_area_e 기본 값은 COILS이므로 설정됐는지 여부에 대한 검사가 선결조건임
+                        if (mNodeArea == node_area_e::COILS || mNodeArea == node_area_e::DISCRETE_INPUT)
                         {
                             return false;
                         }
@@ -493,18 +493,10 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::FORMAT_STRING));
     }
 
-    void Node::SetDeprecableUID(const char* uid)
+    void Node::SetTopic(const mqtt::topic_e topic)
     {
-        ASSERT((strlen(uid) == 4), "UID MUST BE A STRING WITH LEGNTH OF 4");
-        ASSERT(
-            (
-                uid[0] == 'P' || uid[0] == 'A' || uid[0] == 'E' ||
-                strncmp(uid, "DI", 2) || strncmp(uid, "DO", 2) || strncmp(uid, "MD", 2)
-            ), "UID MUST START WITH ONE OF PREFIXES, \"P\", \"A\", \"E\", \"DI\", \"DO\", \"MD\""
-        );
-
-        strncpy(mDeprecableUID, uid, sizeof(mDeprecableUID));
-        mSetFlags.set(static_cast<uint8_t>(set_flag_e::DEPRECABLE_UID));
+        mTopic = topic;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::TOPIC));
     }
 
     void Node::SetAttributeEvent(const bool hasEvent)
@@ -549,15 +541,15 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, mb_area_e> Node::GetModbusArea() const
+    std::pair<Status, node_area_e> Node::GetNodeArea() const
     {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::MODBUS_AREA)) == true)
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::NODE_AREA)) == true)
         {
-            return std::make_pair(Status(Status::Code::GOOD), mModbusArea);
+            return std::make_pair(Status(Status::Code::GOOD), mNodeArea);
         }
         else
         {
-            return std::make_pair(Status(Status::Code::BAD), mModbusArea);
+            return std::make_pair(Status(Status::Code::BAD), mNodeArea);
         }
     }
 
@@ -583,14 +575,42 @@ namespace muffin { namespace jvs { namespace config {
         {
             return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
         }
-        else if (GetModbusArea().second == mb_area_e::COILS || GetModbusArea().second == mb_area_e::DISCRETE_INPUT)
-        {
-            return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
-        }
         else
         {
-            return std::make_pair(Status(Status::Code::BAD), mAddressQuantity);
+            switch (GetNodeArea().second)
+            {
+            case node_area_e::COILS:
+            case node_area_e::DISCRETE_INPUT:
+            case node_area_e::SM:
+            case node_area_e::X:
+            case node_area_e::Y:
+            case node_area_e::M:
+            case node_area_e::L:
+            case node_area_e::F:
+            case node_area_e::V:
+            case node_area_e::B:
+            case node_area_e::TS:
+            case node_area_e::TC:
+            case node_area_e::LTS:
+            case node_area_e::LTC:
+            case node_area_e::STS:
+            case node_area_e::STC:
+            case node_area_e::LSTS:
+            case node_area_e::LSTC:
+            case node_area_e::CS:
+            case node_area_e::CC:
+            case node_area_e::LCS:
+            case node_area_e::LCC:
+            case node_area_e::SB:
+            case node_area_e::S:
+            case node_area_e::DX:
+            case node_area_e::DY:
+                return std::make_pair(Status(Status::Code::GOOD_NO_DATA), 1);
+            default:
+                break;
+            }
         }
+        return std::make_pair(Status(Status::Code::BAD), mAddressQuantity);
     }
 
     std::pair<Status, scl_e> Node::GetNumericScale() const
@@ -653,18 +673,6 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, const char*> Node::GetDeprecableUID() const
-    {
-        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::DEPRECABLE_UID)) == true)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mDeprecableUID);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mDeprecableUID);
-        }
-    }
-
     std::pair<Status, bool> Node::GetAttributeEvent() const
     {
         if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ATTRIBUTE_EVENT)) == true)
@@ -674,6 +682,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mHasAttributeEvent);
+        }
+    }
+
+    std::pair<Status, mqtt::topic_e> Node::GetTopic() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::TOPIC)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mTopic);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mTopic);
         }
     }
 }}}

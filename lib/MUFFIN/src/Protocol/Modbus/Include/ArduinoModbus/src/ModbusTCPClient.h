@@ -61,5 +61,6 @@ private:
   Client* _client;
 };
 
-
+extern ModbusTCPClient* embededModbusTCPClient;
+extern ModbusTCPClient* link1ModbusTCPClient;
 #endif

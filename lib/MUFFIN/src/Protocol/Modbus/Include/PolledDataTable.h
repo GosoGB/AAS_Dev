@@ -35,6 +35,14 @@ namespace muffin { namespace modbus {
         Status UpdateDiscreteInput(const uint8_t slaveID, const uint16_t address, const int8_t value);
         Status UpdateInputRegister(const uint8_t slaveID, const uint16_t address, const int32_t value);
         Status UpdateHoldingRegister(const uint8_t slaveID, const uint16_t address, const int32_t value);
+
+    public:
+        Status UpdateBitArea(const uint8_t slaveID, const uint16_t address, const int8_t value, const jvs::node_area_e area);
+        Status UpdateWordArea(const uint8_t slaveID, const uint16_t address, const int32_t value, const jvs::node_area_e area);
+
+    public:
+        datum_t RetrieveBitArea(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area) const;
+        datum_t RetrieveWordArea(const uint8_t slaveID, const uint16_t address, const jvs::node_area_e area) const;
     public:
         datum_t RetrieveCoil(const uint8_t slaveID, const uint16_t address) const;
         datum_t RetrieveDiscreteInput(const uint8_t slaveID, const uint16_t address) const;

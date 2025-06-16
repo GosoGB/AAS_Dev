@@ -68,7 +68,7 @@ namespace muffin {
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
             JsonDocument doc;
-            doc["ver"] = "v3";
+            doc["ver"] = "v4";
 
             JsonObject cnt = doc["cnt"].to<JsonObject>();
             cnt["rs232"].to<JsonArray>();
@@ -81,6 +81,7 @@ namespace muffin {
             cnt["alarm"].to<JsonArray>();
             cnt["optime"].to<JsonArray>();
             cnt["prod"].to<JsonArray>();
+            cnt["mc"].to<JsonArray>();
 
             JsonArray catm1 = cnt["catm1"].to<JsonArray>();
             JsonObject _catm1 = catm1.add<JsonObject>();
@@ -117,9 +118,10 @@ namespace muffin {
                 LOG_ERROR(logger, "FAILED TO DESERIALIZE: %s", ret.c_str());
                 return ret;
             }
-            LOG_INFO(logger, "Deserialized JARVIS config file");
-            
+           
+
             JsonObject op = mJarvisJson["cnt"]["op"][0].as<JsonObject>();
+            mEthernetArray = mJarvisJson["cnt"]["eth"].as<JsonArray>();
             std::string serviceNetwork = op["snic"].as<std::string>();
 
             if (serviceNetwork == "lte")
@@ -142,56 +144,74 @@ namespace muffin {
             }
             else if(serviceNetwork == "eth")
             {
-                JsonObject eth = mJarvisJson["cnt"]["eth"][0].as<JsonObject>();
-                bool dhcp = eth["dhcp"].as<bool>();
-
-                Serial.print("+-----------------------+---------------------+\r\n");
-                Serial.print("|         Current Network Information         |\r\n");
-                Serial.print("+-----------------------+---------------------+\r\n");
-
-                Serial.print("| Network Interface     | ");
-                Serial.print("Ethernet            |\r\n");
-                Serial.print("+-----------------------+---------------------+\r\n");
-
-                Serial.print("| Use Static IP         | ");
-                Serial.print(dhcp == false ? "Enabled             " : "Disabled (DHCP)     ");
-                Serial.print("|\r\n");
-                Serial.print("+-----------------------+---------------------+\r\n");
-
-                if (dhcp == false)
+                for (auto eth : mEthernetArray)
                 {
-                    std::string ip = eth["ip"].as<std::string>();
-                    std::string gateway = eth["gtw"].as<std::string>();
-                    std::string subnet = eth["snm"].as<std::string>();
-                    std::string dns1 = eth["dns1"].as<std::string>();
-                    std::string dns2 = eth["dns2"].as<std::string>();
-                
-                    Serial.print("| IP                    | ");
-                    printLeftAlignedText(ip,20);
-                    Serial.print(" |\r\n");
-                    Serial.print("+-----------------------+---------------------+\r\n");
+                    JsonObject _eth = eth.as<JsonObject>();
+                    bool snic = true;
+                    /**
+                     * @todo 1.4.0 이전 버전에는 eths 키가 없기 때문에 해당 로직을 추가해 두었습니다. 
+                     *       키가 있다면 eth 인터페이스 위치를 확인하고 없다면 바로 사용합니다.
+                     * 
+                     */
+                    if (_eth.containsKey("eths") == true)
+                    {
+                        snic = _eth["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED) ? true : false;
+                        LOG_INFO(logger,"[ETHS] KEY EXISTS");
+                    }
+                    
+                    
+                    if (snic)
+                    {
+                        bool dhcp = eth["dhcp"].as<bool>();
 
-                    Serial.print("| GateWay               | ");
-                    printLeftAlignedText(gateway,20);
-                    Serial.print(" |\r\n");
-                    Serial.print("+-----------------------+---------------------+\r\n");
+                        Serial.print("+-----------------------+---------------------+\r\n");
+                        Serial.print("|         Current Network Information         |\r\n");
+                        Serial.print("+-----------------------+---------------------+\r\n");
 
-                    Serial.print("| SubnetMask            | ");
-                    printLeftAlignedText(subnet,20);
-                    Serial.print(" |\r\n");
-                    Serial.print("+-----------------------+---------------------+\r\n");
+                        Serial.print("| Network Interface     | ");
+                        Serial.print("Ethernet            |\r\n");
+                        Serial.print("+-----------------------+---------------------+\r\n");
 
-                    Serial.print("| DNS1                  | ");
-                    printLeftAlignedText(dns1,20);
-                    Serial.print(" |\r\n");
-                    Serial.print("+-----------------------+---------------------+\r\n");
+                        Serial.print("| Use Static IP         | ");
+                        Serial.print(dhcp == false ? "Enabled             " : "Disabled (DHCP)     ");
+                        Serial.print("|\r\n");
+                        Serial.print("+-----------------------+---------------------+\r\n");
 
-                    Serial.print("| DNS2                  | ");
-                    printLeftAlignedText(dns2,20);
-                    Serial.print(" |\r\n");
-                    Serial.print("+-----------------------+---------------------+\r\n");
+                        if (dhcp == false)
+                        {
+                            std::string ip = eth["ip"].as<std::string>();
+                            std::string gateway = eth["gtw"].as<std::string>();
+                            std::string subnet = eth["snm"].as<std::string>();
+                            std::string dns1 = eth["dns1"].as<std::string>();
+                            std::string dns2 = eth["dns2"].as<std::string>();
+                        
+                            Serial.print("| IP                    | ");
+                            printLeftAlignedText(ip,20);
+                            Serial.print(" |\r\n");
+                            Serial.print("+-----------------------+---------------------+\r\n");
+
+                            Serial.print("| GateWay               | ");
+                            printLeftAlignedText(gateway,20);
+                            Serial.print(" |\r\n");
+                            Serial.print("+-----------------------+---------------------+\r\n");
+
+                            Serial.print("| SubnetMask            | ");
+                            printLeftAlignedText(subnet,20);
+                            Serial.print(" |\r\n");
+                            Serial.print("+-----------------------+---------------------+\r\n");
+
+                            Serial.print("| DNS1                  | ");
+                            printLeftAlignedText(dns1,20);
+                            Serial.print(" |\r\n");
+                            Serial.print("+-----------------------+---------------------+\r\n");
+
+                            Serial.print("| DNS2                  | ");
+                            printLeftAlignedText(dns2,20);
+                            Serial.print(" |\r\n");
+                            Serial.print("+-----------------------+---------------------+\r\n");
+                        }
+                    }
                 }
-            
             }
             
         }
@@ -269,6 +289,42 @@ namespace muffin {
         JsonObject _catm1 = catm1.add<JsonObject>();
         _catm1["md"]    = "LM5";
         _catm1["ctry"]  = "KR";
+
+        JsonArray mc = mJarvisJson["cnt"]["mc"].as<JsonArray>();
+        JsonArray mbTCP = mJarvisJson["cnt"]["mbtcp"].as<JsonArray>();
+        bool isEthEnabled = false;
+        for (auto obj : mc)
+        {
+            JsonObject _mc = obj.as<JsonObject>();
+            if (_mc["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED))
+            {
+                isEthEnabled = true;
+            }
+        }
+
+        for (auto obj : mbTCP)
+        {
+            JsonObject _mbTCP = obj.as<JsonObject>();
+            if (_mbTCP["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED))
+            {
+                isEthEnabled = true;
+            }
+        }
+        
+        if (isEthEnabled == false)
+        {
+            for (int i = mEthernetArray.size() - 1; i >= 0; i--) 
+            {
+                JsonObject obj = mEthernetArray[i];
+                if (obj["eths"] == 0) 
+                {
+                    mEthernetArray.remove(i);
+                }
+            }
+            
+            // cnt.remove("eth");
+            // cnt["eth"].to<JsonArray>();
+        }
         
         
         return saveJarvisJson();
@@ -284,12 +340,34 @@ namespace muffin {
         JsonObject op = cnt["op"][0].as<JsonObject>();
         op["snic"] = "eth";
 
-        cnt.remove("eth");
-        JsonArray ethObj = cnt["eth"].to<JsonArray>();
-        JsonObject _eth = ethObj.add<JsonObject>();
+        JsonObject _eth;
+        bool isEthEnabled = false;
+
+        if (mEthernetArray.isNull())
+        {
+            mEthernetArray = cnt["eth"].to<JsonArray>();
+            _eth = mEthernetArray.add<JsonObject>();
+            _eth["eths"] = 0;
+            isEthEnabled = true;
+        }
+
+        for (auto eth : mEthernetArray)
+        {
+            JsonObject ethObj = eth.as<JsonObject>();
+            if (ethObj["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED))
+            {
+                _eth = ethObj;
+                isEthEnabled = true;
+            }
+        }
+        
+        if(isEthEnabled == false)
+        {
+            _eth = mEthernetArray.add<JsonObject>();
+            _eth["eths"] = 0;
+        }
 
         std::string settingStr;
-
         while (true)
         {
             Serial.print("\r\nPlease enter whether to enable DHCP (Y/N)\r\n");
@@ -305,6 +383,7 @@ namespace muffin {
                 _eth["gtw"]  = nullptr;
                 _eth["dns1"] = nullptr;
                 _eth["dns2"] = nullptr;
+                
                 return saveJarvisJson();
             }
             else if (settingStr == "N" || settingStr == "n")

@@ -38,44 +38,25 @@ namespace muffin { namespace jvs { namespace config {
         void SetNodeID(const std::string& nodeID);
         void SetType(const alarm_type_e type);
         void SetLCL(const float lcl);
-        void SetLclUID(const std::string& lclUID);
-        void SetLclAlarmUID(const std::string& lclAlarmUID);
         void SetUCL(const float ucl);
-        void SetUclUID(const std::string& uclUID);
-        void SetUclAlarmUID(const std::string& uclAlarmUID);
         void SetCondition(const std::vector<int16_t>& condition);
     public:
         std::pair<Status, std::string> GetNodeID() const;
         std::pair<Status, alarm_type_e> GetType() const;
         std::pair<Status, float> GetLCL() const;
-        std::pair<Status, std::string> GetLclUID() const;
-        std::pair<Status, std::string> GetLclAlarmUID() const;
         std::pair<Status, float> GetUCL() const;
-        std::pair<Status, std::string> GetUclUID() const;
-        std::pair<Status, std::string> GetUclAlarmUID() const;
         std::pair<Status, std::vector<int16_t>> GetCondition() const;
     private:
         bool mIsNodeIdSet      = false;
         bool mIsTypeSet        = false;
         bool mIsLclSet         = false;
-        bool mIsLclUidSet      = false;
-        bool mIsLclAlarmUidSet = false;
         bool mIsUclSet         = false;
-        bool mIsUclUidSet      = false;
-        bool mIsUclAlarmUidSet = false;
         bool mIsConditionSet   = false;
     private:
         std::string mNodeID;
         alarm_type_e mType;
         float mLCL = 0;
-        std::string mLclUID;
-        std::string mLclAlarmUID;
         float mUCL = 0;
-        std::string mUclUID;
-        std::string mUclAlarmUID;
         std::vector<int16_t> mCondition;
-    public:
-        float mPreviousLCL;
-        float mPreviousUCL;
     };
 }}}

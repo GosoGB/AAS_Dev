@@ -4,8 +4,8 @@
  * 
  * @brief MUFFIN 프레임워크에서 사용하는 상수를 정의합니다.
  * 
- * @date 2025-02-05
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -24,9 +24,18 @@ namespace muffin {
     /**
      * @brief 일반적으로 사용하는 상수를 정의
      */
+    constexpr uint8_t   ONE_SECOND       = 1;
+    constexpr uint8_t   MINUTE_IN_SEC    = 60 * ONE_SECOND;
+    constexpr uint16_t  HOUR_IN_SEC      = 60 * MINUTE_IN_SEC;
+    constexpr uint32_t  DAY_IN_SEC       = 24 * HOUR_IN_SEC;
+
     constexpr uint8_t  MAX_RETRY_COUNT   = 5;
     constexpr uint16_t SECOND_IN_MILLIS  = 1000;
+    
     constexpr uint16_t KILLOBYTE         = 1024;
+
+    constexpr uint32_t KHz = 1000;
+    constexpr uint32_t MHz = 1000 * KHz;
     
     /**
      * @brief NVS 파티션 읽기/쓰기에 사용되는 상수를 정의
@@ -62,14 +71,15 @@ namespace muffin {
         : uint8_t
     {
         MQTT_TASK            = 0,
-        CYCLICALS_MSG_TASK   = 1,
+        PUBLISH_MSG_TASK   = 1,
         MODBUS_RTU_TASK      = 2,
         MODBUS_TCP_TASK      = 3,
         MORNITOR_ALARM_TASK  = 4,
         OPERATION_TIME_TASK  = 5,
         PRODUCTION_INFO_TASK = 6,
         CATM1_PROCESSOR_TASK = 7,
-        CATM1_MONITORING_TASK = 8
+        CATM1_MONITORING_TASK = 8,
+        MELSEC_TASK = 9
     } task_name_e;
 
     typedef enum class ReconfigurationCode : uint8_t

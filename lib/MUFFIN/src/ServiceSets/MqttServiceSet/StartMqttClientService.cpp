@@ -4,8 +4,8 @@
  * 
  * @brief MQTT 클라이언트 초기화 및 연결하는 서비스를 정의합니다.
  * 
- * @date 2025-01-24
- * @version 1.3.1
+ * @date 2025-05-28
+ * @version 1.4.0
  * 
  * @copyright Copyright (c) Edgecross Inc. 2024-2025
  */
@@ -21,7 +21,6 @@
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "Network/CatM1/CatM1.h"
-#include "Network/Ethernet/Ethernet.h"
 #include "Protocol/MQTT/Include/BrokerInfo.h"
 #include "Protocol/MQTT/Include/Helper.h"
 #include "Protocol/MQTT/Include/Message.h"
@@ -41,7 +40,7 @@ namespace muffin {
         const uint8_t size = 64;
         char buffer[size] = {'\0'};
 
-    #if defined(MODLINK_L) || defined(MODLINK_ML10)
+    #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
         snprintf(buffer, size, "%s,%llu,%s,%s,null",
             macAddress.GetEthernet(),
             GetTimestampInMillis(),
@@ -181,7 +180,7 @@ namespace muffin {
         case jvs::snic_e::LTE_CatM1:
             return strategyInitCatM1();
 
-    #if defined(MODLINK_T2) || defined(MODLINK_B)
+    #if defined(MT10) || defined(MB10) || defined(MT11)
         case jvs::snic_e::Ethernet:
             return strategyInitEthernet();
     #endif

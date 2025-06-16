@@ -45,6 +45,7 @@ namespace jvs { namespace config {
     /*Protocol*/
     class ModbusRTU;
     class ModbusTCP;
+    class Melsec;
 }}
 
 
@@ -89,6 +90,7 @@ namespace jvs { namespace config {
         static jvs::config::Operation* ToOperationCIN(jvs::config::Base* config);
         static jvs::config::ModbusRTU* ToModbusRTUCIN(jvs::config::Base* config);
         static jvs::config::ModbusTCP* ToModbusTCPCIN(jvs::config::Base* config);
+        static jvs::config::Melsec* ToMelsecCIN(jvs::config::Base* config);
     };
 
     template <typename T>

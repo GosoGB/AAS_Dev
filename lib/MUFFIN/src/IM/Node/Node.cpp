@@ -32,9 +32,9 @@ namespace muffin { namespace im {
         return mCIN->GetNodeID().second;
     }
 
-    const char* Node::GetUID() const
+    mqtt::topic_e Node::GetTopic() const
     {
-        return mCIN->GetDeprecableUID().second;
+        return mCIN->GetTopic().second;
     }
 
     bool Node::HasAttributeEvent() const

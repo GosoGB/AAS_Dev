@@ -79,7 +79,7 @@ namespace muffin {
         switch (taskCreationResult)
         {
         case pdPASS:
-            // LOG_INFO(logger, "The ProductionInfo task has been started");
+            LOG_INFO(logger, "The ProductionInfo task has been started");
             break;
         case pdFAIL:
             LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
@@ -116,7 +116,11 @@ namespace muffin {
 
         time_t LastTime;
         time_t NextTime = CalculateTimestampNextMinuteStarts(GetTimestamp());
-  
+
+        mPreviousCount.Total = UINT64_MAX;
+        // mPreviousCount.NG = UINT64_MAX;
+        // mPreviousCount.Good = UINT64_MAX;
+
         while (true)
         {
         #if defined(DEBUG)
@@ -131,6 +135,14 @@ namespace muffin {
                 LOG_DEBUG(logger, "[ProductionInfoTask] Stack Remaind: %u Bytes", RemainedStackSize);
                 
                 deviceStatus.SetTaskRemainedStack(task_name_e::PRODUCTION_INFO_TASK, RemainedStackSize);
+            }
+            
+            bool publishFlag = false;
+            if (GetTimestamp() > NextTime)
+            {
+                publishFlag = true;
+                LastTime = NextTime;
+                NextTime = CalculateTimestampNextMinuteStarts(LastTime);
             }
 
             for (auto& nodeReference : mVectorNodeReference)
@@ -152,7 +164,7 @@ namespace muffin {
                 {
                     break;
                 }
-
+                
                 /**
                  * @todo PROGIX에 총 생산수량 외에 양품수량, 불량수량을 보내기 위한
                  *       메시지 형식을 클라우드 개발팀과 협의해야 합니다.
@@ -170,16 +182,11 @@ namespace muffin {
                     // updateCountNG(datum);
                 }
 
-                if (GetTimestamp() < NextTime)
+                if (publishFlag)
                 {
-                    break;
+                    publishInfo(mProductCount.Total);
+                    mProductCount.Total = 0;
                 }
-
-                LastTime = NextTime;
-                NextTime = CalculateTimestampNextMinuteStarts(LastTime);
-
-                publishInfo(mProductCount.Total);
-                mProductCount.Total = 0;
             }
 
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -220,7 +227,7 @@ namespace muffin {
         
         if (mPreviousCount.Total > TotalValue)
         {
-             mProductCount.Total = 0;
+            mProductCount.Total = 0;
         }
         else
         {

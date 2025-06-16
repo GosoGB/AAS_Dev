@@ -33,9 +33,12 @@ namespace muffin { namespace jvs {
         virtual ~ModbusValidator();
     private:
         using cin_vector = std::vector<config::Base*>;
-    public:
-        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, cin_vector* outVector);
     private:
+        prtcl_ver_e mProtocolVersion;
+    public:
+        std::pair<rsc_e, std::string> Inspect(const cfg_key_e key, const JsonArray arrayCIN, prtcl_ver_e protocolVersion, cin_vector* outVector);
+    private:
+        std::pair<rsc_e, if_e> convertToEthernetInterfaces(uint8_t eths);
         std::pair<rsc_e, std::string> validateModbusRTU(const JsonArray array, cin_vector* outVector);
         std::pair<rsc_e, std::string> validateModbusTCP(const JsonArray array, cin_vector* outVector);
         rsc_e validateMandatoryKeysModbusRTU(const JsonObject json);

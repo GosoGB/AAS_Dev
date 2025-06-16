@@ -85,8 +85,15 @@ namespace muffin {
             ret = Status::Code::BAD_DATA_ENCODING_INVALID;
             return ret;
         }
-    #elif defined(MODLINK_T2)
-        if (strcmp((*output)["deviceType"].as<const char*>(), "MODLINK-T2") != 0)
+    #elif defined(MT10)
+        if (strcmp((*output)["deviceType"].as<const char*>(), "MT10") != 0 && strcmp((*output)["deviceType"].as<const char*>(), "MODLINK-T2") != 0)
+        {
+            LOG_ERROR(logger, "THE DEVICE TYPE DOES NOT MATCH THAT OF THE DEVICE");
+            ret = Status::Code::BAD_DATA_ENCODING_INVALID;
+            return ret;
+        }
+    #elif defined(MT11)
+        if (strcmp((*output)["deviceType"].as<const char*>(), "MT11") != 0)
         {
             LOG_ERROR(logger, "THE DEVICE TYPE DOES NOT MATCH THAT OF THE DEVICE");
             ret = Status::Code::BAD_DATA_ENCODING_INVALID;
@@ -298,7 +305,7 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
 
-        JsonObject obj = json["mcu2"].as<JsonObject>();;
+        JsonObject obj = json["mcu2"].as<JsonObject>();
         return parseFirmwareInfo(obj, ota::mcu_e::MCU2, output);
     }
 
