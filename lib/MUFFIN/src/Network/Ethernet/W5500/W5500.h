@@ -170,7 +170,7 @@ namespace muffin {
         static const uint8_t mMISO     = 13;
         static const uint8_t mSCLK     = 12;
         const uint8_t mRESET;
-        static const uint8_t mMHz      = 10;
+        static const uint8_t mMHz      = 30;
         static SPISettings mSpiConfig;
     private:
         static constexpr uint16_t DEFAULT_EPHEMERAL_PORT = 0xC000;

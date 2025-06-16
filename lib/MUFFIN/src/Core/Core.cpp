@@ -833,10 +833,10 @@ namespace muffin {
                 return Status(Status::Code::BAD_INVALID_ARGUMENT);
             }
 
-            LOG_DEBUG(logger,"mqtt broker host: %s",mqtt["host"].as<std::string>().c_str())
-            LOG_DEBUG(logger,"mqtt broker port: %u",mqtt["port"].as<uint16_t>())
-            LOG_DEBUG(logger,"mqtt broker user name: %s",mqtt["id"].as<std::string>().c_str())
-            LOG_DEBUG(logger,"mqtt broker password: %s",mqtt["pw"].as<std::string>().c_str())
+            LOG_DEBUG(logger,"mqtt broker host: %s",mqtt["host"].as<std::string>().c_str());
+            LOG_DEBUG(logger,"mqtt broker port: %u",mqtt["port"].as<uint16_t>());
+            LOG_DEBUG(logger,"mqtt broker user name: %s",mqtt["id"].as<std::string>().c_str());
+            LOG_DEBUG(logger,"mqtt broker password: %s",mqtt["pw"].as<std::string>().c_str());
 
 
             brokerInfo.SetHost(mqtt["host"].as<std::string>());

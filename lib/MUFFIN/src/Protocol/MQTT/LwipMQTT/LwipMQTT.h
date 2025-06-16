@@ -56,7 +56,6 @@ namespace muffin { namespace mqtt {
     #if defined(MT11)
         w5500::EthernetClient* mNIC = nullptr;
         SSLClient* mSecureNIC = nullptr;
-        
     #else
         WiFiClient* mNIC = nullptr;
         WiFiClientSecure* mSecureNIC = nullptr;
@@ -64,7 +63,11 @@ namespace muffin { namespace mqtt {
     private:
         const BrokerInfo mBrokerInfo;
         const Message mMessageLWT;
+    #if defined(MT11)
+        const uint16_t BUFFER_SIZE = 2048;
+    #else
         const uint16_t BUFFER_SIZE = 1024;
+    #endif
         const uint8_t KEEP_ALIVE  =  10;
     };
 }}

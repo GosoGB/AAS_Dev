@@ -96,6 +96,23 @@ namespace muffin {
 #if defined(MT11)
         applyEthernet();
 #endif
+
+    #if defined(MT10) || defined(MT11) || defined(MB10) 
+        for (auto& pair : *jarvis)
+        {
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::MELSEC)
+            {
+                applyMelsecCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
+                break;
+            }
+        }
+    #endif
+
         for (auto& pair : *jarvis)
         {
             const jvs::cfg_key_e key = pair.first;
@@ -151,12 +168,6 @@ namespace muffin {
                 }
                 break;
             case jvs::cfg_key_e::MELSEC:
-                applyMelsecCIN(pair.second);
-                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
-                {
-                    delete *it;
-                }
-                break;
             case jvs::cfg_key_e::NODE:
             case jvs::cfg_key_e::LTE_CatM1:
             case jvs::cfg_key_e::OPERATION:
@@ -480,17 +491,26 @@ namespace muffin {
                  * @todo Melsec은 1번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
                  * 
                  */
-                applyMelsecConfig(ethernet, w5500::sock_id_e::SOCKET_1, cin);
+                if (embededMelsecClient == nullptr)
+                {
+                    embededMelsecClient = new MelsecClient(*ethernet, w5500::sock_id_e::SOCKET_1);
+                }
+                
+                applyMelsecConfig(embededMelsecClient, cin);
                 break;
             }
             case jvs::if_e::LINK_01:
             {
-                applyMelsecConfig(link1W5500, w5500::sock_id_e::SOCKET_1, cin);
+                if (link1MelsecClient == nullptr)
+                {
+                    link1MelsecClient = new MelsecClient(*link1W5500, w5500::sock_id_e::SOCKET_1);
+                }
+
+                applyMelsecConfig(link1MelsecClient, cin);
                 break;
             }
             case jvs::if_e::LINK_02:
             {
-                applyMelsecConfig(link2W5500, w5500::sock_id_e::SOCKET_1, cin);
                 break;
             }
             default:
@@ -583,10 +603,10 @@ namespace muffin {
         }
     }
 
-    void applyMelsecConfig(W5500* eth, w5500::sock_id_e id, jvs::config::Melsec* cin)
+    void applyMelsecConfig(MelsecClient* client, jvs::config::Melsec* cin)
     {
         Melsec* melsec = new Melsec();
-        melsec->SetW5500Client(*eth, id);
+        melsec->SetClient(client);
 
         Status ret = melsec->Config(cin);
         if (ret != Status::Code::GOOD)

@@ -440,11 +440,6 @@ namespace muffin {
         const bool isLink = w5500::if_e::EMBEDDED != static_cast<w5500::if_e>(mCS);
         if (isLink)
         {
-            for (size_t i = 0; i < 20; i++)
-            {
-                LOG_DEBUG(logger, "------ HERE ------");
-            }
-            
             mCRB.MAC[0] = 0xDE;
             mCRB.MAC[1] = 0xAD;
             mCRB.MAC[2] = 0xBE;

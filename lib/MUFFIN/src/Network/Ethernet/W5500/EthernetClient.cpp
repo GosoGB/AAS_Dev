@@ -207,6 +207,7 @@ namespace muffin { namespace w5500 {
     
     void EthernetClient::stop()
     {
+        mSocket->Disconnect();
         mSocket->Close();
         mIsConnected = false;
         mRxBuffer = nullptr;

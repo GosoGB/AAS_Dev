@@ -594,12 +594,15 @@ namespace muffin {
         {
         case jvs::alarm_type_e::ONLY_LCL:
             alarm.AlarmTpye = jvs::alarm_pub_type_e::LCL;
+            push.AlarmTpye = jvs::alarm_pub_type_e::LCL;
             break;
         case jvs::alarm_type_e::ONLY_UCL:
             alarm.AlarmTpye = jvs::alarm_pub_type_e::UCL;
+            push.AlarmTpye = jvs::alarm_pub_type_e::UCL;
             break;
         case jvs::alarm_type_e::CONDITION:
             alarm.AlarmTpye = jvs::alarm_pub_type_e::CONDITION;
+            push.AlarmTpye = jvs::alarm_pub_type_e::CONDITION;
             break;
         default:
             break;

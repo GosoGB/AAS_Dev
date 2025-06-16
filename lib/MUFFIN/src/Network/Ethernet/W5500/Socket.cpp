@@ -391,8 +391,48 @@ namespace muffin { namespace w5500 {
 
     Status Socket::Disconnect()
     {
-        LOG_ERROR(logger, "SOCKET DISCONNECT NOT IMPLEMENTED");
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        uint8_t command = static_cast<uint8_t>(scr_e::DISCONNECT);
+        Status ret = mW5500.writeSRB(mID, srb_addr_e::COMMAND, command);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO DISCONNECT SOCKET: %s", ret.c_str());
+            return ret;
+        }
+        
+        uint8_t trialCount = 0;
+        for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
+        {
+            GetStatus();
+            if (mSRB.Status == ssr_e::CLOSED)
+            {
+                LOG_DEBUG(logger, "[#%u] The socket has been disconnected", static_cast<uint8_t>(mID));
+                break;
+            }
+            else
+            {
+                LOG_DEBUG(logger, "[#%u] SOCKET NOT DISCONNECT: %s", static_cast<uint8_t>(mID), Converter::ToString(mSRB.Status));
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+        }
+        
+        if (trialCount == MAX_TRIAL_COUNT)
+        {
+            LOG_ERROR(logger, "FAILED TO DISCONNECT THE SOCKET #%02u", static_cast<uint8_t>(mID));
+            return Status(Status::Code::BAD);
+        }
+        
+        /**
+         * @brief Release the sock_io_mode of SOCKETn.
+         * @code {.cpp}
+         *      sock_io_mode &= ~(1<<sn); 
+         *      sock_remained_size[sn] = 0;
+         *      sock_is_sending &= ~(1<<sn);
+         *      sock_pack_info[sn] = PACK_NONE;
+         * @endcode
+         */
+
+        clearInterrupt();        
+        return ret;
     }
 
 

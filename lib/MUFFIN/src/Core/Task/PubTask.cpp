@@ -149,6 +149,7 @@ namespace muffin {
                     if (ret.first != true)
                     {
                         ret.second.Value = "MFM_NULL";
+                        ret.second.SourceTimestamp = GetTimestampInMillis();
                     }
 
                     if (node->GetTopic() == mqtt::topic_e::DAQ_PARAM)

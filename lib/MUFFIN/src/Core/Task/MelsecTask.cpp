@@ -66,7 +66,7 @@ namespace muffin
                     {
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
                         melsec.SetTimeoutError();     
-                        melsec.mMelsecClient->Close();      
+                        melsec.mMelsecClient->Close();    
                         continue;
                     } 
                 }
@@ -78,6 +78,7 @@ namespace muffin
                 }
 
                 melsec.mMelsecClient->Close();
+                vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
             }
 
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));

@@ -68,14 +68,14 @@ namespace muffin { namespace jvs {
 
             const uint16_t prt      = cin["prt"].as<uint16_t>();
             const std::string ip    = cin["ip"].as<std::string>();
-            const uint8_t plcSeries = cin["ps"].as<uint8_t>();
+            // const uint8_t plcSeries = cin["ps"].as<uint8_t>();
             const uint8_t dataFormat = cin["df"].as<uint8_t>();
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
             const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
     
             const auto retIP    = convertToIPv4(ip);
             auto retNodes       = convertToNodes(nodes);
-            auto retPlcSeries   = convertToPlcSeries(plcSeries);
+            // auto retPlcSeries   = convertToPlcSeries(plcSeries);
             auto retDataFormat  = convertTodataFormat(dataFormat);
             
             const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
@@ -107,11 +107,11 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, message);
             }
 
-            if (retPlcSeries.first != rsc_e::GOOD)
-            {
-                const std::string message = "INVALID Melsec PLC SERIES";
-                return std::make_pair(rsc, message);
-            }
+            // if (retPlcSeries.first != rsc_e::GOOD)
+            // {
+            //     const std::string message = "INVALID Melsec PLC SERIES";
+            //     return std::make_pair(rsc, message);
+            // }
 
             if (retDataFormat.first != rsc_e::GOOD)
             {
@@ -127,7 +127,7 @@ namespace muffin { namespace jvs {
 
             Melsec->SetIPv4(retIP.second);
             Melsec->SetPort(prt);
-            Melsec->SetPlcSeries(std::move(retPlcSeries.second));
+            Melsec->SetPlcSeries(ps_e::QL_SERIES);
             Melsec->SetDataFormat(std::move(retDataFormat.second));
             Melsec->SetNodes(std::move(retNodes.second));
             Melsec->SetEthernetInterface(std::move(retEths.second));
@@ -153,7 +153,7 @@ namespace muffin { namespace jvs {
         bool isValid = true;
         isValid &= json.containsKey("ip");
         isValid &= json.containsKey("prt");
-        isValid &= json.containsKey("ps");
+        // isValid &= json.containsKey("ps");
         isValid &= json.containsKey("df");
         isValid &= json.containsKey("nodes");
         isValid &= json.containsKey("eths");
@@ -173,13 +173,13 @@ namespace muffin { namespace jvs {
         bool isValid = true;
         isValid &= json["ip"].isNull()  == false;
         isValid &= json["prt"].isNull()  == false;
-        isValid &= json["ps"].isNull()  == false;
+        // isValid &= json["ps"].isNull()  == false;
         isValid &= json["df"].isNull()  == false;
         isValid &= json["nodes"].isNull() == false;
         isValid &= json["eths"].isNull() == false;
         isValid &= json["ip"].is<std::string>();
         isValid &= json["prt"].is<uint16_t>();
-        isValid &= json["ps"].is<uint8_t>();
+        // isValid &= json["ps"].is<uint8_t>();
         isValid &= json["df"].is<uint8_t>();
         isValid &= json["nodes"].is<JsonArray>();
         isValid &= json["eths"].is<uint8_t>();

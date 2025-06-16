@@ -25,10 +25,13 @@
 
 namespace muffin
 {
+    MelsecClient* embededMelsecClient = nullptr;
+    MelsecClient* link1MelsecClient = nullptr;
+
     #if defined(MT11)
     MelsecClient::MelsecClient(W5500& interface, const w5500::sock_id_e sock_id)
     :   mPort(0), 
-        mIP(nullptr), 
+        mIP(0,0,0,0), 
         mPlcSeries(jvs::ps_e::QL_SERIES), 
         mDataFormat(jvs::df_e::BINARY)
     {
@@ -37,7 +40,7 @@ namespace muffin
 #else
     MelsecClient::MelsecClient() 
     :   mPort(0), 
-        mIP(nullptr), 
+        mIP(0,0,0,0), 
         mPlcSeries(jvs::ps_e::QL_SERIES), 
         mDataFormat(jvs::df_e::BINARY)
     {
@@ -53,9 +56,9 @@ namespace muffin
     }
     
 
-    bool MelsecClient::Begin(const char *ip, uint16_t port, jvs::ps_e series) 
+    bool MelsecClient::Begin(IPAddress ip, uint16_t port, jvs::ps_e series) 
     {
-        mIP = ip; // @lsj 포인터의 수명 주기 문제가 있을 거 같은데 IPAddress 개체를 그대로 받는 게 어떨까요? 네!
+        mIP = ip;
         mPort = port;
         mPlcSeries = series;
 
@@ -65,8 +68,8 @@ namespace muffin
         } 
         else 
         {
-            mIsConnected = false;
             LOG_ERROR(logger,"TCP CONNECTION ERROR");
+            mIsConnected = false;
         }
 
         return mIsConnected;
@@ -220,7 +223,6 @@ namespace muffin
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
-                Close();
                 return 0;
             }
 
@@ -240,7 +242,6 @@ namespace muffin
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
-                Close();
                 return 0;
             }
             
@@ -276,7 +277,6 @@ namespace muffin
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
-                Close();
                 return 0;
             }
 
@@ -296,7 +296,6 @@ namespace muffin
             if (respSize == 0)
             {
                 LOG_ERROR(logger, "CONNECTION ERROR");
-                Close();
                 return 0;
             }
             Status ret = mMelsecParser.ParseReadResponseBinary(mRespFrame, respSize, count, true, buffer);
@@ -317,7 +316,7 @@ namespace muffin
             return 0;
         }
         mClient->write(cmd, length);
-
+        
         // Serial.print("SEND DATA : ");
         // for (size_t i = 0; i < length; i++)
         // {
@@ -344,7 +343,6 @@ namespace muffin
         // }
         
         // Serial.print("\r\n\r\n");
-        
         return idx;
     }
 }
