@@ -34,6 +34,21 @@
 
 namespace muffin { namespace mqtt {
 
+    void LwipMQTT::implLwipMqttTask(void* pvParameter)
+    {
+        LwipMQTT* mqtt = static_cast<LwipMQTT*>(pvParameter);
+        while (true)
+        {
+            size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+            LOG_INFO(logger, "[LWIP MQTT] Stack Remaind: %u Bytes", RemainedStackSize);
+            
+            mqtt->mClient.loop();
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+    }
+
+
+
     Status LwipMQTT::Init()
     {
 
@@ -44,30 +59,6 @@ namespace muffin { namespace mqtt {
         #endif
 
 
-        xTimer = xTimerCreate(
-            "lwip_mqtt_loop",   // pcTimerName
-            SECOND_IN_MILLIS,   // xTimerPeriod,
-            pdTRUE,             // uxAutoReload,
-            (void *)0,          // pvTimerID,
-            vTimerCallback      // pxCallbackFunction
-        );
-
-        if (xTimer == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR LOOP TASK");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-        else
-        {
-            LOG_INFO(logger, "Created a timer for loop task");
-            if (xTimerStart(xTimer, 0) != pdPASS)
-            {
-                LOG_ERROR(logger, "FAILED TO START TIMER FOR LOOP TASK");
-                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            }
-        }
-        
-        
         mClient.setCallback(
             [this](char* topic, byte* payload, unsigned int length)
             {
@@ -112,6 +103,40 @@ namespace muffin { namespace mqtt {
             LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR BUFFER");
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
+
+        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
+            implLwipMqttTask,      // Function to be run inside of the task
+            "implLwipMqttTask",    // The identifier of this task for men
+    #if defined(MT11)
+            4 * KILLOBYTE,          // Stack memory size to allocate
+    #else
+            4 * KILLOBYTE,          // Stack memory size to allocate
+    #endif
+            this,                   // Task parameters to be passed to the function
+            2,				        // Task Priority for scheduling
+            nullptr,  // The identifier of this task for machines
+            1				        // Index of MCU core where the function to run
+        );
+
+        switch (taskCreationResult)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "The Melsec task has been started");
+            break;
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
+            return Status(Status::Code::BAD);
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
+            return Status(Status::Code::BAD);
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
+            return Status(Status::Code::BAD);
+        }
+
 
         LOG_INFO(logger, "LwIP MQTT has been initialized");
         return Status(Status::Code::GOOD);
@@ -282,17 +307,6 @@ namespace muffin { namespace mqtt {
         default:
             return nullptr;
         };
-    }
-
-    void LwipMQTT::vTimerCallback(TimerHandle_t xTimer)
-    {
-        configASSERT(xTimer);   // Optionally do something if xTimer is NULL
-        implTimerCallback();
-    }
-    
-    void LwipMQTT::implTimerCallback()
-    {
-        mClient.loop();
     }
 
     void LwipMQTT::callback(char* topic, byte* payload, unsigned int length)

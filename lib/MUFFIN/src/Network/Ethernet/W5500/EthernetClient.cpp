@@ -316,7 +316,7 @@ namespace muffin { namespace w5500 {
         int retry = MAX_TRIAL_COUNT;
         size_t totalBytesSent = 0;
         size_t bytesRemaining = size;
-        LOG_DEBUG(logger, "bytesRemaining: %u", bytesRemaining);
+        // LOG_DEBUG(logger, "bytesRemaining: %u", bytesRemaining);
 
         if (mIsConnected == false)
         {
@@ -328,7 +328,7 @@ namespace muffin { namespace w5500 {
         {
             retry--;
             ret = mSocket->Send(bytesRemaining, buf);
-            LOG_DEBUG(logger, "mSocket->Send: ret: %s", ret.c_str());
+            // LOG_DEBUG(logger, "mSocket->Send: ret: %s", ret.c_str());
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO SEND DATA: %s", ret.c_str());
@@ -345,7 +345,7 @@ namespace muffin { namespace w5500 {
             }
             res = size;
             totalBytesSent = res;
-            LOG_DEBUG(logger, "Sent data: %u bytes(%u bytes)", res, size);
+            // LOG_DEBUG(logger, "Sent data: %u bytes(%u bytes)", res, size);
             
             if (totalBytesSent >= size)
             {// completed successfully
