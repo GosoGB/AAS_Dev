@@ -36,6 +36,7 @@ namespace muffin {
     std::string mfmHost = "api.mfm.edgecross.ai";
     uint16_t mfmPort = 443;
     http_scheme_e mfmScheme = http_scheme_e::HTTPS;
+    bool mfmValidateCert = true;
 
     http::RequestHeader createRequestHeader()
     {

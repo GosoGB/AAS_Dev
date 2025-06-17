@@ -101,11 +101,30 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, value, mReqFrame);
-            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
-                return false;
+                respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                return 0;
             }
 
             Status ret = mMelsecParser.ParseWriteResponseASCII(mRespFrame, respSize, false);
@@ -120,11 +139,30 @@ namespace muffin
         else 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, value, mReqFrame);
-            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
-                return false;
+                respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                return 0;
             }
 
             Status ret = mMelsecParser.ParseWriteResponseBinary(mRespFrame, respSize, false);
@@ -166,11 +204,30 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, value, mReqFrame);
-            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
-                return false;
+                respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                return 0;
             }
 
             Status ret = mMelsecParser.ParseWriteResponseASCII(mRespFrame, respSize, true);
@@ -185,11 +242,30 @@ namespace muffin
         else 
         {
             idx = mMelsecBuilder.BuildWriteRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, value, mReqFrame);
-            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
-                return false;
+                respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                return 0;
             }
 
             Status ret = mMelsecParser.ParseWriteResponseBinary(mRespFrame, respSize, false);
@@ -219,12 +295,33 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, false, area, address, count, mReqFrame);
-            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
+                respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
                 return 0;
             }
+            
+            
 
             Status ret = mMelsecParser.ParseReadResponseASCII(mRespFrame, respSize, false, buffer);
             if (ret != Status(Status::Code::GOOD))
@@ -238,10 +335,29 @@ namespace muffin
         else
         {
             idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, false, area, address, count, mReqFrame);
-            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
+                respSize = sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
                 return 0;
             }
             
@@ -273,10 +389,29 @@ namespace muffin
         if (mDataFormat == jvs::df_e::ASCII) 
         {
             idx = mMelsecBuilder.BuildReadRequestDataASCII(mCommonHeader, mPlcSeries, true, area, address, count, mReqFrame);
-            size_t respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
+                respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
                 return 0;
             }
 
@@ -292,12 +427,32 @@ namespace muffin
         else
         {
             idx = mMelsecBuilder.BuildReadRequestDataBinary(mCommonHeader, mPlcSeries, true, area, address, count, mReqFrame);
-            size_t respSize = sendAndReceive(mReqFrame, idx, mRespFrame);
-            if (respSize == 0)
+            uint8_t trialCount = 0;
+            size_t respSize = 0;
+
+            for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
             {
-                LOG_ERROR(logger, "CONNECTION ERROR");
+                respSize =  sendAndReceive(mReqFrame, idx, mRespFrame);
+                if (respSize != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    LOG_WARNING(logger, "CONNECTION ERROR #%u",trialCount);
+                    mClient->stop();
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                    mClient->connect(mIP, mPort);
+                    vTaskDelay(100/ portTICK_PERIOD_MS);
+                }
+            }
+            
+            if (trialCount == MAX_TRIAL_COUNT)
+            {
+                LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
                 return 0;
             }
+
             Status ret = mMelsecParser.ParseReadResponseBinary(mRespFrame, respSize, count, true, buffer);
             if (ret != Status(Status::Code::GOOD))
             {
@@ -325,7 +480,7 @@ namespace muffin
         // Serial.print("\r\n\r\n");
 
         uint32_t startTS = millis();
-        while (!mClient->available() && (millis() - startTS) < 4000) 
+        while (!mClient->available() && (millis() - startTS) < 2000) 
         {
             delay(1);
         }

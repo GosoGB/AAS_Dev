@@ -688,14 +688,18 @@ namespace muffin {
 
         mqtt["host"] = "mmm.broker.edgecross.ai";
         mqtt["port"] = 8883;
+        mqtt["scheme"] = 2;
         mqtt["id"]   = "edgeaiot";
         mqtt["pw"]   = "!edge1@1159";
+        mqtt["checkCert"] = true;
+
 
         
         JsonObject mfm = doc["mfm"].to<JsonObject>();
         mfm["host"] = "api.mfm.edgecross.ai";
         mfm["port"] = 443;
         mfm["scheme"] = 2;
+        mfm["checkCert"] = true;
 
         doc["ntp"] = "time.google.com";
 
@@ -809,8 +813,10 @@ namespace muffin {
             bool isValid = true;
             isValid &= mqtt.containsKey("port");
             isValid &= mqtt.containsKey("host");
+            isValid &= mqtt.containsKey("scheme");
             isValid &= mqtt.containsKey("id");
             isValid &= mqtt.containsKey("pw");
+            isValid &= mqtt.containsKey("checkCert");
             
             if (isValid != true)
             {
@@ -820,12 +826,16 @@ namespace muffin {
 
             isValid &= mqtt["port"].isNull() == false;
             isValid &= mqtt["host"].isNull() == false;      
+            isValid &= mqtt["scheme"].isNull()  == false;
             isValid &= mqtt["id"].isNull()  == false;
             isValid &= mqtt["pw"].isNull()  == false;
+            isValid &= mqtt["checkCert"].isNull()  == false;
             isValid &= mqtt["port"].is<uint16_t>();
             isValid &= mqtt["host"].is<std::string>();
+            isValid &= mqtt["scheme"].is<uint8_t>();
             isValid &= mqtt["id"].is<std::string>();
             isValid &= mqtt["pw"].is<std::string>();
+            isValid &= mqtt["checkCert"].is<bool>();
             
             if (isValid != true)
             {
@@ -833,16 +843,21 @@ namespace muffin {
                 return Status(Status::Code::BAD_INVALID_ARGUMENT);
             }
 
+
             LOG_DEBUG(logger,"mqtt broker host: %s",mqtt["host"].as<std::string>().c_str());
             LOG_DEBUG(logger,"mqtt broker port: %u",mqtt["port"].as<uint16_t>());
             LOG_DEBUG(logger,"mqtt broker user name: %s",mqtt["id"].as<std::string>().c_str());
             LOG_DEBUG(logger,"mqtt broker password: %s",mqtt["pw"].as<std::string>().c_str());
+            LOG_DEBUG(logger,"mqtt broker scheme: %s",mqtt["scheme"].as<uint8_t>() == 1 ? "MQTT" : "MQTTS");
+            LOG_DEBUG(logger,"mqtt broker validate certificate: %s",mqtt["checkCert"].as<bool>() == true ? "Enabled" : "Disabled");
 
 
             brokerInfo.SetHost(mqtt["host"].as<std::string>());
             brokerInfo.SetPort(mqtt["port"].as<uint16_t>());
             brokerInfo.SetUsername(mqtt["id"].as<std::string>());
             brokerInfo.SetPassword(mqtt["pw"].as<std::string>());
+            brokerInfo.EnableSSL(mqtt["scheme"].as<uint8_t>() == 1 ? false : true);
+            brokerInfo.EnableValidateCert(mqtt["checkCert"].as<bool>());
         }
 
         if (doc.containsKey("ntp"))
@@ -869,6 +884,7 @@ namespace muffin {
             isValid &= mfm.containsKey("port");
             isValid &= mfm.containsKey("host");
             isValid &= mfm.containsKey("scheme");
+            isValid &= mfm.containsKey("checkCert");
 
             if (isValid != true)
             {
@@ -882,6 +898,8 @@ namespace muffin {
             isValid &= mfm["host"].is<std::string>();
             isValid &= mfm["scheme"].isNull() == false;
             isValid &= mfm["scheme"].is<uint16_t>();
+            isValid &= mfm["checkCert"].isNull() == false;
+            isValid &= mfm["checkCert"].is<bool>();
 
             if (isValid != true)
             {
@@ -891,9 +909,12 @@ namespace muffin {
 
             mfmPort = mfm["port"].as<uint16_t>();
             mfmHost = mfm["host"].as<std::string>();
+            mfmValidateCert = mfm["checkCert"].as<bool>();
+
             mfmScheme = static_cast<http_scheme_e>(mfm["scheme"].as<uint16_t>());
-            LOG_DEBUG(logger, "mfmHost : %s, mfmPost : %u, mfmScheme : %s",
-                mfmHost.c_str(), mfmPort, mfmScheme == http_scheme_e::HTTP ? "HTTP" : "HTTPS");
+            LOG_DEBUG(logger, "mfmHost : %s, mfmPost : %u, mfmScheme : %s, mfmValidateCert : %s",
+                mfmHost.c_str(), mfmPort, mfmScheme == http_scheme_e::HTTP ? "HTTP" : "HTTPS", 
+                mfmValidateCert == true ? "Enabled" : "Disabled");
         }
         
         return Status(Status::Code::GOOD);

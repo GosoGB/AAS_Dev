@@ -39,9 +39,6 @@ namespace muffin { namespace mqtt {
         LwipMQTT* mqtt = static_cast<LwipMQTT*>(pvParameter);
         while (true)
         {
-            size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
-            LOG_INFO(logger, "[LWIP MQTT] Stack Remaind: %u Bytes", RemainedStackSize);
-            
             mqtt->mClient.loop();
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
@@ -68,13 +65,21 @@ namespace muffin { namespace mqtt {
         LOG_INFO(logger, "Set a callback for subscription event");
         
     #if defined(MT11)
-        if(mBrokerInfo.GetPort() == 8883)
+        if(mBrokerInfo.IsSslEnabled() == true)
         {
             if (mSecureNIC == nullptr)
             {
                 mSecureNIC = new SSLClient(mNIC);
             }
-            mSecureNIC->setCACert(ROOT_CA_CRT);
+
+            if (mBrokerInfo.IsValidateCert() == true)
+            {
+                mSecureNIC->setCACert(ROOT_CA_CRT);
+            }
+            else
+            {
+                mSecureNIC->setInsecure();
+            }
             mClient.setClient(*mSecureNIC);
         }
         else
@@ -82,10 +87,17 @@ namespace muffin { namespace mqtt {
             mClient.setClient(*mNIC);
         }
     #else
-        if(mBrokerInfo.GetPort() == 8883)
+        if(mBrokerInfo.IsSslEnabled() == true)
         {
             mSecureNIC = new WiFiClientSecure();
-            mSecureNIC->setCACert(ROOT_CA_CRT);
+            if (mBrokerInfo.IsValidateCert() == true)
+            {
+                mSecureNIC->setCACert(ROOT_CA_CRT);
+            }
+            else
+            {
+                mSecureNIC->setInsecure();
+            }
             mClient.setClient(*mSecureNIC);
         }
         else
@@ -331,6 +343,11 @@ namespace muffin { namespace mqtt {
      *            임시적으로 만들어 둔 함수로 보입니다.
      *            필요 없는 경우 삭제, 필요한 경우 구현할
      *            내용 작성 요망
+     */
+    /**
+     * @todo 해당 함수는 CatM1 모듈 리셋을 위한 함수이며 override을 위해 LWIP에 임시로 구현해놓은 코드입니다. 
+     * 현재는 함수만 명시적으로 구현되어있는 상태이며 추후에 삭제할 예정입니다.
+     * 
      */
     Status LwipMQTT::ResetTEMP()
     {

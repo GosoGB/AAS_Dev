@@ -78,8 +78,6 @@ namespace muffin
                 }
 
                 melsec.mMelsecClient->Close();
-                vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
-                vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
             }
 
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));

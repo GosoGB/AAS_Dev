@@ -27,6 +27,7 @@
 #include "Storage/ESP32FS/ESP32FS.h"
 #include "Protocol/HTTP/Include/Helper.h"
 #include "Protocol/Certs.h"
+#include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
 
 
 
@@ -42,8 +43,16 @@ namespace muffin { namespace http {
     #else
         mClient = new WiFiClient();
         mClientSecure = new WiFiClientSecure();
-        mClientSecure->setCACert(ROOT_CA_CRT);
     #endif
+        if (mfmValidateCert == true)
+        {
+            mClientSecure->setCACert(ROOT_CA_CRT);
+        }
+        else
+        {
+            mClientSecure->setInsecure();
+        }
+        
         
         return Status(Status::Code::GOOD);
     }

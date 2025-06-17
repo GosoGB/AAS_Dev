@@ -46,8 +46,6 @@ namespace muffin { namespace mqtt {
         virtual Status ResetTEMP() override;
     private:
         const char* getState();
-        static void vTimerCallback(TimerHandle_t xTimer);
-        static void implTimerCallback();
         void callback(char* topic, byte * payload, unsigned int length);
     private:
         TimerHandle_t xTimer = NULL;

@@ -26,4 +26,5 @@ namespace muffin {
     extern std::string mfmHost;
     extern uint16_t mfmPort;
     extern http_scheme_e mfmScheme;
+    extern bool mfmValidateCert;
 }

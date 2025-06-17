@@ -84,6 +84,7 @@ namespace muffin
 
         
     private:
+        uint8_t MAX_TRIAL_COUNT = 3;
         bool mIsConnected = false;
         MelsecCommonHeader mCommonHeader;
         uint16_t mPort;

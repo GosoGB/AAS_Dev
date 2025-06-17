@@ -99,6 +99,8 @@ namespace muffin {
 
             mqtt["host"] = "mmm.broker.edgecross.ai";
             mqtt["port"] = 8883;
+            mqtt["scheme"] = 2;
+            mqtt["checkCert"] = true;
             mqtt["id"]   = "edgeaiot";
             mqtt["pw"]   = "!edge1@1159";
 
@@ -107,7 +109,7 @@ namespace muffin {
             mfm["host"] = "api.mfm.edgecross.ai";
             mfm["port"] = 443;
             mfm["scheme"] = 2;
-
+            mfm["checkCert"] = true;
             doc["ntp"] = "time.google.com";
 
             mServiceUrlJson = doc;
@@ -144,7 +146,9 @@ namespace muffin {
         std::string settingStr;
 
         uint16_t _port        = mServiceUrlJson["mqtt"]["port"].as<uint16_t>();
+        uint8_t _scheme       = mServiceUrlJson["mqtt"]["scheme"].as<uint8_t>();
         std::string _host     = mServiceUrlJson["mqtt"]["host"].as<std::string>();
+        bool _checkCert       = mServiceUrlJson["mqtt"]["checkCert"].as<bool>();
         std::string _userName = mServiceUrlJson["mqtt"]["id"].as<std::string>();
         std::string _password = mServiceUrlJson["mqtt"]["pw"].as<std::string>();
         
@@ -166,15 +170,23 @@ namespace muffin {
             printLeftAlignedText(std::to_string(_port),38);
             Serial.print(" |\r\n");
             Serial.print("+----------------------+---------------------------------------+\r\n");
-            Serial.print("|  [3] MQTT user name  | ");
+            Serial.print("|  [3] MQTT scheme     | ");
+            printLeftAlignedText(_scheme == 1 ? "MQTT" : "MQTTS",38);
+            Serial.print(" |\r\n");
+            Serial.print("+----------------------+---------------------------------------+\r\n");
+            Serial.print("|  [4] MQTT user name  | ");
             printLeftAlignedText(_userName,38);
             Serial.print(" |\r\n");
             Serial.print("+----------------------+---------------------------------------+\r\n");
-            Serial.print("|  [4] MQTT password   | ");
+            Serial.print("|  [5] MQTT password   | ");
             printLeftAlignedText(maskedPassword,38);
             Serial.print(" |\r\n");
+            Serial.print("+----------------------------------+---------------------------+\r\n");
+            Serial.print("|  [6] MQTT Validate certificate   | ");
+            printLeftAlignedText(_checkCert == true ? "Enabled" : "Disabled",26);
+            Serial.print(" |\r\n");
             Serial.print("+--------------------------------------------------------------+\r\n");
-            Serial.print("|  [5] Save and Exit                                           |\r\n");
+            Serial.print("|  [7] Save and Exit                                           |\r\n");
             Serial.print("+--------------------------------------------------------------+\r\n");
             Serial.print("|  [9] Exit                                                    |\r\n");
             Serial.print("+--------------------------------------------------------------+\r\n");
@@ -230,12 +242,34 @@ namespace muffin {
                 break;
             }
             case 3:
+            {    
+                Serial.print("\r\nPlease enter a MQTT scheme.\r\n");
+                Serial.print("\r\n\r\n[1] MQTT          [2] MQTTS\r\n");
+                settingStr = getSerialInput();
+
+                if (settingStr == "1")
+                {
+                    _scheme = 1;
+                    _checkCert = false;
+                }
+                else if (settingStr == "2")
+                {
+                    _scheme = 2;
+                }
+                else
+                {
+                    Serial.print("\r\nInput is out of range. Please enter a number between 1 or 2.\r\n");
+                }
+
+                break;
+            }
+            case 4:
             {
                 Serial.print("\r\nPlease enter a MQTT broker user name\r\n");
                 _userName = getSerialInput();
                 break;
             }
-            case 4:
+            case 5:
             {
                 while (true)
                 {
@@ -256,11 +290,36 @@ namespace muffin {
                 }
                 break;
             }
-            case 5:
-                mServiceUrlJson["mqtt"]["host"] = _host;
-                mServiceUrlJson["mqtt"]["port"] = _port;
-                mServiceUrlJson["mqtt"]["pw"]   = _password;
-                mServiceUrlJson["mqtt"]["id"]   = _userName;
+            case 6:
+            {
+                Serial.print("\r\nPlease choose whether to enable TLS certificate validation for MQTT connection.\r\n");
+                Serial.print("\r\n\r\n[1] Enabled          [2] Disabled (Skip certificate check)\r\n");
+                Serial.print("Enter your choice (1 or 2): ");
+                settingStr = getSerialInput();
+
+                if (settingStr == "1")
+                {
+                    _checkCert = true;
+                }
+                else if (settingStr == "2")
+                {
+                    _checkCert = false;
+                }
+                else
+                {
+                    Serial.print("\r\nInput is out of range. Please enter a number between 1 or 2.\r\n");
+                }
+
+                break;
+            }
+            case 7:
+                mServiceUrlJson["mqtt"]["host"]        = _host;
+                mServiceUrlJson["mqtt"]["port"]        = _port;
+                mServiceUrlJson["mqtt"]["scheme"]      = _scheme;
+                mServiceUrlJson["mqtt"]["id"]          = _userName;
+                mServiceUrlJson["mqtt"]["pw"]          = _password;
+                mServiceUrlJson["mqtt"]["checkCert"]   = _checkCert;
+
                 Serial.print("\r\nMqtt broker settings have been saved. \r\n\r\n\r\n");
                 return saveServiceUrlJson();
             case 9:
@@ -333,6 +392,7 @@ namespace muffin {
         uint16_t _port     = mServiceUrlJson["mfm"]["port"].as<uint16_t>();
         std::string _host  = mServiceUrlJson["mfm"]["host"].as<std::string>();
         uint16_t _scheme   = mServiceUrlJson["mfm"]["scheme"].as<uint16_t>();
+        bool _checkCert    = mServiceUrlJson["mfm"]["checkCert"].as<bool>();
 
         while (true)
         {
@@ -353,8 +413,12 @@ namespace muffin {
             Serial.print("|  [3] MFM scheme  | ");
             printLeftAlignedText(_scheme == 1 ? "HTTP" : "HTTPS",40);
             Serial.print("   |\r\n");
+            Serial.print("+---------------------------------+----------------------------+\r\n");
+            Serial.print("|  [4] MFM Validate certificate   | ");
+            printLeftAlignedText(_checkCert == true ? "Enabled" : "Disabled",25);
+            Serial.print("   |\r\n");
             Serial.print("+--------------------------------------------------------------+\r\n");
-            Serial.print("|  [4] Save and Exit                                           |\r\n");
+            Serial.print("|  [5] Save and Exit                                           |\r\n");
             Serial.print("+--------------------------------------------------------------+\r\n");
             Serial.print("|  [9] Exit                                                    |\r\n");
             Serial.print("+--------------------------------------------------------------+\r\n");
@@ -417,6 +481,7 @@ namespace muffin {
                 if (settingStr == "1")
                 {
                     _scheme = 1;
+                    _checkCert = false;
                 }
                 else if (settingStr == "2")
                 {
@@ -429,9 +494,31 @@ namespace muffin {
                 break;            
             }
             case 4:
-                mServiceUrlJson["mfm"]["host"] = _host;
-                mServiceUrlJson["mfm"]["port"] = _port;
-                mServiceUrlJson["mfm"]["scheme"]   = _scheme;
+            {
+                Serial.print("\r\nPlease choose whether to enable TLS certificate validation for HTTPS requests.\r\n");
+                Serial.print("\r\n\r\n[1] Enabled          [2] Disabled (Skip certificate check)\r\n");
+                Serial.print("Enter your choice (1 or 2): ");
+                settingStr = getSerialInput();
+
+                if (settingStr == "1")
+                {
+                    _checkCert = true;
+                }
+                else if (settingStr == "2")
+                {
+                    _checkCert = false;
+                }
+                else
+                {
+                    Serial.print("\r\nInput is out of range. Please enter a number between 1 or 2.\r\n");
+                }
+                break;
+            }
+            case 5:
+                mServiceUrlJson["mfm"]["host"]      = _host;
+                mServiceUrlJson["mfm"]["port"]      = _port;
+                mServiceUrlJson["mfm"]["scheme"]    = _scheme;
+                mServiceUrlJson["mfm"]["checkCert"] = _checkCert;
                 Serial.print("\r\nMFM Server settings have been saved. \r\n\r\n\r\n");
                 return saveServiceUrlJson();
             case 9:
