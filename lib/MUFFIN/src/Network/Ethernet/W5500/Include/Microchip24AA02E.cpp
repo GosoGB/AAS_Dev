@@ -25,12 +25,6 @@ namespace muffin {
 
     bool Microchip24AA02E::Read(const bool isLINK, uint8_t mac[])
     {
-        // if (isLINK)
-        // {
-        //     mac[0] = 0x0;
-        //     return true;
-        // }
-        
         ASSERT((mac != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
 
         if (Wire.setPins(mSDA, mSCL) == false)
@@ -44,7 +38,7 @@ namespace muffin {
             log_e("FAILED TO BEGIN I2C BUS");
             return false;
         }
-
+        
         uint8_t idx = 0;
         bool hasRead = true;
         for (uint16_t offset = 0xFA; offset <= 0xFF; ++offset)
@@ -80,6 +74,31 @@ namespace muffin {
         }
         
         return hasRead;
+    }
+
+
+    int8_t Microchip24AA02E::readRegister(const uint8_t offset, const uint8_t slaveID)
+    {
+        const uint8_t bytesToRead = 1;
+
+        Wire.beginTransmission(slaveID);
+        Wire.write(offset);
+        Wire.endTransmission();
+        Wire.requestFrom(slaveID, bytesToRead);
+      
+        const uint16_t timeout = 1000;
+        const uint32_t startMillis = millis();
+        while (millis() - startMillis < timeout)
+        {
+            if (Wire.available() > 0)
+            {
+                return static_cast<int8_t>(Wire.read());
+            }
+            vTaskDelay(50 / portTICK_PERIOD_MS);
+        };
+
+        log_e("FAILED TO READ DUE TO TIMEOUT ERROR");
+        return -1;
     }
 
 

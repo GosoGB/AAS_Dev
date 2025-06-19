@@ -41,8 +41,7 @@ namespace muffin {
     
     W5500::W5500(const w5500::if_e idx)
         : mCS(static_cast<uint8_t>(idx))
-        // , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 38)
-        , mRESET(48)
+        , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 17)
         , xSemaphore(NULL)
     {
         pinMode(mCS,     OUTPUT);
@@ -80,10 +79,7 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
         
-        // resetW5500();
-    #if !defined(DEBUG)
-        릴리즈 할 때는 리셋을 다시 살려주세요!
-    #endif
+        resetW5500();
         initSPI(mMHz);
 
         Status ret = setMacAddress();
@@ -437,23 +433,11 @@ namespace muffin {
     Status W5500::setMacAddress()
     {   
         Microchip24AA02E microchip;
-        const bool isLink = w5500::if_e::EMBEDDED != static_cast<w5500::if_e>(mCS);
-        if (isLink)
+        const bool isLINK = mCS == static_cast<uint8_t>(w5500::if_e::LINK_01);
+        if (microchip.Read(isLINK, mCRB.MAC) == false)
         {
-            mCRB.MAC[0] = 0xDE;
-            mCRB.MAC[1] = 0xAD;
-            mCRB.MAC[2] = 0xBE;
-            mCRB.MAC[3] = 0xEF;
-            mCRB.MAC[4] = 0xFE;
-            mCRB.MAC[5] = 0xEF;
-        }
-        else
-        {
-            if (microchip.Read(isLink, mCRB.MAC) == false)
-            {
-                LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
+            LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
     
         Status ret = writeCRB(w5500::crb_addr_e::MAC, sizeof(mCRB.MAC), mCRB.MAC);
@@ -465,7 +449,6 @@ namespace muffin {
         
         uint8_t retrievedMAC[6] = { 0 };
         ret = retrieveCRB(w5500::crb_addr_e::MAC, sizeof(retrievedMAC), retrievedMAC);
-        LOG_DEBUG(logger,"retrievedMAC : %02X:%02X:%02X:%02X:%02X:%02X",retrievedMAC[0],retrievedMAC[1],retrievedMAC[2],retrievedMAC[3],retrievedMAC[4],retrievedMAC[5]);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE MAC ADDRESS");
@@ -646,6 +629,15 @@ namespace muffin {
 
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -682,6 +674,16 @@ namespace muffin {
 
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
+            
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -836,6 +838,15 @@ namespace muffin {
     {
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -859,6 +870,15 @@ namespace muffin {
     {
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 

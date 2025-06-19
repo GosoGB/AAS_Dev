@@ -79,6 +79,7 @@ namespace muffin { namespace w5500 {
         std::shared_ptr<EthernetClientRxBuffer> mRxBuffer;
         bool mIsConnected;
         int mTimeout;
+        
     };
 
     extern EthernetClient* embededEthernetClient;

@@ -48,13 +48,11 @@ namespace muffin { namespace mqtt {
 
     Status LwipMQTT::Init()
     {
-
         #if defined(MT11)
             mNIC = new w5500::EthernetClient(*ethernet,w5500::sock_id_e::SOCKET_6);
         #else
             mNIC = new WiFiClient();
         #endif
-
 
         mClient.setCallback(
             [this](char* topic, byte* payload, unsigned int length)
@@ -184,6 +182,7 @@ namespace muffin { namespace mqtt {
     Status LwipMQTT::Disconnect(const size_t mutexHandle)
     {
         mClient.disconnect();
+        
         return Status(Status::Code::GOOD);
     }
 

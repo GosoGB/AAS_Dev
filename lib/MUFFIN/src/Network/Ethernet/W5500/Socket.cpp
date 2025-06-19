@@ -233,8 +233,8 @@ namespace muffin { namespace w5500 {
         }
         
         waitCommandCleared();
-        
         GetStatus();
+      
         if ((mProtocol == sock_prtcl_e::TCP    && mSRB.Status != ssr_e::INIT_TCP) ||
             (mProtocol == sock_prtcl_e::UDP    && mSRB.Status != ssr_e::INIT_UDP) ||
             (mProtocol == sock_prtcl_e::MACRAW && mSRB.Status != ssr_e::INIT_MACRAW))
@@ -405,12 +405,12 @@ namespace muffin { namespace w5500 {
             GetStatus();
             if (mSRB.Status == ssr_e::CLOSED)
             {
-                // LOG_DEBUG(logger, "[#%u] The socket has been disconnected", static_cast<uint8_t>(mID));
+                LOG_DEBUG(logger, "[#%u] The socket has been disconnected", static_cast<uint8_t>(mID));
                 break;
             }
             else
             {
-                // LOG_DEBUG(logger, "[#%u] SOCKET NOT DISCONNECT: %s", static_cast<uint8_t>(mID), Converter::ToString(mSRB.Status));
+                LOG_DEBUG(logger, "[#%u] SOCKET NOT DISCONNECT: %s", static_cast<uint8_t>(mID), Converter::ToString(mSRB.Status));
                 vTaskDelay(100 / portTICK_PERIOD_MS);
             }
         }
@@ -619,8 +619,9 @@ namespace muffin { namespace w5500 {
         while (retrievedInterrupt == 0)
         {
         #if defined(DEBUG)
-            GetStatus();
         #endif
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+        GetStatus();
             ret = mW5500.retrieveSRB(mID, srb_addr_e::INTERRUPT_REGISTER, &retrievedInterrupt);
             if (ret != Status::Code::GOOD)
             {

@@ -179,6 +179,7 @@ namespace muffin {
         w5500::crb_t mCRB;
         bool mHasMacAddress = false;
         SemaphoreHandle_t xSemaphore;
+        size_t mMutexFailCount = 0;
         /**
          * @todo DNS 클라이언트에 DNS 서버 정보를 넘기는 게 좋을지 검토 필요 
          */

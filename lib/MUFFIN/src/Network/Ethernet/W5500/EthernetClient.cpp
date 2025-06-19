@@ -208,6 +208,7 @@ namespace muffin { namespace w5500 {
     void EthernetClient::stop()
     {
         mSocket->Disconnect();
+        vTaskDelay(100 / portTICK_PERIOD_MS);
         mSocket->Close();
         mIsConnected = false;
         mRxBuffer = nullptr;
@@ -261,6 +262,7 @@ namespace muffin { namespace w5500 {
     int EthernetClient::connect(const char* host, uint16_t port, int32_t timeout_ms)
     {
         Socket socket(mSocket->mW5500, sock_id_e::SOCKET_7, sock_prtcl_e::UDP);
+
         DNS dns(socket);
     #if !defined(DEBUG)
         dns.Init 할 때 MFM에서 설정 받거나 DHCP에서 받은

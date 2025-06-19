@@ -29,12 +29,13 @@ namespace muffin {
     public:
         bool Read(const bool isLINK, uint8_t mac[]);
     private:
+        int8_t readRegister(const uint8_t offset, const uint8_t slaveID);
         int8_t readRegister(const uint8_t offset, const bool isLINK);
         bool verifyMacAddress(const uint8_t mac[]);
     private:
         static const uint8_t mSDA = 2;
         static const uint8_t mSCL = 1;
-        static const uint8_t mDeviceAddressBOARD  = 0x50;
-        static const uint8_t mDeviceAddressLINK   = 0x50;
+        static const uint8_t mDeviceAddressBOARD  = 0x53;
+        static const uint8_t mDeviceAddressLINK   = 0x52;
     };
 }
