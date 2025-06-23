@@ -33,7 +33,9 @@
  */
 SSLClient::SSLClient() {
   _connected = false;
-  sslclient = new sslclient__context;
+  // sslclient = new sslclient__context;
+  sslclient = (sslclient__context *)heap_caps_malloc(sizeof(sslclient__context), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
   ssl_init(sslclient, nullptr);
   sslclient->handshake_timeout = 120000;
   _use_insecure = false;
@@ -57,7 +59,10 @@ SSLClient::SSLClient() {
  */
 SSLClient::SSLClient(Client* client) {
   _connected = false;
-  sslclient = new sslclient__context;
+  // sslclient = new sslclient__context;
+
+  sslclient = (sslclient__context *)heap_caps_malloc(sizeof(sslclient__context), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
   _use_insecure = false;
   ssl_init(sslclient, client);
   sslclient->handshake_timeout = 120000;
@@ -78,7 +83,8 @@ SSLClient::SSLClient(Client* client) {
  */
 SSLClient::~SSLClient() {
   stop();
-  delete sslclient;
+  // delete sslclient;
+  heap_caps_free(sslclient);
   sslclient = nullptr;
 }
 
@@ -374,6 +380,7 @@ size_t SSLClient::write(uint8_t data) {
  */
 size_t SSLClient::write(const uint8_t *buf, size_t size) {
   if (!_connected) {
+
     log_w("SSLClient is not connected.");
     return 0;
   }
@@ -507,6 +514,7 @@ void SSLClient::setInsecure() {
  * @param rootCA The root CA certificate in its binary or PEM form.
  */
 void SSLClient::setCACert(const char *rootCA) {
+  log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
   log_d("Set root CA");
   _CA_cert = rootCA;
   _use_insecure = false;
@@ -617,14 +625,16 @@ bool SSLClient::verify(const char* fp, const char* domain_name) {
  * be fully read or memory allocation failed.
  */
 char *SSLClient::_streamLoad(Stream& stream, size_t size) {  
-  char *dest = (char*)malloc(size+1);
+  // char *dest = (char*)malloc(size+1);
+  char *dest = (char*)heap_caps_malloc(size+1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   
   if (!dest) {
     return nullptr;
   }
 
   if (size != stream.readBytes(dest, size)) {
-    free(dest);
+    // free(dest);
+    heap_caps_free(dest);
     dest = nullptr;
     return nullptr;
   }
@@ -646,7 +656,8 @@ char *SSLClient::_streamLoad(Stream& stream, size_t size) {
  */
 bool SSLClient::loadCACert(Stream& stream, size_t size) {
   if (_CA_cert != NULL) {
-    free(const_cast<char*>(_CA_cert));
+    // free(const_cast<char*>(_CA_cert));
+    heap_caps_free(const_cast<char*>(_CA_cert));
   }
   char *dest = _streamLoad(stream, size);
   bool ret = false;
@@ -670,7 +681,8 @@ bool SSLClient::loadCACert(Stream& stream, size_t size) {
  */
 bool SSLClient::loadCertificate(Stream& stream, size_t size) {
   if (_cert != NULL) {
-    free(const_cast<char*>(_cert));
+    // free(const_cast<char*>(_cert));
+    heap_caps_free(const_cast<char*>(_cert));
   }
   char *dest = _streamLoad(stream, size);
   bool ret = false;
@@ -694,7 +706,8 @@ bool SSLClient::loadCertificate(Stream& stream, size_t size) {
  */
 bool SSLClient::loadPrivateKey(Stream& stream, size_t size) {
   if (_private_key != NULL) {
-    free(const_cast<char*>(_private_key));
+    // free(const_cast<char*>(_private_key));
+    heap_caps_free(const_cast<char*>(_private_key));
   }
   char *dest = _streamLoad(stream, size);
   bool ret = false;

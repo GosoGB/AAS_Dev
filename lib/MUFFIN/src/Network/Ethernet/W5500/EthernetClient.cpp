@@ -16,7 +16,7 @@
 #include "Common/Assert.h"
 #include "DNS.h"
 #include "EthernetClient.h"
-
+#include "esp_heap_caps.h" 
 
 
 namespace muffin { namespace w5500 {
@@ -38,7 +38,8 @@ namespace muffin { namespace w5500 {
     
         ~EthernetClientRxBuffer()
         {
-            free(mBuffer);
+            // free(mBuffer);
+            heap_caps_free(mBuffer);
         }
     
         bool failed()
@@ -133,7 +134,8 @@ namespace muffin { namespace w5500 {
         {
             if (!mBuffer)
             {
-                mBuffer = (uint8_t *)malloc(mSize);
+                // mBuffer = (uint8_t *)malloc(mSize);
+                mBuffer = (uint8_t *)heap_caps_malloc(mSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
                 if (!mBuffer)
                 {
                     log_e("Not enough memory to allocate buffer");
@@ -262,14 +264,16 @@ namespace muffin { namespace w5500 {
     int EthernetClient::connect(const char* host, uint16_t port, int32_t timeout_ms)
     {
         Socket socket(mSocket->mW5500, sock_id_e::SOCKET_7, sock_prtcl_e::UDP);
-
+        
         DNS dns(socket);
-    #if !defined(DEBUG)
-        dns.Init 할 때 MFM에서 설정 받거나 DHCP에서 받은
-        DNS 서버 주소를 사용할 수 있도록 수정해야 함!
-    #else
-        Status ret = dns.Init(IPAddress(8, 8, 8, 8));
-    #endif
+    // #if !defined(DEBUG)
+    //     dns.Init 할 때 MFM에서 설정 받거나 DHCP에서 받은
+    //     DNS 서버 주소를 사용할 수 있도록 수정해야 함!
+    // #else
+    //     Status ret = dns.Init(IPAddress(8, 8, 8, 8));
+    // #endif
+
+        Status ret = dns.Init(mSocket->mW5500.GetDNS1());
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO INITIALIZE DNS: %s", ret.c_str());
@@ -373,7 +377,8 @@ namespace muffin { namespace w5500 {
 
     size_t EthernetClient::write(Stream &stream)
     {
-        uint8_t* buf = (uint8_t*)malloc(1360);
+        // uint8_t* buf = (uint8_t*)malloc(1360);
+        uint8_t* buf = (uint8_t *)heap_caps_malloc(1360, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         if (!buf)
         {
             return 0;
@@ -389,7 +394,8 @@ namespace muffin { namespace w5500 {
             available = stream.available();
         }
 
-        free(buf);
+        // free(buf);
+        heap_caps_free(buf);
         return written;
     }
 
@@ -457,7 +463,10 @@ namespace muffin { namespace w5500 {
 
         size_t toRead = 0;
         size_t actualLength = 0;
-        uint8_t* buf = (uint8_t*)malloc(CLIENT_BUFFER_SIZE);
+        // uint8_t* buf = (uint8_t*)malloc(CLIENT_BUFFER_SIZE);
+        
+        uint8_t* buf = (uint8_t *)heap_caps_malloc(CLIENT_BUFFER_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
 
         if (!buf)
         {
@@ -480,7 +489,8 @@ namespace muffin { namespace w5500 {
             remained -= actualLength;
         }
 
-        free(buf);
+        // free(buf);
+        heap_caps_free(buf);
     }
 
 

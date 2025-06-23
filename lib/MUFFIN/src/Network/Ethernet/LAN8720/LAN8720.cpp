@@ -154,7 +154,6 @@ namespace muffin {
 
         if (ntpServer == "time.google.com")
         {
-            LOG_INFO(logger,"HERE , ntpServer : %s",ntpServer.c_str());
             configTime(gmtOffset_sec, daylightOffset_sec, ntpServer.c_str(), ntpServer2);
         }
         else 

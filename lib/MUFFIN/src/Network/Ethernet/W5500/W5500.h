@@ -87,6 +87,8 @@ namespace muffin {
         Status setIPv4(const w5500::ipv4_type_e type, const IPAddress ipv4);
         bool getLinkStatus();
     public:
+        IPAddress GetDNS1();
+        IPAddress GetDNS2(); 
         Status GetMacAddress(uint8_t mac[]);
         Status GetMacAddress(char mac[]);
         uint16_t GetEphemeralPort();
@@ -197,7 +199,6 @@ namespace muffin {
 
     extern W5500* ethernet;
     extern W5500* link1W5500;
-    extern W5500* link2W5500;
 }
 
 #endif

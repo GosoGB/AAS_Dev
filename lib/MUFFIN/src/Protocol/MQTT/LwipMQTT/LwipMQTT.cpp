@@ -34,6 +34,8 @@
 
 namespace muffin { namespace mqtt {
 
+    TaskHandle_t xLwipMqttHandle = nullptr;
+
     void LwipMQTT::implLwipMqttTask(void* pvParameter)
     {
         LwipMQTT* mqtt = static_cast<LwipMQTT*>(pvParameter);
@@ -61,6 +63,7 @@ namespace muffin { namespace mqtt {
             }
         );
         LOG_INFO(logger, "Set a callback for subscription event");
+        log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
         
     #if defined(MT11)
         if(mBrokerInfo.IsSslEnabled() == true)
@@ -114,6 +117,11 @@ namespace muffin { namespace mqtt {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
+        if (xLwipMqttHandle != nullptr && eTaskGetState(xLwipMqttHandle) != eDeleted) 
+        {
+            return Status(Status::Code::GOOD);  // 이미 실행 중이면 OK 처리
+        }
+
         BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
             implLwipMqttTask,      // Function to be run inside of the task
             "implLwipMqttTask",    // The identifier of this task for men
@@ -124,14 +132,14 @@ namespace muffin { namespace mqtt {
     #endif
             this,                   // Task parameters to be passed to the function
             2,				        // Task Priority for scheduling
-            nullptr,  // The identifier of this task for machines
+            &xLwipMqttHandle,       // The identifier of this task for machines
             1				        // Index of MCU core where the function to run
         );
 
         switch (taskCreationResult)
         {
         case pdPASS:
-            LOG_INFO(logger, "The Melsec task has been started");
+            LOG_INFO(logger, "The LwIP MQTT task has been started");
             break;
 
         case pdFAIL:
@@ -147,13 +155,14 @@ namespace muffin { namespace mqtt {
             return Status(Status::Code::BAD);
         }
 
-
+        log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
         LOG_INFO(logger, "LwIP MQTT has been initialized");
         return Status(Status::Code::GOOD);
     }
 
     Status LwipMQTT::Connect(const size_t mutexHandle)
     {
+        log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
         LOG_INFO(logger, "Start to connect to MQTT broker");
         mClient.connect(
             mBrokerInfo.GetClientID(),

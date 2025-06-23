@@ -78,7 +78,6 @@ namespace muffin { namespace w5500 {
         size_t actualLength = 0;
         size_t receiveLength = mSocket.Available();
         uint8_t receiveOfferData[receiveLength] = {0};
-        LOG_INFO(logger,"avilable : %u\n", receiveLength);
         ret = mSocket.Receive(receiveLength, &actualLength, receiveOfferData);
         if (ret != Status::Code::GOOD)
         {
@@ -116,7 +115,7 @@ namespace muffin { namespace w5500 {
 
         actualLength = 0;
         receiveLength = mSocket.Available();
-        LOG_WARNING(logger,"receiveLength : %u",receiveLength);
+        LOG_DEBUG(logger,"receiveLength : %u",receiveLength);
         uint8_t receiveAckData[receiveLength] = {0};
         ret = mSocket.Receive(receiveLength, &actualLength, receiveAckData);
         if (ret != Status::Code::GOOD)
@@ -136,6 +135,8 @@ namespace muffin { namespace w5500 {
         mSocket.mW5500.setLocalIP(IPAddress(mAllocatedIPv4[0], mAllocatedIPv4[1], mAllocatedIPv4[2], mAllocatedIPv4[3]));
         mSocket.mW5500.setGateway(IPAddress(mAllocatedGW[0], mAllocatedGW[1], mAllocatedGW[2], mAllocatedGW[3]));
         mSocket.mW5500.setSubnetmask(IPAddress(mAllocatedSNM[0], mAllocatedSNM[1], mAllocatedSNM[2], mAllocatedSNM[3]));
+        mSocket.mW5500.setDNS1(IPAddress(mAllocatedDNS[0], mAllocatedDNS[1], mAllocatedDNS[2], mAllocatedDNS[3]));
+        mSocket.mW5500.setDNS2(IPAddress(8, 8, 8, 8));
         mSocket.Close();
 
         return Status(Status::Code::GOOD);
@@ -496,7 +497,7 @@ namespace muffin { namespace w5500 {
 
         // yiaddr (할당 제안 IP 주소)
         memcpy(mAllocatedIPv4, dhcp + 16, 4);
-        LOG_INFO(logger, "OFFER - yiaddr : %u.%u.%u.%u",
+        LOG_DEBUG(logger, "OFFER - yiaddr : %u.%u.%u.%u",
                 mAllocatedIPv4[0], mAllocatedIPv4[1], mAllocatedIPv4[2], mAllocatedIPv4[3]);
 
         // 로컬 MAC 로그
@@ -561,7 +562,7 @@ namespace muffin { namespace w5500 {
                     if (len == 4) 
                     {
                         memcpy(mAllocatedSNM, options, 4);
-                        LOG_INFO(logger, "Subnet Mask: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "Subnet Mask: %u.%u.%u.%u",
                                 mAllocatedSNM[0], mAllocatedSNM[1], mAllocatedSNM[2], mAllocatedSNM[3]);
                     }
                     break;
@@ -570,7 +571,7 @@ namespace muffin { namespace w5500 {
                     if (len >= 4) 
                     {
                         memcpy(mAllocatedGW, options, 4);
-                        LOG_INFO(logger, "Gateway: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "Gateway: %u.%u.%u.%u",
                                 mAllocatedGW[0], mAllocatedGW[1], mAllocatedGW[2], mAllocatedGW[3]);
                     }
                     break;
@@ -579,7 +580,7 @@ namespace muffin { namespace w5500 {
                     if (len >= 4) 
                     {
                         memcpy(mAllocatedDNS, options, 4);
-                        LOG_INFO(logger, "DNS: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "DNS: %u.%u.%u.%u",
                                 mAllocatedDNS[0], mAllocatedDNS[1], mAllocatedDNS[2], mAllocatedDNS[3]);
                     }
                     break;
@@ -589,7 +590,7 @@ namespace muffin { namespace w5500 {
                     {
                         mLeaseTime = (options[0] << 24) | (options[1] << 16) |
                                     (options[2] << 8)  | (options[3]);
-                        LOG_INFO(logger, "Lease Time: %us", mLeaseTime);
+                        LOG_DEBUG(logger, "Lease Time: %us", mLeaseTime);
                     }
                     break;
 
@@ -597,7 +598,7 @@ namespace muffin { namespace w5500 {
                     if (len == 4) 
                     {
                         memcpy(mServerIP, options, 4);
-                        LOG_INFO(logger, "Server Identifier: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "Server Identifier: %u.%u.%u.%u",
                                 mServerIP[0], mServerIP[1], mServerIP[2], mServerIP[3]);
                     }
                     break;
@@ -616,7 +617,7 @@ namespace muffin { namespace w5500 {
 
         // 상태 업데이트
         mState = state_e::REQUEST;
-        LOG_INFO(logger, "Success offer message parsing");
+        LOG_DEBUG(logger, "Success offer message parsing");
 
 
         return Status(Status::Code::GOOD);
@@ -634,7 +635,7 @@ namespace muffin { namespace w5500 {
 
         memcpy(mAllocatedIPv4, dhcp + 16, 4);  // yiaddr
 
-        LOG_INFO(logger, "ACK - IP : %u.%u.%u.%u",
+        LOG_DEBUG(logger, "ACK - IP : %u.%u.%u.%u",
                 mAllocatedIPv4[0], mAllocatedIPv4[1],
                 mAllocatedIPv4[2], mAllocatedIPv4[3]);
 
@@ -685,7 +686,7 @@ namespace muffin { namespace w5500 {
                     if (len == 4)
                     {
                         memcpy(mAllocatedSNM, options, 4);
-                        LOG_INFO(logger, "Subnet Mask: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "Subnet Mask: %u.%u.%u.%u",
                                 mAllocatedSNM[0], mAllocatedSNM[1],
                                 mAllocatedSNM[2], mAllocatedSNM[3]);
                     }
@@ -695,7 +696,7 @@ namespace muffin { namespace w5500 {
                     if (len >= 4)
                     {
                         memcpy(mAllocatedGW, options, 4);
-                        LOG_INFO(logger, "Gateway: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "Gateway: %u.%u.%u.%u",
                                 mAllocatedGW[0], mAllocatedGW[1],
                                 mAllocatedGW[2], mAllocatedGW[3]);
                     }
@@ -705,7 +706,7 @@ namespace muffin { namespace w5500 {
                     if (len >= 4)
                     {
                         memcpy(mAllocatedDNS, options, 4);
-                        LOG_INFO(logger, "DNS: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "DNS: %u.%u.%u.%u",
                                 mAllocatedDNS[0], mAllocatedDNS[1],
                                 mAllocatedDNS[2], mAllocatedDNS[3]);
                     }
@@ -717,7 +718,7 @@ namespace muffin { namespace w5500 {
                         mLeaseTime = (options[0] << 24) | (options[1] << 16) |
                                     (options[2] << 8)  | options[3];
 
-                        LOG_INFO(logger, "Lease Time: %us", mLeaseTime);
+                        LOG_DEBUG(logger, "Lease Time: %us", mLeaseTime);
                     }
                     break;
 
@@ -725,7 +726,7 @@ namespace muffin { namespace w5500 {
                     if (len == 4)
                     {
                         memcpy(mServerIP, options, 4);
-                        LOG_INFO(logger, "Server Identifier: %u.%u.%u.%u",
+                        LOG_DEBUG(logger, "Server Identifier: %u.%u.%u.%u",
                                 mServerIP[0], mServerIP[1], mServerIP[2], mServerIP[3]);
                     }
                     break;
@@ -743,7 +744,7 @@ namespace muffin { namespace w5500 {
         }
 
         mState = state_e::LEASED;
-        LOG_INFO(logger, "Success ACK message parsing");
+        LOG_DEBUG(logger, "Success ACK message parsing");
 
         mTickCurrent = 0;
         mLeaseT1 = (mLeaseTime / 2);                // T1

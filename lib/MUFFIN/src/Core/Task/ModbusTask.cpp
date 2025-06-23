@@ -66,7 +66,7 @@ namespace muffin {
             {
                 continue;
             }
-            uint32_t startTS = millis();
+            
             for(auto& modbusRTU : ModbusRtuVector)
             {
 
@@ -84,7 +84,7 @@ namespace muffin {
                 }
             #endif
             }
-            LOG_DEBUG(logger,"polling time : %d", millis() - startTS);
+
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_RTU_TASK));
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);
         }

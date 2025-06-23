@@ -793,7 +793,7 @@ namespace muffin {
         Serial.print("\r\n\r\n[1] LTE");
         Serial.print("\r\n[2] Ethernet");
         Serial.print("\r\n[9] Exit\r\n");
-        Serial.print("\r\n\r\nSelect an option [1 - 9]");
+        Serial.print("\r\n\r\nSelect an option [1 - 9]\r\n");
         std::string settingStr;
         while (true)
         {

@@ -246,7 +246,6 @@ namespace muffin {
         ethernet->Init();
         char mac[13] = {'\0'};
         ethernet->GetMacAddress(mac);
-        LOG_WARNING(logger,"MAC : %s",mac);
         macAddress.SetMacAddress(mac);
     #endif    
         LOG_INFO(logger, "MAC Address: %s", macAddress.GetEthernet());
@@ -372,7 +371,7 @@ namespace muffin {
 
             LOG_INFO(logger, "Created default JARVIS config");
         }
-
+#if defined(MT10) || defined(MB10) || defined(MT11)
         if (esp32FS.DoesExist(SERVICE_URL_PATH) == Status::Code::BAD_NOT_FOUND)
         {
             LOG_INFO(logger, "No Service URL Config found");
@@ -387,6 +386,13 @@ namespace muffin {
             LOG_INFO(logger, "Created default Service URL config");
         }
         
+        ret = loadServiceUrlConfig();
+        if (ret == Status::Code::BAD_DATA_LOST)
+        {
+            LOG_ERROR(logger, "FAILED TO LOAD SERVICE URL CONFIG: %s", ret.c_str());
+            std::abort();
+        }
+#endif
         ret = loadJarvisConfig();
         if (ret == Status::Code::BAD_DATA_LOST)
         {
@@ -399,14 +405,7 @@ namespace muffin {
 
         }
 
-        ret = loadServiceUrlConfig();
-        if (ret == Status::Code::BAD_DATA_LOST)
-        {
-            LOG_ERROR(logger, "FAILED TO LOAD SERVICE URL CONFIG: %s", ret.c_str());
-            std::abort();
-        }
         
-
         do
         {
             ret = ApplyOperationService();
@@ -674,58 +673,6 @@ namespace muffin {
         return resetReason == ESP_RST_PANIC;
     }
 
-    Status Core::createDefaultServiceUrl()
-    {
-        File file = esp32FS.Open(SERVICE_URL_PATH, "w", true);
-        if (file == false)
-        {
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
-
-        JsonDocument doc;
-        doc["ver"] = "v4";
-        JsonObject mqtt = doc["mqtt"].to<JsonObject>();
-
-        mqtt["host"] = "mmm.broker.edgecross.ai";
-        mqtt["port"] = 8883;
-        mqtt["scheme"] = 2;
-        mqtt["id"]   = "edgeaiot";
-        mqtt["pw"]   = "!edge1@1159";
-        mqtt["checkCert"] = true;
-
-
-        
-        JsonObject mfm = doc["mfm"].to<JsonObject>();
-        mfm["host"] = "api.mfm.edgecross.ai";
-        mfm["port"] = 443;
-        mfm["scheme"] = 2;
-        mfm["checkCert"] = true;
-
-        doc["ntp"] = "time.google.com";
-
-        const size_t size = measureJson(doc) + 1;
-        char buffer[size] = {'\0'};
-        serializeJson(doc, buffer, size);
-        doc.clear();
-
-        file.write(reinterpret_cast<uint8_t*>(buffer), size);
-        file.flush();
-        file.close();
-
-        char readback[size] = {'\0'};
-        file = esp32FS.Open(SERVICE_URL_PATH);
-        file.readBytes(readback, size);
-        file.close();
-
-        if (strcmp(buffer, readback) != 0)
-        {
-            esp32FS.Remove(SERVICE_URL_PATH);
-            return Status(Status::Code::BAD_DEVICE_FAILURE);
-        }
-
-        return Status(Status::Code::GOOD);
-    }
-
     Status Core::createDefaultJARVIS()
     {
         File file = esp32FS.Open(JARVIS_PATH, "w", true);
@@ -780,6 +727,58 @@ namespace muffin {
         if (strcmp(buffer, readback) != 0)
         {
             esp32FS.Remove(JARVIS_PATH);
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+#if defined(MT10) || defined(MB10) || defined(MT11)
+    Status Core::createDefaultServiceUrl()
+    {
+        File file = esp32FS.Open(SERVICE_URL_PATH, "w", true);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+
+        JsonDocument doc;
+        doc["ver"] = "v4";
+        JsonObject mqtt = doc["mqtt"].to<JsonObject>();
+
+        mqtt["host"] = "mmm.broker.edgecross.ai";
+        mqtt["port"] = 8883;
+        mqtt["scheme"] = 2;
+        mqtt["id"]   = "edgeaiot";
+        mqtt["pw"]   = "!edge1@1159";
+        mqtt["checkCert"] = true;
+
+
+        
+        JsonObject mfm = doc["mfm"].to<JsonObject>();
+        mfm["host"] = "api.mfm.edgecross.ai";
+        mfm["port"] = 443;
+        mfm["scheme"] = 2;
+        mfm["checkCert"] = true;
+
+        doc["ntp"] = "time.google.com";
+
+        const size_t size = measureJson(doc) + 1;
+        char buffer[size] = {'\0'};
+        serializeJson(doc, buffer, size);
+        doc.clear();
+
+        file.write(reinterpret_cast<uint8_t*>(buffer), size);
+        file.flush();
+        file.close();
+
+        char readback[size] = {'\0'};
+        file = esp32FS.Open(SERVICE_URL_PATH);
+        file.readBytes(readback, size);
+        file.close();
+
+        if (strcmp(buffer, readback) != 0)
+        {
+            esp32FS.Remove(SERVICE_URL_PATH);
             return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
 
@@ -919,6 +918,7 @@ namespace muffin {
         
         return Status(Status::Code::GOOD);
     }   
+#endif
 
     Status Core::loadJarvisConfig()
     {

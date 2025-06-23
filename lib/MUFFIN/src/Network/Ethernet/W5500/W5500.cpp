@@ -137,8 +137,6 @@ namespace muffin {
  
         if (memcmp(mCRB.IPv4, &INADDR_NONE[0], sizeof(mCRB.IPv4)) == 0)
         {
-            LOG_WARNING(logger,"mCRB.IPv4[0] : %u, mCRB.IPv4[1] : %u, mCRB.IPv4[2] : %u, mCRB.IPv4[3] : %u",mCRB.IPv4[0],mCRB.IPv4[1],mCRB.IPv4[2],mCRB.IPv4[3])
-            
             if (mDHCP == nullptr)
             {
                 socket = new w5500::Socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
@@ -160,15 +158,13 @@ namespace muffin {
             ret = mDHCP->Run();
 
         }
+        else
+        {
+            ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
+            ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
+            ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
+        }
         
-
-        /**
-         * @todo 실행 결과 확인할 것
-         */
-        ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
-        ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
-        ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
-
         return ret;
     }
 
@@ -379,7 +375,6 @@ namespace muffin {
         size_t receiveLength = socket.Available();
         uint8_t receiveData[receiveLength] = {0};
 
-        LOG_INFO(logger,"avilable : %u\n", receiveLength);
         ret = socket.Receive(receiveLength, &actualLength, receiveData);
         if (ret != Status::Code::GOOD)
         {
@@ -490,14 +485,14 @@ namespace muffin {
     Status W5500::setDNS1(const IPAddress ipv4)
     {
         mDNS1 = ipv4;
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        return Status(Status::Code::GOOD);
     }
 
 
     Status W5500::setDNS2(const IPAddress ipv4)
     {
         mDNS2 = ipv4;
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        return Status(Status::Code::GOOD);
     }
 
 
@@ -1004,6 +999,16 @@ namespace muffin {
         mSocketIdFlag.reset(static_cast<uint16_t>(idx));
     }
 
+    IPAddress W5500::GetDNS1()
+    {
+        return mDNS1;
+    }
+
+    IPAddress W5500::GetDNS2()
+    {
+        return mDNS2;
+    }
+
     std::pair<Status, w5500::sock_id_e> W5500::GetAvailableSocketId()
     {
         for (int i = 6; i >= 0; --i)
@@ -1029,7 +1034,6 @@ namespace muffin {
 
     W5500* ethernet   = nullptr;
     W5500* link1W5500 = nullptr;
-    W5500* link2W5500 = nullptr;
 }
 
 

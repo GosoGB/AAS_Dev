@@ -81,6 +81,7 @@ namespace muffin {
                 break;
             }
         }
+
 #if defined(MT10) || defined(MT11) || defined(MB10) 
         for (auto& pair : *jarvis)
         {
@@ -420,20 +421,8 @@ namespace muffin {
                 {
                     w5500::link1EthernetClient = new w5500::EthernetClient(*link1W5500, w5500::sock_id_e::SOCKET_0);
                     link1ModbusTCPClient = new ModbusTCPClient(*w5500::link1EthernetClient);
-                    LOG_WARNING(logger, "link1ModbusTCPClient points to: %p", (void*)link1ModbusTCPClient);
                 }
                 applyModbusTcpConfig(link1W5500, retSocketID.second, cin);
-                break;
-            }
-            case jvs::if_e::LINK_02:
-            {
-                const auto retSocketID = link2W5500->GetAvailableSocketId();
-                if (retSocketID.first.ToCode() != Status::Code::GOOD)
-                {
-                    LOG_ERROR(logger,"[ETH2] NO AVAILABLE SOCKET");
-                    continue;
-                }
-                applyModbusTcpConfig(link2W5500, retSocketID.second, cin);
                 break;
             }
             default:
@@ -509,10 +498,6 @@ namespace muffin {
                 applyMelsecConfig(link1MelsecClient, cin);
                 break;
             }
-            case jvs::if_e::LINK_02:
-            {
-                break;
-            }
             default:
                 break;
             }
@@ -540,7 +525,7 @@ namespace muffin {
         if (jvs::config::embeddedEthernet != nullptr)
         {
             ethernet->Config(jvs::config::embeddedEthernet);
-            ethernet->Connect();
+            ethernet->Connect();   
         }
 
         if (jvs::config::link1Ethernet != nullptr)
@@ -555,18 +540,6 @@ namespace muffin {
             link1W5500->Config(jvs::config::link1Ethernet);
             link1W5500->Connect();
             
-        }
-        if (jvs::config::link2Ethernet != nullptr)
-        {
-            link2W5500 = new(std::nothrow) W5500(w5500::if_e::LINK_02);
-            Status ret = link2W5500->Init();
-            if (ret != Status::Code::GOOD)
-            {
-                LOG_ERROR(logger, "LINK2 W5500 INIT ERROR: %s",ret.c_str());
-            }
-
-            link2W5500->Config(jvs::config::link2Ethernet);
-            link2W5500->Connect();
         }
     }
 
