@@ -66,7 +66,7 @@ namespace muffin { namespace mqtt {
     #else
         const uint16_t BUFFER_SIZE = 1024;
     #endif
-        const uint8_t KEEP_ALIVE  =  10;
+        const uint8_t KEEP_ALIVE  =  30;
     public:
         static void implLwipMqttTask(void* pvParameter);
     };

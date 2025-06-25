@@ -272,7 +272,10 @@ namespace muffin { namespace w5500 {
     // #else
     //     Status ret = dns.Init(IPAddress(8, 8, 8, 8));
     // #endif
-
+        /**
+         * @todo @이상진 선임연구원님께 꼭 확인 받을 것
+         * 
+         */
         Status ret = dns.Init(mSocket->mW5500.GetDNS1());
         if (ret != Status::Code::GOOD)
         {

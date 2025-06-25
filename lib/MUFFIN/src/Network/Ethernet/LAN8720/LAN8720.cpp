@@ -158,7 +158,6 @@ namespace muffin {
         }
         else 
         {
-            LOG_INFO(logger,"HERE2 , ntpServer : %s",ntpServer.c_str());
             configTime(gmtOffset_sec, daylightOffset_sec, ntpServer.c_str(), ntpServer.c_str());
         }
         

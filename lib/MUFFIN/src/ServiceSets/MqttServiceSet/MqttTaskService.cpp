@@ -1020,14 +1020,29 @@ namespace muffin {
                                         goto RC_RESPONSE;
                                     }
 
-                                    if (!melsec.Connect())
+                                    uint8_t MAX_TRIAL_COUNT = 3;
+                                    uint8_t trialCount = 0;
+
+                                    for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
                                     {
-                                        LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                                        if (melsec.Connect())
+                                        {
+                                            break;
+                                        }
+
+                                        LOG_WARNING(logger,"[#%d] melsec Client failed to connect!, serverIP : %s, serverPort: %d",trialCount, melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                                        melsec.mMelsecClient->Close();
+                                        delay(80);
+                                    }
+
+                                    if (trialCount == MAX_TRIAL_COUNT)
+                                    {
+                                        LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                                        xSemaphoreGive(xSemaphoreMelsec);
                                         goto RC_RESPONSE;
-                                    } 
+                                    }
 
                                     LOG_DEBUG(logger, "[MELSEC] 원격제어 : %u",retConvertModbus.second);
-                                    
                                     
                                     if (im::IsBitArea(nodeArea))
                                     {
