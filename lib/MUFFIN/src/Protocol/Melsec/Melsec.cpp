@@ -97,6 +97,7 @@ namespace muffin {
             }
             
             im::Node* reference = result.second;
+            
             ret = mNodeTable.Update(slaveID, *reference);
             if (ret != Status::Code::GOOD)
             {

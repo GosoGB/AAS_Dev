@@ -78,7 +78,7 @@ namespace muffin { namespace jvs {
             if (mAddress.first != rsc_e::GOOD)
             {
                 char message[64] = {'\0'};
-                snprintf(message, 64, "INVALID NODE ADDRESS: %s, NODE ID: %s", json["adtp"].as<const char*>(),
+                snprintf(message, 64, "INVALID NODE ADDRESS: %s, NODE ID: %s", json["addr"].as<const char*>(),
                                                                                mNodeID);
                 return std::make_pair(mAddress.first, message);
             }
@@ -363,6 +363,11 @@ namespace muffin { namespace jvs {
         if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
         {
             isValid &= json.containsKey("topic");
+        }
+
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_4)
+        {
+            isValid &= json.containsKey("idx");
         }
 
         if (isValid == true)
@@ -915,7 +920,7 @@ namespace muffin { namespace jvs {
      */
     std::pair<rsc_e, std::string> NodeValidator::validateDataTypes()
     {
-        if (mDataTypes.second.size() == 1 && mDataTypes.second.at(0) == dt_e::STRING)
+        if (mDataTypes.second.size() == 1 && (mDataTypes.second.at(0) == dt_e::STRING || mDataTypes.second.at(0) == dt_e::ARRAY))
         {
             return std::make_pair(rsc_e::GOOD, "GOOD");
         }
@@ -1389,6 +1394,9 @@ namespace muffin { namespace jvs {
             mAddressType.second  = adtp_e::NUMERIC;
             return;
         case 1:
+            mAddressType.first   = rsc_e::GOOD;
+            mAddressType.second  = adtp_e::STRING;
+            return;
         case 2:
         case 3:
             mAddressType.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
@@ -1406,6 +1414,7 @@ namespace muffin { namespace jvs {
         switch (mAddressType.second)
         {
         case adtp_e::NUMERIC:
+        {
             if (address.is<uint32_t>() == false)
             {
                 mAddress.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
@@ -1417,7 +1426,22 @@ namespace muffin { namespace jvs {
                 mAddress.second.Numeric = address.as<uint32_t>();
                 return;
             }
+        }
         case adtp_e::STRING:
+        {
+            if (address.is<const char*>() == false)
+            {
+                mAddress.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+                return;
+            }
+            else
+            {
+                mAddress.first = rsc_e::GOOD;
+                strncpy(mAddress.second.String, address.as<const char*>(), sizeof(mAddress.second.String));
+                mAddress.second.String[sizeof(mAddress.second.String) - 1] = '\0';
+                return;
+            }
+        }
         case adtp_e::BYTE_STRING:
         case adtp_e::GUID:
             mAddress.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
@@ -1837,6 +1861,8 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc_e::GOOD, dt_e::FLOAT64);
         case 11:
             return std::make_pair(rsc_e::GOOD, dt_e::STRING);
+        case 99:
+            return std::make_pair(rsc_e::GOOD, dt_e::ARRAY);
         default:
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, dt_e::BOOLEAN);
         }

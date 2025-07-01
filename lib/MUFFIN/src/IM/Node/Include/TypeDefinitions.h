@@ -100,6 +100,30 @@ namespace muffin { namespace im {
         bool HasNewEvent  : 1;
     } var_data_t;
 
+#if defined(MT11)
+    typedef enum class EtherNetIpDataTypeEnum
+        : uint8_t
+    {
+
+    } eip_dt_e;
+
+    typedef union EtherNetIpDataValueUnion
+    {
+        bool Boolean;     // 예시
+        int8_t SINT;        // 예시
+        uint8_t USINT;    
+    } eip_value_u;
+
+    typedef struct EtherNetIpDataType
+    {
+        Status::Code StatusCode;            // EtherNet/IP 상태 코드 열거형
+        uint64_t Timestamp;                 // 데이터가 수집된 시간
+        eip_dt_e DataType;                  // Ethernet/IP DataType
+        eip_value_u Value;                  // eip_value_u
+    } eip_data_t;
+
+#endif
+
 
 
 /* For future MUFFIN code base

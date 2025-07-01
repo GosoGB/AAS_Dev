@@ -65,6 +65,7 @@ namespace muffin { namespace jvs {
     typedef union NodeAddressUnion
     {
         uint32_t Numeric;
+        char String[41];
     } addr_u;
 
     typedef enum class NodeAreaEnum
@@ -137,7 +138,9 @@ namespace muffin { namespace jvs {
         UINT64    =  8,
         FLOAT32   =  9,
         FLOAT64   = 10,
-        STRING    = 11
+        STRING    = 11,
+
+        ARRAY     = 99
     } dt_e;
 
     typedef enum class JarvisProtocolVersionEnum

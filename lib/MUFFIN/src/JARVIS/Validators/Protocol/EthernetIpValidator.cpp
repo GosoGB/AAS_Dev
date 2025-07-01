@@ -2,13 +2,14 @@
  * @file EthernetIpValidator.cpp
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * 
- * @brief 시리얼 포트에 대한 설정 정보가 유효한지 검사하는 클래스를 정의합니다.
+ * @brief 시리얼 포트에 대한 설정 정보가 유효한지 검사하는 클래스를 선언합니다.
  * 
- * @date 2024-10-06
- * @version 1.0.0
+ * @date 2025-07-01
+ * @version 1.5.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
+
 
 
 
