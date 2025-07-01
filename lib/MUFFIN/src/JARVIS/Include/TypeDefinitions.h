@@ -146,7 +146,8 @@ namespace muffin { namespace jvs {
         VERSEOIN_1 = 1,
         VERSEOIN_2 = 2,
         VERSEOIN_3 = 3,
-        VERSEOIN_4 = 4
+        VERSEOIN_4 = 4,
+        VERSEOIN_5 = 5
     } prtcl_ver_e;
 
     typedef enum class JarvisConfigClassKeyEnum
@@ -164,7 +165,8 @@ namespace muffin { namespace jvs {
         ALARM               =  9,
         OPERATION_TIME      = 10,
         PRODUCTION_INFO     = 11,
-        MELSEC              = 12
+        MELSEC              = 12,
+        ETHERNET_IP         = 13
     } cfg_key_e;
 
     typedef enum class ModlinkSerialPortIndexEnum

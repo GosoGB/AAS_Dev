@@ -49,6 +49,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::string> validateNicLTE(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion);
         std::pair<rsc_e, std::string> validateModbus(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateMelsec(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
+        std::pair<rsc_e, std::string> validateEthernetIP(const cfg_key_e key, const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateOperation(const JsonArray json, prtcl_ver_e protocolVersion);
         std::pair<rsc_e, std::string> validateNode(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);
         std::pair<rsc_e, std::string> validateAlarm(const JsonArray json, prtcl_ver_e protocolVersion, cin_vector* outputVector);

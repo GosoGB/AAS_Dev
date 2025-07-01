@@ -1,12 +1,12 @@
 /**
- * @file Melsec.cpp
+ * @file EthernetIP.cpp
  * @author Kim, Joo-sung (joosung5732@edgecross.ai)
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief Modbus TCP 프로토콜 설정 형식을 표현하는 클래스를 정의합니다.
  * 
- * @date 2025-03-31
- * @version 1.4.0
+ * @date 2025-07-01
+ * @version 1.5.0
  * 
  * @copyright Copyright Edgecross Inc. (c) 2024
  */
@@ -16,57 +16,53 @@
 
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
-#include "Melsec.h"
+#include "EthernetIP.h"
 
 
 
 namespace muffin { namespace jvs { namespace config {
 
-    Melsec::Melsec()
-        : Base(cfg_key_e::MELSEC)
+    EthernetIP::EthernetIP()
+        : Base(cfg_key_e::ETHERNET_IP)
     {
     }
 
-    Melsec::~Melsec()
+    EthernetIP::~EthernetIP()
     {
     #if defined(DEBUG)
         //LOG_VERBOSE(logger, "Destroyed at address: %p", this);
     #endif
     }
 
-    Melsec& Melsec::operator=(const Melsec& obj)
+    EthernetIP& EthernetIP::operator=(const EthernetIP& obj)
     {
         if (this != &obj)
         {
             mIPv4              = obj.mIPv4;
-            mPlcSeies          = obj.mPlcSeies;
             mPort              = obj.mPort;
             mNodes             = obj.mNodes;
-            mDataFormat        = obj.mDataFormat;
             mEthernetInterface = obj.mEthernetInterface;
         }
 
         return *this;
     }
 
-    bool Melsec::operator==(const Melsec& obj) const
+    bool EthernetIP::operator==(const EthernetIP& obj) const
     {
     return (
-        mPlcSeies              == obj.mPlcSeies   &&
             mIPv4              == obj.mIPv4       &&
             mNodes             == obj.mNodes      &&
             mPort              == obj.mPort       &&
-            mDataFormat        == obj.mDataFormat &&
             mEthernetInterface == obj.mEthernetInterface
         );
     }
 
-    bool Melsec::operator!=(const Melsec& obj) const
+    bool EthernetIP::operator!=(const EthernetIP& obj) const
     {
         return !(*this == obj);
     }
 
-    void Melsec::SetIPv4(const IPAddress& ipv4)
+    void EthernetIP::SetIPv4(const IPAddress& ipv4)
     {
         ASSERT(
             (
@@ -83,7 +79,7 @@ namespace muffin { namespace jvs { namespace config {
         mIsIPv4Set = true;
     }
 
-    void Melsec::SetPort(const uint16_t prt)
+    void EthernetIP::SetPort(const uint16_t prt)
     {
         ASSERT((0 != prt), "INVALID PORT NUMBER");
 
@@ -91,19 +87,7 @@ namespace muffin { namespace jvs { namespace config {
         mIsPortSet = true;
     }
 
-    void Melsec::SetPlcSeries(const ps_e plcSeies)
-    {
-        mPlcSeies = plcSeies;
-        mIsPlcSeiesSet = true;
-    }
-
-    void Melsec::SetDataFormat(const df_e dataFormat)
-    {
-        mDataFormat = dataFormat;
-        mIsDataFormatSet = true;
-    }
-
-    void Melsec::SetNodes(std::vector<std::string>&& nodes) noexcept
+    void EthernetIP::SetNodes(std::vector<std::string>&& nodes) noexcept
     {
         ASSERT((nodes.size() != 0), "NODE REFERENCES CANNOT BE NULL");
 
@@ -111,13 +95,13 @@ namespace muffin { namespace jvs { namespace config {
         mIsNodesSet = true;
     }
 
-    void Melsec::SetEthernetInterface(const if_e eth)
+    void EthernetIP::SetEthernetInterface(const if_e eth)
     {
         mEthernetInterface = eth;
         mIsEthernetInterface = true;
     }
 
-    std::pair<Status, if_e> Melsec::GetEthernetInterface() const
+    std::pair<Status, if_e> EthernetIP::GetEthernetInterface() const
     {
         if (mIsEthernetInterface)
         {
@@ -129,31 +113,7 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, ps_e> Melsec::GetPlcSeies() const
-    {
-        if (mIsPlcSeiesSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mPlcSeies);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mPlcSeies);
-        }
-    }
-
-    std::pair<Status, df_e> Melsec::GetDataFormat() const
-    {
-        if (mIsDataFormatSet)
-        {
-            return std::make_pair(Status(Status::Code::GOOD), mDataFormat);
-        }
-        else
-        {
-            return std::make_pair(Status(Status::Code::BAD), mDataFormat);
-        }
-    }
-
-    std::pair<Status, IPAddress> Melsec::GetIPv4() const
+    std::pair<Status, IPAddress> EthernetIP::GetIPv4() const
     {
         if (mIsIPv4Set)
         {
@@ -165,7 +125,7 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, uint16_t> Melsec::GetPort() const
+    std::pair<Status, uint16_t> EthernetIP::GetPort() const
     {
         if (mIsPortSet)
         {
@@ -177,7 +137,7 @@ namespace muffin { namespace jvs { namespace config {
         }
     }
 
-    std::pair<Status, std::vector<std::string>> Melsec::GetNodes() const
+    std::pair<Status, std::vector<std::string>> EthernetIP::GetNodes() const
     {
         if (mIsNodesSet)
         {
