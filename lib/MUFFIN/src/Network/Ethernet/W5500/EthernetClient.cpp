@@ -209,11 +209,22 @@ namespace muffin { namespace w5500 {
     
     void EthernetClient::stop()
     {
-        mSocket->Disconnect();
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        mSocket->Close();
-        mIsConnected = false;
-        mRxBuffer = nullptr;
+
+    #if defined(DEBUG)
+        if (mSocket != nullptr)
+        {
+            mSocket->Close();
+            mRxBuffer = nullptr;
+            mIsConnected = false;
+        }
+    #else
+        임시로 바꿔둔거임 수정해야함 @김주성
+    #endif
+        // mSocket->Disconnect();
+        // vTaskDelay(100 / portTICK_PERIOD_MS);
+        // mSocket->Close();
+        // mIsConnected = false;
+        // mRxBuffer = nullptr;
         
     }
 

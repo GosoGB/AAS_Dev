@@ -10,9 +10,24 @@
  * @copyright Copyright Edgecross Inc. (c) 2025
  */
 
+
+
+
 #if defined(MT11)
 
 #pragma once
+
+#include "Protocol/EthernetIP/ciplibs/cip_client.h"
+#include "Protocol/EthernetIP/ciplibs/cip_msr.h"
+#include "Protocol/EthernetIP/ciplibs/cip_single.h"
+#include "Protocol/EthernetIP/ciplibs/cip_types.h"
+#include "Protocol/EthernetIP/ciplibs/cip_path.h"
+#include "Protocol/EthernetIP/ciplibs/cip_util.h"
+#include "Protocol/EthernetIP/ciplibs/eip_session.h"
+#include "Protocol/EthernetIP/ciplibs/eip_connection.h"
+#include "Protocol/EthernetIP/ciplibs/eip_types.h"
+#include "JARVIS/Config/Protocol/EthernetIP.h"
+
 
 namespace muffin { namespace ethernetIP {
 
@@ -22,9 +37,22 @@ namespace muffin { namespace ethernetIP {
     public:
         EthernetIP();
         virtual ~EthernetIP();
-    private:
-    
 
+    public:
+        Status Config(jvs::config::EthernetIP *config);
+        void Clear();
+        IPAddress GetServerIP();
+        uint16_t GetServerPort();
+        bool Connect();
+        Status Poll();
+        void SetTimeoutError(); 
+
+        
+    private:
+        EIPSession mSession;
+
+
+    
 
     };
     
