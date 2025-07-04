@@ -18,6 +18,7 @@
 #pragma once
 
 #include "NodeTable.h"
+#include "AddressTable.h"
 #include "Protocol/EthernetIP/ciplibs/cip_client.h"
 #include "Protocol/EthernetIP/ciplibs/cip_msr.h"
 #include "Protocol/EthernetIP/ciplibs/cip_single.h"
@@ -54,7 +55,7 @@ namespace muffin { namespace ethernetIP {
     
     private:
         NodeTable mNodeTable;
-        
+        AddressTable mAddressTable;
     
 
     };
