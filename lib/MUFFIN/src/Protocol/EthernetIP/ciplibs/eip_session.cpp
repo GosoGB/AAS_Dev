@@ -116,8 +116,8 @@ bool registerSession(EIPSession& session) {
         (response[4])
     );
 
-    Serial.print("[RegisterSession] 받은 sessionHandle: ");
-    Serial.println(session.sessionHandle, HEX);
+    // Serial.print("[RegisterSession] 받은 sessionHandle: ");
+    // Serial.println(session.sessionHandle, HEX);
 
     return (session.sessionHandle != 0);
 }

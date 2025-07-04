@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "NodeTable.h"
 #include "Protocol/EthernetIP/ciplibs/cip_client.h"
 #include "Protocol/EthernetIP/ciplibs/cip_msr.h"
 #include "Protocol/EthernetIP/ciplibs/cip_single.h"
@@ -50,8 +51,10 @@ namespace muffin { namespace ethernetIP {
         
     private:
         EIPSession mSession;
-
-
+    
+    private:
+        NodeTable mNodeTable;
+        
     
 
     };

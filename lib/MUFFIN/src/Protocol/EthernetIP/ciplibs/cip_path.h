@@ -3,6 +3,31 @@
 
 #include <string>
 #include <vector>
+#include <regex>
+
+
+// 배열 인덱스를 지정하는 Logical Segment 생성
+// 1756-pm020_-en-p.pdf page 14의 규칙에 따름, * 다른 제조사일 경우 확인 필요
+inline std::vector<uint8_t> buildElementSelector(uint32_t index) {
+    std::vector<uint8_t> seg;
+    if (index <= 0xFF) {
+        seg.push_back(0x28); // 8-bit Element ID
+        seg.push_back(static_cast<uint8_t>(index));
+    } else if (index <= 0xFFFF) {
+        seg.push_back(0x29); // 16-bit Element ID
+        seg.push_back(0x00); // Reserved
+        seg.push_back(index & 0xFF);
+        seg.push_back((index >> 8) & 0xFF);
+    } else {
+        seg.push_back(0x2A); // 32-bit Element ID
+        seg.push_back(0x00); // Reserved
+        seg.push_back(index & 0xFF);
+        seg.push_back((index >> 8) & 0xFF);
+        seg.push_back((index >> 16) & 0xFF);
+        seg.push_back((index >> 24) & 0xFF);
+    }
+    return seg;
+}
 
 // TAG 이름을 CIP 경로(Symbolic Segment)로 인코딩
 inline std::vector<uint8_t> encodeTagPath(const std::string& tagName) {
@@ -18,6 +43,40 @@ inline std::vector<uint8_t> encodeTagPath(const std::string& tagName) {
     return path;
 }
 
+inline std::vector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag) {
+    std::vector<uint8_t> path;
+    std::string tagName;
+    std::vector<uint32_t> indices;
+
+    // 태그 이름과 인덱스를 직접 분리
+    size_t pos = 0;
+    while (pos < tag.length()) {
+        if (tag[pos] == '[') {
+            // 인덱스 시작
+            size_t end = tag.find(']', pos);
+            if (end == std::string::npos) break;  // 잘못된 형식
+            std::string index_str = tag.substr(pos + 1, end - pos - 1);
+            indices.push_back(static_cast<uint32_t>(atoi(index_str.c_str())));
+            pos = end + 1;
+        } else {
+            tagName += tag[pos];
+            ++pos;
+        }
+    }
+
+    // 심볼 세그먼트 인코딩
+    path = encodeTagPath(tagName);
+
+    // 인덱스 세그먼트 추가
+    for (uint32_t idx : indices) {
+        std::vector<uint8_t> seg = buildElementSelector(idx);
+        path.insert(path.end(), seg.begin(), seg.end());
+    }
+
+    return path;
+}
+
+
 // CIP 경로를 문자열 TAG 이름으로 디코딩 (디버깅용)
 inline std::string decodeTagPath(const std::vector<uint8_t>& path) {
     if (path.size() < 2 || path[0] != 0x91) return "";
@@ -25,6 +84,8 @@ inline std::string decodeTagPath(const std::vector<uint8_t>& path) {
     return std::string(path.begin() + 2, path.begin() + 2 + len);
 }
 
+// Class/Instance/Attribute 기반 CIP Logical Path 생성 , 1756-pm020_-en-p.pdf page 14
+// 8-bit, 16-bit 대응
 // Class/Instance/Attribute 기반 CIP Logical Path 생성 , 1756-pm020_-en-p.pdf page 14
 // 8-bit, 16-bit 대응
 inline std::vector<uint8_t> buildLogicalPath(uint16_t classID, uint16_t instanceID, uint16_t attributeID) {
@@ -62,26 +123,5 @@ inline std::vector<uint8_t> buildLogicalPath(uint16_t classID, uint16_t instance
     return path;
 }
 
-
-// 배열 인덱스를 지정하는 Logical Segment 생성
-// 1756-pm020_-en-p.pdf page 14
-inline std::vector<uint8_t> buildElementSelector(uint32_t index) {
-    std::vector<uint8_t> seg;
-    if (index <= 0xFF) {
-        seg.push_back(0x28); // 8-bit Element ID
-        seg.push_back(static_cast<uint8_t>(index));
-    } else if (index <= 0xFFFF) {
-        seg.push_back(0x29); // 16-bit Element ID
-        seg.push_back(index & 0xFF);
-        seg.push_back((index >> 8) & 0xFF);
-    } else {
-        seg.push_back(0x2A); // 32-bit Element ID
-        seg.push_back(index & 0xFF);
-        seg.push_back((index >> 8) & 0xFF);
-        seg.push_back((index >> 16) & 0xFF);
-        seg.push_back((index >> 24) & 0xFF);
-    }
-    return seg;
-}
 
 #endif

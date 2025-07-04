@@ -43,7 +43,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         request.push_back(0x4C);
 
         // [1] Path size (in 16-bit words)
-        std::vector<uint8_t> path = encodeTagPath(tagNames[i]);
+        std::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagNames[i]);
         request.push_back(static_cast<uint8_t>(path.size() / 2));
 
         // [2~] Path segment
@@ -81,7 +81,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
 
     // CIP Service Code
     uint8_t serviceCode = response[CIP_OFFSET];
-    Serial.printf("Service Code: 0x%02X\n", serviceCode);
+    // Serial.printf("Service Code: 0x%02X\n", serviceCode);
 
     // Find 0x8A Service Code ( MSR 응답 코드 )
     if (serviceCode != 0x8A) {
@@ -91,7 +91,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
 
     // General Status
     uint8_t generalStatus = response[CIP_OFFSET + 2];
-    Serial.printf("General Status: 0x%02X\n", generalStatus);
+    // Serial.printf("General Status: 0x%02X\n", generalStatus);
     
     // 0x1E : Embedded service error. One or more services returned an error within a multiple-service packet service.
     // 참조 : https://support.ptc.com/help/kepware/drivers/en/index.html#page/kepware/drivers/OMRONNJETHERNET/CIP_Error_Codes.html
@@ -112,15 +112,15 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
     uint16_t itemCount = response[dataStart] |
                         (response[dataStart + 1] << 8);
 
-    Serial.printf("Number of Service Replies (itemCount) = %d\n", itemCount);
-    Serial.printf("dataStart = %zu\n", dataStart);
+    // Serial.printf("Number of Service Replies (itemCount) = %d\n", itemCount);
+    // Serial.printf("dataStart = %zu\n", dataStart);
 
     // 응답 반복 구간
     size_t offsetListStart = dataStart + 2;
-    Serial.printf("offsetListStart = %zu\n", offsetListStart);
+    // Serial.printf("offsetListStart = %zu\n", offsetListStart);
 
-    size_t base = CIP_OFFSET;
-    Serial.printf("base = %zu\n", base);
+    size_t base = dataStart; // CIP_OFFSET;
+    // Serial.printf("base = %zu\n", base);
 
     outValues.clear();
 
@@ -135,7 +135,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
                         : (response.size() - base);
         size_t end = base + nextOffset;
 
-        Serial.printf("\n응답[%d]: offset=0x%04X, start=%zu, end=%zu\n", i, offset, start, end);
+        // Serial.printf("\n응답[%d]: offset=0x%04X, start=%zu, end=%zu\n", i, offset, start, end);
 
         if (start >= response.size() || end > response.size() || start >= end) {
             Serial.printf("범위 오류: start=%zu, end=%zu, 전체 크기=%zu\n", start, end, response.size());
@@ -145,9 +145,9 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         std::vector<uint8_t> oneResponse(response.begin() + start, response.begin() + end);
 
         // 전체 응답 바이트 출력 - 디버깅 코드
-        Serial.print("전체 응답: ");
-        for (auto b : oneResponse) Serial.printf("%02X ", b);
-        Serial.println();
+        // Serial.print("전체 응답: ");
+        // for (auto b : oneResponse) Serial.printf("%02X ", b);
+        // Serial.println();
 
         if (oneResponse.size() < 6) {
             Serial.println("응답 너무 짧음 (6바이트 미만)");
@@ -157,7 +157,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         uint8_t generalStatus = oneResponse[2];
         uint8_t extStatusSize = oneResponse[3];
 
-        Serial.printf("GeneralStatus=0x%02X, ExtStatusSize=%d\n", generalStatus, extStatusSize);
+        // Serial.printf("GeneralStatus=0x%02X, ExtStatusSize=%d\n", generalStatus, extStatusSize);
 
         if (generalStatus != 0x00) {
             Serial.printf("GeneralStatus 오류, 응답 스킵\n");
@@ -173,7 +173,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         uint16_t rawType = oneResponse[typePos] | (oneResponse[typePos + 1] << 8);
         int valueSize = cipDataTypeSizeFromRaw(rawType);
 
-        Serial.printf("TagType=0x%04X (%d 바이트)\n", rawType, valueSize);
+        // Serial.printf("TagType=0x%04X (%d 바이트)\n", rawType, valueSize);
 
         size_t valuePos = typePos + 2;
         if (valueSize <= 0 || valuePos + valueSize > oneResponse.size()) {
@@ -184,9 +184,9 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         // Value
         std::vector<uint8_t> value(oneResponse.begin() + valuePos, oneResponse.begin() + valuePos + valueSize);
 
-        Serial.print("Value = ");
-        for (auto b : value) Serial.printf("%02X ", b);
-        Serial.println();
+        // Serial.print("Value = ");
+        // for (auto b : value) Serial.printf("%02X ", b);
+        // Serial.println();
 
         // cip_data_t에 담기
         cip_data_t data;
@@ -254,7 +254,7 @@ bool writeTagsMSR(EIPSession& session,
         std::vector<uint8_t> req = {0x4D}; // Write Tag request (0x4D)
 
         // Encode tag path
-        std::vector<uint8_t> path = encodeTagPath(tagNames[i]);
+        std::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagNames[i]);
         req.push_back(static_cast<uint8_t>(path.size() / 2)); // Path size (in 16-bit words)
         req.insert(req.end(), path.begin(), path.end());
 
@@ -307,7 +307,7 @@ bool writeTagsMSR(EIPSession& session,
 
     // CIP Service Code
     uint8_t serviceCode = response[CIP_OFFSET];
-    Serial.printf("Service Code: 0x%02X\n", serviceCode);
+    // Serial.printf("Service Code: 0x%02X\n", serviceCode);
 
     // Find 0x8A Service Code ( MSR 응답 코드 )
     if (serviceCode != 0x8A) {
@@ -345,7 +345,7 @@ bool writeTagsMSR(EIPSession& session,
     size_t offsetListStart = dataStart + 2;
     Serial.printf("offsetListStart = %zu\n", offsetListStart);
 
-    size_t base = CIP_OFFSET;
+    size_t base = dataStart; //CIP_OFFSET;
     Serial.printf("base = %zu\n", base);   
 
     results.clear();
@@ -362,7 +362,7 @@ bool writeTagsMSR(EIPSession& session,
                         : (response.size() - base);
         size_t end = base + nextOffset;
 
-        Serial.printf("응답[%d]: offset=0x%04X, start=%zu, end=%zu\n", i, offset, start, end);
+        // Serial.printf("응답[%d]: offset=0x%04X, start=%zu, end=%zu\n", i, offset, start, end);
 
         if (start >= response.size() || end > response.size() || start >= end) {
             Serial.printf("범위 오류: start=%zu, end=%zu, 전체 크기=%zu\n", start, end, response.size());

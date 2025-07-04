@@ -39,8 +39,8 @@ bool forwardOpen(EIPSession& session) {
         return false;
     }
 
-    Serial.println("[forwardOpen] Response:");
-    printHex(response);    
+    // Serial.println("[forwardOpen] Response:");
+    // printHex(response);    
 
     // Encapsulation Header: sessionHandle = offset 4~7
     if (response.size() >= 8) {
@@ -59,8 +59,8 @@ bool forwardOpen(EIPSession& session) {
             return false;
         }
 
-        Serial.print("[forwardOpen] 받은 sessionHandle 확인됨: ");
-        Serial.println(receivedHandle, HEX);
+        // Serial.print("[forwardOpen] 받은 sessionHandle 확인됨: ");
+        // Serial.println(receivedHandle, HEX);
     }
 
     // 참조 코드
@@ -83,8 +83,8 @@ bool forwardOpen(EIPSession& session) {
                 (response[connIDOffset + 2] << 16) |
                 (response[connIDOffset + 3] << 24);
 
-            Serial.print("[forwardOpen] 받은 connectionID: ");
-            Serial.println(session.connectionID, HEX);
+            // Serial.print("[forwardOpen] 받은 connectionID: ");
+            // Serial.println(session.connectionID, HEX);
             return true;
         } else {
             Serial.println("[forwardOpen] 응답 내 connectionID 위치 부족");
