@@ -52,8 +52,10 @@ namespace muffin { namespace jvs { namespace config {
         void SetFormatString(const std::string& format);
         void SetAttributeEvent(const bool hasEvent);
         void SetTopic(const mqtt::topic_e topic);
+        void SetArrayIndex(const std::vector<std::array<uint16_t, 2>> arrayindex);
     
     public:
+        std::pair<Status, std::vector<std::array<uint16_t, 2>>> GetArrayIndex() const;
         std::pair<Status, mqtt::topic_e> GetTopic() const;
         std::pair<Status, const char*> GetNodeID() const;
         std::pair<Status, adtp_e> GetAddressType() const;
@@ -83,7 +85,8 @@ namespace muffin { namespace jvs { namespace config {
             FORMAT_STRING       = 10,
             TOPIC               = 11,
             ATTRIBUTE_EVENT     = 12,
-            TOP                 = 13
+            ARRAY_INDEX         = 13,
+            TOP                 = 14,
         } set_flag_e;
         bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
@@ -99,6 +102,7 @@ namespace muffin { namespace jvs { namespace config {
         std::vector<dt_e> mVectorDataTypes;
         std::string mFormatString;
         mqtt::topic_e mTopic;
+        std::vector<std::array<uint16_t, 2>> mArrayIndex;
         bool mHasAttributeEvent;
     };
 }}}

@@ -1,6 +1,7 @@
 #include "cip_msr.h"
 #include "cip_path.h"
 #include "cip_util.h"
+#include "Common/Time/TimeUtils.h"
 
 // Rockwell Automation Publication 1756-PM020H-EN-P - March 2022 - page 31
 bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, std::vector<cip_data_t>& outValues) {
@@ -192,7 +193,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         cip_data_t data;
         data.Code = generalStatus;
         data.ExtCode = extStatusSize;
-        data.Timestamp = millis();
+        data.Timestamp = muffin::GetTimestampInMillis();
         data.DataType = static_cast<CipDataType>(rawType);
 
         // 값 디코딩
@@ -382,7 +383,7 @@ bool writeTagsMSR(EIPSession& session,
         // cip_data_t 생성
         cip_data_t data;
         data.Code = generalStatus;
-        data.Timestamp = millis();
+        data.Timestamp = muffin::GetTimestampInMillis();
         data.DataType = CipDataType::BOOL;      // Write는 데이터 타입이 없으므로 placeholder
         data.Value.BOOL = (generalStatus == 0x00);
 

@@ -364,18 +364,18 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
 
     packet.insert(packet.end(), rrData.begin(), rrData.end());
 
-    session.client.write(packet.data(), packet.size());
+    session.client->write(packet.data(), packet.size());
     delay(50);
     //response.clear();
-    //while (session.client.available()) response.push_back(session.client.read());
+    //while (session.client->available()) response.push_back(session.client->read());
 
     response.clear();
     size_t offset = 0;
 
     // Serial.println("[DEBUG] 수신 데이터 (1바이트씩):");
 
-    while (session.client.available()) {
-        int byte = session.client.read();  // 1바이트 읽기
+    while (session.client->available()) {
+        int byte = session.client->read();  // 1바이트 읽기
 
         if (byte >= 0) {
             response.push_back((uint8_t)byte);

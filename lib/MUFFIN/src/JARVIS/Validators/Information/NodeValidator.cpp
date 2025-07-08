@@ -34,6 +34,7 @@ namespace muffin { namespace jvs {
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mTopic(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT)
+        , mArrayIndex(rsc_e::UNCERTAIN, {{{0, 0}}})
     {
         memset(mNodeID, '\0', sizeof(mNodeID));
     }
@@ -128,6 +129,18 @@ namespace muffin { namespace jvs {
                     mTopic.first = rsc_e::BAD;
                 }
             
+            }
+
+            if (json.containsKey("arr"))
+            {
+                convertToArrayIndex(json["arr"].as<JsonArray>());
+                if (mArrayIndex.first != rsc_e::GOOD && 
+                mArrayIndex.first != rsc_e::GOOD_NO_DATA)
+                {
+                    char message[64] = {'\0'};
+                    snprintf(message, 64, "INVALID NODE ARRAY INDEX, NODE ID: %s", mNodeID);
+                    return std::make_pair(mTopic.first, message);
+                }
             }
             
 
@@ -300,6 +313,11 @@ namespace muffin { namespace jvs {
                 node->SetFormatString(mFormatString.second);
             }
 
+            if (mArrayIndex.first == rsc_e::GOOD)
+            {
+                node->SetArrayIndex(mArrayIndex.second);
+            }
+
             try
             {
                 outVector->emplace_back(std::move(node));
@@ -332,7 +350,10 @@ namespace muffin { namespace jvs {
             mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
             mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>());
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
-            mIsEventType = false;
+            mIsEventType      = false;
+            mTopic            = std::make_pair(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT);
+            mArrayIndex.second.shrink_to_fit();
+            mArrayIndex.second.clear();
             mVectorFormatSpecifier.clear();
         }
 
@@ -367,7 +388,7 @@ namespace muffin { namespace jvs {
 
         if (mProtocolVersion > prtcl_ver_e::VERSEOIN_4)
         {
-            isValid &= json.containsKey("idx");
+            isValid &= json.containsKey("arr");
         }
 
         if (isValid == true)
@@ -1624,6 +1645,58 @@ namespace muffin { namespace jvs {
         }
 
         mNodeArea.first = rsc_e::GOOD;
+    }
+
+    void NodeValidator::convertToArrayIndex(JsonArray arrayIndex)
+    {
+        if (arrayIndex.isNull() == true)
+        {
+            mArrayIndex.first = rsc_e::GOOD_NO_DATA;
+            mArrayIndex.second.clear();
+            mArrayIndex.second.shrink_to_fit();
+            return;
+        }
+
+        if (arrayIndex.size() > 3)
+        {
+            LOG_ERROR(logger, "TOTAL ARRAY INDEX SIZE MUST BE 3 OR LESS");
+            mArrayIndex.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
+        }
+        
+        
+        std::vector<std::array<uint16_t, 2>> vectorArrayIndex;
+        const size_t length = arrayIndex.size();
+        vectorArrayIndex.reserve(length);
+
+        for (const auto idx : arrayIndex)
+        {
+            JsonArray jsonArrayIdx = idx.as<JsonArray>();
+
+            if (jsonArrayIdx.size() != 2)
+            {
+                LOG_ERROR(logger,"ARRAY INDEX SIZE MUST BE 2");
+                mArrayIndex.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+                return;
+            }
+            
+            try
+            {
+                vectorArrayIndex.emplace_back(std::array<uint16_t, 2>{ static_cast<uint16_t>(jsonArrayIdx[0]), static_cast<uint16_t>(jsonArrayIdx[1])});
+            }
+            catch(const std::exception& e)
+            {
+                vectorArrayIndex.clear();
+                vectorArrayIndex.shrink_to_fit();
+                LOG_ERROR(logger, "FAILED TO EMPLACE ARRAY INDEX: %s", e.what());
+                mArrayIndex.first = rsc_e::BAD_UNEXPECTED_ERROR;
+                return;
+            }
+
+        }
+
+        mArrayIndex.first = rsc_e::GOOD;
+        return;
     }
 
     /**

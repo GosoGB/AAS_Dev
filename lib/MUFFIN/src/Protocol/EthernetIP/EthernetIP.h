@@ -37,7 +37,7 @@ namespace muffin { namespace ethernetIP {
     class EthernetIP
     {
     public:
-        EthernetIP();
+        EthernetIP(EIPSession EipSession);
         virtual ~EthernetIP();
 
     public:
@@ -48,14 +48,28 @@ namespace muffin { namespace ethernetIP {
         bool Connect();
         Status Poll();
         void SetTimeoutError(); 
-
-        
+    
     private:
-        EIPSession mSession;
+        Status addNodeReferences(const std::vector<std::__cxx11::string>& vectorNodeID);
+        Status implementPolling();
+        Status updateVariableNodes();
+
+    private:
+        Status convertToValue(cip_data_t& data, im::poll_data_t* output);
+    
+    public:
+        EIPSession mEipSession;
+    
+    private:
+        IPAddress mServerIP;
+        uint16_t mServerPort;
     
     private:
         NodeTable mNodeTable;
         AddressTable mAddressTable;
+        std::map<std::string, std::vector<cip_data_t>> mPolledDataTable;
+        
+        uint16_t mScanRate = 80;
     
 
     };

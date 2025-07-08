@@ -2,6 +2,7 @@
 
 #pragma once
 #include <cstdint>
+#include "IM/Node/Include/TypeDefinitions.h"
 
 // CIP 데이터 타입(Type Codes)
 // PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf , page 31
@@ -29,7 +30,8 @@ enum class CipDataType : uint16_t {
     LINT   = 0xC5, // Signed 64-bit integer
     ULINT  = 0xC9, // Unsigned 64-bit integer
     LREAL  = 0xCB, // 64-bit floating point (IEEE 754)
-    LWORD  = 0xD4 // Bit string (64 bits) // N/A: 일반 CIP 서비스 미지원
+    LWORD  = 0xD4, // Bit string (64 bits) // N/A: 일반 CIP 서비스 미지원
+    STRING = 0x02 // 서비스 코드 확인해야함
 };
 
 
@@ -56,6 +58,7 @@ typedef union CipDataValueUnion
     int64_t  LINT;
     uint64_t ULINT;
     double   LREAL;
+    muffin::im::string_t STRING;
 } cip_value_u;
 
 typedef struct CipData

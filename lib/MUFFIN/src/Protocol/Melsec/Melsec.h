@@ -78,6 +78,7 @@ namespace muffin {
         uint16_t mServerPort;
         jvs::ps_e mPlcSeries;
         jvs::df_e mDataformat;
+        uint16_t mScanRate = 80;
 
         static constexpr uint8_t DEFAULT_SLAVE_NUMBER = 1;
     };

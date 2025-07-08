@@ -2,7 +2,7 @@
 #include "cip_path.h"
 #include "cip_util.h"
 #include "cip_types.h"
-
+#include "Common/Time/TimeUtils.h"
 
 bool readTagIndex(EIPSession& session, const std::string& tagName, cip_data_t& outData)
 {
@@ -53,7 +53,7 @@ bool readTagIndex(EIPSession& session, const std::string& tagName, cip_data_t& o
 
     outData.Code = generalStatus;
     outData.ExtCode = extendedStatus;
-    outData.Timestamp = millis();
+    outData.Timestamp = muffin::GetTimestampInMillis();
 
     if (generalStatus != 0) {
         Serial.printf("[readTag] CIP Error: General Status=0x%02X\n", generalStatus);
@@ -134,7 +134,7 @@ bool readTag(EIPSession& session, const std::string& tagName, cip_data_t& outDat
 
     outData.Code = generalStatus;
     outData.ExtCode = extendedStatus;
-    outData.Timestamp = millis();
+    outData.Timestamp = muffin::GetTimestampInMillis();
 
     if (generalStatus != 0) {
         Serial.printf("[readTag] CIP Error: General Status=0x%02X\n", generalStatus);
@@ -245,7 +245,7 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
         cip_data_t element;
         element.Code = generalStatus;
         element.ExtCode = extendedStatus;
-        element.Timestamp = millis();
+        element.Timestamp = muffin::GetTimestampInMillis();
         element.DataType = dataType;
 
         size_t elementOffset = dataStart + i * elementSize;
@@ -332,7 +332,7 @@ bool writeTag( EIPSession& session, const std::string& tagName, const std::vecto
     // Fill cip_data_t
     outResult.Code = generalStatus;
     outResult.ExtCode = extendedStatus;
-    outResult.Timestamp = millis();
+    outResult.Timestamp = muffin::GetTimestampInMillis();
     outResult.DataType = typeEnum;
 
     // Write 응답은 값이 없으므로 Value 초기화
@@ -413,7 +413,7 @@ bool writeTagExt(EIPSession& session, const std::string& tagName, const std::vec
     outResult.Code = generalStatus;
     outResult.ExtCode = extendedStatus;
     outResult.DataType = typeEnum;
-    outResult.Timestamp = millis();
+    outResult.Timestamp = muffin::GetTimestampInMillis();
 
     if (generalStatus != 0) {
         Serial.printf("[writeTagExt] CIP Error: General Status=0x%02X\n", generalStatus);

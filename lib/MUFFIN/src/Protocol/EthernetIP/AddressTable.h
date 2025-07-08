@@ -31,6 +31,7 @@ namespace muffin { namespace ethernetIP {
         size_t totalSize = 0;   
     } tag_batch_struct_t ;
 
+
     class AddressTable
     {
     public:
@@ -40,6 +41,7 @@ namespace muffin { namespace ethernetIP {
     public:
         Status Update(const std::string& tag);
         Status Remove(const std::string& tag);
+        void Clear();
         std::vector<std::string> RetrieveTagsByBatch(size_t batchIndex) const;
         size_t GetBatchCount() const;
         void DebugPrint() const;
@@ -50,12 +52,10 @@ namespace muffin { namespace ethernetIP {
         Status contains(const std::string& tag) const;
 
     private:
-        std::vector<tag_batch_struct_t> batches;
+        std::vector<tag_batch_struct_t> mBatches;
         size_t maxBatchSize;
     
     };
-
-
 
 }}
 

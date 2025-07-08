@@ -21,6 +21,7 @@
 #include "Core/Core.h"
 #include "Core/Task/ModbusTask.h"
 #include "Core/Task/MelsecTask.h"
+#include "Core/Task/EthernetIpTask.h"
 #include "Core/Task/PubTask.h"
 #include "DataFormat/JSON/JSON.h"
 
@@ -33,6 +34,7 @@
 
 #include "JARVIS/JARVIS.h"
 #include "JARVIS/Config/Operation/Operation.h"
+#include "JARVIS/Config/Protocol/EthernetIP.h"
 #include "JarvisTask.h"
 #include "Protocol/MQTT/CDO.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
@@ -42,6 +44,7 @@
 #include "Protocol/Modbus/ModbusRTU.h"
 #include "Protocol/Modbus/ModbusTCP.h"
 #include "Protocol/Melsec/Melsec.h"
+#include "Protocol/EthernetIP/EthernetIP.h"
 #include "Protocol/MQTT/CIA.h"
 #include "Protocol/MQTT/CatMQTT/CatMQTT.h"
 #include "Protocol/MQTT/LwipMQTT/LwipMQTT.h"
@@ -53,6 +56,8 @@
 #include "Network/Ethernet/W5500/W5500.h"
 #include "Storage/CatFS/CatFS.h"
 #include "Protocol/HTTP/LwipHTTP/LwipHTTP.h"
+
+
 
 #include "ServiceSets/NetworkServiceSet/InitializeNetworkService.h"
 
@@ -103,6 +108,22 @@ namespace muffin {
         {
             const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::MELSEC)
+            {
+                applyMelsecCIN(pair.second);
+                for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
+                {
+                    delete *it;
+                }
+                break;
+            }
+        }
+    #endif
+
+    #if defined(MT11) 
+        for (auto& pair : *jarvis)
+        {
+            const jvs::cfg_key_e key = pair.first;
+            if (key == jvs::cfg_key_e::ETHERNET_IP)
             {
                 applyMelsecCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
@@ -445,6 +466,59 @@ namespace muffin {
         StartTaskMSG();
     }
 
+#if defined(MT11)
+    void applayEthernetIpCIN(std::vector<jvs::config::Base*>& vectorEthernetIpCIN)
+    {
+        if (jvs::config::operation.GetPlanExpired().second == true)
+        {
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: ETHERNETIP TASK IS NOT GOING TO START");
+            return;
+        }
+
+        mConfigVectorEthernetIP.clear();
+
+        for (auto& ethetnetIpCIN : vectorEthernetIpCIN)
+        {
+            jvs::config::EthernetIP* cin = static_cast<jvs::config::EthernetIP*>(ethetnetIpCIN);
+            const jvs::if_e eth = cin->GetEthernetInterface().second;
+            switch (eth)
+            {
+            case jvs::if_e::EMBEDDED:
+            {
+               /**
+                 * @todo Ethernet/IP는 2번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
+                 * 
+                 */
+
+                if (embeddedEipSession_t.client == nullptr)
+                {
+                    embeddedEipSession_t.client = new w5500::EthernetClient(*ethernet, w5500::sock_id_e::SOCKET_2);
+                }
+                
+                applyEthernetIpConfig(embeddedEipSession_t, cin);
+                
+                break;
+            }
+            case jvs::if_e::LINK_01:
+            {
+                if (link1EipSession_t.client == nullptr)
+                {
+                    link1EipSession_t.client = new w5500::EthernetClient(*link1W5500, w5500::sock_id_e::SOCKET_2);
+                }
+                
+                applyEthernetIpConfig(link1EipSession_t, cin);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+
+        StartEthernetIPTask();
+        StartTaskMSG();
+    }
+#endif
+
     void applyMelsecCIN(std::vector<jvs::config::Base*>& vectorMelsecCIN)
     {
     #if defined(MODLINK_L) || defined(ML10)
@@ -459,7 +533,7 @@ namespace muffin {
 
         if (jvs::config::operation.GetPlanExpired().second == true)
         {
-            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MODBUS TASK IS NOT GOING TO START");
+            LOG_WARNING(logger, "EXPIRED SERVICE PLAN: MELSEC TASK IS NOT GOING TO START");
             return;
         }
 
@@ -589,6 +663,22 @@ namespace muffin {
         }
         mConfigVectorMelsec.emplace_back(*cin);
         MelsecVector.emplace_back(*melsec);
+        
+    }
+
+    void applyEthernetIpConfig(EIPSession eipSession, jvs::config::EthernetIP* cin)
+    {
+        ethernetIP::EthernetIP* ethernetip = new ethernetIP::EthernetIP(eipSession);
+
+        Status ret = ethernetip->Config(cin);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO CONFIGURE ETHERNETIP");
+            return;
+        }
+
+        mConfigVectorEthernetIP.emplace_back(*cin);
+        EthernetIpVector.emplace_back(*ethernetip);
         
     }
 #endif

@@ -48,6 +48,7 @@ namespace muffin { namespace jvs { namespace config {
             mFormatString           = obj.mFormatString;
             mTopic                  = obj.mTopic;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
+            mArrayIndex             = obj.mArrayIndex;
         }
         
         return *this;
@@ -68,7 +69,8 @@ namespace muffin { namespace jvs { namespace config {
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
             mTopic                  == obj.mTopic                   &&
-            mHasAttributeEvent      == obj.mHasAttributeEvent
+            mHasAttributeEvent      == obj.mHasAttributeEvent       &&
+            mArrayIndex             == obj.mArrayIndex
         );
     }
 
@@ -499,6 +501,12 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::TOPIC));
     }
 
+    void Node::SetArrayIndex(const std::vector<std::array<uint16_t, 2>> arrayindex)
+    {
+        mArrayIndex = arrayindex;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ARRAY_INDEX));
+    }
+
     void Node::SetAttributeEvent(const bool hasEvent)
     {
         mHasAttributeEvent = hasEvent;
@@ -694,6 +702,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mTopic);
+        }
+    }
+
+    std::pair<Status, std::vector<std::array<uint16_t, 2>>> Node::GetArrayIndex() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ARRAY_INDEX)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mArrayIndex);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mArrayIndex);
         }
     }
 }}}

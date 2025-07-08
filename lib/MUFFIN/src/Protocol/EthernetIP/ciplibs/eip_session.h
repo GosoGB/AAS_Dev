@@ -10,4 +10,8 @@ bool registerSession(EIPSession& session);
 bool unregisterSession(EIPSession& session);
 void eipClose(EIPSession& session);
 
+
+extern EIPSession embeddedEipSession_t;
+extern EIPSession link1EipSession_t;
+
 #endif

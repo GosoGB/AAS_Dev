@@ -28,12 +28,17 @@ namespace muffin { namespace ethernetIP {
     AddressTable::AddressTable(size_t maxSize)
     : maxBatchSize(maxSize)
     {
-        batches.emplace_back();
+        mBatches.emplace_back();
     }
 
     AddressTable::~AddressTable()
     {
 
+    }
+
+    void AddressTable::Clear()
+    {
+        mBatches.clear();
     }
 
     Status AddressTable::Update(const std::string& tag)
@@ -47,12 +52,12 @@ namespace muffin { namespace ethernetIP {
         }
 
         // 현재 배치 초과 시 새 배치 생성
-        if (batches.back().totalSize + tagSize > maxBatchSize) 
+        if (mBatches.back().totalSize + tagSize > maxBatchSize) 
         {
-            batches.emplace_back();
+            mBatches.emplace_back();
         }
 
-        tag_batch_struct_t& current = batches.back();
+        tag_batch_struct_t& current = mBatches.back();
         current.tags.push_back(tag);
         current.totalSize += tagSize;
 
@@ -61,7 +66,7 @@ namespace muffin { namespace ethernetIP {
 
     Status AddressTable::Remove(const std::string& tag)
     {
-        for (auto it = batches.begin(); it != batches.end(); ++it) 
+        for (auto it = mBatches.begin(); it != mBatches.end(); ++it) 
         {
             auto& tags = it->tags;
             for (auto tagIt = tags.begin(); tagIt != tags.end(); ++tagIt) 
@@ -74,7 +79,7 @@ namespace muffin { namespace ethernetIP {
 
                     // 빈 배치 정리
                     if (tags.empty()) {
-                        batches.erase(it);
+                        mBatches.erase(it);
                     }
                     
                     return Status(Status::Code::GOOD);
@@ -88,13 +93,20 @@ namespace muffin { namespace ethernetIP {
 
     std::vector<std::string> AddressTable::RetrieveTagsByBatch(size_t batchIndex) const 
     {
-        if (batchIndex >= GetBatchCount()) return {};
-        return batches[batchIndex].tags;
+        try 
+        {
+            return mBatches.at(batchIndex).tags;
+        } 
+        catch (const std::out_of_range& e) 
+        {
+            LOG_WARNING(logger, "BATCH INDEX DOES NOT EXIST");
+            return {};
+        }
     }
 
     size_t AddressTable::GetBatchCount() const 
     {
-        return batches.size();
+        return mBatches.size();
     }
 
     void AddressTable::DebugPrint() const 
@@ -103,9 +115,9 @@ namespace muffin { namespace ethernetIP {
         Serial.println(F("🧩 Batch Table Summary"));
         Serial.println(F("=======================\n"));
 
-        for (size_t i = 0; i < batches.size(); ++i) 
+        for (size_t i = 0; i < mBatches.size(); ++i) 
         {
-            const tag_batch_struct_t& batch = batches[i];
+            const tag_batch_struct_t& batch = mBatches[i];
             Serial.printf("📦 Batch %2d | Size: %4d bytes | Tags: %2d\n", (int)i + 1, (int)batch.totalSize, (int)batch.tags.size());
             Serial.println(F("────────────────────────────────────"));
 
@@ -116,7 +128,7 @@ namespace muffin { namespace ethernetIP {
             Serial.println();
         }
 
-        Serial.printf("✅ Total Batches: %d\n", (int)batches.size());
+        Serial.printf("✅ Total Batches: %d\n", (int)mBatches.size());
         Serial.println(F("=======================\n"));
     }
 
@@ -130,7 +142,7 @@ namespace muffin { namespace ethernetIP {
 
     Status AddressTable::contains(const std::string& tag) const 
     {
-        for (const auto& batch : batches) 
+        for (const auto& batch : mBatches) 
         {
             for (const auto& existing : batch.tags) 
             {

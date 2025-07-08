@@ -36,8 +36,8 @@ namespace muffin {
 
     TaskHandle_t xTaskMonitorHandle = NULL;
 
-    bitset<static_cast<uint8_t>(3)> g_DaqTaskEnableFlag;
-    bitset<static_cast<uint8_t>(3)> g_DaqTaskSetFlag;
+    bitset<static_cast<uint8_t>(4)> g_DaqTaskEnableFlag;
+    bitset<static_cast<uint8_t>(4)> g_DaqTaskSetFlag;
 
     bool WaitForFlagWithTimeout(set_task_flag_e task)
     {

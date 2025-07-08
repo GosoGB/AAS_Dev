@@ -10,14 +10,17 @@ constexpr uint16_t EIP_CMD_UNREGISTER_SESSION = 0x0066;
 constexpr size_t EIP_HEADER_SIZE = 24;
 constexpr uint16_t EIP_PROTOCOL_VERSION = 0x0001;
 
+EIPSession embeddedEipSession_t;
+EIPSession link1EipSession_t;
+
 bool eipInit(EIPSession& session, IPAddress ip, uint16_t port) {
     session.targetIP = ip;
     session.targetPort = port;
 
-    session.client.stop();
+    session.client->stop();
     delay(100); // ensure previous session is fully closed
 
-    if (session.client.connect(ip, port)) {
+    if (session.client->connect(ip, port)) {
         session.connected = true;
         return true;
     }
@@ -40,7 +43,7 @@ bool registerSession(EIPSession& session) {
         0x00, 0x00              // Options Flags = 0
     };
 
-    if (session.client.write(packet.data(), packet.size()) != packet.size()) {
+    if (session.client->write(packet.data(), packet.size()) != packet.size()) {
         Serial.println("[RegisterSession] 요청 전송 실패");
         return false;
     }
@@ -51,8 +54,8 @@ bool registerSession(EIPSession& session) {
     int totalRead = 0;
 
     while (totalRead < EIP_HEADER_SIZE && millis() - start < 1000) {
-        if (session.client.available()) {
-            int r = session.client.read(header + totalRead, EIP_HEADER_SIZE - totalRead);
+        if (session.client->available()) {
+            int r = session.client->read(header + totalRead, EIP_HEADER_SIZE - totalRead);
             if (r > 0) {
                 totalRead += r;
             } else if (r < 0) {
@@ -88,10 +91,10 @@ bool registerSession(EIPSession& session) {
     start = millis();
 
     while (totalRead < payloadLen && millis() - start < 1000) {
-        if (session.client.available()) {
+        if (session.client->available()) {
             uint8_t buf[256];
             int toRead = std::min((int)sizeof(buf), (int)(payloadLen - totalRead));
-            int r = session.client.read(buf, toRead);
+            int r = session.client->read(buf, toRead);
             if (r > 0) {
                 response.insert(response.end(), buf, buf + r);
                 totalRead += r;
@@ -147,13 +150,13 @@ bool unregisterSession(EIPSession& session) {
     };
 
 
-    session.client.write(packet.data(), packet.size());
+    session.client->write(packet.data(), packet.size());
     return true;
 }
 
 void eipClose(EIPSession& session) {
     unregisterSession(session); // try clean close
-    session.client.stop();
+    session.client->stop();
 
     session.connected = false;
     session.sessionHandle = 0;

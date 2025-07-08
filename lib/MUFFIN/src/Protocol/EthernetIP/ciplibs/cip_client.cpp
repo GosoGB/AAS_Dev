@@ -2,6 +2,7 @@
 #include "cip_path.h"
 #include "cip_util.h"
 #include "cip_client.h"
+#include "Common/Time/TimeUtils.h"
 
 // 읽기 함수 (데이터 타입 파라미터화)
 bool readLogicalValue( EIPSession& session, uint8_t classId, uint8_t instanceId, uint8_t attributeId, uint16_t dataType, cip_data_t& outResult)
@@ -39,7 +40,7 @@ bool readLogicalValue( EIPSession& session, uint8_t classId, uint8_t instanceId,
     uint8_t generalStatus = response[CIP_OFFSET + 2];
     outResult.Code = generalStatus;
     outResult.ExtCode = response[CIP_OFFSET + 3];
-    outResult.Timestamp = millis();
+    outResult.Timestamp = muffin::GetTimestampInMillis();
     outResult.DataType = static_cast<CipDataType>(dataType);
 
     if (generalStatus != 0) {
@@ -116,7 +117,7 @@ bool writeLogicalValue(EIPSession& session, uint8_t classId, uint8_t instanceId,
     outResult.Code = response[CIP_OFFSET + 2];
     outResult.ExtCode = response[CIP_OFFSET + 3];
     outResult.DataType = static_cast<CipDataType>(dataType);
-    outResult.Timestamp = millis();
+    outResult.Timestamp = muffin::GetTimestampInMillis();
 
     return (outResult.Code == 0);
 }

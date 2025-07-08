@@ -85,6 +85,7 @@ namespace muffin {
     private:
         IPAddress mServerIP;
         uint16_t mServerPort;
+        uint16_t mScanRate = 80;
     public:
     #if defined(MT11)
         w5500::EthernetClient* mClient = nullptr;

@@ -474,7 +474,7 @@ Status ModbusRTU::PollTemp()
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -521,7 +521,7 @@ Status ModbusRTU::PollTemp()
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
             ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -569,7 +569,7 @@ Status ModbusRTU::PollTemp()
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
             ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -619,7 +619,7 @@ Status ModbusRTU::PollTemp()
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
             ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 

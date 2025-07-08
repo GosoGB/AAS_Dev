@@ -58,6 +58,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::vector<DataUnitOrder>> processDataUnitOrders(JsonVariant dataUnitOrders);
         // Status emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
+        void convertToArrayIndex(JsonArray arrayIndex);
         void convertToTopic(const uint8_t topic);
         void convertToAdressType(const uint8_t type);
         void convertToAddress(JsonVariant address);
@@ -82,6 +83,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, std::vector<dt_e>> mDataTypes;
         std::pair<rsc_e, std::string> mFormatString;
         std::pair<rsc_e, mqtt::topic_e> mTopic;
+        std::pair<rsc_e, std::vector<std::array<uint16_t, 2>>> mArrayIndex;
         bool mIsEventType = false;
     private:
         std::vector<fmt_spec_e> mVectorFormatSpecifier;

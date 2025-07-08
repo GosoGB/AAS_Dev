@@ -330,7 +330,7 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             mModbusTCPClient->requestFrom(slaveID, COILS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 
@@ -377,7 +377,7 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
             mModbusTCPClient->requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 
@@ -425,7 +425,7 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
             mModbusTCPClient->requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 
@@ -474,7 +474,7 @@ namespace muffin {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
             mModbusTCPClient->requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
-            delay(80);
+            delay(mScanRate);
             // const char* lastError = mModbusTCPClient->lastError();
             // mModbusTCPClient->clearError();
 

@@ -42,6 +42,7 @@ namespace muffin { namespace im {
         jvs::addr_u GetAddress() const;
         uint8_t GetQuantity() const;
         int16_t GetBitIndex() const;
+        std::vector<std::array<uint16_t, 2>> GetArrayIndex() const;
         jvs::node_area_e GetNodeArea() const;
 
     public:

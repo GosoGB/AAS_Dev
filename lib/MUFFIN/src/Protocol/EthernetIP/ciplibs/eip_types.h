@@ -4,8 +4,9 @@
 #include <Network/Ethernet/W5500/EthernetClient.h>
 #include <IPAddress.h>
 
-struct EIPSession {
-    muffin::w5500::EthernetClient client;
+struct EIPSession 
+{
+    muffin::w5500::EthernetClient* client = nullptr;
     uint32_t sessionHandle = 0;
     uint32_t connectionID = 0;
     IPAddress targetIP;

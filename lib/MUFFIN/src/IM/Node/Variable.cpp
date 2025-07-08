@@ -59,6 +59,13 @@ namespace muffin { namespace im {
         return mCIN->GetNumericAddressQuantity().second;
     }
 
+    std::vector<std::array<uint16_t, 2>> Variable::GetArrayIndex() const
+    {
+        return mCIN->GetArrayIndex().first == Status::Code::GOOD ?
+            mCIN->GetArrayIndex().second : 
+            std::vector<std::array<uint16_t, 2>>{};
+    }
+
     int16_t Variable::GetBitIndex() const
     {
         return mCIN->GetBitIndex().first == Status::Code::GOOD ?

@@ -81,7 +81,8 @@ namespace muffin {
         PRODUCTION_INFO_TASK = 6,
         CATM1_PROCESSOR_TASK = 7,
         CATM1_MONITORING_TASK = 8,
-        MELSEC_TASK = 9
+        MELSEC_TASK = 9,
+        ETHERNET_IP_TASK = 10
     } task_name_e;
 
     typedef enum class ReconfigurationCode : uint8_t
