@@ -30,8 +30,7 @@
 #include "Protocol/EthernetIP/EthernetIpMutex.h"
 
 
-namespace muffin 
-{
+namespace muffin {
 
     std::vector<ethernetIP::EthernetIP> EthernetIpVector;
     TaskHandle_t xTaskEthernetIpHandle = NULL;
@@ -59,20 +58,20 @@ namespace muffin
             {
                 continue;
             }
-
+            
             for(auto& EthernetIp : EthernetIpVector)
             {
                 if (!EthernetIp.mEipSession.client->connected())
                 {
                     if (!EthernetIp.Connect())
                     {
-                        LOG_ERROR(logger,"EthernetIp Client failed to connect!, serverIP : %s, serverPort: %d", EthernetIp.GetServerIP().toString().c_str(), EthernetIp.GetServerPort());
-                        EthernetIp.SetTimeoutError();     
+                        LOG_ERROR(logger,"EthernetIp Client failed to connect!, serverIP : %s, serverPort: %d", EthernetIp.mEipSession.targetIP.toString().c_str(), EthernetIp.mEipSession.targetPort);
+                        // EthernetIp.SetTimeoutError();     
                         EthernetIp.mEipSession.client->stop();    
                         continue;
                     } 
                 }
-                
+
                 Status ret = EthernetIp.Poll();
                 if (ret != Status::Code::GOOD)
                 {

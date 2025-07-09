@@ -75,7 +75,7 @@ bool readTagIndex(EIPSession& session, const std::string& tagName, cip_data_t& o
     // Serial.printf("[readTag] Data Type: 0x%04X\n", typeRaw);
 
     // 데이터 값 처리
-    if (!decodeCipValue(dataType, dataStart, response, outData.Value))
+    if (!decodeCipValue(dataType, dataStart, response, outData.Value, outData.RawData))
     {
         Serial.printf("[readTag] Unknown DataType: 0x%04X\n", typeRaw);
         return false;
@@ -156,7 +156,7 @@ bool readTag(EIPSession& session, const std::string& tagName, cip_data_t& outDat
     // Serial.printf("[readTag] Data Type: 0x%04X\n", typeRaw);
 
     // 데이터 값 처리
-    if (!decodeCipValue(dataType, dataStart, response, outData.Value))
+    if (!decodeCipValue(dataType, dataStart, response, outData.Value, outData.RawData))
     {
         Serial.printf("[readTag] Unknown DataType: 0x%04X\n", typeRaw);
         return false;
@@ -250,7 +250,7 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
 
         size_t elementOffset = dataStart + i * elementSize;
 
-        if (!decodeCipValue(dataType, elementOffset, response, element.Value)) {
+        if (!decodeCipValue(dataType, elementOffset, response, element.Value, element.RawData)) {
             Serial.printf("[readTagEx] Failed to decode element %u\n", i);
             return false;
         }

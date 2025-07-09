@@ -111,15 +111,15 @@ namespace muffin { namespace ethernetIP {
 
     void AddressTable::DebugPrint() const 
     {
-        Serial.println(F("\n======================="));
+        Serial.println(F("\n=============================================="));
         Serial.println(F("🧩 Batch Table Summary"));
-        Serial.println(F("=======================\n"));
+        Serial.println(F("==============================================\n"));
 
         for (size_t i = 0; i < mBatches.size(); ++i) 
         {
             const tag_batch_struct_t& batch = mBatches[i];
             Serial.printf("📦 Batch %2d | Size: %4d bytes | Tags: %2d\n", (int)i + 1, (int)batch.totalSize, (int)batch.tags.size());
-            Serial.println(F("────────────────────────────────────"));
+            Serial.println(F("──────────────────────────────────────────────"));
 
             for (size_t j = 0; j < batch.tags.size(); ++j) {
                 Serial.printf("  %2d. %s\n", (int)j + 1, batch.tags[j].c_str());
@@ -129,7 +129,7 @@ namespace muffin { namespace ethernetIP {
         }
 
         Serial.printf("✅ Total Batches: %d\n", (int)mBatches.size());
-        Serial.println(F("=======================\n"));
+        Serial.println(F("==============================================\n"));
     }
 
     size_t AddressTable::estimateTagSize(const std::string& tag) const 

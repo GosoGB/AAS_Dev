@@ -680,6 +680,7 @@ namespace muffin { namespace jvs {
             if (mAddressQuantity.first == rsc_e::GOOD)
             {
                 char message[128] = {'\0'};
+                LOG_ERROR(logger,"NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF ADDRESS TYPE IS NOT NUMERIC, NODE ID: %s", mNodeID);
                 snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF ADDRESS TYPE IS NOT NUMERIC, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }

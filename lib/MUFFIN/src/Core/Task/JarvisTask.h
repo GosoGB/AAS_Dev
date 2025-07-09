@@ -42,7 +42,7 @@ namespace muffin {
 #if defined(MT11)
     void applyModbusTcpConfig(W5500* eth, w5500::sock_id_e id, jvs::config::ModbusTCP* cin);
     void applyMelsecConfig(MelsecClient* client, jvs::config::Melsec* cin);
-    void applayEthernetIpCIN(std::vector<jvs::config::Base*>& vectorEthernetIpCIN);
+    void applyEthernetIpCIN(std::vector<jvs::config::Base*>& vectorEthernetIpCIN);
     void applyEthernetIpConfig(EIPSession eipSession, jvs::config::EthernetIP* cin);
 #endif
 

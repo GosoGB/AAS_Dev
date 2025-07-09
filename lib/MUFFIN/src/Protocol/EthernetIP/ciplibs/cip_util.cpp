@@ -200,21 +200,24 @@ int cipDataTypeSizeFromRaw(uint16_t rawType) {
     }
 }
 
-bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<uint8_t>& response, cip_value_u& outValue )
+bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<uint8_t>& response, cip_value_u& outValue, std::vector<uint8_t>& outputRawData )
 {
     switch (dataType)
     {
         case CipDataType::BOOL:
             outValue.BOOL = (response[dataStart] != 0);
+            outputRawData.emplace_back(response[dataStart]);
             return true;
 
         case CipDataType::SINT:
             outValue.SINT = static_cast<int8_t>(response[dataStart]);
+            outputRawData.emplace_back(response[dataStart]);
             return true;
 
         case CipDataType::USINT:
         case CipDataType::BYTE:
             outValue.USINT = response[dataStart];
+            outputRawData.emplace_back(response[dataStart]);
             return true;
 
         case CipDataType::INT:
@@ -222,6 +225,12 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
                 response[dataStart] |
                 (response[dataStart + 1] << 8)
             );
+
+            for (size_t i = 0; i < 2; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
+            
             return true;
 
         case CipDataType::UINT:
@@ -230,6 +239,11 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
                 response[dataStart] |
                 (response[dataStart + 1] << 8)
             );
+
+            for (size_t i = 0; i < 2; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
             return true;
 
         case CipDataType::DINT:
@@ -240,6 +254,11 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
                 (response[dataStart + 2] << 16) |
                 (response[dataStart + 3] << 24)
             );
+
+            for (size_t i = 0; i < 4; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
             return true;
 
         case CipDataType::UDINT:
@@ -249,6 +268,11 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
                 (response[dataStart + 2] << 16) |
                 (response[dataStart + 3] << 24)
             );
+
+            for (size_t i = 0; i < 4; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
             return true;
 
         case CipDataType::REAL: {
@@ -259,6 +283,11 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
                 (response[dataStart + 3] << 24)
             );
             memcpy(&outValue.REAL, &raw, sizeof(float));
+
+            for (size_t i = 0; i < 4; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
             return true;
         }
 
@@ -266,12 +295,22 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
             outValue.LINT = 0;
             for (int i = 0; i < 8; ++i)
                 outValue.LINT |= (static_cast<int64_t>(response[dataStart + i]) << (i * 8));
+
+            for (size_t i = 0; i < 8; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
             return true;
 
         case CipDataType::ULINT:
             outValue.ULINT = 0;
             for (int i = 0; i < 8; ++i)
                 outValue.ULINT |= (static_cast<uint64_t>(response[dataStart + i]) << (i * 8));
+
+            for (size_t i = 0; i < 8; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
             return true;
 
         case CipDataType::LREAL: {
@@ -279,6 +318,11 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
             for (int i = 0; i < 8; ++i)
                 raw |= (static_cast<uint64_t>(response[dataStart + i]) << (i * 8));
             memcpy(&outValue.LREAL, &raw, sizeof(double));
+
+            for (size_t i = 0; i < 8; i++)
+            {
+                outputRawData.emplace_back(response[dataStart+i]);
+            }
             return true;
         }
 

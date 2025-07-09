@@ -25,7 +25,7 @@ int cipDataTypeSize(CipDataType type);
 int cipDataTypeSizeFromRaw(uint16_t rawType);
 
 //  dataType 디코딩
-bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<uint8_t>& response, cip_value_u& outValue );
+bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<uint8_t>& response, cip_value_u& outValue, std::vector<uint8_t>& outputRawData );
 
 // 세션 연결 상태 확인
 bool checkConnection(muffin::w5500::EthernetClient& client);

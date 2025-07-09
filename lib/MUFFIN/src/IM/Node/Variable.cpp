@@ -624,6 +624,7 @@ namespace muffin { namespace im {
     
     void Variable::castByteVector(const jvs::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
     {
+        LOG_DEBUG(logger,"vectorBytes size : %d",vectorBytes.size());
         switch (dataType)
         {
         case jvs::dt_e::INT8:
@@ -942,7 +943,7 @@ namespace muffin { namespace im {
     void Variable::castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData)
     {
         ASSERT((outputCastedData != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
-
+        LOG_DEBUG(logger,"polledData size : %d",polledData.size());
         std::vector<uint8_t> vectorFlattened;
         flattenToByteArray(polledData, &vectorFlattened);
         castByteVector(mCIN->GetDataTypes().second.front(), vectorFlattened, outputCastedData);

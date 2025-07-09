@@ -1,6 +1,8 @@
 // cip_types.h
 
 #pragma once
+
+#include <vector>
 #include <cstdint>
 #include "IM/Node/Include/TypeDefinitions.h"
 
@@ -63,11 +65,12 @@ typedef union CipDataValueUnion
 
 typedef struct CipData
 {
-    uint16_t Code;          // 상태 코드
-    uint16_t ExtCode;       // Extended Status
-    uint64_t Timestamp;     // 수집 시각
-    CipDataType  DataType;  // CIP 데이터 타입
-    cip_value_u Value;      // 값
+    uint16_t Code;                  // 상태 코드
+    uint16_t ExtCode;               // Extended Status
+    uint64_t Timestamp;             // 수집 시각
+    CipDataType  DataType;          // CIP 데이터 타입
+    cip_value_u Value;              // 값
+    std::vector<uint8_t> RawData;   // Raw Data
 } cip_data_t;
 
 

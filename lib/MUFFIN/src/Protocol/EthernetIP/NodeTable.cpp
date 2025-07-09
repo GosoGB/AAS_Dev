@@ -35,6 +35,7 @@ namespace muffin { namespace ethernetIP {
         try
         {
             mVectorNodeReference.emplace_back(&node);
+            LOG_DEBUG(logger,"mVectorNodeReference size : %d",mVectorNodeReference.size());
             return Status(Status::Code::GOOD);
         }
         catch(const std::bad_alloc& e)
@@ -47,6 +48,8 @@ namespace muffin { namespace ethernetIP {
             LOG_ERROR(logger, "%s: %s", e.what(), node.GetNodeID());
             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
         }
+
+        
     }
 
     Status NodeTable::Remove(NodeRef& node)

@@ -115,6 +115,11 @@ namespace muffin {
                 isSuccessPolling = false;
             }
 
+            if (WaitForFlagWithTimeout(set_task_flag_e::ETHERNET_IP_TASK) == false)
+            {
+                isSuccessPolling = false;
+            }
+
             if (initFlag == true)
             {
                 if(isSuccessPolling)

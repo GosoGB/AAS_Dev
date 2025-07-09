@@ -22,6 +22,7 @@
 #include "IM/Node/NodeStore.h"
 #include "IM/Node/Include/Utility.h"
 #include "EthernetIP.h"
+#include "EthernetIpMutex.h"
 
 
 
@@ -70,6 +71,8 @@ namespace muffin { namespace ethernetIP {
         }
         
         LOG_DEBUG(logger,"Session opened");
+
+        return true;
     }
 
     Status EthernetIP::addNodeReferences(const std::vector<std::__cxx11::string>& vectorNodeID)
@@ -95,6 +98,7 @@ namespace muffin { namespace ethernetIP {
             }
 
             std::vector<std::array<uint16_t, 2>> nodeArrayIndex = reference->VariableNode.GetArrayIndex();
+            LOG_DEBUG(logger,"nodeArrayIndex size : %d", nodeArrayIndex.size());
             
             if (nodeArrayIndex.size() == 0)
             {
@@ -115,7 +119,7 @@ namespace muffin { namespace ethernetIP {
                  */
 
             }
-
+            mAddressTable.DebugPrint();
         }
 
         return Status(Status::Code::GOOD);
@@ -133,7 +137,7 @@ namespace muffin { namespace ethernetIP {
         {
             LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
         }
-        
+
         ret = updateVariableNodes();
         if (ret != Status::Code::GOOD)
         {
@@ -146,16 +150,29 @@ namespace muffin { namespace ethernetIP {
     Status EthernetIP::implementPolling()
     {
         size_t batchCount = mAddressTable.GetBatchCount();
+
+        if (xSemaphoreTake(xSemaphoreEthernetIP, 2000)  != pdTRUE)
+        {
+            LOG_WARNING(logger, "[EthernetIP] THE READ MODULE IS BUSY. TRY LATER.");
+            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
+        }
+
+
         for (size_t i = 0; i < batchCount; i++)
         {
             std::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
+            
             std::vector<cip_data_t> readValues;
             if (readTagsMSR(mEipSession, retrievedTagInfo, readValues))
             {
                 for (size_t i = 0; i < readValues.size(); i++)
                 {
                     const auto& tagName = retrievedTagInfo.at(i);
-                    const auto& result = readValues[i];
+                    const auto& result = readValues.at(i);
+
+                    LOG_DEBUG(logger,"tagName : %s",tagName.c_str());
+                    printCipData(result);
+
                     try
                     {
                         auto it = mPolledDataTable.find(tagName);
@@ -175,11 +192,13 @@ namespace muffin { namespace ethernetIP {
                     catch (const std::bad_alloc& e)
                     {
                         LOG_ERROR(logger, "OUT OF MEMORY: %s - TAG: %s", e.what(), tagName.c_str());
+                        xSemaphoreGive(xSemaphoreEthernetIP);
                         return Status(Status::Code::BAD_OUT_OF_MEMORY);
                     }
                     catch (const std::exception& e)
                     {
                         LOG_ERROR(logger, "EXCEPTION: %s - TAG: %s", e.what(), tagName.c_str());
+                        xSemaphoreGive(xSemaphoreEthernetIP);
                         return Status(Status::Code::BAD_UNEXPECTED_ERROR);
                     }
                 }
@@ -187,11 +206,12 @@ namespace muffin { namespace ethernetIP {
             else
             {   
                 LOG_ERROR(logger, "POLLING ERROR FOR TAG");
+                xSemaphoreGive(xSemaphoreEthernetIP);
                 return Status(Status::Code::BAD);
             }
 
         }  
-        
+        xSemaphoreGive(xSemaphoreEthernetIP);
         return Status(Status::Code::GOOD);
     }
 
@@ -210,8 +230,10 @@ namespace muffin { namespace ethernetIP {
         {
             std::vector<std::array<uint16_t, 2>> arrayIndex = node->VariableNode.GetArrayIndex();
             std::string address = node->VariableNode.GetAddress().String;
+            const uint16_t quantity = node->VariableNode.GetQuantity();
+
             std::vector<cip_data_t> vPolledData;
-           
+            LOG_DEBUG(logger,"mPolledDataTable SIZE : %d" , mPolledDataTable.size());
             auto it = mPolledDataTable.find(address);
             if (it != mPolledDataTable.end()) 
             {
@@ -229,6 +251,7 @@ namespace muffin { namespace ethernetIP {
                 cip_data_t datum = vPolledData.at(0);
                 // 단일 값 처리
                 std::vector<im::poll_data_t> vectorPolledData;
+                vectorPolledData.reserve(quantity);
                 im::poll_data_t polledData;
                 /**
                  * @todo EthernetIP 상태코드가 현재 제대로 구현이 안되어있음 확인 후 추가 개발이 필요함 @김주성 
@@ -239,7 +262,8 @@ namespace muffin { namespace ethernetIP {
                 polledData.AddressType = jvs::adtp_e::STRING;
                 strcpy(polledData.Address.String, address.c_str());
                 polledData.Timestamp = datum.Timestamp;
-                
+                LOG_INFO(logger,"TAG : %s || DATA TYPE : %d || DATA : %d", address.c_str() , datum.DataType, datum.Value.SINT );
+                LOG_INFO(logger,"RAW DATA SIZE : %d",datum.RawData.size());
                 ret = convertToValue(datum, &polledData);
                 if (ret != Status::Code::GOOD)
                 {
@@ -247,7 +271,14 @@ namespace muffin { namespace ethernetIP {
                     return ret;
                 }
 
-                vectorPolledData.emplace_back(polledData);
+
+                for (size_t i = 0; i < datum.RawData.size(); i++)
+                {
+                    polledData.ValueType = jvs::dt_e::UINT8;
+                    polledData.Value.UInt8 = datum.RawData.at(i);
+                    vectorPolledData.emplace_back(polledData);
+                }
+                
                 node->VariableNode.Update(vectorPolledData);
 
             }
@@ -289,7 +320,6 @@ namespace muffin { namespace ethernetIP {
             output->Value.String = data.Value.STRING;
             return Status(Status::Code::GOOD);
         default:
-            LOG_ERROR(logger,"UNSUPPORTED DATA TPYE [%d]",output->ValueType);
             return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
         }
 

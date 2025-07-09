@@ -93,6 +93,10 @@ namespace muffin {
         mTaskResources[9].TotalStackSize    = 8 * KILLOBYTE;
         mTaskResources[9].RemainedStackSize = -1;
 
+        strcpy(mTaskResources[10].TaskName, "EthernetIpTask");
+        mTaskResources[10].TotalStackSize    = 10 * KILLOBYTE;
+        mTaskResources[10].RemainedStackSize = -1;
+
     }
 
     void DeviceStatus::SetResetReason(const esp_reset_reason_t code)
@@ -181,8 +185,11 @@ namespace muffin {
         case task_name_e::CATM1_MONITORING_TASK:
             mTaskResources[8].RemainedStackSize = remainedStack;
             break;
-            case task_name_e::MELSEC_TASK:
+        case task_name_e::MELSEC_TASK:
             mTaskResources[9].RemainedStackSize = remainedStack;
+            break;
+        case task_name_e::ETHERNET_IP_TASK:
+            mTaskResources[10].RemainedStackSize = remainedStack;
             break;
         default:
             LOG_ERROR(logger,"NOT DEFINED TAKSNAME : %d",task);

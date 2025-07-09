@@ -180,6 +180,7 @@ namespace muffin {
             if (retrievedAddressInfo.first.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE ADDRESSES FOR POLLING: %s", retrievedAddressInfo.first.c_str());
+                xSemaphoreGive(xSemaphoreMelsec);
                 return Status(Status::Code::BAD);
             }
 
@@ -187,6 +188,7 @@ namespace muffin {
             if (retrievedAreaInfo.first.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE MELSEC AREA FOR POLLING: %s", retrievedAreaInfo.first.c_str());
+                xSemaphoreGive(xSemaphoreMelsec);
                 return Status(Status::Code::BAD);
             }
 

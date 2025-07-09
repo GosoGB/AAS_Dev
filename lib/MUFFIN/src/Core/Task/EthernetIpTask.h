@@ -16,11 +16,11 @@
 #include "Protocol/EthernetIP/EthernetIP.h"
 
 
-namespace muffin{
+namespace muffin {
 
-    void StartEthernetIPTask();
-    void StopEthernetIPTask();
-    bool HasEthernetIPTask();
+    void StartEthernetIpTask();
+    void StopEthernetIpTask();
+    bool HasEthernetIpTask();
 
     extern std::vector<ethernetIP::EthernetIP> EthernetIpVector;
 

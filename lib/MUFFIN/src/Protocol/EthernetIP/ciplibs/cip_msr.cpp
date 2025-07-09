@@ -197,7 +197,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         data.DataType = static_cast<CipDataType>(rawType);
 
         // 값 디코딩
-        if (!decodeCipValue(data.DataType, valuePos, oneResponse, data.Value))
+        if (!decodeCipValue(data.DataType, valuePos, oneResponse, data.Value, data.RawData))
         {
             Serial.printf("[readTag] Unknown or unsupported DataType: 0x%04X\n", rawType);
             data.Code = 0xFF; // 디코딩 실패 표시 (선택)

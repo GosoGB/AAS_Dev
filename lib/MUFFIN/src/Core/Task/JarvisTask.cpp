@@ -125,7 +125,7 @@ namespace muffin {
             const jvs::cfg_key_e key = pair.first;
             if (key == jvs::cfg_key_e::ETHERNET_IP)
             {
-                applyMelsecCIN(pair.second);
+                applyEthernetIpCIN(pair.second);
                 for (auto it = pair.second.begin(); it != pair.second.end(); ++it)
                 {
                     delete *it;
@@ -196,6 +196,7 @@ namespace muffin {
             case jvs::cfg_key_e::RS232:
             case jvs::cfg_key_e::WIFI4:
             case jvs::cfg_key_e::ETHERNET:
+            case jvs::cfg_key_e::ETHERNET_IP:
                 break;
             
             default:
@@ -467,7 +468,7 @@ namespace muffin {
     }
 
 #if defined(MT11)
-    void applayEthernetIpCIN(std::vector<jvs::config::Base*>& vectorEthernetIpCIN)
+    void applyEthernetIpCIN(std::vector<jvs::config::Base*>& vectorEthernetIpCIN)
     {
         if (jvs::config::operation.GetPlanExpired().second == true)
         {
@@ -475,6 +476,7 @@ namespace muffin {
             return;
         }
 
+        EthernetIpVector.clear();
         mConfigVectorEthernetIP.clear();
 
         for (auto& ethetnetIpCIN : vectorEthernetIpCIN)
@@ -489,14 +491,11 @@ namespace muffin {
                  * @todo Ethernet/IP는 2번 소캣을 고정으로 사용하도록 임시로 두었음 @김주성
                  * 
                  */
-
                 if (embeddedEipSession_t.client == nullptr)
                 {
                     embeddedEipSession_t.client = new w5500::EthernetClient(*ethernet, w5500::sock_id_e::SOCKET_2);
                 }
-                
                 applyEthernetIpConfig(embeddedEipSession_t, cin);
-                
                 break;
             }
             case jvs::if_e::LINK_01:
@@ -505,7 +504,6 @@ namespace muffin {
                 {
                     link1EipSession_t.client = new w5500::EthernetClient(*link1W5500, w5500::sock_id_e::SOCKET_2);
                 }
-                
                 applyEthernetIpConfig(link1EipSession_t, cin);
                 break;
             }
@@ -514,7 +512,7 @@ namespace muffin {
             }
         }
 
-        StartEthernetIPTask();
+        StartEthernetIpTask();
         StartTaskMSG();
     }
 #endif
@@ -679,6 +677,8 @@ namespace muffin {
 
         mConfigVectorEthernetIP.emplace_back(*cin);
         EthernetIpVector.emplace_back(*ethernetip);
+
+        LOG_DEBUG(logger,"mConfigVectorEthernetIP size : %d || EthernetIpVector size : %d",mConfigVectorEthernetIP.size(),EthernetIpVector.size());
         
     }
 #endif
