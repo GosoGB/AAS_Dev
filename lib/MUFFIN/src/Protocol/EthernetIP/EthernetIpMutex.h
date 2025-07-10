@@ -10,7 +10,7 @@
  * @copyright Copyright Edgecross Inc. (c) 2025
  */
 
-
+#if defined(MT11)
 
 #pragma once
 
@@ -23,3 +23,5 @@ namespace muffin {
     extern SemaphoreHandle_t xSemaphoreEthernetIP;
     
 }
+
+#endif

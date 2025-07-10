@@ -678,7 +678,6 @@ namespace muffin {
         mConfigVectorEthernetIP.emplace_back(*cin);
         EthernetIpVector.emplace_back(*ethernetip);
 
-        LOG_DEBUG(logger,"mConfigVectorEthernetIP size : %d || EthernetIpVector size : %d",mConfigVectorEthernetIP.size(),EthernetIpVector.size());
         
     }
 #endif

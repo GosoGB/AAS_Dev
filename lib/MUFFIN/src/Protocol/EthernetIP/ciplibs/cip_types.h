@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 // cip_types.h
 
 #pragma once
@@ -33,7 +35,9 @@ enum class CipDataType : uint16_t {
     ULINT  = 0xC9, // Unsigned 64-bit integer
     LREAL  = 0xCB, // 64-bit floating point (IEEE 754)
     LWORD  = 0xD4, // Bit string (64 bits) // N/A: 일반 CIP 서비스 미지원
-    STRING = 0x02 // 서비스 코드 확인해야함
+    
+    // 확인 필요
+    STRING = 0x02A0,  // UDT 서비스 코드임
 };
 
 
@@ -112,3 +116,6 @@ enum CipIdentityAttributeId : uint8_t
     CIP_ATTR_SERIAL_NUMBER   = 0x06, // Serial Number
     CIP_ATTR_PRODUCT_NAME    = 0x07  // Product Name String
 };
+
+
+#endif

@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #ifndef CIP_SINGLE_H
 #define CIP_SINGLE_H
 
@@ -19,5 +21,7 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
 bool writeTag( EIPSession& session, const std::string& tagName, const std::vector<uint8_t>& data, uint16_t dataType, cip_data_t& outResult );
 // Array TAG 쓰기 요청 (0x4D)
 bool writeTagExt(EIPSession& session, const std::string& tagName, const std::vector<uint8_t>& data, uint16_t dataType, uint16_t elementCount, cip_data_t& outResult);
+
+#endif
 
 #endif

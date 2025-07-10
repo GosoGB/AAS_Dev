@@ -1,3 +1,4 @@
+#if defined(MT11)
 #ifndef EIP_TYPES_H
 #define EIP_TYPES_H
 
@@ -13,5 +14,7 @@ struct EIPSession
     uint16_t targetPort = 44818;
     bool connected = false;
 };
+
+#endif
 
 #endif

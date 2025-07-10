@@ -1,3 +1,4 @@
+#if defined(MT11)
 #include "eip_connection.h"
 #include "cip_util.h"
 
@@ -123,3 +124,5 @@ bool forwardClose(EIPSession& session) {
 
     return true;
 }
+
+#endif

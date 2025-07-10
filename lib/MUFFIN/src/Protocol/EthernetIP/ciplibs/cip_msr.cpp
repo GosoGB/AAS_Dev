@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #include "cip_msr.h"
 #include "cip_path.h"
 #include "cip_util.h"
@@ -177,13 +179,50 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         // Serial.printf("TagType=0x%04X (%d 바이트)\n", rawType, valueSize);
 
         size_t valuePos = typePos + 2;
-        if (valueSize <= 0 || valuePos + valueSize > oneResponse.size()) {
-            Serial.printf("값 크기 오류 또는 미지원 타입\n");
-            continue;
-        }
+        std::vector<uint8_t> value;
+
+        if (rawType == 0x02A0) 
+        {
+        // STRING 구조체 처리
+            valuePos +=2;
+            if (valuePos + 4 > oneResponse.size()) 
+            {
+                Serial.println("STRING 길이 필드 부족");
+                continue;
+            }
+
+            uint32_t strLen = oneResponse[valuePos] |
+                            (oneResponse[valuePos + 1] << 8) |
+                            (oneResponse[valuePos + 2] << 16) |
+                            (oneResponse[valuePos + 3] << 24);
+
+            // Serial.printf("STRING 길이: %u\n", strLen);
+
+            if (strLen > 82 || valuePos + 4 + strLen > oneResponse.size()) 
+            {
+                Serial.println("STRING 길이 초과 또는 부족");
+                continue;
+            }
+
+            // 유효한 길이만큼 value에 복사
+            value = std::vector<uint8_t>(oneResponse.begin() + valuePos + 4,
+                                        oneResponse.begin() + valuePos + 4 + strLen);
+        } 
+        else 
+        {
+            if (valueSize <= 0 || valuePos + valueSize > oneResponse.size()) 
+            {
+                Serial.printf("값 크기 오류 또는 미지원 타입\n");
+                continue;
+            }
+            value = std::vector<uint8_t>(oneResponse.begin() + valuePos,
+                                        oneResponse.begin() + valuePos + valueSize);
+        }                   
+
+
 
         // Value
-        std::vector<uint8_t> value(oneResponse.begin() + valuePos, oneResponse.begin() + valuePos + valueSize);
+        // std::vector<uint8_t> value(oneResponse.begin() + valuePos, oneResponse.begin() + valuePos + valueSize);
 
         // Serial.print("Value = ");
         // for (auto b : value) Serial.printf("%02X ", b);
@@ -318,7 +357,7 @@ bool writeTagsMSR(EIPSession& session,
 
     // General Status
     uint8_t generalStatus = response[CIP_OFFSET + 2];
-    Serial.printf("General Status: 0x%02X\n", generalStatus);
+    // Serial.printf("General Status: 0x%02X\n", generalStatus);
     
     // 0x1E : Embedded service error. One or more services returned an error within a multiple-service packet service.
     // 참조 : https://support.ptc.com/help/kepware/drivers/en/index.html#page/kepware/drivers/OMRONNJETHERNET/CIP_Error_Codes.html
@@ -339,15 +378,15 @@ bool writeTagsMSR(EIPSession& session,
     uint16_t itemCount = response[dataStart] |
                         (response[dataStart + 1] << 8);
 
-    Serial.printf("Number of Service Replies (itemCount) = %d\n", itemCount);
-    Serial.printf("dataStart = %zu\n", dataStart);
+    // Serial.printf("Number of Service Replies (itemCount) = %d\n", itemCount);
+    // Serial.printf("dataStart = %zu\n", dataStart);
 
     // 응답 반복 구간
     size_t offsetListStart = dataStart + 2;
-    Serial.printf("offsetListStart = %zu\n", offsetListStart);
+    // Serial.printf("offsetListStart = %zu\n", offsetListStart);
 
     size_t base = dataStart; //CIP_OFFSET;
-    Serial.printf("base = %zu\n", base);   
+    // Serial.printf("base = %zu\n", base);   
 
     results.clear();
 
@@ -392,3 +431,5 @@ bool writeTagsMSR(EIPSession& session,
 
     return true;
 }
+
+#endif

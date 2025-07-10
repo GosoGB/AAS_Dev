@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #ifndef CIP_PATH_H
 #define CIP_PATH_H
 
@@ -123,5 +125,7 @@ inline std::vector<uint8_t> buildLogicalPath(uint16_t classID, uint16_t instance
     return path;
 }
 
+
+#endif
 
 #endif

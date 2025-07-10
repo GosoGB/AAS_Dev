@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #include "cip_single.h"
 #include "cip_path.h"
 #include "cip_util.h"
@@ -185,7 +187,7 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
     message.push_back(static_cast<uint8_t>(elementCount & 0xFF));           // Element Count LSB
     message.push_back(static_cast<uint8_t>((elementCount >> 8) & 0xFF));    // Element Count MSB
 
-    Serial.printf("[readTagEx] Sending Read Tag request: %s (Count=%u)\n", tagName.c_str(), elementCount);
+    // Serial.printf("[readTagEx] Sending Read Tag request: %s (Count=%u)\n", tagName.c_str(), elementCount);
 
     std::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
@@ -223,7 +225,7 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
     CipDataType dataType = static_cast<CipDataType>(typeRaw);
     dataStart += 2;
 
-    Serial.printf("[readTagEx] Data Type: 0x%04X\n", typeRaw);
+    // Serial.printf("[readTagEx] Data Type: 0x%04X\n", typeRaw);
 
     // Element Size
     size_t elementSize = cipDataTypeSize(dataType);
@@ -423,3 +425,5 @@ bool writeTagExt(EIPSession& session, const std::string& tagName, const std::vec
     Serial.println("[writeTagExt] Write successful");
     return true;
 }
+
+#endif

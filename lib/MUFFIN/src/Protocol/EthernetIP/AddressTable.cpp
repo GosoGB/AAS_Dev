@@ -28,7 +28,8 @@ namespace muffin { namespace ethernetIP {
     AddressTable::AddressTable(size_t maxSize)
     : maxBatchSize(maxSize)
     {
-        mBatches.emplace_back();
+        mBatches.clear();
+        mBatches.shrink_to_fit();
     }
 
     AddressTable::~AddressTable()
@@ -43,6 +44,11 @@ namespace muffin { namespace ethernetIP {
 
     Status AddressTable::Update(const std::string& tag)
     {
+        if (mBatches.empty())
+        {
+            mBatches.emplace_back();
+        }
+        
         size_t tagSize = estimateTagSize(tag);
 
         // 이미 존재하는지 확인 (중복 방지)

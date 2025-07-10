@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #ifndef CIP_MSR_H
 #define CIP_MSR_H
 
@@ -11,5 +13,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
 
 // 다중 TAG 쓰기 요청 (MSR 기반 Write), 개별 응답
 bool writeTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, const std::vector<std::vector<uint8_t>>& values, const std::vector<uint16_t>& dataTypes, std::vector<cip_data_t>& results);
+
+#endif
 
 #endif

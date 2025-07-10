@@ -47,6 +47,8 @@ namespace muffin { namespace ethernetIP {
         mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
 
+        mAddressTable.DebugPrint();
+        mAddressArrayTable.DebugPrint();
         return Status(Status::Code::GOOD); 
     }
 
@@ -70,7 +72,7 @@ namespace muffin { namespace ethernetIP {
             return false;
         }
         
-        LOG_DEBUG(logger,"Session opened");
+        // LOG_DEBUG(logger,"Session opened");
 
         return true;
     }
@@ -98,8 +100,7 @@ namespace muffin { namespace ethernetIP {
             }
 
             std::vector<std::array<uint16_t, 2>> nodeArrayIndex = reference->VariableNode.GetArrayIndex();
-            LOG_DEBUG(logger,"nodeArrayIndex size : %d", nodeArrayIndex.size());
-            
+
             if (nodeArrayIndex.size() == 0)
             {
                 ret = mAddressTable.Update(reference->VariableNode.GetAddress().String);
@@ -117,9 +118,17 @@ namespace muffin { namespace ethernetIP {
                  * 추후 다차원 배열에 대해 read 명령을 처리할 수 있는 table을 구현하도록 수정해야함 @김주성
                  * 
                  */
-
+                LOG_DEBUG(logger,"nodeArrayIndex SIZE  : %d ",nodeArrayIndex.size());
+                uint16_t startIndex = nodeArrayIndex[0][0];
+                uint16_t count = nodeArrayIndex[0][1];
+                LOG_INFO(logger,"startIndex : %d || count : %d",startIndex,count);
+                ret = mAddressArrayTable.Update(reference->VariableNode.GetAddress().String, startIndex, count);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO UPDATE ADDRESS TABLE: %s", ret.c_str());
+                    return Status(Status::Code::BAD);
+                }
             }
-            mAddressTable.DebugPrint();
         }
 
         return Status(Status::Code::GOOD);
@@ -150,6 +159,7 @@ namespace muffin { namespace ethernetIP {
     Status EthernetIP::implementPolling()
     {
         size_t batchCount = mAddressTable.GetBatchCount();
+        size_t ArrayBatchCount = mAddressArrayTable.GetArrayBatchCount();
 
         if (xSemaphoreTake(xSemaphoreEthernetIP, 2000)  != pdTRUE)
         {
@@ -158,59 +168,87 @@ namespace muffin { namespace ethernetIP {
         }
 
 
-        for (size_t i = 0; i < batchCount; i++)
+        if (ArrayBatchCount != 0)
         {
-            std::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
+            std::vector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable();
             
-            std::vector<cip_data_t> readValues;
-            if (readTagsMSR(mEipSession, retrievedTagInfo, readValues))
+            for(auto& entry : tagArrayEntry)
             {
-                for (size_t i = 0; i < readValues.size(); i++)
-                {
-                    const auto& tagName = retrievedTagInfo.at(i);
-                    const auto& result = readValues.at(i);
-
-                    LOG_DEBUG(logger,"tagName : %s",tagName.c_str());
-                    printCipData(result);
-
-                    try
+                std::vector<cip_data_t> readValues;
+                if (readTagExt(mEipSession, entry.tagName, entry.startIndex, entry.count, readValues))
+                {  
+                    Status ret = mPolledArrayDataTable.UpdateArrayRange(entry.tagName, entry.startIndex, readValues);   
+                    if (ret != Status::Code::GOOD)
                     {
-                        auto it = mPolledDataTable.find(tagName);
-                        if (it == mPolledDataTable.end())
-                        {
-                            // 태그 없음 → 벡터 하나 만들어 넣기
-                            mPolledDataTable.emplace(tagName, std::vector<cip_data_t>{result});
-                        }
-                        else
-                        {
-                            // 현재는 하나의 값만 들어오고 처리하기 때문에 이렇게 만듬
-                            it->second.clear();
-                            it->second.emplace_back(result);
-                            
-                        }
-                    }
-                    catch (const std::bad_alloc& e)
-                    {
-                        LOG_ERROR(logger, "OUT OF MEMORY: %s - TAG: %s", e.what(), tagName.c_str());
+                        LOG_ERROR(logger,"FAIL TO UPDATE POLLED ARRAY TABLE");
                         xSemaphoreGive(xSemaphoreEthernetIP);
-                        return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                        return Status(Status::Code::BAD);
                     }
-                    catch (const std::exception& e)
-                    {
-                        LOG_ERROR(logger, "EXCEPTION: %s - TAG: %s", e.what(), tagName.c_str());
-                        xSemaphoreGive(xSemaphoreEthernetIP);
-                        return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-                    }
+                    
+                }   
+                else
+                {   
+                    LOG_ERROR(logger, "POLLING ERROR FOR TAG ARRAY READ");
+                    xSemaphoreGive(xSemaphoreEthernetIP);
+                    return Status(Status::Code::BAD);
                 }
             }
-            else
-            {   
-                LOG_ERROR(logger, "POLLING ERROR FOR TAG");
-                xSemaphoreGive(xSemaphoreEthernetIP);
-                return Status(Status::Code::BAD);
-            }
+        }
+        
+        if (batchCount != 0)
+        {
+            LOG_DEBUG(logger,"batchCount : %d", batchCount);
+            for (size_t i = 0; i < batchCount; i++)
+            {
+                std::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
+                
+                std::vector<cip_data_t> readValues;
+                if (readTagsMSR(mEipSession, retrievedTagInfo, readValues))
+                {
+                    for (size_t i = 0; i < readValues.size(); i++)
+                    {
+                        const auto& tagName = retrievedTagInfo.at(i);
+                        const auto& result = readValues.at(i);
 
-        }  
+                        // LOG_DEBUG(logger,"tagName : %s",tagName.c_str());
+                        // printCipData(result);
+
+                        try
+                        {
+                            auto it = mPolledDataTable.find(tagName);
+                            if (it == mPolledDataTable.end())
+                            {
+                                mPolledDataTable.emplace(tagName, result);
+                            }
+                            else
+                            {
+                                it->second = result;
+                                
+                            }
+                        }
+                        catch (const std::bad_alloc& e)
+                        {
+                            LOG_ERROR(logger, "OUT OF MEMORY: %s - TAG: %s", e.what(), tagName.c_str());
+                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                        }
+                        catch (const std::exception& e)
+                        {
+                            LOG_ERROR(logger, "EXCEPTION: %s - TAG: %s", e.what(), tagName.c_str());
+                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+                        }
+                    }
+                }
+                else
+                {   
+                    LOG_ERROR(logger, "POLLING ERROR FOR TAG");
+                    xSemaphoreGive(xSemaphoreEthernetIP);
+                    return Status(Status::Code::BAD);
+                }
+            }  
+        }
+
         xSemaphoreGive(xSemaphoreEthernetIP);
         return Status(Status::Code::GOOD);
     }
@@ -230,28 +268,27 @@ namespace muffin { namespace ethernetIP {
         {
             std::vector<std::array<uint16_t, 2>> arrayIndex = node->VariableNode.GetArrayIndex();
             std::string address = node->VariableNode.GetAddress().String;
-            const uint16_t quantity = node->VariableNode.GetQuantity();
 
             std::vector<cip_data_t> vPolledData;
-            LOG_DEBUG(logger,"mPolledDataTable SIZE : %d" , mPolledDataTable.size());
-            auto it = mPolledDataTable.find(address);
-            if (it != mPolledDataTable.end()) 
-            {
-                vPolledData = it->second;
-            } 
-            else 
-            {
-                LOG_ERROR(logger,"[%s] TAG IS NOT EXIST",address.c_str());
-                return Status(Status::Code::BAD);
-            }
-            
 
             if (arrayIndex.size() == 0)
             {
-                cip_data_t datum = vPolledData.at(0);
+                cip_data_t datum;
+
+                auto it = mPolledDataTable.find(address);
+                if (it != mPolledDataTable.end()) 
+                {
+                    datum = it->second;
+                } 
+                else 
+                {
+                    LOG_ERROR(logger,"[%s] TAG IS NOT EXIST",address.c_str());
+                    return Status(Status::Code::BAD);
+                }
+            
                 // 단일 값 처리
                 std::vector<im::poll_data_t> vectorPolledData;
-                vectorPolledData.reserve(quantity);
+                vectorPolledData.reserve(datum.RawData.size());
                 im::poll_data_t polledData;
                 /**
                  * @todo EthernetIP 상태코드가 현재 제대로 구현이 안되어있음 확인 후 추가 개발이 필요함 @김주성 
@@ -262,8 +299,6 @@ namespace muffin { namespace ethernetIP {
                 polledData.AddressType = jvs::adtp_e::STRING;
                 strcpy(polledData.Address.String, address.c_str());
                 polledData.Timestamp = datum.Timestamp;
-                LOG_INFO(logger,"TAG : %s || DATA TYPE : %d || DATA : %d", address.c_str() , datum.DataType, datum.Value.SINT );
-                LOG_INFO(logger,"RAW DATA SIZE : %d",datum.RawData.size());
                 ret = convertToValue(datum, &polledData);
                 if (ret != Status::Code::GOOD)
                 {
@@ -271,8 +306,7 @@ namespace muffin { namespace ethernetIP {
                     return ret;
                 }
 
-
-                for (size_t i = 0; i < datum.RawData.size(); i++)
+                for (size_t i = datum.RawData.size(); i-- > 0; )
                 {
                     polledData.ValueType = jvs::dt_e::UINT8;
                     polledData.Value.UInt8 = datum.RawData.at(i);
@@ -280,7 +314,47 @@ namespace muffin { namespace ethernetIP {
                 }
                 
                 node->VariableNode.Update(vectorPolledData);
+            }
+            else
+            {
+                uint16_t startIndex = arrayIndex[0][0];
+                uint16_t count = arrayIndex[0][1];
+                
+                ret = mPolledArrayDataTable.GetArrayRange(address, startIndex, count, vPolledData);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO GET ARRAY RANGE: TAG='%s', START_INDEX=%zu, COUNT=%zu, STATUS=%s",
+                        address.c_str(),
+                        startIndex,
+                        count,
+                        ret.c_str()
+                    );
+                    return ret;
+                }
 
+                std::vector<im::poll_data_t> vectorPolledData;
+                vectorPolledData.reserve(count);
+                for (auto& datum : vPolledData)
+                {
+                    im::poll_data_t polledData;
+                    /**
+                     * @todo EthernetIP 상태코드가 현재 제대로 구현이 안되어있음 확인 후 추가 개발이 필요함 @김주성 
+                     * 
+                     */
+                    
+                    polledData.StatusCode = Status::Code::GOOD;
+                    polledData.AddressType = jvs::adtp_e::STRING;
+                    strcpy(polledData.Address.String, address.c_str());
+                    polledData.Timestamp = vPolledData.at(0).Timestamp;
+                    ret = convertToValue(datum, &polledData);
+                    if (ret != Status::Code::GOOD)
+                    {
+                        LOG_ERROR(logger, "FAILED TO CONVERT CIP TYPE TO POLLED DATA TYPE: %s", ret.c_str());
+                        return ret;
+                    }
+                    vectorPolledData.emplace_back(polledData);
+                }
+                node->VariableNode.Update(vectorPolledData);
             }
         }
         

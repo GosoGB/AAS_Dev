@@ -141,8 +141,10 @@ namespace muffin {
             }
             
             std::vector<json_datum_t> nodeVector;
+            std::vector<json_datum_t> nodeArrayVector;
             nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
-            
+            nodeArrayVector.reserve(nodeStore.GetArrayNodeCount());
+
             if (isSuccessPolling)
             {
                 for (auto& node : eventNodeVector)
@@ -174,7 +176,15 @@ namespace muffin {
                     }
                     else
                     {
-                        nodeVector.emplace_back(ret.second);
+                        if (node->IsArrayNode() == true)
+                        {
+                            nodeArrayVector.emplace_back(ret.second);
+                        }
+                        else
+                        {
+                            nodeVector.emplace_back(ret.second);
+                        }
+                        
                     }
                 }
             }  
@@ -192,27 +202,54 @@ namespace muffin {
                     {
                         ret.second.Value = "MFM_NULL";
                     }
-                    nodeVector.emplace_back(ret.second);
+
+                    if (node->IsArrayNode() == true)
+                    {
+                        nodeArrayVector.emplace_back(ret.second);
+                    }
+                    else
+                    {
+                        nodeVector.emplace_back(ret.second);
+                    }
                 }
             }
 
-            if (nodeVector.empty())
+            if (!nodeVector.empty())
             {
-                continue;
+                JSON json;
+                const size_t TESTSIZE = 150;
+                LOG_DEBUG(logger,"nodeVector.size() : %u",nodeVector.size());
+                for (size_t i = 0; i < nodeVector.size(); i += TESTSIZE) 
+                {
+                    memset(batchPayload, 0, batchSize);
+                    size_t end = std::min(i + TESTSIZE, nodeVector.size());
+                    std::vector<json_datum_t> batch(nodeVector.begin() + i, nodeVector.begin() + end);
+                    json.Serialize(batch, batchSize, sourceTimestamp, batchPayload);
+                    mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
+                    mqtt::cdo.Store(message);
+                }
             }
+            
 
-            JSON json;
-            const size_t TESTSIZE = 150;
-            LOG_DEBUG(logger,"nodeVector.size() : %u",nodeVector.size());
-            for (size_t i = 0; i < nodeVector.size(); i += TESTSIZE) 
+            if (!nodeArrayVector.empty())
             {
-                memset(batchPayload, 0, batchSize);
-                size_t end = std::min(i + TESTSIZE, nodeVector.size());
-                std::vector<json_datum_t> batch(nodeVector.begin() + i, nodeVector.begin() + end);
-                json.Serialize(batch, batchSize, sourceTimestamp, batchPayload);
-                mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
-                mqtt::cdo.Store(message);
+                JSON json;
+                const size_t TESTSIZE = 5;
+                LOG_DEBUG(logger,"nodeArrayVector.size() : %u",nodeArrayVector.size());
+                for (size_t i = 0; i < nodeArrayVector.size(); i += TESTSIZE) 
+                {
+                    memset(batchPayload, 0, batchSize);
+                    size_t end = std::min(i + TESTSIZE, nodeArrayVector.size());
+                    std::vector<json_datum_t> batch(nodeArrayVector.begin() + i, nodeArrayVector.begin() + end);
+
+                    json.Serialize(batch, batchSize, sourceTimestamp, batchPayload);
+                    mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
+                    mqtt::cdo.Store(message);
+                }
             }
+            
+
+            
         }
     }
 

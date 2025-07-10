@@ -99,6 +99,7 @@ namespace muffin {
         uint64_t SourceTimestamp;
         char NodeID[5];
         std::string Value;
+        bool isArray = false;
     } json_datum_t;
 
     typedef struct JsonAlarmType

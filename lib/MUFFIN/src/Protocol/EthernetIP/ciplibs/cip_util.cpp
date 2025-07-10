@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #include "cip_util.h"
 #include "cip_types.h"
 
@@ -61,6 +63,12 @@ void printCipData(const cip_data_t& d)
             break;
         case CipDataType::LWORD:
             Serial.printf("LWORD (Bit string 64 bits) = N/A\n");
+            break;
+        case CipDataType::STRING:
+            Serial.printf("STRING (Length=%zu) = \"%.*s\"\n",
+                          d.Value.STRING.Length,
+                          (int)d.Value.STRING.Length,
+                          d.Value.STRING.Data);
             break;
         default:
             Serial.printf("Unknown Type = 0x%04X\n", static_cast<uint16_t>(d.DataType));
@@ -158,6 +166,8 @@ int cipDataTypeSize(CipDataType type) {
         case CipDataType::LWORD: // N/A지만 8바이트
             return 8;
 
+        case CipDataType::STRING:
+            return 86;
         // Not supported / unknown
         default:
             return 1; // 기본값
@@ -194,6 +204,9 @@ int cipDataTypeSizeFromRaw(uint16_t rawType) {
         case CipDataType::LREAL:
         case CipDataType::LWORD: // N/A지만 8바이트
             return 8;
+
+        case CipDataType::STRING:
+            return 86;              // 4 for length + 82 data
 
         default:
             return -1; // 알 수 없는 타입 또는 미지원
@@ -313,7 +326,8 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
             }
             return true;
 
-        case CipDataType::LREAL: {
+        case CipDataType::LREAL: 
+        {
             uint64_t raw = 0;
             for (int i = 0; i < 8; ++i)
                 raw |= (static_cast<uint64_t>(response[dataStart + i]) << (i * 8));
@@ -323,6 +337,28 @@ bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<u
             {
                 outputRawData.emplace_back(response[dataStart+i]);
             }
+            return true;
+        }
+
+        case CipDataType::STRING:
+        {
+            uint32_t strLen =
+                (response[dataStart]) |
+                (response[dataStart + 1] << 8) |
+                (response[dataStart + 2] << 16) |
+                (response[dataStart + 3] << 24);
+
+            if (strLen > 82 || dataStart + 4 + strLen > response.size()) return false;
+
+            outValue.STRING.Length = strLen;
+            memcpy(outValue.STRING.Data, &response[dataStart + 4], strLen);
+            outValue.STRING.Data[strLen] = '\0';
+
+            for (size_t i = strLen; i-- > 0;) 
+            {
+                outputRawData.emplace_back(response[dataStart + 4 + i]);
+            }
+            
             return true;
         }
 
@@ -435,3 +471,5 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
 
     return !response.empty();
 }
+
+#endif

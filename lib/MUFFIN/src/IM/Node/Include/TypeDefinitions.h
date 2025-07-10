@@ -18,6 +18,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <sys/_stdint.h>
 
 #include "Common/Status.h"
@@ -93,6 +94,8 @@ namespace muffin { namespace im {
         uint64_t Timestamp;
         jvs::dt_e DataType;
         var_value_u Value;
+        std::vector<var_value_u> ArrayValue;
+        jvs::dt_e ArrayDataType;
         bool HasValue     : 1;
         bool HasStatus    : 1;
         bool HasTimestamp : 1;

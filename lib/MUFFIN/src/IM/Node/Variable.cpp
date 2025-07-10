@@ -461,6 +461,8 @@ namespace muffin { namespace im {
 
             if (variableData.Timestamp != polledDatum.Timestamp)
             {
+                
+                LOG_WARNING(logger,"variableData.Timestamp : %llu, polledDatum.Timestamp : %llu",variableData.Timestamp,polledDatum.Timestamp);
                 variableData.StatusCode = Status::Code::BAD_INVALID_TIMESTAMP;
                 variableData.HasTimestamp = false;
                 break;
@@ -469,7 +471,10 @@ namespace muffin { namespace im {
     
 
         implUpdate(polledData, &variableData);
-        if (variableData.DataType == jvs::dt_e::BOOLEAN || variableData.DataType == jvs::dt_e::STRING)
+        if (variableData.DataType == jvs::dt_e::BOOLEAN || 
+            variableData.DataType == jvs::dt_e::STRING  ||
+            variableData.DataType == jvs::dt_e::ARRAY
+        )
         {
             goto CHECK_EVENT;
         }
@@ -527,6 +532,18 @@ namespace muffin { namespace im {
 
     void Variable::implUpdate(const std::vector<poll_data_t>& polledData, var_data_t* variableData)
     {
+        if (mCIN->GetDataTypes().second.front() == jvs::dt_e::ARRAY)
+        {
+            variableData->ArrayValue.reserve(polledData.size());
+            variableData->ArrayDataType = polledData.at(0).ValueType;
+            variableData->DataType = jvs::dt_e::ARRAY;
+            for (auto& datum : polledData)
+            {
+                variableData->ArrayValue.emplace_back(datum.Value);
+            }
+            return;
+        }
+        
         if (mCIN->GetDataTypes().second.size() == 1)
         {
             if (mCIN->GetDataTypes().second.front() == jvs::dt_e::BOOLEAN)
@@ -547,6 +564,7 @@ namespace muffin { namespace im {
 
                 variableData->DataType  = vectorCastedData.front().ValueType;
                 variableData->Value     = vectorCastedData.front().Value;
+
                 return;
             }
             else
@@ -623,8 +641,7 @@ namespace muffin { namespace im {
     }
     
     void Variable::castByteVector(const jvs::dt_e dataType, std::vector<uint8_t>& vectorBytes, casted_data_t* castedData)
-    {
-        LOG_DEBUG(logger,"vectorBytes size : %d",vectorBytes.size());
+    {   
         switch (dataType)
         {
         case jvs::dt_e::INT8:
@@ -943,7 +960,7 @@ namespace muffin { namespace im {
     void Variable::castWithoutDataUnitOrder(const std::vector<poll_data_t>& polledData, casted_data_t* outputCastedData)
     {
         ASSERT((outputCastedData != nullptr), "OUTPUT PARAMETER CANNOT BE A NULL POINTER");
-        LOG_DEBUG(logger,"polledData size : %d",polledData.size());
+        
         std::vector<uint8_t> vectorFlattened;
         flattenToByteArray(polledData, &vectorFlattened);
         castByteVector(mCIN->GetDataTypes().second.front(), vectorFlattened, outputCastedData);
@@ -992,7 +1009,9 @@ namespace muffin { namespace im {
                 return false;
             }
         }
-        
+
+        LOG_DEBUG(logger, "variableData.DataType : %d",variableData.DataType);
+
         switch (variableData.DataType)
         {
         case jvs::dt_e::BOOLEAN:
@@ -1019,6 +1038,155 @@ namespace muffin { namespace im {
             return lastestHistory.Value.Float64 != variableData.Value.Float64;
         case jvs::dt_e::STRING:
             return static_cast<bool>(strcmp(lastestHistory.Value.String.Data, variableData.Value.String.Data));
+        case jvs::dt_e::ARRAY:
+        {
+            LOG_DEBUG(logger, "ARRAY 입니다");
+            if (lastestHistory.ArrayValue.size() != variableData.ArrayValue.size())
+            {
+                LOG_ERROR(logger, "ARRAY SIZE MISMATCH: LASTEST = %u, CURRENT = %u",
+                lastestHistory.ArrayValue.size(),
+                variableData.ArrayValue.size());
+                return false;
+            }
+            
+            switch (variableData.ArrayDataType)
+            {
+            case jvs::dt_e::BOOLEAN:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).Boolean != variableData.ArrayValue.at(i).Boolean) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }   
+            case jvs::dt_e::INT8:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).Int8 != variableData.ArrayValue.at(i).Int8) 
+                    {
+                        
+                        LOG_DEBUG(logger, "이벤트 발생");
+                        return true;
+                    }
+                }
+                
+                LOG_DEBUG(logger, "이벤트 발생 X");
+                return false;
+            }
+            case jvs::dt_e::UINT8:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).UInt8 != variableData.ArrayValue.at(i).UInt8) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::INT16:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).Int16 != variableData.ArrayValue.at(i).Int16) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::UINT16:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).UInt16 != variableData.ArrayValue.at(i).UInt16) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::INT32:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).Int32 != variableData.ArrayValue.at(i).Int32) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::UINT32:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).UInt32 != variableData.ArrayValue.at(i).UInt32) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::FLOAT32:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).Float32 != variableData.ArrayValue.at(i).Float32) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::INT64:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).Int64 != variableData.ArrayValue.at(i).Int64) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::UINT64:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).UInt64 != variableData.ArrayValue.at(i).UInt64) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::FLOAT64:
+            {
+                for (size_t i = 0; i < variableData.ArrayValue.size(); ++i) 
+                {
+                    if (lastestHistory.ArrayValue.at(i).Float64 != variableData.ArrayValue.at(i).Float64) 
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case jvs::dt_e::STRING:
+
+                LOG_WARNING(logger,"UNSUPPORTED DATA TYPE");
+                return false;
+            
+            default:
+                return false;
+            }
+
+            
+        }
         default:
             return false;
         }
@@ -1170,6 +1338,7 @@ namespace muffin { namespace im {
         daq.Topic = mCIN->GetTopic().second;
         if (Status(variableData.StatusCode) != Status(Status::Code::GOOD))
         {
+            LOG_WARNING(logger,"variableData.StatusCode : %s",Status(variableData.StatusCode).c_str());
             return std::make_pair(false, daq);
         }
 
@@ -1211,6 +1380,12 @@ namespace muffin { namespace im {
         case jvs::dt_e::UINT8:
             daq.Value = std::to_string(variableData.Value.UInt8);
             break;
+        case jvs::dt_e::ARRAY:
+        {
+            daq.isArray = true;
+            daq.Value = ArrayConvertToString(variableData.ArrayValue, variableData.ArrayDataType);
+            break;
+        }
         default:
             break;
         }
@@ -1218,6 +1393,58 @@ namespace muffin { namespace im {
         return std::make_pair(true, daq);
     }
 
+    std::string Variable::ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType) const
+    {
+        JsonDocument doc;
+        JsonArray array = doc.to<JsonArray>();
+
+        for (const auto& datum : data)
+        {
+            switch (dataType)
+            {
+            case jvs::dt_e::BOOLEAN:
+                array.add(datum.Boolean);
+                break;
+            case jvs::dt_e::FLOAT32:
+                array.add(datum.Float32);
+                break;
+            case jvs::dt_e::FLOAT64:
+                array.add(datum.Float64);
+                break;
+            case jvs::dt_e::INT8:
+                array.add(datum.Int8);
+                break;
+            case jvs::dt_e::INT16:
+                array.add(datum.Int16);
+                break;
+            case jvs::dt_e::INT32:
+                array.add(datum.Int32);
+                break;
+            case jvs::dt_e::INT64:
+                array.add(datum.Int64);
+                break;
+            case jvs::dt_e::UINT8:
+                array.add(datum.UInt8);
+                break;
+            case jvs::dt_e::UINT16:
+                array.add(datum.UInt16);
+                break;
+            case jvs::dt_e::UINT32:
+                array.add(datum.UInt32);
+                break;
+            case jvs::dt_e::UINT64:
+                array.add(datum.UInt64);
+                break;
+            default:
+                // 지원하지 않는 타입은 무시
+                break;
+            }
+        }
+
+        std::string output;
+        serializeJson(array, output);
+        return output;
+    }
 
     std::pair<Status, uint16_t> Variable::ConvertModbusData(std::string& data)
     {

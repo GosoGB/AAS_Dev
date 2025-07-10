@@ -34,7 +34,6 @@ namespace muffin { namespace jvs {
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mTopic(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT)
-        , mArrayIndex(rsc_e::UNCERTAIN, {{{0, 0}}})
     {
         memset(mNodeID, '\0', sizeof(mNodeID));
     }
@@ -352,8 +351,8 @@ namespace muffin { namespace jvs {
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
             mIsEventType      = false;
             mTopic            = std::make_pair(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT);
-            mArrayIndex.second.shrink_to_fit();
             mArrayIndex.second.clear();
+            mArrayIndex.second.shrink_to_fit();
             mVectorFormatSpecifier.clear();
         }
 
@@ -1665,10 +1664,11 @@ namespace muffin { namespace jvs {
             return;
         }
         
-        
-        std::vector<std::array<uint16_t, 2>> vectorArrayIndex;
+        mArrayIndex.second.clear();
+        mArrayIndex.second.shrink_to_fit();
+
         const size_t length = arrayIndex.size();
-        vectorArrayIndex.reserve(length);
+        mArrayIndex.second.reserve(length);
 
         for (const auto idx : arrayIndex)
         {
@@ -1683,12 +1683,12 @@ namespace muffin { namespace jvs {
             
             try
             {
-                vectorArrayIndex.emplace_back(std::array<uint16_t, 2>{ static_cast<uint16_t>(jsonArrayIdx[0]), static_cast<uint16_t>(jsonArrayIdx[1])});
+                mArrayIndex.second.emplace_back(std::array<uint16_t, 2>{ static_cast<uint16_t>(jsonArrayIdx[0]), static_cast<uint16_t>(jsonArrayIdx[1])});
             }
             catch(const std::exception& e)
             {
-                vectorArrayIndex.clear();
-                vectorArrayIndex.shrink_to_fit();
+                mArrayIndex.second.clear();
+                mArrayIndex.second.shrink_to_fit();
                 LOG_ERROR(logger, "FAILED TO EMPLACE ARRAY INDEX: %s", e.what());
                 mArrayIndex.first = rsc_e::BAD_UNEXPECTED_ERROR;
                 return;

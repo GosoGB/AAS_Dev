@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #include "cip_types.h"
 #include "cip_path.h"
 #include "cip_util.h"
@@ -121,3 +123,5 @@ bool writeLogicalValue(EIPSession& session, uint8_t classId, uint8_t instanceId,
 
     return (outResult.Code == 0);
 }
+
+#endif

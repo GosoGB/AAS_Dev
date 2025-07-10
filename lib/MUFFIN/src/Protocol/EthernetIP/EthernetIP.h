@@ -19,6 +19,8 @@
 
 #include "NodeTable.h"
 #include "AddressTable.h"
+#include "AddressArrayTable.h"
+#include "PolledArrayDataTable.h"
 #include "Protocol/EthernetIP/ciplibs/cip_client.h"
 #include "Protocol/EthernetIP/ciplibs/cip_msr.h"
 #include "Protocol/EthernetIP/ciplibs/cip_single.h"
@@ -29,6 +31,7 @@
 #include "Protocol/EthernetIP/ciplibs/eip_connection.h"
 #include "Protocol/EthernetIP/ciplibs/eip_types.h"
 #include "JARVIS/Config/Protocol/EthernetIP.h"
+
 
 
 namespace muffin { namespace ethernetIP {
@@ -67,7 +70,9 @@ namespace muffin { namespace ethernetIP {
     private:
         NodeTable mNodeTable;
         AddressTable mAddressTable;
-        std::map<std::string, std::vector<cip_data_t>> mPolledDataTable;
+        AddressArrayTable mAddressArrayTable;
+        std::map<std::string, cip_data_t> mPolledDataTable;
+        PolledArrayDataTable mPolledArrayDataTable;
         
         uint16_t mScanRate = 80;
     

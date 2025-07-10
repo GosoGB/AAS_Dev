@@ -1,3 +1,5 @@
+#if defined(MT11)
+
 #ifndef CIP_UTIL_H
 #define CIP_UTIL_H
 
@@ -32,5 +34,7 @@ bool checkConnection(muffin::w5500::EthernetClient& client);
 
 // 캡슐화 전송 함수 (SendRRData)
 bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& serviceData, std::vector<uint8_t>& response);
+
+#endif
 
 #endif

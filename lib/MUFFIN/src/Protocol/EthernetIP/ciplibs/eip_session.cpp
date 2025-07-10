@@ -1,3 +1,4 @@
+#if defined(MT11)
 #include "eip_session.h"
 #include "cip_util.h"
 
@@ -162,3 +163,5 @@ void eipClose(EIPSession& session) {
     session.sessionHandle = 0;
     session.connectionID = 0;
 }
+
+#endif

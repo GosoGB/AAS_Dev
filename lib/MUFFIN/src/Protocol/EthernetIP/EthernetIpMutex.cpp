@@ -10,7 +10,7 @@
  * @copyright Copyright Edgecross Inc. (c) 2025
  */
 
-
+#if defined(MT11)
 
 #include <string.h>
 
@@ -26,3 +26,5 @@ namespace muffin {
 
     SemaphoreHandle_t xSemaphoreEthernetIP = NULL;
 }
+
+#endif
