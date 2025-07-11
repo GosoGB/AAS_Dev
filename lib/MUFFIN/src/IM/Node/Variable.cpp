@@ -1012,8 +1012,6 @@ namespace muffin { namespace im {
             }
         }
 
-        LOG_DEBUG(logger, "variableData.DataType : %d",variableData.DataType);
-
         switch (variableData.DataType)
         {
         case jvs::dt_e::BOOLEAN:

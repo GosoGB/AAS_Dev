@@ -149,7 +149,6 @@ namespace muffin {
             {
                 for (auto& node : eventNodeVector)
                 {
-                    LOG_INFO(logger,"여기, node : %d",node->GetNodeID());
                     LOG_INFO(logger,"mHasNewEvent : %s",node->VariableNode.mHasNewEvent == true ? "true" : "false");
                     
                     if (node->VariableNode.mHasNewEvent == false    ||  

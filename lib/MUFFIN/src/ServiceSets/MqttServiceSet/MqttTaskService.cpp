@@ -923,6 +923,29 @@ namespace muffin {
                                 }
                                 cip_data_t response;
 
+                                uint8_t MAX_TRIAL_COUNT = 3;
+                                uint8_t trialCount = 0;
+                                
+                                for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
+                                {  
+                                    if (ethernetIP.Connect())
+                                    {
+                                        break;
+                                    }
+
+                                    LOG_WARNING(logger,"[#%d] ethernetIP Client failed to connect!, serverIP : %s, serverPort: %d",trialCount, ethernetIP.mEipSession.targetIP.toString().c_str(), ethernetIP.mEipSession.targetPort);
+                                    ethernetIP.mEipSession.client->stop();
+                                    ethernetIP.mEipSession.connected = false;
+                                    delay(80);
+                                }
+
+                                if (trialCount == MAX_TRIAL_COUNT)
+                                {
+                                    LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                                    xSemaphoreGive(xSemaphoreEthernetIP);
+                                    goto RC_RESPONSE;
+                                }
+
                                 if (writeTag(ethernetIP.mEipSession, tagName, datum.RawData, static_cast<uint16_t>(datum.DataType), response))
                                 {
                                     if (response.Code == 0x00) 
@@ -936,6 +959,9 @@ namespace muffin {
                                     }        
                                 }
                                 
+                                ethernetIP.mEipSession.client->stop();
+                                ethernetIP.mEipSession.connected = false;
+
                                 xSemaphoreGive(xSemaphoreEthernetIP);
                                 goto RC_RESPONSE;
 

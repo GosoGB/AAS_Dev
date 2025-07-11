@@ -382,7 +382,11 @@ bool checkConnection(EthernetClient& client) {
     Data format for the Encapsulation Protocol is Little-Endian.
 */
 bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& serviceData, std::vector<uint8_t>& response) {
-    if (!session.connected) return false;
+    if (!session.connected) 
+    {
+        LOG_ERROR(muffin::logger,"CONNECT ERROR");
+        return false;
+    }
 
     std::vector<uint8_t> rrData;
     rrData.insert(rrData.end(), {0x00,0x00,0x00,0x00, 0x00,0x00});  // Interface Handle (4바이트), Timeout
@@ -396,17 +400,17 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
     rrData.insert(rrData.end(), serviceData.begin(), serviceData.end());
 
     // debug
-    // Serial.print("[DEBUG] RRData Packet Dump (");
-    // Serial.print(rrData.size());
-    // Serial.println(" bytes):");
+    Serial.print("[DEBUG] RRData Packet Dump (");
+    Serial.print(rrData.size());
+    Serial.println(" bytes):");
 
-    // for (size_t i = 0; i < rrData.size(); ++i) {
-    //   if (i % 16 == 0 && i != 0) Serial.println();
-    //   if (rrData[i] < 0x10) Serial.print("0");
-    //   Serial.print(rrData[i], HEX);
-    //   Serial.print(" ");
-    // }
-    // Serial.println();
+    for (size_t i = 0; i < rrData.size(); ++i) {
+      if (i % 16 == 0 && i != 0) Serial.println();
+      if (rrData[i] < 0x10) Serial.print("0");
+      Serial.print(rrData[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
 
     // Encapsulation Header + RR Data
     std::vector<uint8_t> packet;
@@ -418,14 +422,14 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
 
 
     uint32_t handle = session.sessionHandle;
-    // Serial.print("[CIP] sendEncapsulationPacket RRData 패킷 전송용 세션 핸들: ");
-    // Serial.println(session.sessionHandle, HEX);
+    Serial.print("[CIP] sendEncapsulationPacket RRData 패킷 전송용 세션 핸들: ");
+    Serial.println(session.sessionHandle, HEX);
 
-    // Serial.print("[CIP] sendEncapsulationPacket sessionHandle (LE bytes): ");
-    // Serial.print(handle & 0xFF, HEX); Serial.print(" ");
-    // Serial.print((handle >> 8) & 0xFF, HEX); Serial.print(" ");
-    // Serial.print((handle >> 16) & 0xFF, HEX); Serial.print(" ");
-    // Serial.println((handle >> 24) & 0xFF, HEX);    
+    Serial.print("[CIP] sendEncapsulationPacket sessionHandle (LE bytes): ");
+    Serial.print(handle & 0xFF, HEX); Serial.print(" ");
+    Serial.print((handle >> 8) & 0xFF, HEX); Serial.print(" ");
+    Serial.print((handle >> 16) & 0xFF, HEX); Serial.print(" ");
+    Serial.println((handle >> 24) & 0xFF, HEX);    
 
 
     uint32_t handle_be = session.sessionHandle;
@@ -461,13 +465,13 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
             response.push_back((uint8_t)byte);
 
             // 오프셋 줄바꿈
-            // if (offset % 16 == 0) Serial.printf("\n%04zx: ", offset);
+            if (offset % 16 == 0) Serial.printf("\n%04zx: ", offset);
 
-            // Serial.printf("%02X ", (uint8_t)byte);
-            // ++offset;
+            Serial.printf("%02X ", (uint8_t)byte);
+            ++offset;
         }
     }
-    // Serial.println();
+    Serial.println();
 
     return !response.empty();
 }
