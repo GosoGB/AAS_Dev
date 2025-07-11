@@ -51,15 +51,16 @@ namespace muffin { namespace ethernetIP {
         bool Connect();
         Status Poll();
         void SetTimeoutError(); 
+        cip_data_t GetSingleAddressValue(std::string tag);
     
     private:
         Status addNodeReferences(const std::vector<std::__cxx11::string>& vectorNodeID);
         Status implementPolling();
         Status updateVariableNodes();
 
-    private:
-        Status convertToValue(cip_data_t& data, im::poll_data_t* output);
-    
+    public:
+        Status cipDataConvertToPollData(cip_data_t& data, im::poll_data_t* output);
+        Status StringConvertToCipData(std::string& data, cip_data_t* output);
     public:
         EIPSession mEipSession;
     

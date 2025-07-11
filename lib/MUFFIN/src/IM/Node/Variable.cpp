@@ -1006,6 +1006,8 @@ namespace muffin { namespace im {
             }
             else
             {
+                
+                LOG_DEBUG(logger, "variableData.DataType : %d",variableData.DataType);
                 return false;
             }
         }
@@ -1383,7 +1385,7 @@ namespace muffin { namespace im {
         case jvs::dt_e::ARRAY:
         {
             daq.isArray = true;
-            daq.Value = ArrayConvertToString(variableData.ArrayValue, variableData.ArrayDataType);
+            ArrayConvertToString(variableData.ArrayValue, variableData.ArrayDataType, daq.ArrayValue);
             break;
         }
         default:
@@ -1393,47 +1395,53 @@ namespace muffin { namespace im {
         return std::make_pair(true, daq);
     }
 
-    std::string Variable::ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType) const
+    bool Variable::ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const
     {
-        JsonDocument doc;
-        JsonArray array = doc.to<JsonArray>();
-
+        value.reserve(data.size());
         for (const auto& datum : data)
         {
             switch (dataType)
             {
             case jvs::dt_e::BOOLEAN:
-                array.add(datum.Boolean);
+                value.emplace_back(std::to_string(datum.Boolean));
                 break;
             case jvs::dt_e::FLOAT32:
-                array.add(datum.Float32);
+            {
+                char buffer[20] = {'\0'};     
+                snprintf(buffer,19,"%0.3f", datum.Float32);
+                value.emplace_back(buffer);  
                 break;
+            }
             case jvs::dt_e::FLOAT64:
-                array.add(datum.Float64);
+            {
+                char buffer[32] = {'\0'};     
+                snprintf(buffer,31,"%0.3f", datum.Float64);
+                value.emplace_back(buffer);  
                 break;
+            }
             case jvs::dt_e::INT8:
-                array.add(datum.Int8);
+                value.emplace_back(std::to_string(datum.Int8));
                 break;
             case jvs::dt_e::INT16:
-                array.add(datum.Int16);
+                value.emplace_back(std::to_string(datum.Int16));
                 break;
             case jvs::dt_e::INT32:
-                array.add(datum.Int32);
+                value.emplace_back(std::to_string(datum.Int32));
                 break;
             case jvs::dt_e::INT64:
-                array.add(datum.Int64);
+                value.emplace_back(std::to_string(datum.Int64));
                 break;
             case jvs::dt_e::UINT8:
-                array.add(datum.UInt8);
+                value.emplace_back(std::to_string(datum.UInt8));
                 break;
             case jvs::dt_e::UINT16:
-                array.add(datum.UInt16);
+                value.emplace_back(std::to_string(datum.UInt16));
                 break;
             case jvs::dt_e::UINT32:
-                array.add(datum.UInt32);
+                value.emplace_back(std::to_string(datum.UInt32));
                 break;
             case jvs::dt_e::UINT64:
-                array.add(datum.UInt64);
+                value.emplace_back(std::to_string(datum.UInt64));
                 break;
             default:
                 // 지원하지 않는 타입은 무시
@@ -1441,12 +1449,10 @@ namespace muffin { namespace im {
             }
         }
 
-        std::string output;
-        serializeJson(array, output);
-        return output;
+        return true;
     }
 
-    std::pair<Status, uint16_t> Variable::ConvertModbusData(std::string& data)
+    std::pair<Status, uint16_t> Variable::StringConvertWordData(std::string& data)
     {
         if (data.empty() == true)
         {

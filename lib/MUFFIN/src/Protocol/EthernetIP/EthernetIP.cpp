@@ -177,27 +177,38 @@ namespace muffin { namespace ethernetIP {
                 std::vector<cip_data_t> readValues;
                 if (readTagExt(mEipSession, entry.tagName, entry.startIndex, entry.count, readValues))
                 {  
+                    // LOG_DEBUG(logger,"[GOOD] TAG : %s, START INDEX : %d, COUNT : %d", entry.tagName.c_str(), entry.startIndex, entry.count);
                     Status ret = mPolledArrayDataTable.UpdateArrayRange(entry.tagName, entry.startIndex, readValues);   
                     if (ret != Status::Code::GOOD)
                     {
                         LOG_ERROR(logger,"FAIL TO UPDATE POLLED ARRAY TABLE");
-                        xSemaphoreGive(xSemaphoreEthernetIP);
-                        return Status(Status::Code::BAD);
+                        continue;
                     }
                     
                 }   
                 else
                 {   
                     LOG_ERROR(logger, "POLLING ERROR FOR TAG ARRAY READ");
-                    xSemaphoreGive(xSemaphoreEthernetIP);
-                    return Status(Status::Code::BAD);
+                    LOG_ERROR(logger,"[BAD] TAG : %s, START INDEX : %d, COUNT : %d", entry.tagName.c_str(), entry.startIndex, entry.count);
+                    for (size_t i = 0; i < entry.count; i++)
+                    {
+                        cip_data_t datum;
+                        datum.Code = 0xff; // 임시 에러 코드
+                        readValues.emplace_back(datum);
+                    }
+
+                    Status ret = mPolledArrayDataTable.UpdateArrayRange(entry.tagName, entry.startIndex, readValues);   
+                    if (ret != Status::Code::GOOD)
+                    {
+                        LOG_ERROR(logger,"FAIL TO UPDATE POLLED ARRAY TABLE");
+                        continue;
+                    }
                 }
             }
         }
         
         if (batchCount != 0)
         {
-            LOG_DEBUG(logger,"batchCount : %d", batchCount);
             for (size_t i = 0; i < batchCount; i++)
             {
                 std::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
@@ -205,13 +216,10 @@ namespace muffin { namespace ethernetIP {
                 std::vector<cip_data_t> readValues;
                 if (readTagsMSR(mEipSession, retrievedTagInfo, readValues))
                 {
-                    for (size_t i = 0; i < readValues.size(); i++)
+                    for (size_t i = 0; i < retrievedTagInfo.size(); i++)
                     {
                         const auto& tagName = retrievedTagInfo.at(i);
                         const auto& result = readValues.at(i);
-
-                        // LOG_DEBUG(logger,"tagName : %s",tagName.c_str());
-                        // printCipData(result);
 
                         try
                         {
@@ -243,8 +251,40 @@ namespace muffin { namespace ethernetIP {
                 else
                 {   
                     LOG_ERROR(logger, "POLLING ERROR FOR TAG");
-                    xSemaphoreGive(xSemaphoreEthernetIP);
-                    return Status(Status::Code::BAD);
+                    for (size_t i = 0; i < retrievedTagInfo.size(); i++)
+                    {
+                        std::string tagName = retrievedTagInfo.at(i);
+                        LOG_ERROR(logger,"[BAD] TAG : %s", tagName.c_str());
+                        cip_data_t datum;
+                        datum.Code = 0xff; // 임시 에러 코드
+
+                        try
+                        {
+                            auto it = mPolledDataTable.find(tagName);
+                            if (it == mPolledDataTable.end())
+                            {
+                                mPolledDataTable.emplace(tagName, datum);
+                            }
+                            else
+                            {
+                                it->second = datum;
+                                
+                            }
+                        }
+                        catch (const std::bad_alloc& e)
+                        {
+                            LOG_ERROR(logger, "OUT OF MEMORY: %s - TAG: %s", e.what(), tagName.c_str());
+                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            return Status(Status::Code::BAD_OUT_OF_MEMORY);
+                        }
+                        catch (const std::exception& e)
+                        {
+                            LOG_ERROR(logger, "EXCEPTION: %s - TAG: %s", e.what(), tagName.c_str());
+                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+                        }
+                    }
+                    
                 }
             }  
         }
@@ -295,11 +335,21 @@ namespace muffin { namespace ethernetIP {
                  * 
                  */
                 
-                polledData.StatusCode = Status::Code::GOOD;
+                 // 임시 상태코드 에러
+                if (datum.Code == 0xff)
+                {
+                    polledData.StatusCode = Status::Code::BAD;
+                }
+                else
+                {
+                    polledData.StatusCode = Status::Code::GOOD;
+                }
+                
+                
                 polledData.AddressType = jvs::adtp_e::STRING;
                 strcpy(polledData.Address.String, address.c_str());
                 polledData.Timestamp = datum.Timestamp;
-                ret = convertToValue(datum, &polledData);
+                ret = cipDataConvertToPollData(datum, &polledData);
                 if (ret != Status::Code::GOOD)
                 {
                     LOG_ERROR(logger, "FAILED TO CONVERT CIP TYPE TO POLLED DATA TYPE: %s", ret.c_str());
@@ -346,7 +396,7 @@ namespace muffin { namespace ethernetIP {
                     polledData.AddressType = jvs::adtp_e::STRING;
                     strcpy(polledData.Address.String, address.c_str());
                     polledData.Timestamp = vPolledData.at(0).Timestamp;
-                    ret = convertToValue(datum, &polledData);
+                    ret = cipDataConvertToPollData(datum, &polledData);
                     if (ret != Status::Code::GOOD)
                     {
                         LOG_ERROR(logger, "FAILED TO CONVERT CIP TYPE TO POLLED DATA TYPE: %s", ret.c_str());
@@ -361,7 +411,90 @@ namespace muffin { namespace ethernetIP {
         return Status(Status::Code::GOOD);
     }
 
-    Status EthernetIP::convertToValue(cip_data_t& data, im::poll_data_t* output)
+    cip_data_t EthernetIP::GetSingleAddressValue(std::string tag)
+    {
+        cip_data_t datum;
+        
+        auto it = mPolledDataTable.find(tag);
+        if (it != mPolledDataTable.end()) 
+        {
+            datum = it->second;
+        } 
+        else 
+        {
+            //임시 에러 코드
+            datum.Code = 0xff; 
+            LOG_ERROR(logger,"[%s] TAG IS NOT EXIST",tag.c_str());
+        }
+
+        return datum;
+    }
+
+    Status EthernetIP::StringConvertToCipData(std::string& data, cip_data_t* output)
+    {
+        switch (output->DataType)
+        {
+        case CipDataType::BOOL:
+        {
+            bool strData = data == "0" ? 0 : 1;
+            output->RawData.emplace_back(static_cast<uint8_t>(strData));
+            break;
+        }
+        case CipDataType::SINT:
+        {
+            int8_t strData = static_cast<int8_t>(std::stoi(data));
+            output->RawData.emplace_back(static_cast<uint8_t>(strData));
+            break;
+        }
+        case CipDataType::INT:
+        {
+            int16_t strData = static_cast<int16_t>(std::stoi(data));  
+            output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));         // Byte 0 (LSB)
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));  // Byte 1 (MSB)          
+            break;
+        }
+        case CipDataType::DINT:
+        {
+            int32_t strData = static_cast<int32_t>(std::stoi(data));
+            output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));         // Byte 0 (LSB)
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));  // Byte 1 (MSB)
+            break;
+        }
+        case CipDataType::REAL:
+        {    
+            uint32_t strData = static_cast<uint32_t>(std::stoi(data));
+            for (int i = 0; i < 4; ++i) 
+            {
+                output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
+            }
+            break;
+        }
+        case CipDataType::LINT:
+        {    
+            int64_t strData = static_cast<int64_t>(std::stoi(data));
+            for (int i = 0; i < 4; ++i) 
+            {
+                output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
+            }
+            break;
+        }
+        case CipDataType::STRING:
+        {
+            // output->Value.STRING.Length = data.length();
+            // std::strncpy(output->Value.STRING.Data, data.c_str(), sizeof(output->Value.STRING.Data) - 1);
+            // output->Value.STRING.Data[sizeof(output->Value.STRING.Data) - 1] = '\0';
+            
+            break;
+        }
+        default:
+            LOG_ERROR(logger,"NOT SUPPORTED FOR THIS DATA TYPE");
+            return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+    Status EthernetIP::cipDataConvertToPollData(cip_data_t& data, im::poll_data_t* output)
     {
         switch (data.DataType)
         {

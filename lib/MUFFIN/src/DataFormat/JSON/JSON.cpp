@@ -149,7 +149,19 @@ namespace muffin {
             } 
             else 
             {
-                valueArray.add(msg.Value);
+                if (msg.isArray)
+                {
+                    JsonArray subArray = valueArray.add<JsonArray>();
+                    for (const auto& val : msg.ArrayValue) 
+                    {
+                        subArray.add(val); 
+                    }   
+                }
+                else
+                {
+                    valueArray.add(msg.Value);
+                }
+                
             }
             nidArray.add(msg.NodeID);
         }

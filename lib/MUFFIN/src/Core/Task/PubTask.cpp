@@ -149,11 +149,15 @@ namespace muffin {
             {
                 for (auto& node : eventNodeVector)
                 {
+                    LOG_INFO(logger,"여기, node : %d",node->GetNodeID());
+                    LOG_INFO(logger,"mHasNewEvent : %s",node->VariableNode.mHasNewEvent == true ? "true" : "false");
+                    
                     if (node->VariableNode.mHasNewEvent == false    ||  
                         node->GetTopic() == mqtt::topic_e::ALARM    || 
                         node->GetTopic() == mqtt::topic_e::ERROR
                     )
-                    {   
+                    {
+                           
                         continue;
                     }
                     
@@ -234,22 +238,42 @@ namespace muffin {
             if (!nodeArrayVector.empty())
             {
                 JSON json;
-                const size_t TESTSIZE = 5;
-                LOG_DEBUG(logger,"nodeArrayVector.size() : %u",nodeArrayVector.size());
-                for (size_t i = 0; i < nodeArrayVector.size(); i += TESTSIZE) 
+                const size_t MAX_ARRAY_TOTAL = 150;
+                LOG_DEBUG(logger, "nodeArrayVector.size() : %u", nodeArrayVector.size());
+
+                std::vector<json_datum_t> currentBatch;
+                size_t currentArraySum = 0;
+
+                for (const auto& node : nodeArrayVector)
+                {
+                    size_t arraySize = node.ArrayValue.size();
+
+                    if (currentArraySum + arraySize > MAX_ARRAY_TOTAL)
+                    {
+                        // 배치 전송
+                        memset(batchPayload, 0, batchSize);
+                        json.Serialize(currentBatch, batchSize, sourceTimestamp, batchPayload);
+                        mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
+                        mqtt::cdo.Store(message);
+
+                        // 다음 배치를 위한 초기화
+                        currentBatch.clear();
+                        currentArraySum = 0;
+                    }
+
+                    currentBatch.emplace_back(node);
+                    currentArraySum += arraySize;
+                }
+
+                // 남은 마지막 배치 처리
+                if (!currentBatch.empty())
                 {
                     memset(batchPayload, 0, batchSize);
-                    size_t end = std::min(i + TESTSIZE, nodeArrayVector.size());
-                    std::vector<json_datum_t> batch(nodeArrayVector.begin() + i, nodeArrayVector.begin() + end);
-
-                    json.Serialize(batch, batchSize, sourceTimestamp, batchPayload);
+                    json.Serialize(currentBatch, batchSize, sourceTimestamp, batchPayload);
                     mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
                     mqtt::cdo.Store(message);
-                }
+                }           
             }
-            
-
-            
         }
     }
 

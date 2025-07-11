@@ -60,7 +60,7 @@ namespace muffin { namespace im {
         string_t ToMuffinString(const std::string& stdString);
         std::string Float32ConvertToString(const float& data) const;
         std::string Float64ConvertToString(const double& data) const;
-        std::string ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType) const;
+        bool ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const;
 
     public:
         std::string FloatConvertToStringForLimitValue(const float& data) const;
@@ -72,7 +72,7 @@ namespace muffin { namespace im {
 
     public:
         /* Convert Remote Control Request To Modbus Format */
-        std::pair<Status, uint16_t> ConvertModbusData(std::string& data);
+        std::pair<Status, uint16_t> StringConvertWordData(std::string& data);
     public:
         std::pair<bool, json_datum_t> CreateDaqStruct();
         mqtt::topic_e GetTopic() const;
