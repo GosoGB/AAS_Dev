@@ -916,7 +916,7 @@ namespace muffin {
                                 }
 
                                 writeResult = 0;
-                                if (xSemaphoreTake(xSemaphoreEthernetIP, 1000)  != pdTRUE)
+                                if (xSemaphoreTake(xSemaphoreEthernetIP, 2000)  != pdTRUE)
                                 {
                                     LOG_WARNING(logger, "[EthernetIP] THE WRITE MODULE IS BUSY. TRY LATER.");
                                     goto RC_RESPONSE;
@@ -950,12 +950,12 @@ namespace muffin {
                                 {
                                     if (response.Code == 0x00) 
                                     {
-                                        Serial.printf("[writeSingleTag] Write OK.\n");  
+                                        LOG_DEBUG(logger,"[writeSingleTag] Write OK.\n");  
                                         writeResult = 1;  
                                     } 
                                     else 
                                     {
-                                        Serial.printf("[writeSingleTag] Write ERROR, Code = 0x%02X\n", response.Code);
+                                        LOG_ERROR(logger,"[writeSingleTag] Write ERROR, Code = 0x%02X\n", response.Code);
                                     }        
                                 }
                                 

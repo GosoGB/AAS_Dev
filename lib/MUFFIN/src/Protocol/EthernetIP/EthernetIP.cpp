@@ -161,13 +161,6 @@ namespace muffin { namespace ethernetIP {
         size_t batchCount = mAddressTable.GetBatchCount();
         size_t ArrayBatchCount = mAddressArrayTable.GetArrayBatchCount();
 
-        if (xSemaphoreTake(xSemaphoreEthernetIP, 2000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "[EthernetIP] THE READ MODULE IS BUSY. TRY LATER.");
-            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-        }
-
-
         if (ArrayBatchCount != 0)
         {
             std::vector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable();
@@ -237,13 +230,13 @@ namespace muffin { namespace ethernetIP {
                         catch (const std::bad_alloc& e)
                         {
                             LOG_ERROR(logger, "OUT OF MEMORY: %s - TAG: %s", e.what(), tagName.c_str());
-                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            // xSemaphoreGive(xSemaphoreEthernetIP);
                             return Status(Status::Code::BAD_OUT_OF_MEMORY);
                         }
                         catch (const std::exception& e)
                         {
                             LOG_ERROR(logger, "EXCEPTION: %s - TAG: %s", e.what(), tagName.c_str());
-                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            // xSemaphoreGive(xSemaphoreEthernetIP);
                             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
                         }
                     }
@@ -274,13 +267,13 @@ namespace muffin { namespace ethernetIP {
                         catch (const std::bad_alloc& e)
                         {
                             LOG_ERROR(logger, "OUT OF MEMORY: %s - TAG: %s", e.what(), tagName.c_str());
-                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            // xSemaphoreGive(xSemaphoreEthernetIP);
                             return Status(Status::Code::BAD_OUT_OF_MEMORY);
                         }
                         catch (const std::exception& e)
                         {
                             LOG_ERROR(logger, "EXCEPTION: %s - TAG: %s", e.what(), tagName.c_str());
-                            xSemaphoreGive(xSemaphoreEthernetIP);
+                            // xSemaphoreGive(xSemaphoreEthernetIP);
                             return Status(Status::Code::BAD_UNEXPECTED_ERROR);
                         }
                     }
@@ -289,7 +282,7 @@ namespace muffin { namespace ethernetIP {
             }  
         }
 
-        xSemaphoreGive(xSemaphoreEthernetIP);
+        // xSemaphoreGive(xSemaphoreEthernetIP);
         return Status(Status::Code::GOOD);
     }
 

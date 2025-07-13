@@ -57,12 +57,17 @@ namespace muffin {
     private:
         static void wrapImplTask(void* pvParams);
         void implTask();
+
+        void strategyArrayLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
+        void strategyArrayUCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
+        void strategyArrayLclAndUcl(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
+
         void strategyLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
         void strategyUCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
         void strategyLclAndUcl(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
         void strategyCondition(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node);
         bool isActiveAlarm(const std::string& nid, const jvs::alarm_pub_type_e type);
-        float convertToFloat(const im::var_data_t& datum);
+        float convertToFloat(const im::var_value_u& datum, jvs::dt_e type);
         json_alarm_t retrieveActiveAlarm(const std::string& nid);
         std::string createAlarmUUID();
         void activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node, const std::string& value);
