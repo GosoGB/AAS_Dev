@@ -858,6 +858,7 @@ namespace muffin {
                                 int16_t retBit = ret.second->VariableNode.GetBitIndex();
                                 std::string value = remoteData.at(0).second;
                                 cip_data_t datum = ethernetIP.GetSingleAddressValue(tagName);
+
                                 datum.RawData.clear();
                                 if (retBit != -1)
                                 {
@@ -913,6 +914,7 @@ namespace muffin {
 
                                         return res;
                                     }
+                                    
                                 }
 
                                 writeResult = 0;
@@ -946,7 +948,7 @@ namespace muffin {
                                     goto RC_RESPONSE;
                                 }
 
-                                if (writeTag(ethernetIP.mEipSession, tagName, datum.RawData, static_cast<uint16_t>(datum.DataType), response))
+                                if (writeTag(ethernetIP.mEipSession, tagName, datum, response))
                                 {
                                     if (response.Code == 0x00) 
                                     {

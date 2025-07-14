@@ -54,7 +54,7 @@ namespace muffin { namespace ethernetIP {
         // 이미 존재하는지 확인 (중복 방지)
         if (contains(tag) == Status::Code::GOOD)
         {     
-            return Status(Status::Code::GOOD_NO_DATA);
+            return Status(Status::Code::GOOD);
         }
 
         // 현재 배치 초과 시 새 배치 생성

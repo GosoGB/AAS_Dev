@@ -400,17 +400,17 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
     rrData.insert(rrData.end(), serviceData.begin(), serviceData.end());
 
     // debug
-    Serial.print("[DEBUG] RRData Packet Dump (");
-    Serial.print(rrData.size());
-    Serial.println(" bytes):");
+    // Serial.print("[DEBUG] RRData Packet Dump (");
+    // Serial.print(rrData.size());
+    // Serial.println(" bytes):");
 
-    for (size_t i = 0; i < rrData.size(); ++i) {
-      if (i % 16 == 0 && i != 0) Serial.println();
-      if (rrData[i] < 0x10) Serial.print("0");
-      Serial.print(rrData[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
+    // for (size_t i = 0; i < rrData.size(); ++i) {
+    //   if (i % 16 == 0 && i != 0) Serial.println();
+    //   if (rrData[i] < 0x10) Serial.print("0");
+    //   Serial.print(rrData[i], HEX);
+    //   Serial.print(" ");
+    // }
+    // Serial.println();
 
     // Encapsulation Header + RR Data
     std::vector<uint8_t> packet;
@@ -421,15 +421,15 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
     packet.push_back(len & 0xFF); packet.push_back((len >> 8) & 0xFF);
 
 
-    uint32_t handle = session.sessionHandle;
-    Serial.print("[CIP] sendEncapsulationPacket RRData 패킷 전송용 세션 핸들: ");
-    Serial.println(session.sessionHandle, HEX);
+    // uint32_t handle = session.sessionHandle;
+    // Serial.print("[CIP] sendEncapsulationPacket RRData 패킷 전송용 세션 핸들: ");
+    // Serial.println(session.sessionHandle, HEX);
 
-    Serial.print("[CIP] sendEncapsulationPacket sessionHandle (LE bytes): ");
-    Serial.print(handle & 0xFF, HEX); Serial.print(" ");
-    Serial.print((handle >> 8) & 0xFF, HEX); Serial.print(" ");
-    Serial.print((handle >> 16) & 0xFF, HEX); Serial.print(" ");
-    Serial.println((handle >> 24) & 0xFF, HEX);    
+    // Serial.print("[CIP] sendEncapsulationPacket sessionHandle (LE bytes): ");
+    // Serial.print(handle & 0xFF, HEX); Serial.print(" ");
+    // Serial.print((handle >> 8) & 0xFF, HEX); Serial.print(" ");
+    // Serial.print((handle >> 16) & 0xFF, HEX); Serial.print(" ");
+    // Serial.println((handle >> 24) & 0xFF, HEX);    
 
 
     uint32_t handle_be = session.sessionHandle;
@@ -454,7 +454,7 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
     //while (session.client->available()) response.push_back(session.client->read());
 
     response.clear();
-    size_t offset = 0;
+    // size_t offset = 0;
 
     // Serial.println("[DEBUG] 수신 데이터 (1바이트씩):");
 
@@ -465,13 +465,13 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
             response.push_back((uint8_t)byte);
 
             // 오프셋 줄바꿈
-            if (offset % 16 == 0) Serial.printf("\n%04zx: ", offset);
+            // if (offset % 16 == 0) Serial.printf("\n%04zx: ", offset);
 
-            Serial.printf("%02X ", (uint8_t)byte);
-            ++offset;
+            // Serial.printf("%02X ", (uint8_t)byte);
+            // ++offset;
         }
     }
-    Serial.println();
+    // Serial.println();
 
     return !response.empty();
 }

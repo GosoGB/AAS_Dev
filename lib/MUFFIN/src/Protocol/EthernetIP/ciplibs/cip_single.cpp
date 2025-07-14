@@ -243,7 +243,8 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
     outData.clear();
 
     // 반복해서 각 Element를 개별 cip_data_t에 채워 넣음
-    for (uint16_t i = 0; i < elementCount; ++i) {
+    for (uint16_t i = 0; i < elementCount; ++i) 
+    {
         cip_data_t element;
         element.Code = generalStatus;
         element.ExtCode = extendedStatus;
@@ -264,7 +265,7 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
 }
 
 
-bool writeTag( EIPSession& session, const std::string& tagName, const std::vector<uint8_t>& data, uint16_t dataType, cip_data_t& outResult )
+bool writeTag( EIPSession& session, const std::string& tagName, cip_data_t datum, cip_data_t& outResult )
 {
     constexpr size_t CIP_OFFSET = 40;                                   // Encapsulation Header + RR Data
     outResult.Code = 0xFF;              // Unknown error로 초기화
@@ -277,34 +278,71 @@ bool writeTag( EIPSession& session, const std::string& tagName, const std::vecto
     message.insert(message.end(), path.begin(), path.end());            // 경로 데이터 삽입
 
     // Data Type
-    message.push_back(static_cast<uint8_t>(dataType & 0xFF));           // Data Type LSB
-    message.push_back(static_cast<uint8_t>((dataType >> 8) & 0xFF));    // Data Type MSB
+    message.push_back(static_cast<uint8_t>(static_cast<uint16_t>(datum.DataType) & 0xFF));           // Data Type LSB
+    message.push_back(static_cast<uint8_t>((static_cast<uint16_t>(datum.DataType) >> 8) & 0xFF));    // Data Type MSB
 
-    CipDataType typeEnum = static_cast<CipDataType>(dataType);
-    int typeSize = cipDataTypeSize(typeEnum);
+    CipDataType typeEnum = datum.DataType;
+    
+    if (static_cast<uint16_t>(datum.DataType) == 0x02A0) 
+    { // STRING 처리
 
-    if (typeSize == 0) {
-        Serial.printf("[writeTag] Unknown dataType: 0x%04X\n", dataType);
-        return false;
+        uint32_t strLen = datum.RawData.size();
+        const size_t MAX_CIP_STRING_DATA_LEN = 84;
+
+        
+        // STRING 구조체: Reserved 2바이트 (보통 0)
+        
+        message.push_back(datum.Value.STRING.Code[0]);
+        message.push_back(datum.Value.STRING.Code[1]);
+        
+        message.push_back(0x01); // Element Count LSB
+        message.push_back(0x00); // Element Count MSB (always 1 for STRING)
+
+
+        // 길이 (4 bytes, little endian)
+        message.push_back(static_cast<uint8_t>(strLen & 0xFF));
+        message.push_back(static_cast<uint8_t>((strLen >> 8) & 0xFF));
+        message.push_back(static_cast<uint8_t>((strLen >> 16) & 0xFF));
+        message.push_back(static_cast<uint8_t>((strLen >> 24) & 0xFF));
+
+        // 문자열 데이터 삽입
+        message.insert(message.end(), datum.RawData.begin(), datum.RawData.end());
+
+        for (size_t i = strLen; i < MAX_CIP_STRING_DATA_LEN; ++i) 
+        {
+            message.push_back(0x00);
+        }
+    }
+    else
+    {
+        int typeSize = cipDataTypeSize(typeEnum);
+
+        if (typeSize == 0) 
+        {
+            Serial.printf("[writeTag] Unknown dataType: 0x%04X\n", static_cast<uint16_t>(datum.DataType));
+            return false;
+        }
+
+        if (datum.RawData.size() % typeSize != 0) 
+        {
+            Serial.printf("[writeTag] Invalid data size: %u bytes (typeSize=%d)\n", datum.RawData.size(), typeSize);
+            return false;
+        }
+
+        uint16_t elementCount = static_cast<uint16_t>(datum.RawData.size() / typeSize);
+        message.push_back(static_cast<uint8_t>(elementCount & 0xFF));           // Element Count LSB           
+        message.push_back(static_cast<uint8_t>((elementCount >> 8) & 0xFF));    // Element Count MSB
+
+        message.insert(message.end(), datum.RawData.begin(), datum.RawData.end()); 
+        
+        
+        Serial.printf("[writeTag] Writing %u element(s) to tag \"%s\" (type=0x%04X)\n",
+                          elementCount, tagName.c_str(), static_cast<uint16_t>(datum.DataType));
     }
 
-    if (data.size() % typeSize != 0) {
-        Serial.printf("[writeTag] Invalid data size: %u bytes (typeSize=%d)\n", data.size(), typeSize);
-        return false;
-    }
-
-    uint16_t elementCount = static_cast<uint16_t>(data.size() / typeSize);
-    message.push_back(static_cast<uint8_t>(elementCount & 0xFF));           // Element Count LSB           
-    message.push_back(static_cast<uint8_t>((elementCount >> 8) & 0xFF));    // Element Count MSB
-
-    message.insert(message.end(), data.begin(), data.end());                // 실제 쓰기 데이터 삽입
-
-    Serial.printf("[writeTag] Writing %u element(s) to tag \"%s\" (type=0x%04X)\n",
-                  elementCount, tagName.c_str(), dataType);
-
-    Serial.print("[writeTag] Encoded message: ");
-    for (auto b : message) Serial.printf("%02X ", b);
-    Serial.println();
+    // Serial.print("[writeTag] Encoded message: ");
+    // for (auto b : message) Serial.printf("%02X ", b);
+    // Serial.println();
 
     // PLC 데이터 전송
     std::vector<uint8_t> response;
@@ -389,8 +427,8 @@ bool writeTagExt(EIPSession& session, const std::string& tagName, const std::vec
     // Data Payload
     message.insert(message.end(), data.begin(), data.end());
 
-    Serial.printf("[writeTagExt] Sending Write Tag request: %s (Elements=%u, DataSize=%zu)\n",
-                  tagName.c_str(), elementCount, data.size());
+    // Serial.printf("[writeTagExt] Sending Write Tag request: %s (Elements=%u, DataSize=%zu)\n",
+    //               tagName.c_str(), elementCount, data.size());
 
     std::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {

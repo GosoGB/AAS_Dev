@@ -423,6 +423,30 @@ namespace muffin { namespace ethernetIP {
         return datum;
     }
 
+    bool EthernetIP::isPossibleToConvert(std::string& data)
+    {
+        bool decimalFound = false;
+        size_t start = (data[0] == '-') ? 1 : 0;
+        for (size_t i = start; i < data.length(); ++i) 
+        {
+            char c = data[i];
+            if (c == '.') 
+            {
+                if (decimalFound) 
+                {
+                    return false;
+                }
+                decimalFound = true;
+            } 
+            else if (!isdigit(c)) 
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     Status EthernetIP::StringConvertToCipData(std::string& data, cip_data_t* output)
     {
         switch (output->DataType)
@@ -435,12 +459,20 @@ namespace muffin { namespace ethernetIP {
         }
         case CipDataType::SINT:
         {
+            if (!isPossibleToConvert(data))
+            {
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+            }
             int8_t strData = static_cast<int8_t>(std::stoi(data));
             output->RawData.emplace_back(static_cast<uint8_t>(strData));
             break;
         }
         case CipDataType::INT:
         {
+            if (!isPossibleToConvert(data))
+            {
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+            }
             int16_t strData = static_cast<int16_t>(std::stoi(data));  
             output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));         // Byte 0 (LSB)
             output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));  // Byte 1 (MSB)          
@@ -448,24 +480,42 @@ namespace muffin { namespace ethernetIP {
         }
         case CipDataType::DINT:
         {
+            if (!isPossibleToConvert(data))
+            {
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+            }
             int32_t strData = static_cast<int32_t>(std::stoi(data));
-            output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));         // Byte 0 (LSB)
-            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));  // Byte 1 (MSB)
+            output->RawData.emplace_back(static_cast<uint8_t>((strData) & 0xFF));
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 16) & 0xFF));
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 24) & 0xFF));
+
             break;
         }
         case CipDataType::REAL:
         {    
-            uint32_t strData = static_cast<uint32_t>(std::stoi(data));
+            if (!isPossibleToConvert(data))
+            {
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+            }
+            float strData = std::stof(data);
+            uint8_t bytes[4];
+            std::memcpy(bytes, &strData, sizeof(float));
+
             for (int i = 0; i < 4; ++i) 
             {
-                output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
+                output->RawData.emplace_back(bytes[i]); 
             }
             break;
         }
         case CipDataType::LINT:
         {    
+            if (!isPossibleToConvert(data))
+            {
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+            }
             int64_t strData = static_cast<int64_t>(std::stoi(data));
-            for (int i = 0; i < 4; ++i) 
+            for (int i = 0; i < 8; ++i) 
             {
                 output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
             }
@@ -473,10 +523,10 @@ namespace muffin { namespace ethernetIP {
         }
         case CipDataType::STRING:
         {
-            // output->Value.STRING.Length = data.length();
-            // std::strncpy(output->Value.STRING.Data, data.c_str(), sizeof(output->Value.STRING.Data) - 1);
-            // output->Value.STRING.Data[sizeof(output->Value.STRING.Data) - 1] = '\0';
-            
+            for (char ch : data) 
+            {
+                output->RawData.emplace_back(static_cast<uint8_t>(ch));
+            }
             break;
         }
         default:
@@ -517,8 +567,9 @@ namespace muffin { namespace ethernetIP {
             break;
         case CipDataType::STRING:
             output->ValueType = jvs::dt_e::STRING;
-            output->Value.String = data.Value.STRING;
-            return Status(Status::Code::GOOD);
+            strcpy(output->Value.String.Data, data.Value.STRING.Data);
+            output->Value.String.Length = data.Value.STRING.Length;
+            break;
         default:
             return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
         }

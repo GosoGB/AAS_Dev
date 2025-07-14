@@ -181,10 +181,19 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         size_t valuePos = typePos + 2;
         std::vector<uint8_t> value;
 
+        cip_data_t data;
+        data.Code = generalStatus;
+        data.ExtCode = extStatusSize;
+        data.Timestamp = muffin::GetTimestampInMillis();
+        data.DataType = static_cast<CipDataType>(rawType);
+
+
         if (rawType == 0x02A0) 
         {
-        // STRING 구조체 처리
-            valuePos +=2;
+            // STRING 구조체 처리
+            data.Value.STRING.Code[0] = oneResponse[valuePos++];
+            data.Value.STRING.Code[1] = oneResponse[valuePos++];
+            
             if (valuePos + 4 > oneResponse.size()) 
             {
                 Serial.println("STRING 길이 필드 부족");
@@ -229,11 +238,7 @@ bool readTagsMSR(EIPSession& session, const std::vector<std::string>& tagNames, 
         // Serial.println();
 
         // cip_data_t에 담기
-        cip_data_t data;
-        data.Code = generalStatus;
-        data.ExtCode = extStatusSize;
-        data.Timestamp = muffin::GetTimestampInMillis();
-        data.DataType = static_cast<CipDataType>(rawType);
+        
 
         // 값 디코딩
         if (!decodeCipValue(data.DataType, valuePos, oneResponse, data.Value, data.RawData))

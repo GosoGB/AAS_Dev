@@ -40,6 +40,12 @@ enum class CipDataType : uint16_t {
     STRING = 0x02A0,  // UDT 서비스 코드임
 };
 
+typedef struct CipStringType
+{
+    uint8_t Code[2];
+    size_t Length;
+    char Data[84]; 
+} string_t;
 
 typedef union CipDataValueUnion
 {
@@ -64,7 +70,7 @@ typedef union CipDataValueUnion
     int64_t  LINT;
     uint64_t ULINT;
     double   LREAL;
-    muffin::im::string_t STRING;
+    string_t STRING;
 } cip_value_u;
 
 typedef struct CipData

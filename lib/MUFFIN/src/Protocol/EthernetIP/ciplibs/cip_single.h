@@ -18,7 +18,7 @@ bool readTag(EIPSession& session, const std::string& tagName, cip_data_t& outDat
 bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elementIndex, uint16_t elementCount, std::vector<cip_data_t>& outData );
 
 // 단일 TAG 쓰기 요청 (0x4D)
-bool writeTag( EIPSession& session, const std::string& tagName, const std::vector<uint8_t>& data, uint16_t dataType, cip_data_t& outResult );
+bool writeTag( EIPSession& session, const std::string& tagName, cip_data_t datum, cip_data_t& outResult );
 // Array TAG 쓰기 요청 (0x4D)
 bool writeTagExt(EIPSession& session, const std::string& tagName, const std::vector<uint8_t>& data, uint16_t dataType, uint16_t elementCount, cip_data_t& outResult);
 

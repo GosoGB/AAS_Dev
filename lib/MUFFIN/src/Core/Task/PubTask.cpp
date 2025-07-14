@@ -149,8 +149,6 @@ namespace muffin {
             {
                 for (auto& node : eventNodeVector)
                 {
-                    LOG_INFO(logger,"mHasNewEvent : %s",node->VariableNode.mHasNewEvent == true ? "true" : "false");
-                    
                     if (node->VariableNode.mHasNewEvent == false    ||  
                         node->GetTopic() == mqtt::topic_e::ALARM    || 
                         node->GetTopic() == mqtt::topic_e::ERROR

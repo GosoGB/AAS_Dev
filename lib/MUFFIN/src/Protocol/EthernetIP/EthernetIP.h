@@ -76,7 +76,8 @@ namespace muffin { namespace ethernetIP {
         PolledArrayDataTable mPolledArrayDataTable;
         
         uint16_t mScanRate = 80;
-    
+    private:
+        bool isPossibleToConvert(std::string& data);
 
     };
     
