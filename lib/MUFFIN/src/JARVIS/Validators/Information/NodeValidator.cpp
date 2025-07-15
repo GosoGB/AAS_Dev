@@ -144,15 +144,22 @@ namespace muffin { namespace jvs {
                 
                 if (mArrayIndex.first != rsc_e::GOOD_NO_DATA)
                 {
-                    convertToArraySampleInterval(json["asi"].as<JsonVariant>());
-                    if (mArraySampleInterval.first != rsc_e::GOOD && 
-                    mArraySampleInterval.first != rsc_e::GOOD_NO_DATA)
+                    if (json.containsKey("asi"))
                     {
-                        char message[64] = {'\0'};
-                        snprintf(message, 64, "INVALID ARRAY SAMPLE INTERVAL, NODE ID: %s", mNodeID);
-                        return std::make_pair(mTopic.first, message);
+                        convertToArraySampleInterval(json["asi"].as<JsonVariant>());
+                        if (mArraySampleInterval.first != rsc_e::GOOD && 
+                        mArraySampleInterval.first != rsc_e::GOOD_NO_DATA)
+                        {
+                            char message[64] = {'\0'};
+                            snprintf(message, 64, "INVALID ARRAY SAMPLE INTERVAL, NODE ID: %s", mNodeID);
+                            return std::make_pair(mTopic.first, message);
+                        }
                     }
-
+                    else
+                    {
+                        mArraySampleInterval.first = rsc_e::GOOD_NO_DATA;
+                    }
+                    
                 }
                 
 
@@ -410,7 +417,6 @@ namespace muffin { namespace jvs {
         if (mProtocolVersion > prtcl_ver_e::VERSEOIN_4)
         {
             isValid &= json.containsKey("arr");
-            isValid &= json.containsKey("asi");
         }
 
         if (isValid == true)

@@ -195,7 +195,7 @@ namespace muffin {
             {
                 if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
                 {
-                    LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
+                    LOG_WARNING(logger, "[MODBUS TCP] THE READ MODULE IS BUSY. TRY LATER.");
                     continue;
                 }
 
@@ -228,7 +228,7 @@ namespace muffin {
             {
                 if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
                 {
-                    LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
+                    LOG_WARNING(logger, "[MODBUS TCP] THE READ MODULE IS BUSY. TRY LATER.");
                     continue;
                 }
 
