@@ -59,14 +59,16 @@ namespace muffin {
                 continue;
             }
 
-            if (xSemaphoreTake(xSemaphoreEthernetIP, 2000)  != pdTRUE)
-            {
-                LOG_WARNING(logger, "[EthernetIP] THE READ MODULE IS BUSY. TRY LATER.");
-                continue;
-            }
+            
             
             for(auto& EthernetIp : EthernetIpVector)
             {
+                if (xSemaphoreTake(xSemaphoreEthernetIP, 2000)  != pdTRUE)
+                {
+                    LOG_WARNING(logger, "[EthernetIP] THE READ MODULE IS BUSY. TRY LATER.");
+                    continue;
+                }
+
                 if (!EthernetIp.mEipSession.client->connected())
                 {
                     if (!EthernetIp.Connect())
@@ -74,7 +76,9 @@ namespace muffin {
                         LOG_ERROR(logger,"EthernetIp Client failed to connect!, serverIP : %s, serverPort: %d", EthernetIp.mEipSession.targetIP.toString().c_str(), EthernetIp.mEipSession.targetPort);
                         // EthernetIp.SetTimeoutError();     
                         EthernetIp.mEipSession.client->stop(); 
-                        EthernetIp.mEipSession.connected = false;   
+                        EthernetIp.mEipSession.connected = false;  
+                        
+                        xSemaphoreGive(xSemaphoreEthernetIP); 
                         continue;
                     } 
                 }
@@ -87,9 +91,10 @@ namespace muffin {
 
                 EthernetIp.mEipSession.client->stop(); 
                 EthernetIp.mEipSession.connected = false;
+
+                xSemaphoreGive(xSemaphoreEthernetIP);
             }
             
-            xSemaphoreGive(xSemaphoreEthernetIP);
 
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::ETHERNET_IP_TASK));
             vTaskDelay(s_PollingIntervalInMillis / portTICK_PERIOD_MS);

@@ -549,13 +549,37 @@ namespace muffin { namespace ethernetIP {
             output->ValueType = jvs::dt_e::INT8;
             output->Value.Int8 = data.Value.SINT;
             break;
+        case CipDataType::USINT:
+            output->ValueType = jvs::dt_e::UINT8;
+            output->Value.UInt8 = data.Value.USINT;
+            break;
         case CipDataType::INT:
             output->ValueType = jvs::dt_e::INT16;
             output->Value.Int16 = data.Value.INT;
             break;
+        case CipDataType::BYTE:
+            output->ValueType = jvs::dt_e::UINT8;
+            output->Value.UInt8 = data.Value.BYTE;
+            break;
+        case CipDataType::WORD:
+            output->ValueType = jvs::dt_e::UINT16;
+            output->Value.UInt16 = data.Value.WORD;
+            break;
+        case CipDataType::UINT:
+            output->ValueType = jvs::dt_e::UINT16;
+            output->Value.UInt16 = data.Value.UINT;
+            break;
         case CipDataType::DINT:
             output->ValueType = jvs::dt_e::INT32;
             output->Value.Int32 = data.Value.DINT;
+            break;
+        case CipDataType::DWORD:
+            output->ValueType = jvs::dt_e::UINT32;
+            output->Value.UInt32 = data.Value.DWORD;
+            break;
+        case CipDataType::UDINT:
+            output->ValueType = jvs::dt_e::UINT32;
+            output->Value.UInt32 = data.Value.UDINT;
             break;
         case CipDataType::REAL:
             output->ValueType = jvs::dt_e::FLOAT32;
@@ -564,6 +588,14 @@ namespace muffin { namespace ethernetIP {
         case CipDataType::LINT:
             output->ValueType = jvs::dt_e::INT64;
             output->Value.Int64 = data.Value.LINT;
+            break;
+        case CipDataType::ULINT:
+            output->ValueType = jvs::dt_e::UINT64;
+            output->Value.UInt64 = data.Value.ULINT;
+            break;
+        case CipDataType::LREAL:
+            output->ValueType = jvs::dt_e::FLOAT64;
+            output->Value.Float64 = data.Value.LREAL;
             break;
         case CipDataType::STRING:
             output->ValueType = jvs::dt_e::STRING;

@@ -193,12 +193,19 @@ namespace muffin {
             
             for(auto& modbusTCP : ModbusTcpVector)
             {
+                if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
+                {
+                    LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
+                    continue;
+                }
+
                 if (!modbusTCP.mModbusTCPClient->connected()) 
                 {
                     if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
                     {
                         LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
                         modbusTCP.SetTimeoutError();
+                        xSemaphoreGive(xSemaphoreModbusTCP);
                         continue;
                     } 
                     else
@@ -212,14 +219,25 @@ namespace muffin {
                 {
                     LOG_ERROR(logger, "FAILED TO POLL DATA: %s", ret.c_str());
                 }
+
+                xSemaphoreGive(xSemaphoreModbusTCP);
+
             }
         #if defined(MT11)
             for(auto& modbusTCP : ModbusTcpVectorDynamic)
             {
+                if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
+                {
+                    LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
+                    continue;
+                }
+
                 if (modbusTCP.mModbusTCPClient->begin(modbusTCP.GetServerIP(), modbusTCP.GetServerPort()) != 1) 
                 {
                     LOG_ERROR(logger,"Modbus TCP Client failed to connect!, serverIP : %s, serverPort: %d", modbusTCP.GetServerIP().toString().c_str(), modbusTCP.GetServerPort());
                     modbusTCP.SetTimeoutError();
+                    
+                    xSemaphoreGive(xSemaphoreModbusTCP);
                     continue;
                 }
                 else
@@ -234,6 +252,8 @@ namespace muffin {
                 }
 
                 modbusTCP.mModbusTCPClient->end();
+                
+                xSemaphoreGive(xSemaphoreModbusTCP);
             }
         #endif
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MODBUS_TCP_TASK));

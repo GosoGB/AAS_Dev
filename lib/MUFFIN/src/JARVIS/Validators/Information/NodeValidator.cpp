@@ -34,6 +34,7 @@ namespace muffin { namespace jvs {
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mTopic(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT)
+        , mArraySampleInterval(rsc_e::UNCERTAIN, 0)
     {
         memset(mNodeID, '\0', sizeof(mNodeID));
     }
@@ -140,6 +141,21 @@ namespace muffin { namespace jvs {
                     snprintf(message, 64, "INVALID NODE ARRAY INDEX, NODE ID: %s", mNodeID);
                     return std::make_pair(mTopic.first, message);
                 }
+                
+                if (mArrayIndex.first != rsc_e::GOOD_NO_DATA)
+                {
+                    convertToArraySampleInterval(json["asi"].as<JsonVariant>());
+                    if (mArraySampleInterval.first != rsc_e::GOOD && 
+                    mArraySampleInterval.first != rsc_e::GOOD_NO_DATA)
+                    {
+                        char message[64] = {'\0'};
+                        snprintf(message, 64, "INVALID ARRAY SAMPLE INTERVAL, NODE ID: %s", mNodeID);
+                        return std::make_pair(mTopic.first, message);
+                    }
+
+                }
+                
+
             }
             
 
@@ -317,6 +333,12 @@ namespace muffin { namespace jvs {
                 node->SetArrayIndex(mArrayIndex.second);
             }
 
+            if (mArraySampleInterval.first == rsc_e::GOOD)
+            {
+                node->SetArraySamepleInterval(mArraySampleInterval.second);   
+            }
+            
+
             try
             {
                 outVector->emplace_back(std::move(node));
@@ -388,6 +410,7 @@ namespace muffin { namespace jvs {
         if (mProtocolVersion > prtcl_ver_e::VERSEOIN_4)
         {
             isValid &= json.containsKey("arr");
+            isValid &= json.containsKey("asi");
         }
 
         if (isValid == true)
@@ -1645,6 +1668,25 @@ namespace muffin { namespace jvs {
         }
 
         mNodeArea.first = rsc_e::GOOD;
+    }
+
+    void NodeValidator::convertToArraySampleInterval(JsonVariant arraySamepleInterval)
+    {
+        if (arraySamepleInterval.isNull() == true)
+        {
+            mArraySampleInterval.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
+        }
+
+        if (arraySamepleInterval.is<uint16_t>() == false)
+        {
+            mArraySampleInterval.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
+        }
+
+        mArraySampleInterval.first = rsc_e::GOOD;
+        mArraySampleInterval.second = arraySamepleInterval.as<uint16_t>();
+
     }
 
     void NodeValidator::convertToArrayIndex(JsonArray arrayIndex)

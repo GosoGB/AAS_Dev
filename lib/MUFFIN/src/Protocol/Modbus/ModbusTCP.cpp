@@ -165,12 +165,6 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        if (xSemaphoreTake(xSemaphoreModbusTCP, 2000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "[MODBUS RTU] THE READ MODULE IS BUSY. TRY LATER.");
-            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-        }
-
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
             const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
@@ -216,7 +210,7 @@ namespace muffin {
                 }
             }
         }
-        xSemaphoreGive(xSemaphoreModbusTCP);
+        
         return ret;
     }
 

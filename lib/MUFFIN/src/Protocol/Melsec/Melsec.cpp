@@ -168,19 +168,12 @@ namespace muffin {
             return Status(Status::Code::BAD);
         }
 
-        if (xSemaphoreTake(xSemaphoreMelsec, 2000)  != pdTRUE)
-        {
-            LOG_WARNING(logger, "[MELSEC] THE READ MODULE IS BUSY. TRY LATER.");
-            return Status(Status::Code::BAD_TOO_MANY_OPERATIONS);
-        }
-
         for (const auto& slaveID : retrievedSlaveInfo.second)
         {
             const auto retrievedAddressInfo = mAddressTable.RetrieveAddressBySlaveID(slaveID);
             if (retrievedAddressInfo.first.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE ADDRESSES FOR POLLING: %s", retrievedAddressInfo.first.c_str());
-                xSemaphoreGive(xSemaphoreMelsec);
                 return Status(Status::Code::BAD);
             }
 
@@ -188,7 +181,6 @@ namespace muffin {
             if (retrievedAreaInfo.first.ToCode() != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO RETRIEVE MELSEC AREA FOR POLLING: %s", retrievedAreaInfo.first.c_str());
-                xSemaphoreGive(xSemaphoreMelsec);
                 return Status(Status::Code::BAD);
             }
 
@@ -213,7 +205,6 @@ namespace muffin {
                 }
             }
         }
-        xSemaphoreGive(xSemaphoreMelsec);
         return ret;
     }
 

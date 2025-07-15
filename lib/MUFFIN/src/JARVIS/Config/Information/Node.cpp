@@ -49,6 +49,7 @@ namespace muffin { namespace jvs { namespace config {
             mTopic                  = obj.mTopic;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
             mArrayIndex             = obj.mArrayIndex;
+            mArraySampleInterval    = obj.mArraySampleInterval;
         }
         
         return *this;
@@ -70,7 +71,8 @@ namespace muffin { namespace jvs { namespace config {
             mFormatString           == obj.mFormatString            &&
             mTopic                  == obj.mTopic                   &&
             mHasAttributeEvent      == obj.mHasAttributeEvent       &&
-            mArrayIndex             == obj.mArrayIndex
+            mArrayIndex             == obj.mArrayIndex              &&
+            mArraySampleInterval    == obj.mArraySampleInterval
         );
     }
 
@@ -507,6 +509,12 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::ARRAY_INDEX));
     }
 
+    void Node::SetArraySamepleInterval(const uint16_t arraySampleInterval)
+    {
+        mArraySampleInterval = arraySampleInterval;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ARRAY_SAMPLE_INTERVAL));
+    }
+
     void Node::SetAttributeEvent(const bool hasEvent)
     {
         mHasAttributeEvent = hasEvent;
@@ -716,4 +724,17 @@ namespace muffin { namespace jvs { namespace config {
             return std::make_pair(Status(Status::Code::BAD), mArrayIndex);
         }
     }
+
+    std::pair<Status, uint16_t> Node::GetArraySamepleInterval() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ARRAY_SAMPLE_INTERVAL)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mArraySampleInterval);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mArraySampleInterval);
+        }
+    }
+
 }}}

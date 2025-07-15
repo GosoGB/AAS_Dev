@@ -60,13 +60,22 @@ namespace muffin
 
             for(auto& melsec : MelsecVector)
             {
+
+                if (xSemaphoreTake(xSemaphoreMelsec, 2000)  != pdTRUE)
+                {
+                    LOG_WARNING(logger, "[MELSEC] THE READ MODULE IS BUSY. TRY LATER.");
+                    continue;;
+                }
+
                 if (!melsec.mMelsecClient->Connected())
                 {
                     if (!melsec.Connect())
                     {
                         LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
                         melsec.SetTimeoutError();     
-                        melsec.mMelsecClient->Close();    
+                        melsec.mMelsecClient->Close(); 
+                        
+                        xSemaphoreGive(xSemaphoreMelsec);   
                         continue;
                     } 
                 }
@@ -78,6 +87,7 @@ namespace muffin
                 }
 
                 melsec.mMelsecClient->Close();
+                xSemaphoreGive(xSemaphoreMelsec);
             }
 
             g_DaqTaskSetFlag.set(static_cast<uint8_t>(set_task_flag_e::MELSEC_TASK));

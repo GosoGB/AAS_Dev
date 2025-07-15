@@ -209,29 +209,17 @@ namespace muffin { namespace w5500 {
     
     void EthernetClient::stop()
     {
-
-    #if defined(DEBUG)
-        if (mSocket != nullptr)
+        if (mSocket == nullptr)
         {
-            mSocket->Disconnect();
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            mSocket->Close();
-            mIsConnected = false;
-            mRxBuffer = nullptr;
-
-            // mSocket->Close();
-            // mRxBuffer = nullptr;
-            // mIsConnected = false;
+            LOG_WARNING(logger, "Socket is already stopped or uninitialized.");
+            return;
         }
-    #else
-        임시로 바꿔둔거임 수정해야함 @김주성
-    #endif
-        // mSocket->Disconnect();
-        // vTaskDelay(100 / portTICK_PERIOD_MS);
-        // mSocket->Close();
-        // mIsConnected = false;
-        // mRxBuffer = nullptr;
-        
+
+        mSocket->Disconnect();
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        mSocket->Close();
+        mIsConnected = false;
+        mRxBuffer = nullptr;
     }
 
 
