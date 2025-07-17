@@ -72,6 +72,8 @@ namespace muffin {
         mServerPort = config->GetPort().second;
         mPlcSeries  = config->GetPlcSeies().second;
         mDataformat = config->GetDataFormat().second;
+        mScanRate   = config->GetScanRate().second;
+        
         return Status(Status::Code::GOOD);
     }
 

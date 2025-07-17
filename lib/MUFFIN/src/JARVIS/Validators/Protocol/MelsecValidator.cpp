@@ -66,6 +66,19 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, "INVALID MELSEC: MANDATORY KEY'S VALUE CANNOT BE NULL");
             }
 
+            uint16_t scanRate = 80;
+            if (cin.containsKey("sr"))
+            {
+                const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
+                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                {
+                    const std::string message = "INVALID MODBUS TCP SCAN RATE";
+                    return std::make_pair(rsc, message);
+                } 
+                
+                scanRate = retSR.second;
+            }
+
             const uint16_t prt      = cin["prt"].as<uint16_t>();
             const std::string ip    = cin["ip"].as<std::string>();
             // const uint8_t plcSeries = cin["ps"].as<uint8_t>();
@@ -131,6 +144,7 @@ namespace muffin { namespace jvs {
             Melsec->SetDataFormat(std::move(retDataFormat.second));
             Melsec->SetNodes(std::move(retNodes.second));
             Melsec->SetEthernetInterface(std::move(retEths.second));
+            Melsec->SetScanRate(scanRate);
 
             rsc = emplaceCIN(static_cast<config::Base*>(Melsec), outVector);
             if (rsc != rsc_e::GOOD)
@@ -329,6 +343,24 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc_e::GOOD, if_e::LINK_02);
         default:
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, if_e::EMBEDDED);
+        }
+    }
+
+    std::pair<rsc_e, uint16_t> MelsecValidator::convertToScanRate(JsonVariant scanRate)
+    {
+        if (scanRate.isNull() == true || scanRate.is<uint16_t>() == false)
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, 80);
+        }
+        else
+        {
+            const uint16_t SR = scanRate.as<uint16_t>();
+            if (SR < 80 || SR > 3000)
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 80);
+            }
+            
+            return std::make_pair(rsc_e::GOOD, SR);
         }
     }
 }}

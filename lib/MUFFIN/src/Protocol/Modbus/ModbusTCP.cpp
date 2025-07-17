@@ -61,6 +61,7 @@ namespace muffin {
         addNodeReferences(config->GetSlaveID().second, config->GetNodes().second);
         mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
+        mScanRate = config->GetScanRate().second;
         return Status(Status::Code::GOOD);
     }
 

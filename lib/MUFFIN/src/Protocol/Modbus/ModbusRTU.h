@@ -73,6 +73,6 @@ namespace muffin {
         modbus::NodeTable mNodeTable;
         modbus::PolledDataTable mPolledDataTable;
 
-        uint16_t mScanRate = 80;
+        uint16_t mScanRate;
     };
 }

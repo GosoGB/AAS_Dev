@@ -19,6 +19,7 @@
 
 #include "SSLClient.h"
 #include "certBundle.h"
+#include "Common/Sync/LockGuard.hpp"
 // #include <errno.h>
 
 #undef connect
@@ -379,6 +380,9 @@ size_t SSLClient::write(uint8_t data) {
  * data couldn't be sent or the client was not connected.
  */
 size_t SSLClient::write(const uint8_t *buf, size_t size) {
+
+  LockGuard lock(mMutex);
+
   if (!_connected) {
 
     log_w("SSLClient is not connected.");
@@ -409,6 +413,9 @@ size_t SSLClient::write(const uint8_t *buf, size_t size) {
  * @return int  > 1 if res + peeked. 
  */
 int SSLClient::read(uint8_t *buf, size_t size) {
+
+  LockGuard lock(mMutex);
+  
   // log_v("This is the iClient->read() implementation");
   int peeked = 0;
   int avail = available();

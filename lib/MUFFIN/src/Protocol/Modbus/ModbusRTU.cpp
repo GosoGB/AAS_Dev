@@ -78,6 +78,7 @@ namespace muffin {
         }
         
         const uint8_t slaveID = config->GetSlaveID().second;
+        mScanRate = config->GetScanRate().second;
         addNodeReferences(slaveID, config->GetNodes().second);
         return Status(Status::Code::GOOD);
     }

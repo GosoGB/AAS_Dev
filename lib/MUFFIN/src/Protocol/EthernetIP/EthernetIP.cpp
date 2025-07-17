@@ -46,6 +46,7 @@ namespace muffin { namespace ethernetIP {
         addNodeReferences(config->GetNodes().second);
         mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
+        mScanRate   = config->GetScanRate().second;
 
         mAddressTable.DebugPrint();
         mAddressArrayTable.DebugPrint();
@@ -163,11 +164,11 @@ namespace muffin { namespace ethernetIP {
 
         if (ArrayBatchCount != 0)
         {
-            std::vector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable();
-            
+            std::vector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable(); 
             for(auto& entry : tagArrayEntry)
             {
                 std::vector<cip_data_t> readValues;
+                delay(mScanRate);
                 if (readTagExt(mEipSession, entry.tagName, entry.startIndex, entry.count, readValues))
                 {  
                     // LOG_DEBUG(logger,"[GOOD] TAG : %s, START INDEX : %d, COUNT : %d", entry.tagName.c_str(), entry.startIndex, entry.count);
@@ -205,8 +206,8 @@ namespace muffin { namespace ethernetIP {
             for (size_t i = 0; i < batchCount; i++)
             {
                 std::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
-                
                 std::vector<cip_data_t> readValues;
+                delay(mScanRate);
                 if (readTagsMSR(mEipSession, retrievedTagInfo, readValues))
                 {
                     for (size_t i = 0; i < retrievedTagInfo.size(); i++)
@@ -460,77 +461,142 @@ namespace muffin { namespace ethernetIP {
         case CipDataType::SINT:
         {
             if (!isPossibleToConvert(data))
-            {
                 return Status(Status::Code::BAD_TYPE_MISMATCH);
-            }
+
             int8_t strData = static_cast<int8_t>(std::stoi(data));
             output->RawData.emplace_back(static_cast<uint8_t>(strData));
+            break;
+        }
+        case CipDataType::USINT:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+
+            uint8_t strData = static_cast<uint8_t>(std::stoul(data));
+            output->RawData.emplace_back(strData);
+            break;
+        }
+        case CipDataType::BYTE:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+
+            uint8_t strData = static_cast<uint8_t>(std::stoul(data));
+            output->RawData.emplace_back(strData);
             break;
         }
         case CipDataType::INT:
         {
             if (!isPossibleToConvert(data))
-            {
                 return Status(Status::Code::BAD_TYPE_MISMATCH);
-            }
-            int16_t strData = static_cast<int16_t>(std::stoi(data));  
-            output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));         // Byte 0 (LSB)
-            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));  // Byte 1 (MSB)          
+
+            int16_t strData = static_cast<int16_t>(std::stoi(data));
+            output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));
+            break;
+        }
+        case CipDataType::UINT:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+
+            uint16_t strData = static_cast<uint16_t>(std::stoul(data));
+            output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));
+            break;
+        }
+        case CipDataType::WORD:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+
+            uint16_t strData = static_cast<uint16_t>(std::stoul(data));
+            output->RawData.emplace_back(static_cast<uint8_t>(strData & 0xFF));
+            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));
             break;
         }
         case CipDataType::DINT:
         {
             if (!isPossibleToConvert(data))
-            {
                 return Status(Status::Code::BAD_TYPE_MISMATCH);
-            }
-            int32_t strData = static_cast<int32_t>(std::stoi(data));
-            output->RawData.emplace_back(static_cast<uint8_t>((strData) & 0xFF));
-            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 8) & 0xFF));
-            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 16) & 0xFF));
-            output->RawData.emplace_back(static_cast<uint8_t>((strData >> 24) & 0xFF));
 
+            int32_t strData = static_cast<int32_t>(std::stoi(data));
+            for (int i = 0; i < 4; ++i)
+                output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
+            break;
+        }
+        case CipDataType::UDINT:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+
+            uint32_t strData = static_cast<uint32_t>(std::stoul(data));
+            for (int i = 0; i < 4; ++i)
+                output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
+            break;
+        }
+        case CipDataType::DWORD:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+
+            uint32_t strData = static_cast<uint32_t>(std::stoul(data));
+            for (int i = 0; i < 4; ++i)
+                output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
             break;
         }
         case CipDataType::REAL:
-        {    
+        {
             if (!isPossibleToConvert(data))
-            {
                 return Status(Status::Code::BAD_TYPE_MISMATCH);
-            }
+
             float strData = std::stof(data);
             uint8_t bytes[4];
             std::memcpy(bytes, &strData, sizeof(float));
+            for (int i = 0; i < 4; ++i)
+                output->RawData.emplace_back(bytes[i]);
+            break;
+        }
+        case CipDataType::LREAL:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
 
-            for (int i = 0; i < 4; ++i) 
-            {
-                output->RawData.emplace_back(bytes[i]); 
-            }
+            double strData = std::stod(data);
+            uint8_t bytes[8];
+            std::memcpy(bytes, &strData, sizeof(double));
+            for (int i = 0; i < 8; ++i)
+                output->RawData.emplace_back(bytes[i]);
             break;
         }
         case CipDataType::LINT:
-        {    
+        {
             if (!isPossibleToConvert(data))
-            {
                 return Status(Status::Code::BAD_TYPE_MISMATCH);
-            }
-            int64_t strData = static_cast<int64_t>(std::stoi(data));
-            for (int i = 0; i < 8; ++i) 
-            {
+
+            int64_t strData = static_cast<int64_t>(std::stoll(data));
+            for (int i = 0; i < 8; ++i)
                 output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
-            }
+            break;
+        }
+        case CipDataType::ULINT:
+        {
+            if (!isPossibleToConvert(data))
+                return Status(Status::Code::BAD_TYPE_MISMATCH);
+
+            uint64_t strData = static_cast<uint64_t>(std::stoull(data));
+            for (int i = 0; i < 8; ++i)
+                output->RawData.emplace_back(static_cast<uint8_t>((strData >> (8 * i)) & 0xFF));
             break;
         }
         case CipDataType::STRING:
         {
-            for (char ch : data) 
-            {
+            for (char ch : data)
                 output->RawData.emplace_back(static_cast<uint8_t>(ch));
-            }
             break;
         }
         default:
-            LOG_ERROR(logger,"NOT SUPPORTED FOR THIS DATA TYPE");
+            LOG_ERROR(logger, "NOT SUPPORTED FOR THIS DATA TYPE");
             return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
         }
 

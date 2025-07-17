@@ -35,14 +35,21 @@
 namespace muffin { namespace mqtt {
 
     TaskHandle_t xLwipMqttHandle = nullptr;
+    
+    static bool startTask = false;
 
     void LwipMQTT::implLwipMqttTask(void* pvParameter)
     {
         LwipMQTT* mqtt = static_cast<LwipMQTT*>(pvParameter);
         while (true)
         {
-            mqtt->mClient.loop();
             vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+            if (!startTask)
+            {
+                continue;
+            }
+            mqtt->mClient.loop();
         }
     }
 
@@ -179,6 +186,7 @@ namespace muffin { namespace mqtt {
             if (mClient.connected() == true)
             {
                 LOG_INFO(logger, "Connected to the Broker");
+                startTask = true;
                 return Status(Status::Code::GOOD);
             }
             LOG_WARNING(logger, "[TRIAL: #%u] NOT CONNECTED: %s", trialCount, getState());
@@ -191,7 +199,7 @@ namespace muffin { namespace mqtt {
     Status LwipMQTT::Disconnect(const size_t mutexHandle)
     {
         mClient.disconnect();
-        
+        startTask = false;
         return Status(Status::Code::GOOD);
     }
 

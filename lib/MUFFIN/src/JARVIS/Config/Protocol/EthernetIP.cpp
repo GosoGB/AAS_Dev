@@ -42,6 +42,7 @@ namespace muffin { namespace jvs { namespace config {
             mPort              = obj.mPort;
             mNodes             = obj.mNodes;
             mEthernetInterface = obj.mEthernetInterface;
+            mScanRate          = obj.mScanRate;
         }
 
         return *this;
@@ -53,7 +54,8 @@ namespace muffin { namespace jvs { namespace config {
             mIPv4              == obj.mIPv4       &&
             mNodes             == obj.mNodes      &&
             mPort              == obj.mPort       &&
-            mEthernetInterface == obj.mEthernetInterface
+            mEthernetInterface == obj.mEthernetInterface &&
+            mScanRate          == obj.mScanRate
         );
     }
 
@@ -98,12 +100,18 @@ namespace muffin { namespace jvs { namespace config {
     void EthernetIP::SetEthernetInterface(const if_e eth)
     {
         mEthernetInterface = eth;
-        mIsEthernetInterface = true;
+        mIsEthernetInterfaceSet = true;
+    }
+
+    void EthernetIP::SetScanRate(const uint16_t sr)
+    {
+        mScanRate = sr;
+        mIsScanRateSet = true;
     }
 
     std::pair<Status, if_e> EthernetIP::GetEthernetInterface() const
     {
-        if (mIsEthernetInterface)
+        if (mIsEthernetInterfaceSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mEthernetInterface);
         }
@@ -146,6 +154,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mNodes);
+        }
+    }
+
+    std::pair<Status, uint16_t> EthernetIP::GetScanRate() const
+    {
+        if (mIsScanRateSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mScanRate);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mScanRate);
         }
     }
 }}}

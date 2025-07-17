@@ -80,6 +80,18 @@ namespace muffin { namespace jvs {
             auto retNodes         = convertToNodes(nodes);
             const auto retSID     = convertToSlaveID(sid);
 
+            uint16_t scanRate = 80;
+            if (cin.containsKey("sr"))
+            {
+                const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
+                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                {
+                    const std::string message = "INVALID MODBUS TCP SCAN RATE";
+                    return std::make_pair(rsc, message);
+                } 
+                
+                scanRate = retSR.second;
+            }
             
 
             if (prt == 0)
@@ -138,7 +150,7 @@ namespace muffin { namespace jvs {
             modbusTCP->SetPort(prt);
             modbusTCP->SetNIC(retIface.second);
             modbusTCP->SetNodes(std::move(retNodes.second));
-            
+            modbusTCP->SetScanRate(scanRate);
             
             rsc = emplaceCIN(static_cast<config::Base*>(modbusTCP), outVector);
             if (rsc != rsc_e::GOOD)
@@ -175,7 +187,20 @@ namespace muffin { namespace jvs {
             const uint8_t prt       = cin["prt"].as<uint8_t>();
             const uint8_t sid       = cin["sid"].as<uint8_t>();
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
-            
+
+            uint16_t scanRate = 80;
+            if (cin.containsKey("sr"))
+            {
+                const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
+                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                {
+                    const std::string message = "INVALID MODBUS TCP SCAN RATE";
+                    return std::make_pair(rsc, message);
+                } 
+                
+                scanRate = retSR.second;
+            }
+
             const auto retPRT  = convertToPortIndex(prt);
             const auto retSID  = convertToSlaveID(sid);
             auto retNodes      = convertToNodes(nodes);
@@ -207,6 +232,7 @@ namespace muffin { namespace jvs {
             modbusRTU->SetPort(retPRT.second);
             modbusRTU->SetSlaveID(retSID.second);
             modbusRTU->SetNodes(std::move(retNodes.second));
+            modbusRTU->SetScanRate(scanRate);
 
             rsc = emplaceCIN(static_cast<config::Base*>(modbusRTU), outVector);
             if (rsc != rsc_e::GOOD)
@@ -468,6 +494,24 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc_e::GOOD, if_e::LINK_02);
         default:
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, if_e::EMBEDDED);
+        }
+    }
+
+    std::pair<rsc_e, uint16_t> ModbusValidator::convertToScanRate(JsonVariant scanRate)
+    {
+        if (scanRate.isNull() == true || scanRate.is<uint16_t>() == false)
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, 0);
+        }
+        else
+        {
+            const uint16_t SR = scanRate.as<uint16_t>();
+            if ( SR > 3000)
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 0);
+            }
+            
+            return std::make_pair(rsc_e::GOOD, SR);
         }
     }
 

@@ -375,6 +375,10 @@ namespace muffin {
         {
             return std::make_pair(Status(Status::Code::GOOD), prtcl_ver_e::VERSEOIN_4);
         }
+        else if (input == "v5")
+        {
+            return std::make_pair(Status(Status::Code::GOOD), prtcl_ver_e::VERSEOIN_5);
+        }
         else
         {
             return std::make_pair(Status(Status::Code::BAD), prtcl_ver_e::VERSEOIN_1);

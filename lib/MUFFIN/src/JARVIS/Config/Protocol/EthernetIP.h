@@ -42,21 +42,25 @@ namespace muffin { namespace jvs { namespace config {
         void SetPort(const uint16_t prt);
         void SetNodes(std::vector<std::string>&& nodes) noexcept;
         void SetEthernetInterface(const if_e eth);
+        void SetScanRate(const uint16_t sr);
 
     public:
         std::pair<Status, if_e> GetEthernetInterface() const;
         std::pair<Status, IPAddress> GetIPv4() const;
         std::pair<Status, uint16_t> GetPort() const;
         std::pair<Status, std::vector<std::string>> GetNodes() const;
+        std::pair<Status, uint16_t> GetScanRate() const;
     private:
-        bool mIsIPv4Set             = false;
-        bool mIsNodesSet            = false;
-        bool mIsPortSet             = false;
-        bool mIsEthernetInterface   = false;
+        bool mIsIPv4Set              = false;
+        bool mIsNodesSet             = false;
+        bool mIsPortSet              = false;
+        bool mIsEthernetInterfaceSet = false;
+        bool mIsScanRateSet          = false;
     private:
         if_e mEthernetInterface;
         IPAddress mIPv4;
         std::vector<std::string> mNodes;
         uint16_t mPort;
+        uint16_t mScanRate;
     };
 }}}

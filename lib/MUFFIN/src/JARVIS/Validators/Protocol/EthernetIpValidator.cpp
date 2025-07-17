@@ -71,8 +71,8 @@ namespace muffin { namespace jvs {
             const JsonArray nodes   = cin["nodes"].as<JsonArray>();
             const uint8_t EthernetInterfaces = cin["eths"].as<uint8_t>();
     
-            const auto retIP    = convertToIPv4(ip);
-            auto retNodes       = convertToNodes(nodes);
+            const auto retIP   = convertToIPv4(ip);
+            auto retNodes      = convertToNodes(nodes);
             const auto retEths = convertToEthernetInterfaces(EthernetInterfaces);
             if (retEths.first != rsc_e::GOOD)
             {
@@ -83,7 +83,6 @@ namespace muffin { namespace jvs {
          * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
          * 
          */
-
             if (prt == 0)
             {
                 const std::string message = "INVALID EthernetIP PLC PORT NUMBER: " + std::to_string(prt);
@@ -102,6 +101,20 @@ namespace muffin { namespace jvs {
                 return std::make_pair(rsc, message);
             }
 
+            uint16_t scanRate = 0;
+
+            if (cin.containsKey("sr"))
+            {
+                const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
+                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                {
+                    const std::string message = "INVALID EthernetIP SCAN RATE";
+                    return std::make_pair(rsc, message);
+                } 
+                
+                scanRate = retSR.second;
+            }
+
             config::EthernetIP* EthernetIP = new(std::nothrow) config::EthernetIP();
             if (EthernetIP == nullptr)
             {
@@ -112,6 +125,8 @@ namespace muffin { namespace jvs {
             EthernetIP->SetPort(prt);
             EthernetIP->SetNodes(std::move(retNodes.second));
             EthernetIP->SetEthernetInterface(std::move(retEths.second));
+            EthernetIP->SetScanRate(scanRate);
+            
 
             rsc = emplaceCIN(static_cast<config::Base*>(EthernetIP), outVector);
             if (rsc != rsc_e::GOOD)
@@ -244,6 +259,24 @@ namespace muffin { namespace jvs {
         }    
         
         return std::make_pair(rsc_e::GOOD, std::move(vectorNode));
+    }
+
+    std::pair<rsc_e, uint16_t> EthernetIpValidator::convertToScanRate(JsonVariant scanRate)
+    {
+        if (scanRate.isNull() == true || scanRate.is<uint16_t>() == false)
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, 0);
+        }
+        else
+        {
+            const uint16_t SR = scanRate.as<uint16_t>();
+            if ( SR > 3000)
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 0);
+            }
+            
+            return std::make_pair(rsc_e::GOOD, SR);
+        }
     }
 
     

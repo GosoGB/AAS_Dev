@@ -449,29 +449,55 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
     packet.insert(packet.end(), rrData.begin(), rrData.end());
 
     session.client->write(packet.data(), packet.size());
-    delay(50);
+    // delay(50);
     //response.clear();
     //while (session.client->available()) response.push_back(session.client->read());
 
     response.clear();
-    // size_t offset = 0;
+    unsigned long startTime = millis();
 
-    // Serial.println("[DEBUG] 수신 데이터 (1바이트씩):");
+    const size_t headerSize = 24;
+    size_t totalExpected = 0;
+    while (millis() - startTime < 500) 
+    {
+        while (session.client->available()) 
+        {
+            int byte = session.client->read();
+            if (byte >= 0)
+                response.push_back((uint8_t)byte);
+        }
 
-    while (session.client->available()) {
-        int byte = session.client->read();  // 1바이트 읽기
+        // 최소 헤더 수신 완료 → 전체 길이 계산 가능
+        if (response.size() >= headerSize && totalExpected == 0) 
+        {
+            uint16_t payloadLength = response[2] | (response[3] << 8);
+            totalExpected = headerSize + payloadLength;
+        }
 
-        if (byte >= 0) {
-            response.push_back((uint8_t)byte);
-
-            // 오프셋 줄바꿈
-            // if (offset % 16 == 0) Serial.printf("\n%04zx: ", offset);
-
-            // Serial.printf("%02X ", (uint8_t)byte);
-            // ++offset;
+        if (totalExpected > 0 && response.size() >= totalExpected) {
+            return true;  // 전체 응답 수신 완료
         }
     }
-    // Serial.println();
+
+
+    // // size_t offset = 0;
+
+    // // Serial.println("[DEBUG] 수신 데이터 (1바이트씩):");
+
+    // while (session.client->available()) {
+    //     int byte = session.client->read();  // 1바이트 읽기
+
+    //     if (byte >= 0) {
+    //         response.push_back((uint8_t)byte);
+
+    //         // 오프셋 줄바꿈
+    //         // if (offset % 16 == 0) Serial.printf("\n%04zx: ", offset);
+
+    //         // Serial.printf("%02X ", (uint8_t)byte);
+    //         // ++offset;
+    //     }
+    // }
+    // // Serial.println();
 
     return !response.empty();
 }

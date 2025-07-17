@@ -38,6 +38,7 @@ namespace muffin { namespace jvs { namespace config {
             mNodes    = obj.mNodes;
             mPort     = obj.mPort;
             mSlaveID  = obj.mSlaveID;
+            mScanRate = obj.mScanRate;
         }
         
         return *this;
@@ -48,7 +49,8 @@ namespace muffin { namespace jvs { namespace config {
        return (
             mNodes    == obj.mNodes   && 
             mPort     == obj.mPort    &&
-            mSlaveID  == obj.mSlaveID
+            mSlaveID  == obj.mSlaveID &&
+            mScanRate == obj.mScanRate
         );
     }
 
@@ -77,6 +79,12 @@ namespace muffin { namespace jvs { namespace config {
         mIsNodesSet = true;
     }
 
+    void ModbusRTU::SetScanRate(const uint16_t sr)
+    {
+        mScanRate = sr;
+        mIsScanRateSet = true;
+    }
+    
     std::pair<Status, prt_e> ModbusRTU::GetPort() const
     {
         if (mIsPortSet)
@@ -110,6 +118,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mNodes);
+        }
+    }
+
+    std::pair<Status, uint16_t> ModbusRTU::GetScanRate() const
+    {
+        if (mIsScanRateSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mScanRate);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mScanRate);
         }
     }
 }}}

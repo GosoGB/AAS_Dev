@@ -74,8 +74,7 @@ namespace muffin { namespace ethernetIP {
         AddressArrayTable mAddressArrayTable;
         std::map<std::string, cip_data_t> mPolledDataTable;
         PolledArrayDataTable mPolledArrayDataTable;
-        
-        uint16_t mScanRate = 80;
+        uint16_t mScanRate;
     private:
         bool isPossibleToConvert(std::string& data);
 
