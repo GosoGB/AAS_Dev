@@ -45,7 +45,7 @@ namespace muffin { namespace jvs {
         std::pair<rsc_e, if_e> convertToEthernetInterfaces(uint8_t eths);
         std::pair<rsc_e, IPAddress> convertToIPv4(const std::string ip);
         std::pair<rsc_e, std::vector<std::string>> convertToNodes(const JsonArray nodes);
-        // std::pair<rsc_e, ps_e> convertToPlcSeries(const uint8_t plcSeries);
+        std::pair<rsc_e, ps_e> convertToPlcSeries(const uint8_t plcSeries);
         std::pair<rsc_e, df_e> convertTodataFormat(const uint8_t dataFormat);
 
     };

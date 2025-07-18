@@ -34,32 +34,28 @@
 
 namespace muffin { namespace mqtt {
 
+    TaskHandle_t xLwipMqttHandle = nullptr;
+
+    void LwipMQTT::implLwipMqttTask(void* pvParameter)
+    {
+        LwipMQTT* mqtt = static_cast<LwipMQTT*>(pvParameter);
+        while (true)
+        {
+            mqtt->mClient.loop();
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+    }
+
+
+
     Status LwipMQTT::Init()
     {
-        xTimer = xTimerCreate(
-            "lwip_mqtt_loop",   // pcTimerName
-            SECOND_IN_MILLIS,   // xTimerPeriod,
-            pdTRUE,             // uxAutoReload,
-            (void *)0,          // pvTimerID,
-            vTimerCallback      // pxCallbackFunction
-        );
+        #if defined(MT11)
+            mNIC = new w5500::EthernetClient(*ethernet,w5500::sock_id_e::SOCKET_6);
+        #else
+            mNIC = new WiFiClient();
+        #endif
 
-        if (xTimer == NULL)
-        {
-            LOG_ERROR(logger, "FAILED TO CREATE TIMER FOR LOOP TASK");
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-        }
-        else
-        {
-            LOG_INFO(logger, "Created a timer for loop task");
-            if (xTimerStart(xTimer, 0) != pdPASS)
-            {
-                LOG_ERROR(logger, "FAILED TO START TIMER FOR LOOP TASK");
-                return Status(Status::Code::BAD_UNEXPECTED_ERROR);
-            }
-        }
-        
-        
         mClient.setCallback(
             [this](char* topic, byte* payload, unsigned int length)
             {
@@ -67,9 +63,50 @@ namespace muffin { namespace mqtt {
             }
         );
         LOG_INFO(logger, "Set a callback for subscription event");
+        log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
+        
+    #if defined(MT11)
+        if(mBrokerInfo.IsSslEnabled() == true)
+        {
+            if (mSecureNIC == nullptr)
+            {
+                mSecureNIC = new SSLClient(mNIC);
+            }
 
-        mNIC.setCACert(ROOT_CA_CRT);
-        mClient.setClient(mNIC);
+            if (mBrokerInfo.IsValidateCert() == true)
+            {
+                mSecureNIC->setCACert(ROOT_CA_CRT);
+            }
+            else
+            {
+                mSecureNIC->setInsecure();
+            }
+            mClient.setClient(*mSecureNIC);
+        }
+        else
+        {
+            mClient.setClient(*mNIC);
+        }
+    #else
+        if(mBrokerInfo.IsSslEnabled() == true)
+        {
+            mSecureNIC = new WiFiClientSecure();
+            if (mBrokerInfo.IsValidateCert() == true)
+            {
+                mSecureNIC->setCACert(ROOT_CA_CRT);
+            }
+            else
+            {
+                mSecureNIC->setInsecure();
+            }
+            mClient.setClient(*mSecureNIC);
+        }
+        else
+        {
+            mClient.setClient(*mNIC);
+        }
+    #endif
+    
         mClient.setServer(mBrokerInfo.GetHost(),mBrokerInfo.GetPort());
         mClient.setKeepAlive(KEEP_ALIVE);
      
@@ -80,12 +117,52 @@ namespace muffin { namespace mqtt {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
+        if (xLwipMqttHandle != nullptr && eTaskGetState(xLwipMqttHandle) != eDeleted) 
+        {
+            return Status(Status::Code::GOOD);  // 이미 실행 중이면 OK 처리
+        }
+
+        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
+            implLwipMqttTask,      // Function to be run inside of the task
+            "implLwipMqttTask",    // The identifier of this task for men
+    #if defined(MT11)
+            4 * KILLOBYTE,          // Stack memory size to allocate
+    #else
+            4 * KILLOBYTE,          // Stack memory size to allocate
+    #endif
+            this,                   // Task parameters to be passed to the function
+            2,				        // Task Priority for scheduling
+            &xLwipMqttHandle,       // The identifier of this task for machines
+            1				        // Index of MCU core where the function to run
+        );
+
+        switch (taskCreationResult)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "The LwIP MQTT task has been started");
+            break;
+
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
+            return Status(Status::Code::BAD);
+
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
+            return Status(Status::Code::BAD);
+
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
+            return Status(Status::Code::BAD);
+        }
+
+        log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
         LOG_INFO(logger, "LwIP MQTT has been initialized");
         return Status(Status::Code::GOOD);
     }
 
     Status LwipMQTT::Connect(const size_t mutexHandle)
     {
+        log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
         LOG_INFO(logger, "Start to connect to MQTT broker");
         mClient.connect(
             mBrokerInfo.GetClientID(),
@@ -114,6 +191,7 @@ namespace muffin { namespace mqtt {
     Status LwipMQTT::Disconnect(const size_t mutexHandle)
     {
         mClient.disconnect();
+        
         return Status(Status::Code::GOOD);
     }
 
@@ -251,17 +329,6 @@ namespace muffin { namespace mqtt {
         };
     }
 
-    void LwipMQTT::vTimerCallback(TimerHandle_t xTimer)
-    {
-        configASSERT(xTimer);   // Optionally do something if xTimer is NULL
-        implTimerCallback();
-    }
-    
-    void LwipMQTT::implTimerCallback()
-    {
-        mClient.loop();
-    }
-
     void LwipMQTT::callback(char* topic, byte* payload, unsigned int length)
     {
         const std::pair<bool, mqtt::topic_e> retTopic = mqtt::topic.ToCode(topic);
@@ -284,6 +351,11 @@ namespace muffin { namespace mqtt {
      *            임시적으로 만들어 둔 함수로 보입니다.
      *            필요 없는 경우 삭제, 필요한 경우 구현할
      *            내용 작성 요망
+     */
+    /**
+     * @todo 해당 함수는 CatM1 모듈 리셋을 위한 함수이며 override을 위해 LWIP에 임시로 구현해놓은 코드입니다. 
+     * 현재는 함수만 명시적으로 구현되어있는 상태이며 추후에 삭제할 예정입니다.
+     * 
      */
     Status LwipMQTT::ResetTEMP()
     {

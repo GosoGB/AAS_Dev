@@ -25,7 +25,8 @@
 #include "Protocol/HTTP/Include/RequestHeader.h"
 #include "Protocol/HTTP/Include/RequestParameter.h"
 #include "Protocol/HTTP/IHTTP.h"
-
+#include "Network/Ethernet/W5500/EthernetClient.h"
+#include "Network/Ethernet/W5500/SSLClient/SSLClient.h"
 
 
 namespace muffin { namespace http {
@@ -62,8 +63,14 @@ namespace muffin { namespace http {
         Status processResponseHeader(const uint16_t timeout);
         Status saveResponseBody();
     private:
-        WiFiClient mClient;
-        WiFiClientSecure mClientSecure;
+    #if defined(MT11)
+        w5500::EthernetClient* mClient = nullptr;
+        SSLClient* mClientSecure = nullptr;
+        
+    #else
+        WiFiClientSecure* mClientSecure = nullptr;
+        WiFiClient* mClient = nullptr;
+    #endif
     private:
         typedef enum class StatusFlagEnum : uint8_t
         {

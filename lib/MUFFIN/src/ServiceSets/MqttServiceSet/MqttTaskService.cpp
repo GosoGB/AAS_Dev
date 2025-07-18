@@ -64,6 +64,7 @@ muffin::CallbackUpdateInitConfig cbUpdateInitConfig = nullptr;
 
 namespace muffin {
 
+
     Status manageConnection()
     {
         if (mqttClient == nullptr)
@@ -76,7 +77,6 @@ namespace muffin {
         {
             return Status(Status::Code::GOOD);
         }
-        LOG_WARNING(logger, "MQTT CLIENT IS NOT CONNECTED");
         
         INetwork* snic = RetrieveServiceNicService();
         std::pair<Status, size_t> mutex = snic->TakeMutex();
@@ -130,12 +130,14 @@ namespace muffin {
         {
             return Status(Status::Code::GOOD);
         }
+
         INetwork* snic = RetrieveServiceNicService();
         std::pair<Status, size_t> mutex = snic->TakeMutex();
         if (mutex.first != Status::Code::GOOD)
         {
             return mutex.first;
         }
+        
         Status ret(Status::Code::UNCERTAIN);
         while (mqtt::cdo.Count() > 0)
         {
@@ -661,11 +663,13 @@ namespace muffin {
 
         while (true)
         {
+
         #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (600 * SECOND_IN_MILLIS))
+            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
         #else
             if ((millis() - statusReportMillis) > (3600 * SECOND_IN_MILLIS))
         #endif
+
             {
                 /**
                  * @todo 현재 DeviceStatus에 필요한 정보를 mqttTask에서 생성하고, COD로 넘겨주고 있음 추후에는 이 기능을 별도의 task로 빼서 구현해야함
@@ -698,8 +702,8 @@ namespace muffin {
                 mqtt::cdo.Store(message);
 
             }
-
-            if ((millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
+            
+            if (uint32_t(millis() - reconnectMillis) > (10 * SECOND_IN_MILLIS))
             {
                 if (manageConnection() == Status::Code::BAD_NOT_EXECUTABLE)
                 {
@@ -707,6 +711,7 @@ namespace muffin {
                 }
                 reconnectMillis = millis();
             }
+            
             publishMessages();
             subscribeMessages(params);
             vTaskDelay(SECOND_IN_MILLIS / portTICK_PERIOD_MS);
@@ -743,7 +748,7 @@ namespace muffin {
                                                  "implMqttTask",   // The identifier of this task for men
                                                  8*KILLOBYTE,	   // Stack memory size to allocate
                                                  &config,		   // Task parameters to be passed to the function
-                                                 0,				   // Task Priority for scheduling
+                                                 25,		       // Task Priority for scheduling
                                                  &xHandle,         // The identifier of this task for machines
                                                  1);			   // Index of MCU core where the function to run
 
@@ -1015,14 +1020,29 @@ namespace muffin {
                                         goto RC_RESPONSE;
                                     }
 
-                                    if (!melsec.Connect())
+                                    uint8_t MAX_TRIAL_COUNT = 3;
+                                    uint8_t trialCount = 0;
+
+                                    for (trialCount = 0; trialCount < MAX_TRIAL_COUNT; ++trialCount)
                                     {
-                                        LOG_ERROR(logger,"melsec Client failed to connect!, serverIP : %s, serverPort: %d", melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                                        if (melsec.Connect())
+                                        {
+                                            break;
+                                        }
+
+                                        LOG_WARNING(logger,"[#%d] melsec Client failed to connect!, serverIP : %s, serverPort: %d",trialCount, melsec.GetServerIP().toString().c_str(), melsec.GetServerPort());
+                                        melsec.mMelsecClient->Close();
+                                        delay(80);
+                                    }
+
+                                    if (trialCount == MAX_TRIAL_COUNT)
+                                    {
+                                        LOG_ERROR(logger, "CONNECTION ERROR #%u",trialCount);
+                                        xSemaphoreGive(xSemaphoreMelsec);
                                         goto RC_RESPONSE;
-                                    } 
+                                    }
 
                                     LOG_DEBUG(logger, "[MELSEC] 원격제어 : %u",retConvertModbus.second);
-                                    
                                     
                                     if (im::IsBitArea(nodeArea))
                                     {

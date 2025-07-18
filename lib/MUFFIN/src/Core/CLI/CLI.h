@@ -26,17 +26,33 @@ namespace muffin {
     public:
         Status Init();
     private:
+        Status startCLI();
+        Status displaySettingsMenu();
+
+    private:
+        Status configureMqttURL();
+        Status configureNtpURL();
+        Status configureMfmURL();
         Status configureNetworkInterface();
+
+    private:
+        Status loadServiceUrlJson();
+        Status saveServiceUrlJson();
+    
+    private:
         Status configureLTE();
         Status configureEthernet();
         bool isValidIpFormat(const std::string& ip, const bool& isSubnetmask = false);
     private:
         std::string getSerialInput();
-        JsonDocument mJarvisJson;
-        JsonArray mEthernetArray;
         Status saveJarvisJson();
     private:
         void printCenteredText(const std::string& info, const size_t length);
         void printLeftAlignedText(const std::string& info, const size_t length);
+
+    private:
+        JsonDocument mServiceUrlJson;
+        JsonDocument mJarvisJson;
+        JsonArray mEthernetArray;
     };
 }

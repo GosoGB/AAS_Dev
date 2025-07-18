@@ -41,9 +41,9 @@ namespace muffin {
     #endif
     }
 #if defined(MT11)
-    Status Melsec::SetW5500Client(W5500& interface, const w5500::sock_id_e sock_id)
+    Status Melsec::SetClient(MelsecClient* client)
     {
-        mMelsecClient = new MelsecClient(interface, sock_id);
+        mMelsecClient = client;
         
         if (mMelsecClient == nullptr)
         {
@@ -54,10 +54,9 @@ namespace muffin {
     }
 #endif
     bool Melsec::Connect()
-    {
+    {   
         mMelsecClient->SetDataFormat(mDataformat);
-        // return (mMelsecClient->Begin(mServerIP.toString().c_str(), mServerPort, mPlcSeries));
-        return (mMelsecClient->Begin(mServerIP, mServerPort));
+        return (mMelsecClient->Begin(mServerIP, mServerPort, mPlcSeries));
     }
 
     Status Melsec::Config(jvs::config::Melsec* config)
@@ -71,7 +70,7 @@ namespace muffin {
         addNodeReferences(DEFAULT_SLAVE_NUMBER, config->GetNodes().second);
         mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
-        // mPlcSeries  = config->GetPlcSeies().second;
+        mPlcSeries  = config->GetPlcSeies().second;
         mDataformat = config->GetDataFormat().second;
         return Status(Status::Code::GOOD);
     }

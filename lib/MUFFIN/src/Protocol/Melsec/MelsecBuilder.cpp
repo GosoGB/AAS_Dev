@@ -34,8 +34,7 @@ namespace muffin
 
     }
 
-    // size_t MelsecBuilder::BuildReadRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
-    size_t MelsecBuilder::BuildReadRequestDataBinary(MelsecCommonHeader commonHeader, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
+    size_t MelsecBuilder::BuildReadRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
     {
         size_t index = 0;
         index = buildCommonHeaderBinary(commonHeader, frame);
@@ -48,8 +47,7 @@ namespace muffin
         frame[index++] = static_cast<uint8_t>(commonHeader.MonitoringTimer & 0xFF);
         frame[index++] = static_cast<uint8_t>((commonHeader.MonitoringTimer >> 8) & 0xFF);
 
-        // index += buildRequestDataBinary(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
-        index += buildRequestDataBinary(isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
+        index += buildRequestDataBinary(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
 
         uint16_t reqLen = static_cast<uint16_t>(index - 9);
         frame[tempPos] = static_cast<uint8_t>(reqLen & 0xFF);
@@ -58,8 +56,7 @@ namespace muffin
         return index;
     }
 
-    // size_t MelsecBuilder::BuildReadRequestDataASCII(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
-    size_t MelsecBuilder::BuildReadRequestDataASCII(MelsecCommonHeader commonHeader, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
+    size_t MelsecBuilder::BuildReadRequestDataASCII(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, uint8_t* frame)
     {
         size_t index = 0;
         index = buildCommonHeaderASCII(commonHeader, frame);
@@ -76,8 +73,7 @@ namespace muffin
         }
         // NULL 삭제
         index--;
-        // index += buildRequestDataASCII(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
-         index += buildRequestDataASCII(isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
+        index += buildRequestDataASCII(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_READ, &frame[index]);
         
         size_t startDataPos = tempPos + 4;
         size_t actualLength = (index ) - startDataPos;
@@ -91,8 +87,7 @@ namespace muffin
         return index;
     }
 
-    // size_t MelsecBuilder::BuildWriteRequestDataASCII(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
-    size_t MelsecBuilder::BuildWriteRequestDataASCII(MelsecCommonHeader commonHeader, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
+    size_t MelsecBuilder::BuildWriteRequestDataASCII(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
     {
         size_t index = 0;
         index = buildCommonHeaderASCII(commonHeader, frame);
@@ -109,8 +104,7 @@ namespace muffin
         }
         // NULL 삭제
         index--;
-        // index += buildRequestDataASCII(plcSeries, isBit, area, address, count, melsec_command_e::BATCH_WRITE, &frame[index]);
-        index += buildRequestDataASCII(isBit, area, address, count, melsec_command_e::BATCH_WRITE, &frame[index]);
+        index += buildRequestDataASCII(plcSeries, isBit, area, address, count, melsec_command_e::BATCH_WRITE, &frame[index]);
         
         if (isBit)
         {
@@ -147,8 +141,7 @@ namespace muffin
         return index;
     }
 
-    // size_t MelsecBuilder::BuildWriteRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
-    size_t MelsecBuilder::BuildWriteRequestDataBinary(MelsecCommonHeader commonHeader, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
+    size_t MelsecBuilder::BuildWriteRequestDataBinary(MelsecCommonHeader commonHeader, jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const uint16_t data[], uint8_t* frame)
     {
         size_t index = 0;
         index = buildCommonHeaderBinary(commonHeader, frame);
@@ -161,8 +154,7 @@ namespace muffin
         frame[index++] = static_cast<uint8_t>(commonHeader.MonitoringTimer & 0xFF);
         frame[index++] = static_cast<uint8_t>((commonHeader.MonitoringTimer >> 8) & 0xFF);
 
-        // index += buildRequestDataBinary(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_WRITE, &frame[index]);
-        index += buildRequestDataBinary(isBit,area,address,count,melsec_command_e::BATCH_WRITE, &frame[index]);
+        index += buildRequestDataBinary(plcSeries,isBit,area,address,count,melsec_command_e::BATCH_WRITE, &frame[index]);
 
         if (isBit)
         {
@@ -265,30 +257,29 @@ namespace muffin
         }
     }
 
-    // size_t MelsecBuilder::buildRequestSubCommandASCII(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
-    size_t MelsecBuilder::buildRequestSubCommandASCII(melsec_command_e command, const bool isBit, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestSubCommandASCII(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
     {
         size_t index = 0;
         
-        // if (plcSeries == jvs::ps_e::IQR_SERIES)
-        // {
-        //     if (isBit) 
-        //     {
-        //         frame[index++] = '0'; 
-        //         frame[index++] = '0';
-        //         frame[index++] = '0'; 
-        //         frame[index++] = '3';
-        //     } 
-        //     else 
-        //     {
-        //         frame[index++] = '0';
-        //         frame[index++] = '0';
-        //         frame[index++] = '0'; 
-        //         frame[index++] = '2';
-        //     }
-        // }
-        // else
-        // {
+        if (plcSeries == jvs::ps_e::IQR_SERIES)
+        {
+            if (isBit) 
+            {
+                frame[index++] = '0'; 
+                frame[index++] = '0';
+                frame[index++] = '0'; 
+                frame[index++] = '3';
+            } 
+            else 
+            {
+                frame[index++] = '0';
+                frame[index++] = '0';
+                frame[index++] = '0'; 
+                frame[index++] = '2';
+            }
+        }
+        else
+        {
             if (isBit) 
             {
                 frame[index++] = '0'; 
@@ -303,40 +294,38 @@ namespace muffin
                 frame[index++] = '0'; 
                 frame[index++] = '0';
             }
-        // }
+        }
         
         return index;
     }
 
-    // size_t MelsecBuilder::buildRequestDataASCII(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
-    size_t MelsecBuilder::buildRequestDataASCII(const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestDataASCII(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
     {
         size_t index = 0;
         index = buildRequestCommandASCII(command, frame);
-        // index += buildRequestSubCommandASCII(command, plcSeries, isBit, &frame[index]);
-        index += buildRequestSubCommandASCII(command, isBit, &frame[index]);
+        index += buildRequestSubCommandASCII(command, plcSeries, isBit, &frame[index]);
 
-        // if (plcSeries == jvs::ps_e::IQR_SERIES)
-        // {
-        //     std::string deviceCode = getDeviceCodeASCII(area);
-        //     while (deviceCode.length() < 4)
-        //     {
-        //         deviceCode += '*';
-        //     }
+        if (plcSeries == jvs::ps_e::IQR_SERIES)
+        {
+            std::string deviceCode = getDeviceCodeASCII(area);
+            while (deviceCode.length() < 4)
+            {
+                deviceCode += '*';
+            }
 
-        //     for (char c : deviceCode)
-        //     {
-        //         frame[index++] = static_cast<uint8_t>(c);
-        //     }
-        // }
-        // else
-        // {
+            for (char c : deviceCode)
+            {
+                frame[index++] = static_cast<uint8_t>(c);
+            }
+        }
+        else
+        {
             std::string deviceCode = getDeviceCodeASCII(area);
             for (char c : deviceCode)
             {
                 frame[index++] = static_cast<uint8_t>(c);
             }
-        // }
+        }
 
         if (isHexMemory(area))
         {
@@ -373,14 +362,12 @@ namespace muffin
         return index;
     }
 
-    // size_t MelsecBuilder::buildRequestDataBinary(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
-    size_t MelsecBuilder::buildRequestDataBinary(const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestDataBinary(jvs::ps_e plcSeries, const bool isBit, const jvs::node_area_e area, const uint32_t address, const int count, const melsec_command_e command, uint8_t* frame)
     {
 
         size_t index = 0;
         index = buildRequestCommandBinary(command, frame);
-        // index += buildRequestSubCommandBinary(command, plcSeries, isBit, &frame[index]);
-        index += buildRequestSubCommandBinary(command, isBit, &frame[index]);
+        index += buildRequestSubCommandBinary(command, plcSeries, isBit, &frame[index]);
 
         if (isHexMemory(area))
         {
@@ -402,15 +389,15 @@ namespace muffin
 
 
         // 4. 디바이스 코드
-        // if (plcSeries == jvs::ps_e::IQR_SERIES) 
-        // {
-        //     frame[index++] = getDeviceCodeBinary(area);
-        //     frame[index++] = 0x00;
-        // } 
-        // else 
-        // {
+        if (plcSeries == jvs::ps_e::IQR_SERIES) 
+        {
             frame[index++] = getDeviceCodeBinary(area);
-        // }
+            frame[index++] = 0x00;
+        } 
+        else 
+        {
+            frame[index++] = getDeviceCodeBinary(area);
+        }
         
 
         // 5. 읽기/쓰기 개수
@@ -441,21 +428,20 @@ namespace muffin
         }
     }
 
-    // size_t MelsecBuilder::buildRequestSubCommandBinary(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
-    size_t MelsecBuilder::buildRequestSubCommandBinary(melsec_command_e command, const bool isBit, uint8_t* frame)
+    size_t MelsecBuilder::buildRequestSubCommandBinary(melsec_command_e command, jvs::ps_e plcSeries, const bool isBit, uint8_t* frame)
     {
         size_t index = 0;
 
-        // if (plcSeries == jvs::ps_e::IQR_SERIES) 
-        // {
-        //     frame[index++] = static_cast<uint8_t>(isBit ? 0x03 : 0x02);
-        //     frame[index++] = 0x00;
-        // } 
-        // else 
-        // {
+        if (plcSeries == jvs::ps_e::IQR_SERIES) 
+        {
+            frame[index++] = static_cast<uint8_t>(isBit ? 0x03 : 0x02);
+            frame[index++] = 0x00;
+        } 
+        else 
+        {
             frame[index++] = static_cast<uint8_t>(isBit ? 0x01 : 0x00);
             frame[index++] = 0x00;
-        // }
+        }
 
         return index;
     }

@@ -23,6 +23,8 @@
 #include "IM/Custom/Constants.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
 #include "LAN8720.h"
+#include "Network/Ethernet/EthernetFactory.h"
+
 
 extern void tcpipInit();
 extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t *esp_netif); /* from WiFiGeneric */
@@ -30,7 +32,6 @@ extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t *esp_
 
 
 namespace muffin {
-
 
     LAN8720::LAN8720()
     {
@@ -147,12 +148,18 @@ namespace muffin {
 
     Status LAN8720::SyncNTP()
     {
-        const char* ntpServer = "time.google.com";
         const char* ntpServer2 = "time.windows.com";
         const long gmtOffset_sec = 32400;
         const int daylightOffset_sec = 0;
 
-        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, ntpServer2);
+        if (ntpServer == "time.google.com")
+        {
+            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer.c_str(), ntpServer2);
+        }
+        else 
+        {
+            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer.c_str(), ntpServer.c_str());
+        }
         
         for (uint8_t trialCount = 0; trialCount < MAX_RETRY_COUNT; ++trialCount)
         {

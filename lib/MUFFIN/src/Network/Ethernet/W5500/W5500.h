@@ -87,9 +87,18 @@ namespace muffin {
         Status setIPv4(const w5500::ipv4_type_e type, const IPAddress ipv4);
         bool getLinkStatus();
     public:
+        IPAddress GetDNS1();
+        IPAddress GetDNS2(); 
         Status GetMacAddress(uint8_t mac[]);
         Status GetMacAddress(char mac[]);
         uint16_t GetEphemeralPort();
+
+    private:
+        Status sendNTPMessage(w5500::Socket& socket, IPAddress ip); 
+        Status parseNTPMessage(w5500::Socket& socket, const uint8_t* buffer, size_t length);
+
+
+        
     private:
         /**
          * @brief W5500 모듈을 리셋합니다.
@@ -163,7 +172,7 @@ namespace muffin {
         static const uint8_t mMISO     = 13;
         static const uint8_t mSCLK     = 12;
         const uint8_t mRESET;
-        static const uint8_t mMHz      = 10;
+        static const uint8_t mMHz      = 30;
         static SPISettings mSpiConfig;
     private:
         static constexpr uint16_t DEFAULT_EPHEMERAL_PORT = 0xC000;
@@ -172,6 +181,7 @@ namespace muffin {
         w5500::crb_t mCRB;
         bool mHasMacAddress = false;
         SemaphoreHandle_t xSemaphore;
+        size_t mMutexFailCount = 0;
         /**
          * @todo DNS 클라이언트에 DNS 서버 정보를 넘기는 게 좋을지 검토 필요 
          */
@@ -189,7 +199,6 @@ namespace muffin {
 
     extern W5500* ethernet;
     extern W5500* link1W5500;
-    extern W5500* link2W5500;
 }
 
 #endif

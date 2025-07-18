@@ -36,8 +36,6 @@
 
 
 namespace muffin {
-
-
     class LAN8720 : public INetwork
     {
     public:

@@ -71,5 +71,8 @@ int get_ssl_receive(sslclient__context *ssl_client, uint8_t *data, size_t length
 bool verify_ssl_fingerprint(sslclient__context *ssl_client, const char* fp, const char* domain_name);
 bool verify_ssl_dn(sslclient__context *ssl_client, const char* domain_name);
 bool get_peer_fingerprint(sslclient__context *ssl_client, uint8_t sha256[32]);
+void configure_psram_allocator_for_mbedtls();
+void psram_free(void* ptr);
+void* psram_calloc(size_t n, size_t size);
 
 #endif

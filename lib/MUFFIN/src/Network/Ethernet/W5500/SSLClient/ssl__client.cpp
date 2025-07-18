@@ -12,6 +12,8 @@
 #include "ssl__client.h"
 #include "certBundle.h"
 #include <string>
+#include <esp_heap_caps.h>
+#include <mbedtls/platform.h>
 
 using namespace std;
 
@@ -20,6 +22,19 @@ using namespace std;
 #endif
 
 const char *persy = "esp32-tls";
+
+void* psram_calloc(size_t n, size_t size) {
+  return heap_caps_calloc(n, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+}
+
+void psram_free(void* ptr) {
+  heap_caps_free(ptr);
+}
+
+void configure_psram_allocator_for_mbedtls() {
+  mbedtls_platform_set_calloc_free(psram_calloc, psram_free);
+}
+
 
 /**
  * \brief           Handle the error.
@@ -115,7 +130,7 @@ int client_net_recv_timeout(void *ctx, unsigned char *buf, size_t len, uint32_t 
     return 0;
   }
 
-  timeout += 6000;
+  timeout += 10;
   // log_v("Timeout set to %u", timeout);
 
   unsigned long start = millis();
@@ -290,7 +305,6 @@ int start_ssl_client(sslclient__context *ssl_client,  const char *host,  uint32_
 {
   // log_v("Free internal heap before TLS %u", ESP.getFreeHeap());
   // log_v("Connecting to %s:%d", host, port);
-
   int ret = 0; // for mbedtls function return values
   bool ca_cert_initialized = false;
   bool client_cert_initialized = false;
@@ -323,11 +337,13 @@ int start_ssl_client(sslclient__context *ssl_client,  const char *host,  uint32_
     }
     // log_v("SSL auth mode set, ret: %d", ret);
     ret = auth_client_cert_key(ssl_client, cli_cert, cli_key, &client_cert_initialized, &client_key_initialized); // Step 4 route b - Set up required auth mode cli_cert and cli_key
+    log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
     if (ret != 0) {
       break;
     }
     // log_v("SSL client cert and key set, ret: %d", ret);
     ret = set_hostname_for_tls(ssl_client, host); // Step 5 - Set the hostname for a TLS session
+    log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
     if (ret != 0) {
       break;
     }
@@ -382,6 +398,8 @@ int init_tcp_connection(sslclient__context *ssl_client, const char *host, uint32
     log_e("Client pointer is null.");
     return -1;
   }
+
+  pClient->stop(); 
 
   // log_v("Client pointer: %p", (void*) pClient);
 
@@ -628,9 +646,9 @@ int set_hostname_for_tls(sslclient__context *ssl_client, const char *host) {
   }
 
   mbedtls_ssl_conf_rng(&ssl_client->ssl_conf, mbedtls_ctr_drbg_random, &ssl_client->drbg_ctx);
-
+  log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
   ret = mbedtls_ssl_setup(&ssl_client->ssl_ctx, &ssl_client->ssl_conf);
-
+  log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
   return ret;
 }
 
@@ -717,6 +735,7 @@ int perform_ssl_handshake(sslclient__context *ssl_client, const char *cli_cert, 
   bool breakBothLoops = false;
   // log_v("Performing the SSL/TLS handshake, timeout %lu ms", ssl_client->handshake_timeout);
   unsigned long handshake_start_time = millis();
+  log_d("Remained Heap: %u Bytes", ESP.getFreeHeap());
   log_d("calling mbedtls_ssl_handshake with ssl_ctx address %p", (void *)&ssl_client->ssl_ctx);
 
   int loopCount = 0;

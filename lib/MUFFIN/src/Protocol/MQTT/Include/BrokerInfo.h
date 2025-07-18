@@ -28,8 +28,8 @@ namespace muffin { namespace mqtt {
     class BrokerInfo
     {
     public:
-        BrokerInfo(const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "edgeaiot", const char* password = "!edge1@1159", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true);
-        BrokerInfo(const char* clientID, const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "edgeaiot", const char* password = "!edge1@1159", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true);
+        BrokerInfo(const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "edgeaiot", const char* password = "!edge1@1159", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true, const bool enableValidateCert = true);
+        BrokerInfo(const char* clientID, const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "edgeaiot", const char* password = "!edge1@1159", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true, const bool enableValidateCert = true);
         BrokerInfo(const BrokerInfo&& obj) noexcept;
         virtual ~BrokerInfo();
     public:
@@ -46,6 +46,7 @@ namespace muffin { namespace mqtt {
         Status SetVersion(const version_e version);
         Status SetClientID(const std::string& clientID);
         Status EnableSSL(const bool enableSSL);
+        Status EnableValidateCert(const bool enableValidateCert);
     public:
         const char* GetHost() const;
         uint16_t GetPort() const;
@@ -56,6 +57,7 @@ namespace muffin { namespace mqtt {
         version_e GetVersion() const;
         const char* GetClientID() const;
         bool IsSslEnabled() const;
+        bool IsValidateCert() const;
     private:
         std::string mHost;
         uint16_t mPort;
@@ -66,5 +68,6 @@ namespace muffin { namespace mqtt {
         version_e mVersion;
         std::string mClientID;
         bool mEnableSSL;
+        bool mEnableValidateCert;
     };
 }}

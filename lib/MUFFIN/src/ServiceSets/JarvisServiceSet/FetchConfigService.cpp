@@ -33,6 +33,11 @@
 
 namespace muffin {
 
+    std::string mfmHost = "api.mfm.edgecross.ai";
+    uint16_t mfmPort = 443;
+    http_scheme_e mfmScheme = http_scheme_e::HTTPS;
+    bool mfmValidateCert = true;
+
     http::RequestHeader createRequestHeader()
     {
         char buffer[32] = {'\0'};
@@ -47,13 +52,9 @@ namespace muffin {
 
         http::RequestHeader header(
             rest_method_e::GET, 
-            http_scheme_e::HTTPS, 
-        #if defined(DEBUG)
-            "api.mfm.edgecross.dev", 
-        #else
-            "api.mfm.edgecross.ai",
-        #endif
-            443, 
+            mfmScheme, 
+            mfmHost,
+            mfmPort, 
             "/api/mfm/device/write", 
             buffer);
 

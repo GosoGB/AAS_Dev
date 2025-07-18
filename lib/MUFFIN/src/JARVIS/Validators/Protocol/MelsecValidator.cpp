@@ -127,7 +127,7 @@ namespace muffin { namespace jvs {
 
             Melsec->SetIPv4(retIP.second);
             Melsec->SetPort(prt);
-            // Melsec->SetPlcSeries(std::move(retPlcSeries.second));
+            Melsec->SetPlcSeries(ps_e::QL_SERIES);
             Melsec->SetDataFormat(std::move(retDataFormat.second));
             Melsec->SetNodes(std::move(retNodes.second));
             Melsec->SetEthernetInterface(std::move(retEths.second));
@@ -215,20 +215,20 @@ namespace muffin { namespace jvs {
         }
     }
 
-    // std::pair<rsc_e, ps_e> MelsecValidator::convertToPlcSeries(const uint8_t plcSeries)
-    // {
-    //     switch (plcSeries)
-    //     {
-    //     case static_cast<uint8_t>(ps_e::QL_SERIES) :
-    //         return std::make_pair(rsc_e::GOOD, ps_e::QL_SERIES);
+    std::pair<rsc_e, ps_e> MelsecValidator::convertToPlcSeries(const uint8_t plcSeries)
+    {
+        switch (plcSeries)
+        {
+        case static_cast<uint8_t>(ps_e::QL_SERIES) :
+            return std::make_pair(rsc_e::GOOD, ps_e::QL_SERIES);
 
-    //     case static_cast<uint8_t>(ps_e::IQR_SERIES):
-    //         return std::make_pair(rsc_e::GOOD, ps_e::IQR_SERIES);
+        case static_cast<uint8_t>(ps_e::IQR_SERIES):
+            return std::make_pair(rsc_e::GOOD, ps_e::IQR_SERIES);
 
-    //     default:
-    //         return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, ps_e::QL_SERIES);
-    //     }
-    // }
+        default:
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, ps_e::QL_SERIES);
+        }
+    }
 
     std::pair<rsc_e, df_e> MelsecValidator::convertTodataFormat(const uint8_t dataFormat)
     {

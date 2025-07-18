@@ -43,7 +43,7 @@ namespace muffin {
 
     public:
 #if defined(MT11)
-        Status SetW5500Client(W5500& interface, const w5500::sock_id_e sock_id);
+        Status SetClient(MelsecClient* client);
 #endif
         Status Config(jvs::config::Melsec* config);
         void Clear();
@@ -76,7 +76,7 @@ namespace muffin {
     private:
         IPAddress mServerIP;
         uint16_t mServerPort;
-        // jvs::ps_e mPlcSeries;
+        jvs::ps_e mPlcSeries;
         jvs::df_e mDataformat;
 
         static constexpr uint8_t DEFAULT_SLAVE_NUMBER = 1;

@@ -32,16 +32,16 @@ namespace muffin {
             if (millis() - previousTime >= 1000) 
             {  
                 previousTime = millis();
-                Serial.print("\rPress the Enter key to configure the network settings.");
+                Serial.print("\rPress the Enter key to configure the device settings [");
                 Serial.print(" ");
                 Serial.print(countdown);
-                Serial.print("  Seconds left.");
+                Serial.print(" ] Seconds left");
 
                 countdown--;
                 
                 if (countdown < 0) 
                 {
-                    Serial.print("\r\nTime has expired. Proceeding with device execution.\r\n");
+                    Serial.print("\r\nTime has expired. Proceeding with device execution\r\n");
                     delay(1000);
                     return Status(Status::Code::GOOD_NO_DATA);
                 }
@@ -55,15 +55,583 @@ namespace muffin {
                     Serial.read();
                 }
                 Serial.print("\r\n\r\n");
-                return configureNetworkInterface();
+                return startCLI();
             }
         }
     }
 
-    Status CommandLineInterface::configureNetworkInterface()
+    Status CommandLineInterface::startCLI()
     {
         logger.SetLevel(muffin::log_level_e::LOG_LEVEL_ERROR);
         esp32FS.Begin(false);
+
+        while (true)
+        {
+            Status ret = displaySettingsMenu();
+            if (ret == Status::Code::GOOD_DEPENDENT_VALUE_CHANGED)
+            {
+                return Status(Status::Code::GOOD);
+            }
+            else if (ret != Status::Code::GOOD)
+            {
+                return ret;
+            }  
+        }
+    }
+
+    Status CommandLineInterface::saveServiceUrlJson()
+    {
+        File file = esp32FS.Open(SERVICE_URL_PATH, "w", true);
+        serializeJson(mServiceUrlJson, file);
+        file.close();
+
+        return Status(Status::Code::GOOD);
+    }
+
+    Status CommandLineInterface::loadServiceUrlJson()
+    {
+        Status ret = esp32FS.DoesExist(SERVICE_URL_PATH);
+        if (ret == Status::Code::BAD_NOT_FOUND)
+        {
+            JsonDocument doc;
+            doc["ver"] = "v4";
+            JsonObject mqtt = doc["mqtt"].to<JsonObject>();
+
+            mqtt["host"] = "mmm.broker.edgecross.ai";
+            mqtt["port"] = 8883;
+            mqtt["scheme"] = 2;
+            mqtt["checkCert"] = true;
+            mqtt["id"]   = "edgeaiot";
+            mqtt["pw"]   = "!edge1@1159";
+
+            
+            JsonObject mfm = doc["mfm"].to<JsonObject>();
+            mfm["host"] = "api.mfm.edgecross.ai";
+            mfm["port"] = 443;
+            mfm["scheme"] = 2;
+            mfm["checkCert"] = true;
+            doc["ntp"] = "time.google.com";
+
+            mServiceUrlJson = doc;
+        }
+        else
+        {
+            if (mServiceUrlJson.isNull() == true)
+            {
+                mServiceUrlJson.clear();
+                mServiceUrlJson.shrinkToFit();
+                
+                JSON json;
+                File file = esp32FS.Open(SERVICE_URL_PATH, "r", false);
+                ret = json.Deserialize(file, &mServiceUrlJson);
+                if (ret != Status::Code::GOOD)
+                {
+                    LOG_ERROR(logger, "FAILED TO DESERIALIZE: %s", ret.c_str());
+                    return ret;
+                }
+                LOG_INFO(logger, "Deserialized Service URL file");
+            }
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+    Status CommandLineInterface::configureMqttURL()
+    {
+        Status ret = loadServiceUrlJson();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        std::string settingStr;
+
+        uint16_t _port        = mServiceUrlJson["mqtt"]["port"].as<uint16_t>();
+        uint8_t _scheme       = mServiceUrlJson["mqtt"]["scheme"].as<uint8_t>();
+        std::string _host     = mServiceUrlJson["mqtt"]["host"].as<std::string>();
+        bool _checkCert       = mServiceUrlJson["mqtt"]["checkCert"].as<bool>();
+        std::string _userName = mServiceUrlJson["mqtt"]["id"].as<std::string>();
+        std::string _password = mServiceUrlJson["mqtt"]["pw"].as<std::string>();
+        
+        while (true)
+        {
+            std::string maskedPassword(_password.length(), '*');
+
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            Serial.print("|             MQTT Broker Information Settings                 |\r\n");
+            Serial.print("+----------------------+---------------------------------------+\r\n");
+            Serial.print("|  [1] MQTT host       | ");                      
+            printLeftAlignedText(_host,38);
+            Serial.print(" |\r\n");
+            Serial.print("+----------------------+---------------------------------------+\r\n");
+            Serial.print("|  [2] MQTT port       | ");
+            printLeftAlignedText(std::to_string(_port),38);
+            Serial.print(" |\r\n");
+            Serial.print("+----------------------+---------------------------------------+\r\n");
+            Serial.print("|  [3] MQTT scheme     | ");
+            printLeftAlignedText(_scheme == 1 ? "MQTT" : "MQTTS",38);
+            Serial.print(" |\r\n");
+            Serial.print("+----------------------+---------------------------------------+\r\n");
+            Serial.print("|  [4] MQTT user name  | ");
+            printLeftAlignedText(_userName,38);
+            Serial.print(" |\r\n");
+            Serial.print("+----------------------+---------------------------------------+\r\n");
+            Serial.print("|  [5] MQTT password   | ");
+            printLeftAlignedText(maskedPassword,38);
+            Serial.print(" |\r\n");
+            Serial.print("+----------------------------------+---------------------------+\r\n");
+            Serial.print("|  [6] TLS Certification Check     | ");
+            printLeftAlignedText(_checkCert == true ? "Enabled" : "Disabled",26);
+            Serial.print(" |\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            Serial.print("|  [7] >>>  Save and Exit  <<<                                 |\r\n");
+            Serial.print("|  [9] Exit                                                    |\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            
+            Serial.print("\r\nSelect an option [1 - 9]\r\n");
+            
+            delay(80);
+            settingStr = getSerialInput();
+
+            uint16_t inputCommand = 0;
+            try 
+            {
+                inputCommand = std::stoul(settingStr);
+            } 
+            catch (const std::invalid_argument& e) 
+            {
+                Serial.print("\r\nInvalid input (non-numeric). Enter a number between [1 - 9]\r\n");
+                continue;
+            } 
+            catch (const std::out_of_range& e) 
+            {
+                Serial.print("\r\nInput is out of range. Enter a number between [1 - 9]\r\n");
+                continue;
+            }
+
+            switch (inputCommand)
+            {
+            case 1:
+            {    
+                Serial.print("\r\nEnter a MQTT broker host\r\n");
+                _host = getSerialInput();
+                
+                break;
+            }
+            case 2:
+            {
+                Serial.print("\r\nEnter a MQTT broker port\r\n");
+                settingStr = getSerialInput();
+
+                try
+                {
+                    _port = static_cast<uint16_t>(std::stoul(settingStr));
+                }
+                catch (const std::invalid_argument& e)
+                {
+                    Serial.print("\r\nInvalid input (non-numeric). Enter a number between [0 - 65535]\r\n");
+                }
+                catch (const std::out_of_range& e)
+                {
+                    Serial.print("\r\nInput is out of range. Enter a number between [0 - 65535]\r\n");
+                }
+
+                break;
+            }
+            case 3:
+            {    
+                Serial.print("\r\nEnter a MQTT scheme");
+                Serial.print("\r\n[1] MQTT");
+                Serial.print("\r\n[2] MQTTS\r\n");
+                settingStr = getSerialInput();
+
+                if (settingStr == "1")
+                {
+                    _scheme = 1;
+                    _checkCert = false;
+                }
+                else if (settingStr == "2")
+                {
+                    _scheme = 2;
+                }
+                else
+                {
+                    Serial.print("\r\nInput is out of range. Enter a number between [1 or 2]\r\n");
+                }
+
+                break;
+            }
+            case 4:
+            {
+                Serial.print("\r\nEnter a MQTT broker user name\r\n");
+                _userName = getSerialInput();
+                break;
+            }
+            case 5:
+            {
+                while (true)
+                {
+                    Serial.print("\r\nEnter a MQTT broker password\r\n");
+                    std::string firstInputPassword = getSerialInput();
+                    Serial.print("\r\nRe-enter the password to confirm\r\n");
+                    std::string secondInputPassword = getSerialInput();
+                    if (firstInputPassword == secondInputPassword)
+                    {
+                        Serial.println("\r\nPassword confirmed and saved");
+                        _password = firstInputPassword;
+                        break;
+                    }
+                    else
+                    {
+                        Serial.println("\r\nPasswords do not match. Try again\r\n\r\n\r\n");
+                    }
+                }
+                break;
+            }
+            case 6:
+            {
+                Serial.print("\r\nChoose whether to enable TLS certificate validation for MQTT connection");
+                Serial.print("\r\n\r\n[1] Enabled");
+                Serial.print("\r\n[2] Disabled (Skip certificate check)\r\n");
+                settingStr = getSerialInput();
+
+                if (settingStr == "1")
+                {
+                    _checkCert = true;
+                }
+                else if (settingStr == "2")
+                {
+                    _checkCert = false;
+                }
+                else
+                {
+                    Serial.print("\r\nInput is out of range. Enter a number between [1 or 2]\r\n");
+                }
+
+                break;
+            }
+            case 7:
+                mServiceUrlJson["mqtt"]["host"]        = _host;
+                mServiceUrlJson["mqtt"]["port"]        = _port;
+                mServiceUrlJson["mqtt"]["scheme"]      = _scheme;
+                mServiceUrlJson["mqtt"]["id"]          = _userName;
+                mServiceUrlJson["mqtt"]["pw"]          = _password;
+                mServiceUrlJson["mqtt"]["checkCert"]   = _checkCert;
+
+                Serial.print("\r\nMqtt broker settings have been saved \r\n\r\n\r\n");
+                return saveServiceUrlJson();
+            case 9:
+                Serial.print("\r\nMqtt broker settings has not been changed. Exiting settings\r\n\r\n");
+                return Status(Status::Code::GOOD);
+            default:
+                Serial.print("\r\nInvalid input. Enter a number between [1 - 9]\r\n");
+                break;
+            }
+        }
+    }
+
+    Status CommandLineInterface::configureNtpURL()
+    {
+        Status ret = loadServiceUrlJson();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        std::string settingStr;
+
+
+        std::string _ntpURL = mServiceUrlJson["ntp"].as<std::string>();
+
+        while (true)
+        {
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            Serial.print("|                  NTP URL Information Settings                |\r\n");
+            Serial.print("+------------------+-------------------------------------------+\r\n");
+            Serial.print("|  [1] NTP URL     | ");
+            printLeftAlignedText(_ntpURL,40);
+            Serial.print("   |\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            Serial.print("|  [2] >>>  Save and Exit  <<<                                 |\r\n");
+            Serial.print("|  [9] Exit                                                    |\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            
+            Serial.print("\r\nSelect an option [1 - 9]\r\n");
+            
+            delay(80);
+            settingStr = getSerialInput();
+
+            uint16_t inputCommand = 0;
+            try 
+            {
+                inputCommand = std::stoul(settingStr);
+            } 
+            catch (const std::invalid_argument& e) 
+            {
+                Serial.print("\r\nInvalid input (non-numeric). Enter a number between [1 - 9]\r\n");
+                continue;
+            } 
+            catch (const std::out_of_range& e) 
+            {
+                Serial.print("\r\nInput is out of range. Enter a number between [1 - 9]\r\n");
+                continue;
+            }
+
+            switch (inputCommand)
+            {
+            case 1:
+            {
+                Serial.print("\r\n\r\n\r\nEnter a NTP server URL\r\n");
+                _ntpURL = getSerialInput();
+
+                break;
+            }
+            case 2:
+            {
+                mServiceUrlJson["ntp"] = _ntpURL;
+                Serial.print("\r\nNTP server URL settings have been saved \r\n\r\n\r\n");
+                return saveServiceUrlJson();
+                break;
+            }
+            case 9:
+                Serial.print("\r\nnNTP server URL settings has not been changed. Exiting settings\r\n\r\n");
+                return Status(Status::Code::GOOD);
+            default:
+                Serial.print("\r\nInvalid input. Enter a number between [1 - 9]\r\n");
+                break;
+            }
+
+        }
+    }
+
+    Status CommandLineInterface::configureMfmURL()
+    {
+        Status ret = loadServiceUrlJson();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+
+        std::string settingStr;
+
+        uint16_t _port     = mServiceUrlJson["mfm"]["port"].as<uint16_t>();
+        std::string _host  = mServiceUrlJson["mfm"]["host"].as<std::string>();
+        uint16_t _scheme   = mServiceUrlJson["mfm"]["scheme"].as<uint16_t>();
+        bool _checkCert    = mServiceUrlJson["mfm"]["checkCert"].as<bool>();
+
+        while (true)
+        {
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            Serial.print("|                    MFM Information Settings                  |\r\n");
+            Serial.print("+------------------+-------------------------------------------+\r\n");
+            Serial.print("|  [1] MFM host    | ");
+            printLeftAlignedText(_host,40);
+            Serial.print("   |\r\n");
+            Serial.print("+------------------+-------------------------------------------+\r\n");
+            Serial.print("|  [2] MFM port    | ");
+            printLeftAlignedText(std::to_string(_port),40);
+            Serial.print("   |\r\n");
+            Serial.print("+------------------+-------------------------------------------+\r\n");
+            Serial.print("|  [3] MFM scheme  | ");
+            printLeftAlignedText(_scheme == 1 ? "HTTP" : "HTTPS",40);
+            Serial.print("   |\r\n");
+            Serial.print("+---------------------------------+----------------------------+\r\n");
+            Serial.print("|  [4] TLS Certification Check    | ");
+            printLeftAlignedText(_checkCert == true ? "Enabled" : "Disabled",25);
+            Serial.print("   |\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            Serial.print("|  [5] >>>  Save and Exit  <<<                                 |\r\n");
+            Serial.print("|  [9] Exit                                                    |\r\n");
+            Serial.print("+--------------------------------------------------------------+\r\n");
+            
+            Serial.print("\r\n\r\nSelect an option [1 - 9]\r\n\r\n");
+        
+            delay(80);
+            settingStr = getSerialInput();
+        
+            uint16_t inputCommand = 0;
+            try 
+            {
+                inputCommand = std::stoul(settingStr);
+            } 
+            catch (const std::invalid_argument& e) 
+            {
+                Serial.print("\r\nInvalid input (non-numeric). Enter a number between [1 - 9]\r\n");
+                continue;
+            } 
+            catch (const std::out_of_range& e) 
+            {
+                Serial.print("\r\nInput is out of range. Enter a number between [1 - 9]\r\n");
+                continue;
+            }
+
+            switch (inputCommand)
+            {
+            case 1:
+            {    
+                Serial.print("\r\n\r\n\r\nEnter a MFM Server host\r\n");
+                _host = getSerialInput();
+                
+                break;
+            }
+            case 2:
+            {
+                Serial.print("\r\nEnter a MFM Server port\r\n");
+                settingStr = getSerialInput();
+
+                try
+                {
+                    _port = static_cast<uint16_t>(std::stoul(settingStr));
+                }
+                catch (const std::invalid_argument& e)
+                {
+                    Serial.print("\r\nInvalid input (non-numeric). Enter a number between [0 - 65535]\r\n");
+                }
+                catch (const std::out_of_range& e)
+                {
+                    Serial.print("\r\nInput is out of range. Enter a number between [0 - 65535]\r\n");
+                }
+                break;
+            }
+            case 3:
+            {
+                Serial.print("\r\nEnter a MFM Server HTTP scheme");
+                Serial.print("\r\n[1] HTTP");
+                Serial.print("\r\n[2] HTTPS\r\n");
+                settingStr = getSerialInput();
+
+                if (settingStr == "1")
+                {
+                    _scheme = 1;
+                    _checkCert = false;
+                }
+                else if (settingStr == "2")
+                {
+                    _scheme = 2;
+                }
+                else
+                {
+                    Serial.print("\r\nInput is out of range Enter a number between [1 or 2]\r\n");
+                }
+                break;            
+            }
+            case 4:
+            {
+                Serial.print("\r\nChoose whether to enable TLS certificate validation for HTTPS requests");
+                Serial.print("\r\n\r\n[1] Enabled");
+                Serial.print("\r\n[2] Disabled (Skip certificate check)\r\n");
+                settingStr = getSerialInput();
+
+                if (settingStr == "1")
+                {
+                    _checkCert = true;
+                }
+                else if (settingStr == "2")
+                {
+                    _checkCert = false;
+                }
+                else
+                {
+                    Serial.print("\r\nInput is out of range. Enter a number between [1 or 2]\r\n");
+                }
+                break;
+            }
+            case 5:
+                mServiceUrlJson["mfm"]["host"]      = _host;
+                mServiceUrlJson["mfm"]["port"]      = _port;
+                mServiceUrlJson["mfm"]["scheme"]    = _scheme;
+                mServiceUrlJson["mfm"]["checkCert"] = _checkCert;
+                Serial.print("\r\nMFM Server settings have been saved \r\n\r\n\r\n");
+                return saveServiceUrlJson();
+            case 9:
+                Serial.print("\r\nMFM Server settings has not been changed. Exiting settings\r\n\r\n");
+                return Status(Status::Code::GOOD);
+            default:
+                Serial.print("\r\nInvalid input Enter a number between [1 - 9]\r\n");
+                break;
+            }
+        
+        }
+        
+    }
+
+    Status CommandLineInterface::displaySettingsMenu()
+    {
+        Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+        Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+        Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+        Serial.print("+--------------------------------------------------------------+\r\n");
+        Serial.print("|                        Settings Menu                         |\r\n");
+        Serial.print("+--------------------------------------------------------------+\r\n");
+        Serial.print("|  [1] Service Network Settings                                |\r\n");
+        Serial.print("|  [2] MQTT Broker Information Settings                        |\r\n");
+        Serial.print("|  [3] NTP URL Information Settings                            |\r\n");
+        Serial.print("|  [4] MFM Information Settings                                |\r\n");
+        Serial.print("+--------------------------------------------------------------+\r\n");
+        Serial.print("|  [9] Exit                                                    |\r\n");
+        Serial.print("+--------------------------------------------------------------+\r\n");
+        
+        std::string settingStr;
+        while (true)
+        {
+            Serial.print("\r\nSelect an option [1 - 9]\r\n");
+            delay(80);
+            settingStr = getSerialInput();
+
+            uint16_t inputCommand = 0;
+            try 
+            {
+                inputCommand = std::stoul(settingStr);
+            } 
+            catch (const std::invalid_argument& e) 
+            {
+                Serial.print("\r\nInvalid input (non-numeric). Enter a number between [1 - 5]\r\n");
+                continue;
+            } 
+            catch (const std::out_of_range& e) 
+            {
+                Serial.print("\r\nInput is out of range. Enter a number between [1 - 5]\r\n");
+                continue;
+            }
+
+            
+            switch (inputCommand)
+            {
+            case 1:
+                return configureNetworkInterface();
+
+            case 2:
+                return configureMqttURL();
+
+            case 3:
+                return configureNtpURL();
+
+            case 4:
+                return configureMfmURL();
+
+            case 9:
+                Serial.print("\r\nAll settings have been saved. The device will now reboot \r\n\r\n\r\n");
+                return Status(Status::Code::GOOD_DEPENDENT_VALUE_CHANGED);
+
+            default:
+                Serial.print("\r\nInvalid input Enter a number between [1 - 9]\r\n");
+                break;
+            }
+        }
+
+
+        
+    }
+
+    Status CommandLineInterface::configureNetworkInterface()
+    {
         Status ret = esp32FS.DoesExist(JARVIS_PATH);
         if (ret == Status::Code::BAD_NOT_FOUND)
         {
@@ -97,13 +665,15 @@ namespace muffin {
             _op["rst"]       = false;
 
             mJarvisJson = doc;
-            Serial.print("+---------------------+------------+----------+\r\n");
-            Serial.print("|         Current Network Information         |\r\n");
-            Serial.print("+---------------------+------------+----------+\r\n");
-            Serial.print("|  Network Interface  |   Country  |   Modem  |\r\n");
-            Serial.print("+---------------------+------------+----------+\r\n");
-            Serial.print("|         LTE         |     KR     |    LM5   |\r\n");
-            Serial.print("+---------------------+------------+----------+\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+            Serial.print("+---------------------+------------+---------------------------+\r\n");
+            Serial.print("|                    Service Network Settings                  |\r\n");
+            Serial.print("+---------------------+------------+---------------------------+\r\n");
+            Serial.print("|  Network Interface  |   Country  |   Modem                   |\r\n");
+            Serial.print("+---------------------+------------+---------------------------+\r\n");
+            Serial.print("|         LTE         |     KR     |    LM5                    |\r\n");
+            Serial.print("+---------------------+------------+---------------------------+\r\n");
         }
         else
         {
@@ -116,9 +686,11 @@ namespace muffin {
             if (ret != Status::Code::GOOD)
             {
                 LOG_ERROR(logger, "FAILED TO DESERIALIZE: %s", ret.c_str());
+                file.close();
                 return ret;
             }
-           
+
+            file.close();
 
             JsonObject op = mJarvisJson["cnt"]["op"][0].as<JsonObject>();
             mEthernetArray = mJarvisJson["cnt"]["eth"].as<JsonArray>();
@@ -129,17 +701,19 @@ namespace muffin {
                 JsonObject lte = mJarvisJson["cnt"]["catm1"][0].as<JsonObject>();
                 std::string model = lte["md"].as<std::string>();
                 std::string ctry = lte["ctry"].as<std::string>();
-                Serial.print("+---------------------+------------+----------+\r\n");
-                Serial.print("|         Current Network Information         |\r\n");
-                Serial.print("+---------------------+------------+----------+\r\n");
-                Serial.print("|  Network Interface  |   Country  |   Modem  |\r\n");
-                Serial.print("+---------------------+------------+----------+\r\n");
+                Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+                Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+                Serial.print("+--------------------------------------------------------------+\r\n");
+                Serial.print("|                    Service Network Settings                  |\r\n");
+                Serial.print("+---------------------+------------+---------------------------+\r\n");
+                Serial.print("|  Network Interface  |   Country  |   Modem                   |\r\n");
+                Serial.print("+---------------------+------------+---------------------------+\r\n");
                 Serial.print("|         LTE         | ");
                 printCenteredText(ctry,12);
                 Serial.print("| ");
-                printCenteredText(model,10);
+                printCenteredText(model,27);
                 Serial.print("|\r\n");
-                Serial.print("+---------------------+------------+----------+\r\n");
+                Serial.print("+---------------------+------------+---------------------------+\r\n");
 
             }
             else if(serviceNetwork == "eth")
@@ -156,26 +730,26 @@ namespace muffin {
                     if (_eth.containsKey("eths") == true)
                     {
                         snic = _eth["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED) ? true : false;
-                        LOG_INFO(logger,"[ETHS] KEY EXISTS");
                     }
                     
                     
                     if (snic)
                     {
                         bool dhcp = eth["dhcp"].as<bool>();
-
-                        Serial.print("+-----------------------+---------------------+\r\n");
-                        Serial.print("|         Current Network Information         |\r\n");
-                        Serial.print("+-----------------------+---------------------+\r\n");
+                        Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+                        Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+                        Serial.print("+--------------------------------------------------------------+\r\n");
+                        Serial.print("|                  Service Network Settings                    |\r\n");
+                        Serial.print("+-----------------------+--------------------------------------+\r\n");
 
                         Serial.print("| Network Interface     | ");
-                        Serial.print("Ethernet            |\r\n");
-                        Serial.print("+-----------------------+---------------------+\r\n");
+                        Serial.print("Ethernet                             |\r\n");
+                        Serial.print("+-----------------------+--------------------------------------+\r\n");
 
                         Serial.print("| Use Static IP         | ");
-                        Serial.print(dhcp == false ? "Enabled             " : "Disabled (DHCP)     ");
+                        Serial.print(dhcp == false ? "Enabled                              " : "Disabled (DHCP)                      ");
                         Serial.print("|\r\n");
-                        Serial.print("+-----------------------+---------------------+\r\n");
+                        Serial.print("+-----------------------+--------------------------------------+\r\n");
 
                         if (dhcp == false)
                         {
@@ -186,29 +760,29 @@ namespace muffin {
                             std::string dns2 = eth["dns2"].as<std::string>();
                         
                             Serial.print("| IP                    | ");
-                            printLeftAlignedText(ip,20);
+                            printLeftAlignedText(ip,37);
                             Serial.print(" |\r\n");
-                            Serial.print("+-----------------------+---------------------+\r\n");
-
+                            Serial.print("+-----------------------+--------------------------------------+\r\n");
+                            
                             Serial.print("| GateWay               | ");
-                            printLeftAlignedText(gateway,20);
+                            printLeftAlignedText(gateway,37);
                             Serial.print(" |\r\n");
-                            Serial.print("+-----------------------+---------------------+\r\n");
+                            Serial.print("+-----------------------+--------------------------------------+\r\n");
 
                             Serial.print("| SubnetMask            | ");
-                            printLeftAlignedText(subnet,20);
+                            printLeftAlignedText(subnet,37);
                             Serial.print(" |\r\n");
-                            Serial.print("+-----------------------+---------------------+\r\n");
+                            Serial.print("+-----------------------+--------------------------------------+\r\n");
 
                             Serial.print("| DNS1                  | ");
-                            printLeftAlignedText(dns1,20);
+                            printLeftAlignedText(dns1,37);
                             Serial.print(" |\r\n");
-                            Serial.print("+-----------------------+---------------------+\r\n");
+                            Serial.print("+-----------------------+--------------------------------------+\r\n");
 
                             Serial.print("| DNS2                  | ");
-                            printLeftAlignedText(dns2,20);
+                            printLeftAlignedText(dns2,37);
                             Serial.print(" |\r\n");
-                            Serial.print("+-----------------------+---------------------+\r\n");
+                            Serial.print("+-----------------------+--------------------------------------+\r\n");
                         }
                     }
                 }
@@ -216,11 +790,13 @@ namespace muffin {
             
         }
         
+        Serial.print("\r\n\r\n[1] LTE");
+        Serial.print("\r\n[2] Ethernet");
+        Serial.print("\r\n[9] Exit\r\n");
+        Serial.print("\r\n\r\nSelect an option [1 - 9]\r\n");
         std::string settingStr;
         while (true)
         {
-            Serial.print("\r\nPlease select a service network (1 or 2)\r\n");
-            Serial.print("1. LTE \t 2. Ethernet\r\n");
             delay(80);
             settingStr = getSerialInput();
 
@@ -232,9 +808,14 @@ namespace muffin {
             {
                 return configureEthernet();
             }
+            else if (settingStr == "9")
+            {
+                Serial.print("\r\nService network has not been changed. Exiting settings\r\n\r\n");
+                return Status(Status::Code::GOOD);
+            }
             else 
             {
-                Serial.print("\r\nInvalid input. Please enter 1 or 2.\r\n");
+                Serial.print("\r\nInvalid input. Select an option [1 - 9]\r\n");
             }
         }
     }
@@ -281,7 +862,7 @@ namespace muffin {
 
     Status CommandLineInterface::configureLTE()
     {
-        Serial.print("\r\nService network has been set to LTE.\r\n");
+        Serial.print("\r\nService network has been set to LTE\r\n");
         JsonObject op = mJarvisJson["cnt"]["op"][0].as<JsonObject>();
         op["snic"] = "lte";
         JsonObject cnt = mJarvisJson["cnt"].as<JsonObject>();
@@ -322,8 +903,6 @@ namespace muffin {
                 }
             }
             
-            // cnt.remove("eth");
-            // cnt["eth"].to<JsonArray>();
         }
         
         
@@ -332,7 +911,7 @@ namespace muffin {
 
     Status CommandLineInterface::configureEthernet()
     {
-        Serial.print("\r\nService network has been set to Ethernet.\r\n");
+        Serial.print("\r\nService network has been set to Ethernet\r\n");
         JsonObject cnt = mJarvisJson["cnt"].as<JsonObject>();
         cnt.remove("catm1");
         cnt["catm1"].to<JsonArray>();
@@ -370,7 +949,7 @@ namespace muffin {
         std::string settingStr;
         while (true)
         {
-            Serial.print("\r\nPlease enter whether to enable DHCP (Y/N)\r\n");
+            Serial.print("\r\nEnter whether to enable DHCP [Y/N]\r\n");
             delay(80);
             settingStr = getSerialInput();
 
@@ -389,93 +968,226 @@ namespace muffin {
             else if (settingStr == "N" || settingStr == "n")
             {
                 _eth["dhcp"] = false;
-                std::string staticIP, subnetMask, gateway, dnsServer1, dnsServer2 ;
+                std::string staticIP      = _eth["ip"].as<std::string>();
+                std::string gateway = _eth["gtw"].as<std::string>();
+                std::string subnet  = _eth["snm"].as<std::string>();
+                std::string dns1    = _eth["dns1"].as<std::string>();
+                std::string dns2    = _eth["dns2"].as<std::string>();
 
-                Serial.print("\r\nPlease enter a static IP address (e.g. 192.168.1.100)\r\n");
                 while (true)
                 {
-                    staticIP = getSerialInput();
-                    if(isValidIpFormat(staticIP))
+                    Serial.print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+                    Serial.print("+--------------------------------------------------------------+\r\n");
+                    Serial.print("|                  Service Network Settings                    |\r\n");
+                    Serial.print("+-----------------------+--------------------------------------+\r\n");
+
+                    Serial.print("|  Network Interface    | ");
+                    Serial.print("Ethernet                             |\r\n");
+                    Serial.print("+-----------------------+--------------------------------------+\r\n");
+
+                    Serial.print("|  Use Static IP        | ");
+                    Serial.print("Enabled                              ");
+                    Serial.print("|\r\n");
+                    Serial.print("+-----------------------+--------------------------------------+\r\n");
+                
+                    Serial.print("|  [1] IP               | ");
+                    printLeftAlignedText(staticIP,37);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+--------------------------------------+\r\n");
+                    
+                    Serial.print("|  [2] GateWay          | ");
+                    printLeftAlignedText(gateway,37);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+--------------------------------------+\r\n");
+
+                    Serial.print("|  [3] SubnetMask       | ");
+                    printLeftAlignedText(subnet,37);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+--------------------------------------+\r\n");
+
+                    Serial.print("|  [4] DNS1             | ");
+                    printLeftAlignedText(dns1,37);
+                    Serial.print(" |\r\n");
+                    Serial.print("+-----------------------+--------------------------------------+\r\n");
+
+                    Serial.print("|  [5] DNS2             | ");
+                    printLeftAlignedText(dns2,37);
+                    Serial.print(" |\r\n");
+                    Serial.print("+--------------------------------------------------------------+\r\n");
+                    Serial.print("|  [6] >>>  Save and Exit  <<<                                 |\r\n");
+                    Serial.print("|  [9] Exit                                                    |\r\n");
+                    Serial.print("+--------------------------------------------------------------+\r\n");
+                   
+                    Serial.print("\r\nSelect an option [1 - 9]\r\n");
+            
+                    delay(80);
+                    settingStr = getSerialInput();
+
+                    uint16_t inputCommand = 0;
+                    try 
                     {
-                        Serial.printf("\r\nConfigured IP: %s \r\n", staticIP.c_str());
-                        _eth["ip"] = staticIP.c_str();
+                        inputCommand = std::stoul(settingStr);
+                    } 
+                    catch (const std::invalid_argument& e) 
+                    {
+                        Serial.print("\r\nInvalid input (non-numeric). Enter a number between [1 - 9]\r\n");
+                        continue;
+                    } 
+                    catch (const std::out_of_range& e) 
+                    {
+                        Serial.print("\r\nInput is out of range. Enter a number between [1 - 9]\r\n");
+                        continue;
+                    }
+
+                    switch (inputCommand)
+                    {
+                    case 1:
+                    {
+                        Serial.print("\r\nEnter a static IP address (e.g. 192.168.1.100)\r\n");
+                        while (true)
+                        {
+                            staticIP = getSerialInput();
+                            if(isValidIpFormat(staticIP))
+                            {
+                                Serial.printf("\r\nConfigured IP: %s \r\n", staticIP.c_str());
+                                break;
+                            }
+                            else
+                            {
+                                Serial.print("\r\nInvalid IP address Enter again \r\n");
+                            }
+                        }
+                        break;
+                    }   
+                    case 2:
+                    {
+                        Serial.print("\r\nEnter a gateway address (e.g. 192.168.1.1)\r\n");
+                        while (true)
+                        {
+                            gateway = getSerialInput();
+                            if(isValidIpFormat(gateway))
+                            {
+                                Serial.printf("\r\nConfigured Gateway: %s \r\n", gateway.c_str());
+                                _eth["gtw"] = gateway.c_str();
+                                break;
+                            }
+                            else
+                            {
+                                Serial.print("\r\nInvalid gateway address Enter again \r\n");
+                            }
+                        }
+                        break;
+                    }   
+                    case 3:
+                    {
+                        Serial.print("\r\nEnter a subnet mask (e.g. 255.255.255.0)\r\n");
+                        while (true)
+                        {
+                            subnet = getSerialInput();
+                            if(isValidIpFormat(subnet, true))
+                            {
+                                Serial.printf("\r\nConfigured Subnet Mask: %s \r\n", subnet.c_str());
+                                // 
+                                break;
+                            }
+                            else
+                            {
+                                Serial.print("\r\nInvalid subnet mask Enter again \r\n");
+                            }
+                        }
+                        break;
+                    }   
+                    case 4:
+                    {
+                        Serial.print("\r\nEnter DNS1 server address (e.g. 8.8.8.8)\r\n");
+                        while (true)
+                        {
+                            dns1 = getSerialInput();
+                            if(isValidIpFormat(dns1))
+                            {
+                                Serial.printf("\r\nConfigured DNS1 Server: %s \r\n", dns1.c_str());
+                                _eth["dns1"] = dns1.c_str();
+                                break;
+                            }
+                            else
+                            {
+                                Serial.print("\r\nInvalid DNS1 server address Enter again \r\n");
+                            }
+                        }
+                        break;
+                    }   
+                    case 5:
+                    {
+                        Serial.print("\r\nEnter DNS2 server address (e.g. 8.8.8.8)\r\n");
+                        while (true)
+                        {
+                            dns2 = getSerialInput();
+                            if(isValidIpFormat(dns2))
+                            {
+                                Serial.printf("\r\nConfigured DNS2 Server: %s \r\n", dns2.c_str());
+                                break;
+                            }
+                            else
+                            {
+                                Serial.print("\r\nInvalid DNS1 server address Enter again \r\n");
+                            }
+                        }
+                        break;
+                    }   
+                    case 6:
+                    {
+                        if (staticIP == "null")
+                        {
+                            Serial.print("\r\nStatic IP address has not been set. Check your network settings");
+                            break;
+                        }
+
+                        if (gateway == "null")
+                        {
+                            Serial.print("\r\nGateway IP address has not been set. Check your network settings");
+                            break;
+                        }
+
+                        if (subnet == "null")
+                        {
+                            Serial.print("\r\nSubnet Mask has not been set. Check your network settings");
+                            break;
+                        }
+
+                        if (dns1 == "null")
+                        {
+                            Serial.print("\r\nDNS1 has not been set. Check your network settings");
+                            break;
+                        }
+                        
+                        if (dns2 == "null")
+                        {
+                            Serial.print("\r\nDNS2 has not been set. Check your network settings");
+                            break;
+                        }
+
+                        _eth["ip"]   = staticIP;
+                        _eth["gtw"]  = gateway;
+                        _eth["snm"]  = subnet;
+                        _eth["dns1"] = dns1;
+                        _eth["dns2"] = dns2;
+                        Serial.print("\r\nEthernet settings have been saved \r\n\r\n\r\n");
+                        return saveJarvisJson();
+                    }  
+                    case 9:
+                    {
+                        Serial.print("\r\nEthernet settings has not been changed. Exiting settings\r\n\r\n");
+                        return Status(Status::Code::GOOD);
+                    }   
+                    default:
+                        Serial.print("\r\nInvalid input. Enter a number between [1 - 9]\r\n");
                         break;
                     }
-                    else
-                    {
-                        Serial.print("\r\nInvalid IP address. Please enter again. \r\n");
-                    }
                 }
-
-                Serial.print("\r\nPlease enter a subnet mask (e.g. 255.255.255.0)\r\n");
-                while (true)
-                {
-                    subnetMask = getSerialInput();
-                    if(isValidIpFormat(subnetMask, true))
-                    {
-                        Serial.printf("\r\nConfigured Subnet Mask: %s \r\n", subnetMask.c_str());
-                        _eth["snm"] = subnetMask.c_str();
-                        break;
-                    }
-                    else
-                    {
-                        Serial.print("\r\nInvalid subnet mask. Please enter again. \r\n");
-                    }
-                }
-
-                Serial.print("\r\nPlease enter a gateway address (e.g. 192.168.1.1)\r\n");
-                while (true)
-                {
-                    gateway = getSerialInput();
-                    if(isValidIpFormat(gateway))
-                    {
-                        Serial.printf("\r\nConfigured Gateway: %s \r\n", gateway.c_str());
-                        _eth["gtw"] = gateway.c_str();
-                        break;
-                    }
-                    else
-                    {
-                        Serial.print("\r\nInvalid gateway address. Please enter again. \r\n");
-                    }
-                }
-
-                Serial.print("\r\nPlease enter DNS1 server address (e.g. 8.8.8.8)\r\n");
-                while (true)
-                {
-                    dnsServer1 = getSerialInput();
-                    if(isValidIpFormat(dnsServer1))
-                    {
-                        Serial.printf("\r\nConfigured DNS1 Server: %s \r\n", dnsServer1.c_str());
-                        _eth["dns1"] = dnsServer1.c_str();
-                        break;
-                    }
-                    else
-                    {
-                        Serial.print("\r\nInvalid DNS1 server address. Please enter again. \r\n");
-                    }
-                }
-
-                Serial.print("\r\nPlease enter DNS2 server address (e.g. 8.8.8.8)\r\n");
-                while (true)
-                {
-                    dnsServer2 = getSerialInput();
-                    if(isValidIpFormat(dnsServer2))
-                    {
-                        Serial.printf("\r\nConfigured DNS2 Server: %s \r\n", dnsServer2.c_str());
-                        _eth["dns2"] = dnsServer2.c_str();
-                        break;
-                    }
-                    else
-                    {
-                        Serial.print("\r\nInvalid DNS2 server address. Please enter again. \r\n");
-                    }
-                }
-
-                return saveJarvisJson();
             }
             else 
             {
-                Serial.print("\r\nInvalid input. Please enter Y or N.\r\n");
+                Serial.print("\r\nInvalid input. Enter [Y / N]\r\n");
             }
         }
 
@@ -487,8 +1199,6 @@ namespace muffin {
         File file = esp32FS.Open(JARVIS_PATH, "w", true);
         serializeJson(mJarvisJson, file);
         file.close();
-
-        Serial.print("\r\nAll settings have been saved. The device will now reboot. \r\n\r\n\r\n");
 
         return Status(Status::Code::GOOD);
     }

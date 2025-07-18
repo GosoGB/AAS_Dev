@@ -18,7 +18,7 @@
 
 
 #include <esp32-hal-gpio.h>
-
+#include <vector>
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "Include/Converter.h"
@@ -26,7 +26,11 @@
 #include "JARVIS/Config/Network/Ethernet.h"
 #include "Socket.h"
 #include "W5500.h"
+#include "DNS.h"
 #include "IM/Custom/MacAddress/MacAddress.h"
+#include "Network/Ethernet/EthernetFactory.h"
+#include "Common/Time/TimeUtils.h"
+
 
 SPISettings muffin::W5500::mSpiConfig;
 
@@ -37,8 +41,7 @@ namespace muffin {
     
     W5500::W5500(const w5500::if_e idx)
         : mCS(static_cast<uint8_t>(idx))
-        // , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 38)
-        , mRESET(48)
+        , mRESET(idx == w5500::if_e::EMBEDDED ? 48 : 17)
         , xSemaphore(NULL)
     {
         pinMode(mCS,     OUTPUT);
@@ -76,10 +79,7 @@ namespace muffin {
             return Status(Status::Code::GOOD);
         }
         
-        // resetW5500();
-    #if !defined(DEBUG)
-        릴리즈 할 때는 리셋을 다시 살려주세요!
-    #endif
+        resetW5500();
         initSPI(mMHz);
 
         Status ret = setMacAddress();
@@ -137,8 +137,6 @@ namespace muffin {
  
         if (memcmp(mCRB.IPv4, &INADDR_NONE[0], sizeof(mCRB.IPv4)) == 0)
         {
-            LOG_WARNING(logger,"mCRB.IPv4[0] : %u, mCRB.IPv4[1] : %u, mCRB.IPv4[2] : %u, mCRB.IPv4[3] : %u",mCRB.IPv4[0],mCRB.IPv4[1],mCRB.IPv4[2],mCRB.IPv4[3])
-            
             if (mDHCP == nullptr)
             {
                 socket = new w5500::Socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
@@ -160,15 +158,13 @@ namespace muffin {
             ret = mDHCP->Run();
 
         }
+        else
+        {
+            ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
+            ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
+            ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
+        }
         
-
-        /**
-         * @todo 실행 결과 확인할 것
-         */
-        ret = setLocalIP(IPAddress(mCRB.IPv4[0], mCRB.IPv4[1], mCRB.IPv4[2], mCRB.IPv4[3]));
-        ret = setGateway(IPAddress(mCRB.Gateway[0], mCRB.Gateway[1], mCRB.Gateway[2], mCRB.Gateway[3]));
-        ret = setSubnetmask(IPAddress(mCRB.Subnetmask[0], mCRB.Subnetmask[1], mCRB.Subnetmask[2], mCRB.Subnetmask[3]));
-
         return ret;
     }
 
@@ -199,23 +195,203 @@ namespace muffin {
         return retrievedPHY & 0x01;
     }
 
-
     bool W5500::IsConnected()
     {
         const bool isUp = getLinkStatus();
         return isUp;
     }
 
-
     IPAddress W5500::GetIPv4() const
     {
         return INADDR_NONE;
     }
 
+    Status W5500::sendNTPMessage(w5500::Socket& socket, IPAddress ip)
+    {
+        uint8_t packet[48] = {0};
+
+        packet[0]  = 0b11100011; // LI=3, VN=4, Mode=3
+        packet[1]  = 0;          // Stratum
+        packet[2]  = 6;          // Poll
+        packet[3]  = 0xEC;       // Precision
+        packet[12] = 49;         // '1'
+        packet[13] = 0x4E;       // 'N'
+        packet[14] = 49;         // '1'
+        packet[15] = 52;         // '4'
+
+        // for (size_t i = 0; i < sizeof(packet); i++)
+        // {
+        //     Serial.printf("%02X ",packet[i]);
+        // }
+
+        // Serial.println();
+
+        Status ret = socket.SendTo(ip, 123, sizeof(packet), packet);
+        if (ret != Status::Code::GOOD) 
+        {
+            LOG_ERROR(logger, "FAIL TO SEND NTP REQUEST");
+            return ret;
+        }
+
+        uint32_t startTime = millis();
+        const uint16_t timeoutMs = 2000;
+
+        while (socket.Available() < 48) 
+        {
+            if (millis() - startTime > timeoutMs) 
+            {
+                LOG_ERROR(logger, "TIMEOUT WAITING FOR NTP RESPONSE");
+                return Status(Status::Code::BAD_TIMEOUT);
+            }
+        }
+
+        return Status(Status::Code::GOOD);
+    } 
+        
+    Status W5500::parseNTPMessage(w5500::Socket& socket, const uint8_t* buffer, size_t length)
+    {
+        if (length < 48) 
+        {
+            LOG_ERROR(logger, "NTP RESPONSE TOO SHORT (%u bytes)", length);
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        // LOG_INFO(logger,"receiveData.size() : %u\n", length);
+        // for (size_t i = 0; i < length; i++)
+        // {
+        //     Serial.printf("%02X ",buffer[i]);
+        // }
+        // Serial.println();
+
+
+        /**
+         * @todo 현재 응답 패킷 중 검증에 대한 부분이 표준과 맞지 않습니다. 추후에는 해당 필드들을 모두 검사해 유효한 Timestamp인지 확인하는 로직이 추가 되어야 합니다.
+         * @김주성 @이상진
+         * 
+         */
+        // uint8_t li_vn_mode = buffer[0];
+        // uint8_t mode = li_vn_mode & 0x07;
+        // uint8_t version = (li_vn_mode >> 3) & 0x07;
+        // uint8_t li = (li_vn_mode >> 6) & 0x03;
+        // uint8_t stratum = buffer[1];
+        // if (mode != 4) 
+        // {
+        //     LOG_WARNING(logger, "UNEXPECTED NTP MODE: %u (expected 4)", mode);
+        // }
+
+        // if (stratum == 0 || stratum > 15) 
+        // {
+        //     LOG_WARNING(logger, "SUSPICIOUS STRATUM VALUE: %u", stratum);
+        // }
+
+        // if (li != 0) 
+        // {
+        //     LOG_INFO(logger, "LEAP SECOND WARNING FLAG SET (LI=%u)", li);
+        // }
+
+    
+        uint32_t ntpSeconds = (buffer[40] << 24) | (buffer[41] << 16) |
+                          (buffer[42] << 8)  | (buffer[43]);
+
+        if (ntpSeconds == 0) 
+        {
+            LOG_ERROR(logger, "INVALID TRANSMIT TIMESTAMP (0)");
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }   
+
+
+        const uint32_t NTP_UNIX_OFFSET = 2208988800UL;
+        uint32_t unixSeconds = ntpSeconds - NTP_UNIX_OFFSET;
+
+        Status ret = SetSystemTime(unixSeconds);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET SYSTEM TIME: %s", ret.c_str());
+            return ret;
+        }
+        
+        const std::string tz = "Asia/Seoul";
+        ret = SetTimezone(tz);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
+            return ret;
+        }
+
+        LOG_INFO(logger, "Synchronized with NTP in timezone: %s", tz.c_str());
+
+        return Status(Status::Code::GOOD);
+    }
 
     Status W5500::SyncNTP()
     {
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        const std::string defaultTZ = "UTC";
+        Status ret = SetTimezone(defaultTZ);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO SET TIMEZONE: %s", ret.c_str());
+            return ret;
+        }
+
+        w5500::Socket socket(*this, w5500::sock_id_e::SOCKET_7, w5500::sock_prtcl_e::UDP);
+        w5500::DNS dns(socket);
+        ret = dns.Init(IPAddress(8, 8, 8, 8));
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO INITIALIZE DNS: %s", ret.c_str());
+            return ret;
+        }
+
+        IPAddress resolvedNtpIPv4;
+        ret = dns.GetHostByName(ntpServer.c_str(), &resolvedNtpIPv4);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RESOLVE HOST: %s", ret.c_str());
+            return ret;
+        }
+
+        LOG_DEBUG(logger,"NTP SERVER IP : %s",resolvedNtpIPv4.toString().c_str());
+
+        size_t failCount = 1;
+        while (failCount < 6)
+        {
+            ret = sendNTPMessage(socket, resolvedNtpIPv4);
+            if (ret == Status::Code::GOOD)
+            {
+                break;
+            }
+            LOG_WARNING(logger,"FAIL TO SEND NTP MESSAGE [#%u] : %s",failCount,ret.c_str());
+            failCount++;
+            delay(1000);
+        }
+        
+        if (failCount == 6)
+        {
+            LOG_ERROR(logger,"FAIL TO SEND NTP MESSAGE");
+            return Status(Status::Code::BAD);
+        }
+
+        size_t actualLength = 0;
+        size_t receiveLength = socket.Available();
+        uint8_t receiveData[receiveLength] = {0};
+
+        ret = socket.Receive(receiveLength, &actualLength, receiveData);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"FAIL TO RECEIVE NTP MESSAGE : %s",ret.c_str());
+            socket.Close();
+            return ret;
+        }
+
+        ret = parseNTPMessage(socket, receiveData, actualLength);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger,"FAIL TO PARSE OFFER MESSAGE : %s",ret.c_str());
+            socket.Close();
+            return ret;
+        }
+        
+        return Status(Status::Code::GOOD);
     }
 
     std::pair<Status, size_t> W5500::TakeMutex()
@@ -252,28 +428,11 @@ namespace muffin {
     Status W5500::setMacAddress()
     {   
         Microchip24AA02E microchip;
-        const bool isLink = w5500::if_e::EMBEDDED != static_cast<w5500::if_e>(mCS);
-        if (isLink)
+        const bool isLINK = mCS == static_cast<uint8_t>(w5500::if_e::LINK_01);
+        if (microchip.Read(isLINK, mCRB.MAC) == false)
         {
-            for (size_t i = 0; i < 20; i++)
-            {
-                LOG_DEBUG(logger, "------ HERE ------");
-            }
-            
-            mCRB.MAC[0] = 0xDE;
-            mCRB.MAC[1] = 0xAD;
-            mCRB.MAC[2] = 0xBE;
-            mCRB.MAC[3] = 0xEF;
-            mCRB.MAC[4] = 0xFE;
-            mCRB.MAC[5] = 0xEF;
-        }
-        else
-        {
-            if (microchip.Read(isLink, mCRB.MAC) == false)
-            {
-                LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
-                return Status(Status::Code::BAD_DEVICE_FAILURE);
-            }
+            LOG_ERROR(logger, "FAILED TO READ MAC ADDRESS");
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
         }
     
         Status ret = writeCRB(w5500::crb_addr_e::MAC, sizeof(mCRB.MAC), mCRB.MAC);
@@ -285,7 +444,6 @@ namespace muffin {
         
         uint8_t retrievedMAC[6] = { 0 };
         ret = retrieveCRB(w5500::crb_addr_e::MAC, sizeof(retrievedMAC), retrievedMAC);
-        LOG_DEBUG(logger,"retrievedMAC : %02X:%02X:%02X:%02X:%02X:%02X",retrievedMAC[0],retrievedMAC[1],retrievedMAC[2],retrievedMAC[3],retrievedMAC[4],retrievedMAC[5]);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO RETRIEVE MAC ADDRESS");
@@ -327,14 +485,14 @@ namespace muffin {
     Status W5500::setDNS1(const IPAddress ipv4)
     {
         mDNS1 = ipv4;
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        return Status(Status::Code::GOOD);
     }
 
 
     Status W5500::setDNS2(const IPAddress ipv4)
     {
         mDNS2 = ipv4;
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
+        return Status(Status::Code::GOOD);
     }
 
 
@@ -466,6 +624,15 @@ namespace muffin {
 
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -502,6 +669,16 @@ namespace muffin {
 
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
+            
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -656,6 +833,15 @@ namespace muffin {
     {
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -679,6 +865,15 @@ namespace muffin {
     {
 		if (xSemaphoreTake(xSemaphore, 1000) != pdTRUE)
 		{
+            mMutexFailCount++;
+            if (mMutexFailCount > 5)
+            {
+                mMutexFailCount = 0;
+                resetW5500();
+                initSPI(mMHz);
+                setMacAddress();
+                Connect();
+            }
 			return Status(Status::Code::BAD_RESOURCE_UNAVAILABLE);
 		}
 
@@ -804,6 +999,16 @@ namespace muffin {
         mSocketIdFlag.reset(static_cast<uint16_t>(idx));
     }
 
+    IPAddress W5500::GetDNS1()
+    {
+        return mDNS1;
+    }
+
+    IPAddress W5500::GetDNS2()
+    {
+        return mDNS2;
+    }
+
     std::pair<Status, w5500::sock_id_e> W5500::GetAvailableSocketId()
     {
         for (int i = 6; i >= 0; --i)
@@ -829,7 +1034,6 @@ namespace muffin {
 
     W5500* ethernet   = nullptr;
     W5500* link1W5500 = nullptr;
-    W5500* link2W5500 = nullptr;
 }
 
 

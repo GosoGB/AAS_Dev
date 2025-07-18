@@ -135,7 +135,7 @@ namespace muffin {
 
         doc["mv"]    = ESP32_FW_VERSION;                             // MFM 버전
         doc["tp"]    = 1;                                            // JSON 스키마 유형
-        doc["ts"]    = sourceTimestamp;                                 // 메시지 생성 시점 
+        doc["ts"]    = msgVector.at(0).SourceTimestamp;              // 메시지 생성 시점 
         doc["mac"]   = macAddress.GetEthernet();                     // 디바이스 식별자
    
         JsonArray nidArray = doc["id"].to<JsonArray>();             // Node 식별자 배열

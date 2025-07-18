@@ -19,6 +19,7 @@
 #ifndef SSLCLIENT_H
 #define SSLCLIENT_H
 
+#include "Common/Sync/Mutex.hpp"
 #include "log_.h"
 
 #ifdef PLATFORMIO
@@ -102,7 +103,7 @@ public:
 
 private:
   char *_streamLoad(Stream& stream, size_t size);
-
+  Mutex mMutex;
   //friend class GprsServer;
   using Print::write;
 };

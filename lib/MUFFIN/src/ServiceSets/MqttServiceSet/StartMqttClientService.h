@@ -23,4 +23,6 @@ namespace muffin {
 
     Status InitMqttClientService();
     Status ConnectMqttClientService();
+
+    extern mqtt::BrokerInfo brokerInfo;
 }
