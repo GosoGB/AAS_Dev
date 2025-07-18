@@ -881,7 +881,7 @@ namespace muffin {
                                     }
                                     
                                     writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
+                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 100000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
                                         goto RC_RESPONSE;
@@ -944,7 +944,7 @@ namespace muffin {
                                     }
                                     
                                     writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 1000)  != pdTRUE)
+                                    if (xSemaphoreTake(xSemaphoreModbusTCP, 100000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MODBUS TCP] THE WRITE MODULE IS BUSY. TRY LATER.");
                                         goto RC_RESPONSE;
@@ -1014,7 +1014,7 @@ namespace muffin {
                                     }      
                                     
                                     writeResult = 0;
-                                    if (xSemaphoreTake(xSemaphoreMelsec, 1000)  != pdTRUE)
+                                    if (xSemaphoreTake(xSemaphoreMelsec, 100000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MELSEC] THE WRITE MODULE IS BUSY. TRY LATER.");
                                         goto RC_RESPONSE;
@@ -1104,7 +1104,7 @@ namespace muffin {
                                     
                                     writeResult = 0;
                                 #if defined(MODLINK_L) || defined(ML10) || defined(MT11)
-                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 1000)  != pdTRUE)
+                                    if (xSemaphoreTake(xSemaphoreModbusRTU, 100000)  != pdTRUE)
                                     {
                                         LOG_WARNING(logger, "[MODBUS RTU] THE WRITE MODULE IS BUSY. TRY LATER.");
                                         goto RC_RESPONSE;
