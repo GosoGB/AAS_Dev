@@ -35,6 +35,7 @@ namespace muffin { namespace jvs {
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mTopic(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT)
         , mArraySampleInterval(rsc_e::UNCERTAIN, 0)
+        , mPrecision(rsc_e::UNCERTAIN,0)
     {
         memset(mNodeID, '\0', sizeof(mNodeID));
     }
@@ -152,17 +153,26 @@ namespace muffin { namespace jvs {
                         {
                             char message[64] = {'\0'};
                             snprintf(message, 64, "INVALID ARRAY SAMPLE INTERVAL, NODE ID: %s", mNodeID);
-                            return std::make_pair(mTopic.first, message);
+                            return std::make_pair(mArraySampleInterval.first, message);
                         }
                     }
                     else
                     {
                         mArraySampleInterval.first = rsc_e::GOOD_NO_DATA;
-                    }
-                    
+                    }   
+                }
+            }
+            
+            if (json.containsKey("prec"))
+            {
+                convertToPrecision(json["prec"].as<JsonVariant>());
+                if (mPrecision.first != rsc_e::GOOD && mPrecision.first != rsc_e::GOOD_NO_DATA)
+                {
+                    char message[64] = {'\0'};
+                    snprintf(message, 64, "INVALID FLOAT PRECISION, NODE ID: %s", mNodeID);
+                    return std::make_pair(mPrecision.first, message);
                 }
                 
-
             }
             
 
@@ -344,7 +354,11 @@ namespace muffin { namespace jvs {
             {
                 node->SetArraySamepleInterval(mArraySampleInterval.second);   
             }
-            
+
+            if (mPrecision.first == rsc_e::GOOD)
+            {
+                node->SetPrecision(mPrecision.second);
+            }
 
             try
             {
@@ -1676,11 +1690,30 @@ namespace muffin { namespace jvs {
         mNodeArea.first = rsc_e::GOOD;
     }
 
+    void NodeValidator::convertToPrecision(JsonVariant precision)
+    {
+        if (precision.isNull() == true)
+        {
+            mPrecision.first = rsc_e::GOOD_NO_DATA;
+            return;
+        }
+
+        if (precision.is<uint8_t>() == false)
+        {
+            mPrecision.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
+        }
+
+        mPrecision.first = rsc_e::GOOD;
+        mPrecision.second = precision.as<uint8_t>();
+        
+    }
+
     void NodeValidator::convertToArraySampleInterval(JsonVariant arraySamepleInterval)
     {
         if (arraySamepleInterval.isNull() == true)
         {
-            mArraySampleInterval.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            mArraySampleInterval.first = rsc_e::GOOD_NO_DATA;
             return;
         }
 

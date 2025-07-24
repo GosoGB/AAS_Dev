@@ -381,7 +381,8 @@ bool checkConnection(EthernetClient& client) {
     who”. An Encapsulation Session must be established before any CIP communications can take place.
     Data format for the Encapsulation Protocol is Little-Endian.
 */
-bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& serviceData, std::vector<uint8_t>& response) {
+bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& serviceData, std::vector<uint8_t>& response) 
+{
     if (!session.connected) 
     {
         LOG_ERROR(muffin::logger,"CONNECT ERROR");
@@ -458,13 +459,15 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
 
     const size_t headerSize = 24;
     size_t totalExpected = 0;
-    while (millis() - startTime < 500) 
+    while (millis() - startTime < 100) 
     {
         while (session.client->available()) 
         {
             int byte = session.client->read();
             if (byte >= 0)
+            {
                 response.push_back((uint8_t)byte);
+            }
         }
 
         // 최소 헤더 수신 완료 → 전체 길이 계산 가능
@@ -474,7 +477,8 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
             totalExpected = headerSize + payloadLength;
         }
 
-        if (totalExpected > 0 && response.size() >= totalExpected) {
+        if (totalExpected > 0 && response.size() >= totalExpected) 
+        {
             return true;  // 전체 응답 수신 완료
         }
     }

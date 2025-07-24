@@ -78,7 +78,7 @@ namespace muffin { namespace jvs {
             {
                 return std::make_pair(rsc, "INVALID ETHERNET INTERFACES");
             }
-        
+
         /**
          * @todo eths 를 validation만 하고있음 setting하고 처리하는 것이 필요함 @김주성
          * 
@@ -106,10 +106,10 @@ namespace muffin { namespace jvs {
             if (cin.containsKey("sr"))
             {
                 const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
-                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                if (retSR.first != rsc_e::GOOD && retSR.first != rsc_e::GOOD_NO_DATA)
                 {
                     const std::string message = "INVALID EthernetIP SCAN RATE";
-                    return std::make_pair(rsc, message);
+                    return std::make_pair(retSR.first, message);
                 } 
                 
                 scanRate = retSR.second;
@@ -126,7 +126,6 @@ namespace muffin { namespace jvs {
             EthernetIP->SetNodes(std::move(retNodes.second));
             EthernetIP->SetEthernetInterface(std::move(retEths.second));
             EthernetIP->SetScanRate(scanRate);
-            
 
             rsc = emplaceCIN(static_cast<config::Base*>(EthernetIP), outVector);
             if (rsc != rsc_e::GOOD)
@@ -195,12 +194,12 @@ namespace muffin { namespace jvs {
         }
         catch(const std::bad_alloc& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
+            LOG_ERROR(logger, "%s: CIN class: EIP PROTOCOL, CIN address: %p", e.what(), cin);
             return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
+            LOG_ERROR(logger, "%s: CIN class: EIP PROTOCOL, CIN address: %p", e.what(), cin);
             return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }

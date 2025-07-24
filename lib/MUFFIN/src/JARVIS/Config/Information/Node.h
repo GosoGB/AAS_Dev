@@ -54,8 +54,10 @@ namespace muffin { namespace jvs { namespace config {
         void SetTopic(const mqtt::topic_e topic);
         void SetArrayIndex(const std::vector<std::array<uint16_t, 2>> arrayindex);
         void SetArraySamepleInterval(const uint16_t arraySampleInterval);
+        void SetPrecision(const uint8_t precision);
     
     public:
+        std::pair<Status, uint8_t> GetPrecision() const;
         std::pair<Status, uint16_t> GetArraySamepleInterval() const;
         std::pair<Status, std::vector<std::array<uint16_t, 2>>> GetArrayIndex() const;
         std::pair<Status, mqtt::topic_e> GetTopic() const;
@@ -89,7 +91,8 @@ namespace muffin { namespace jvs { namespace config {
             ATTRIBUTE_EVENT       = 12,
             ARRAY_INDEX           = 13,
             ARRAY_SAMPLE_INTERVAL = 14,
-            TOP                   = 15
+            PRECISION             = 15,
+            TOP                   = 16
         } set_flag_e;
         bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
@@ -107,6 +110,7 @@ namespace muffin { namespace jvs { namespace config {
         mqtt::topic_e mTopic;
         std::vector<std::array<uint16_t, 2>> mArrayIndex;
         uint16_t mArraySampleInterval;
+        uint8_t mPrecision;
         bool mHasAttributeEvent;
     };
 }}}

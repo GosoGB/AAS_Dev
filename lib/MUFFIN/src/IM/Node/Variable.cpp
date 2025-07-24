@@ -1237,13 +1237,25 @@ namespace muffin { namespace im {
 
     std::string Variable::Float32ConvertToString(const float& data) const
     {
+        auto ret = mCIN->GetPrecision();
+        if (ret.first == Status::Code::GOOD)
+        {
+            char format[10] = {'\0'};
+            snprintf(format, sizeof(format), "%%.%df", ret.second);
+      
+            char buffer[32] = {'\0'};
+            snprintf(buffer, sizeof(buffer), format, data);
+            return std::string(buffer); 
+        }
+
+
         if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
              */
-            char buffer[20] = {'\0'};     
-            snprintf(buffer,19,"%0.2f", data);
+            char buffer[32] = {'\0'};     
+            snprintf(buffer, sizeof(buffer), "%0.2f", data);
             return std::string(buffer);  
 
         }
@@ -1251,35 +1263,46 @@ namespace muffin { namespace im {
         const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         int decimalPlaces = static_cast<int>(-exponent);
         
-        char format[10];
-        sprintf(format, "%%.%df", decimalPlaces);
+        char format[10] = {'\0'};
+        snprintf(format, sizeof(format), "%%.%df", decimalPlaces);
 
-        char buffer[20];
-        sprintf(buffer, format, data);
+        char buffer[32] = {'\0'};
+        snprintf(buffer, sizeof(buffer), format, data);
 
         return std::string(buffer);
     }
 
     std::string Variable::Float64ConvertToString(const double& data) const
     {
+        auto ret = mCIN->GetPrecision();
+        if (ret.first == Status::Code::GOOD)
+        {
+            char format[10] = {'\0'};
+            snprintf(format, sizeof(format), "%%.%df", ret.second);
+      
+            char buffer[128] = {'\0'};
+            snprintf(buffer, sizeof(buffer), format, data);
+            return std::string(buffer); 
+        }
+
         if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
             /**
              * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
              */
-            char buffer[32]  = {'\0'};    
-            snprintf(buffer, 31,"%0.2f", data);
-            return std::string(buffer); 
+            char buffer[128] = {'\0'};     
+            snprintf(buffer, sizeof(buffer), "%0.2f", data);
+            return std::string(buffer);  
         }
         
         const int8_t exponent = static_cast<int8_t>(mCIN->GetNumericScale().second);
         int decimalPlaces = static_cast<int>(-exponent);
         
-        char format[10];
-        sprintf(format, "%%.%df", decimalPlaces);
+        char format[10] = {'\0'};
+        snprintf(format, sizeof(format), "%%.%df", decimalPlaces);
 
-        char buffer[20];
-        sprintf(buffer, format, data);
+        char buffer[128] = {'\0'};
+        snprintf(buffer, sizeof(buffer), format, data);
 
         return std::string(buffer);
     }
@@ -1288,14 +1311,13 @@ namespace muffin { namespace im {
     {   
         if (mCIN->GetNumericScale().first == Status::Code::BAD)
         {
-            if (mDataType == jvs::dt_e::FLOAT32 || mDataType == jvs::dt_e::FLOAT64)
+            if (mDataType == jvs::dt_e::FLOAT32)
             {
-                /**
-                * @todo 현재 스케일이 없는 float일때 소수점2자리로 고정시켜 서버로 전송. 추후 수정해야함
-                */
-                char buffer[32] = {'\0'};    
-                snprintf(buffer, 31, "%0.2f", data);
-                return std::string(buffer); 
+                return Float32ConvertToString(data);
+            }
+            else if (mDataType == jvs::dt_e::FLOAT64)
+            {
+                return Float64ConvertToString(data);
             }
             else
             {
@@ -1308,11 +1330,11 @@ namespace muffin { namespace im {
         
         int decimalPlaces = static_cast<int>(-exponent);
         
-        char format[10];
-        sprintf(format, "%%.%df", decimalPlaces);
+        char format[10] = {'\0'};
+        snprintf(format, sizeof(format), "%%.%df", decimalPlaces);
 
-        char buffer[20];
-        sprintf(buffer, format, data);
+        char buffer[128] = {'\0'};
+        snprintf(buffer, sizeof(buffer), format, data);
 
         return std::string(buffer);
     }
@@ -1405,16 +1427,12 @@ namespace muffin { namespace im {
                 break;
             case jvs::dt_e::FLOAT32:
             {
-                char buffer[20] = {'\0'};     
-                snprintf(buffer,19,"%0.3f", datum.Float32);
-                value.emplace_back(buffer);  
+                value.emplace_back(Float32ConvertToString(datum.Float32));  
                 break;
             }
             case jvs::dt_e::FLOAT64:
             {
-                char buffer[32] = {'\0'};     
-                snprintf(buffer,31,"%0.3f", datum.Float64);
-                value.emplace_back(buffer);  
+                value.emplace_back(Float64ConvertToString(datum.Float64));  
                 break;
             }
             case jvs::dt_e::INT8:

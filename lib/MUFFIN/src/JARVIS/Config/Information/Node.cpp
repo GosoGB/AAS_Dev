@@ -515,6 +515,12 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::ARRAY_SAMPLE_INTERVAL));
     }
 
+    void Node::SetPrecision(const uint8_t precision)
+    {
+        mPrecision = precision;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::PRECISION));
+    }
+
     void Node::SetAttributeEvent(const bool hasEvent)
     {
         mHasAttributeEvent = hasEvent;
@@ -734,6 +740,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mArraySampleInterval);
+        }
+    }
+
+    std::pair<Status, uint8_t> Node::GetPrecision() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::PRECISION)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mPrecision);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mPrecision);
         }
     }
 
