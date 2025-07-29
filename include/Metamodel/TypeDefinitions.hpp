@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 
 
 namespace muffin { namespace aas {
@@ -32,10 +34,16 @@ namespace muffin { namespace aas {
      *        [source: IEC 62890:2016, 3.1.16] 65/617/CDV
      */
     typedef enum class AssetKind
+        : uint8_t
     {
-        Type,
-        Instance
+        Type        = 0,
+        Instance    = 1
     } asset_kind_e;
+
+    const char* ASSET_KIND_STRING[] = {
+        "Type",
+        "Instance"
+    };
 
 
     /**
@@ -43,10 +51,16 @@ namespace muffin { namespace aas {
      * Reference to either a model element of the same or another AAS or to an external entity.
      */
     typedef enum class ReferenceTypes
+        : uint8_t
     {
         GlobalReference,
         ModelReference
     } reference_types_e;
+
+    const char* REFERENCE_TYPES_STRING[] = {
+        "GlobalReference",
+        "ModelReference"
+    };
 
 
     /**
@@ -60,6 +74,7 @@ namespace muffin { namespace aas {
      * 'Event' and 'BasicEvent' to 'EventElement' and 'BasicEventElement'.
      */
     typedef enum class KeyTypes
+        : uint8_t
     {
         Referable,
         FragmentReference,
@@ -84,4 +99,52 @@ namespace muffin { namespace aas {
         RelationshipElement,
         SubmodelElement
     } key_types_e;
+
+    const char* KEY_TYPES_STRING[] = {
+        "Referable", "FragmentReference", "GlobalReference", "AssetAdministrationShell", 
+        "ConceptDescription", "Identifiable", "Submodel", "AnnotatedRelationshipElement",
+        "BasicEventElement", "Blob", "Capability", "DataElement", "Entity", "EventElement", "File", 
+        "MultiLanguageProperty", "Operation", "Property", "Range", "ReferenceElement",    
+        "RelationshipElement", "SubmodelElement"
+    };
+
+
+    typedef enum class DataTypeDefXsdEnum
+        : uint8_t
+    {
+        STRING,                 // Character string (but not all Unicode character strings)
+        BOOLEAN,                // true, false
+        DECIMAL,                // Arbitrary-precision decimal numbers
+        INTEGER,                // Arbitrary-size integer numbers
+        DOUBLE,                 // 64-bit floating point numbers incl. ±Inf, ±0, NaN
+        FLOAT,                  // 32-bit floating point numbers incl. ±Inf, ±0, NaN
+        DATE,                   // Date (yyyy‑mm‑dd), optional timezone
+        TIME,                   // Time (hh:mm:ss.sss…), optional timezone
+        DATETIME,               // Date and time, optional timezone
+        DATETIMESTAMP,          // Date and time, required timezone
+        G_YEAR,                 // Gregorian calendar year
+        G_MONTH,                // Gregorian month
+        G_DAY,                  // Gregorian day
+        G_YEAR_MONTH,           // Gregorian year and month
+        G_MONTH_DAY,            // Gregorian month and day
+        DURATION,               // General duration
+        YEAR_MONTH_DURATION,    // Duration (years & months)
+        DAYTIME_DURATION,       // Duration (days, hours, minutes, seconds)
+        BYTE,                   // 8‑bit signed integer (‑128 to 127)
+        SHORT,                  // 16‑bit signed integer (‑32,768 to 32,767)
+        INT,                    // 32‑bit signed integer
+        LONG,                   // 64‑bit signed integer
+        UNSIGNED_BYTE,          // 8‑bit unsigned integer (0 to 255)
+        UNSIGNED_SHORT,         // 16‑bit unsigned integer (0 to 65,535)
+        UNSIGNED_INT,           // 32‑bit unsigned integer (0 to 4,294,967,295)
+        UNSIGNED_LONG,          // 64‑bit unsigned integer
+        POSITIVE_INTEGER,       // Integer > 0
+        NON_NEGATIVE_INTEGER,   // Integer ≥ 0
+        NEGATIVE_INTEGER,       // Integer < 0
+        NON_POSITIVE_INTEGER,   // Integer ≤ 0
+        HEX_BINARY,             // Hex-encoded binary data
+        BASE64_BINARY,          // Base64-encoded binary
+        ANY_URI,                // Absolute or relative URI/IRI
+        LANG_STRING             // String with language tag (RDF/Turtle syntax)
+    } data_type_def_xsd_e;
 }}

@@ -38,6 +38,7 @@
 #include "./HasExtensions.hpp"
 
 #include "Common/Assert.hpp"
+#include "Common/PSRAM.hpp"
 
 
 
@@ -47,33 +48,48 @@ namespace muffin { namespace aas {
     class Referable : public HasExtensions
     {
     public:
-        Referable() {}
-        ~Referable() {}
-        ~Referable() = default;
+        Referable() = default;
+        ~Referable() noexcept override = default;
     public:
-        void SetCategory(const std::string& category)
+        void SetCategory(const psram::string& category)
         {
             ASSERT(
                 (
-                    [&] (const std::string& cat)
+                    [&] (const psram::string& categoryValue)
                     {
-                        return ((cat != "CONSTANT") && (cat != "PARAMETER") && (cat != "VARIABLE"));
+                        return (
+                            (categoryValue != "CONSTANT")   && 
+                            (categoryValue != "PARAMETER")  && 
+                            (categoryValue != "VARIABLE")
+                        );
                     } (category)
                 ), "INVALID CATEGORY FOR A 'Referable': %s", category.c_str()
             );
 
-            this->category = std::make_shared<std::string>(category);
+            mCategory = category;
         }
 
-        void SetIdShort(const std::string& idShort) 
+        void SetIdShort(const psram::string& idShort) 
         {
             ASSERT((idShort.length() > 0), "'idShort' MUST NOT BE EMPTY");
             ASSERT((idShort.length() < 129), "'idShort' MUST BE SMALLER THAN 128 BYTES");
             
-            this->idShort = std::make_shared<std::string>(idShort);
+            mIdShort = idShort;
         }
+
+    public:
+        const char* GetCategory() const noexcept
+        {
+            return mCategory.c_str();
+        }
+        
+        const char* GetIdShort() const noexcept
+        {
+            return mIdShort.c_str();
+        }
+
     protected:
-        std::weak_ptr<std::string> category;
-        std::weak_ptr<std::string> idShort;
+        psram::string mCategory;
+        psram::string mIdShort;
     };
 }}

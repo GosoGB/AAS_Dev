@@ -11,9 +11,17 @@
  * information like version etc.
  * 
  * @note
+ * The cardinality of attribute 'administration' is limited to 0 due to memory usage.
+ * 
+ * @note
  * This class inherits from the @class 'Referable' and shouldn't be instantiated directly.
+ * 
+ * @note
+ * Identifier type changed. Before struct class with two attributes: id and idType. 
+ * Now string data type only.
+ * [Source: Details of the Asset Administration Shell Part 1 Version 3.0RC02, p.200]
  *
- * @date 2025-07-14
+ * @date 2025-07-28
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -24,17 +32,45 @@
 
 #pragma once
 
+#include <string>
+#include <utility>
+
+#include "./Referable.hpp"
+
+#include "Common/Assert.hpp"
+#include "Common/PSRAM.hpp"
+
 
 
 namespace muffin { namespace aas {
+    
 
-
-    class Identifiable
+    using Identifier = psram::string;
+    
+    class Identifiable : public Referable
     {
-    private:
-        /* data */
     public:
-        Identifiable(/* args */);
-        ~Identifiable();
+        explicit Identifiable(psram::string id)
+            : Referable()
+            , mID(std::move(id))
+        {
+            ASSERT(mID.empty() == false, "IDENTIFIER CANNOT BE EMPTY");
+        }
+
+        ~Identifiable() noexcept override = default;
+
+        bool operator==(const Identifiable& other) const
+        {
+            return mID == other.mID;
+        }
+
+    public:
+        Identifier GetID() const noexcept
+        {
+            return mID;
+        }
+    
+    protected:
+        Identifier mID;
     };
 }}

@@ -21,6 +21,9 @@
 
 #include "./TypeDefinitions.hpp"
 
+#include "Common/Assert.hpp"
+#include "Common/PSRAM.hpp"
+
 
 
 namespace muffin { namespace aas {
@@ -29,19 +32,34 @@ namespace muffin { namespace aas {
     class Key
     {
     public:
-        Key() {}
-        Key(key_types_e type, const std::string& value)
-            : type(type)
-            , value(value)
-            {}
+        Key(key_types_e type, const psram::string& value)
+            : mType(type)
+            , mValue(value)
+        {
+            ASSERT((value.empty() == false), "IDENTIFIER CANNOT BE EMPTY");
+        }
+
+        ~Key() noexcept = default;
+
     public:
-        void SetType(const key_types_e& type) { this->type = type; }
-        void SetValue(const std::string& value) { this->value = value; }
+        bool operator==(const Key& other) const
+        {
+            return mType == other.mType && mValue == other.mValue;
+        }
+
     public:
-        key_types_e GetType() const { return type; }
-        std::string GetValue() const { return value; }
+        key_types_e GetType() const noexcept
+        {
+            return mType;
+        }
+
+        psram::string GetValue() const noexcept
+        {
+            return mValue;
+        }
+
     private:
-        key_types_e type;
-        std::string value;
+        key_types_e mType;
+        psram::string mValue;
     };
 }}
