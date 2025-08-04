@@ -34,8 +34,19 @@
 namespace muffin { namespace aas {
 
 
+    class ExtensionBase
+    {
+    public:
+        virtual ~ExtensionBase() = default;
+        virtual const char* GetName() const noexcept = 0;
+        virtual bool GetValueType(data_type_def_xsd_e* valueType) const noexcept = 0;
+        virtual bool GetRefersTo(Reference* refersTo) const noexcept = 0;
+        virtual psram::unique_ptr<ExtensionBase> Clone() const = 0;
+    };
+
+
     template<data_type_def_xsd_e xsd>
-    class Extension : public HasSemantics
+    class Extension : public ExtensionBase, public HasSemantics
     {
     public:
         Extension(const psram::string& name)
