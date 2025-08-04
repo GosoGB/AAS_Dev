@@ -8,7 +8,7 @@
  * @note
  * The cardinality of attribute 'refersTo' is limited to 0..1 due to memory usage.
  * 
- * @date 2025-07-28
+ * @date 2025-08-04
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -53,7 +53,7 @@ namespace muffin { namespace aas {
             : mName(name)
         {}
 
-        Extension(const psram::string& name, const xsd valueType)
+        Extension(const psram::string& name, const data_type_def_xsd_e valueType)
             : mName(name)
             , mValueType(valueType)
         {
@@ -86,7 +86,7 @@ namespace muffin { namespace aas {
 
         psram::unique_ptr<ExtensionBase> Clone() const override
         {
-            return psram::make_unique<Extension<T>>(*this);
+            return psram::make_unique<Extension<xsd>>(*this);
         }
 
     public:

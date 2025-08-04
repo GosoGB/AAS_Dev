@@ -19,7 +19,7 @@
  *  - xs:
  *  - xs:
  * 
- * @date 2025-07-28
+ * @date 2025-08-04
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -201,18 +201,43 @@ namespace muffin { namespace aas {
     {
         using type = uint64_t;
     };
-
-    
     
 
+    /**
+     * @todo POSITIVE_INTEGER > 0 으로 범위 제한을 추가해야 합니다.
+     */
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::POSITIVE_INTEGER>
+    {
+        using type = uint64_t;
+    };
 
-    
-    POSITIVE_INTEGER,       // Integer > 0
-    NON_NEGATIVE_INTEGER,   // Integer ≥ 0
-    NEGATIVE_INTEGER,       // Integer < 0
-    NON_POSITIVE_INTEGER,   // Integer ≤ 0
-    HEX_BINARY,             // Hex-encoded binary data
-    BASE64_BINARY,          // Base64-encoded binary
-    ANY_URI,                // Absolute or relative URI/IRI
-    LANG_STRING             // String with language tag (RDF/Turtle syntax)
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::NON_NEGATIVE_INTEGER>
+    {
+        using type = uint64_t;
+    };
+
+    /**
+     * @todo NEGATIVE_INTEGER < 0 으로 범위 제한을 추가해야 합니다.
+     */
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::NEGATIVE_INTEGER>
+    {
+        using type = int64_t;
+    };
+
+    /**
+     * @todo NON_POSITIVE_INTEGER ≤ 0 으로 범위 제한을 추가해야 합니다.
+     */
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::NON_POSITIVE_INTEGER>
+    {
+        using type = int64_t;
+    };
+
+    // HEX_BINARY,             // Hex-encoded binary data
+    // BASE64_BINARY,          // Base64-encoded binary
+    // ANY_URI,                // Absolute or relative URI/IRI
+    // LANG_STRING             // String with language tag (RDF/Turtle syntax)
 }}
