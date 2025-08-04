@@ -34,33 +34,18 @@
 namespace muffin { namespace aas {
 
 
-    class ExtensionBase
+    template<data_type_def_xsd_e xsd>
+    class Extension : public HasSemantics
     {
-    public:
-        virtual ~ExtensionBase() = default;
-        virtual const char* GetName() const noexcept = 0;
-        virtual bool GetValueType(data_type_def_xsd_e* valueType) const noexcept = 0;
-        virtual bool GetRefersTo(Reference* refersTo) const noexcept = 0;
-        virtual psram::unique_ptr<ExtensionBase> Clone() const = 0;
-    };
-
-
-    template<typename T>
-    class Extension : public ExtensionBase, public HasSemantics
-    {
-    private:
-        static_assert(is_valid_xsd_type<T>::value, "THE TYPE IS NOT A VALID XSD-MAPPABLE TYPE");
-
     public:
         Extension(const psram::string& name)
             : mName(name)
         {}
 
-        Extension(const psram::string& name, const T& value)
+        Extension(const psram::string& name, const xsd valueType)
             : mName(name)
-            , mValue(value)
+            , mValueType(valueType)
         {
-            mValueType = get_xsd_type_from_cpp<T>();
             mHasAttribute.set(static_cast<uint8_t>(flag_e::VALUE));
             mHasAttribute.set(static_cast<uint8_t>(flag_e::VALUE_TYPE));
         }
@@ -111,7 +96,7 @@ namespace muffin { namespace aas {
             return ret;
         }
 
-        bool GetValue(T* value) const noexcept
+        bool GetValue(typename xsd_type_mapper<xsd>::type* value) const noexcept
         {
             ASSERT((value != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
 
@@ -138,7 +123,7 @@ namespace muffin { namespace aas {
     private:
         psram::string mName;
         data_type_def_xsd_e mValueType;
-        T mValue;
+        typename xsd_type_mapper<xsd>::type mValue;
         Reference mRefersTo;
     private:
         typedef enum class HasAttributeFlagEnum

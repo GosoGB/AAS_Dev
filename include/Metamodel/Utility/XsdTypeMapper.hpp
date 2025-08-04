@@ -6,6 +6,19 @@
  * Provides compile-time mapping and validation between C++ types and XSD data types
  * as defined in data_type_def_xsd_e.
  * 
+ * @note
+ * Following DataTypeDefXsd will be approximately represented
+ *  - xs:decimal  <-- double
+ *  - xs:integer  <-- int64_t
+ * 
+ * Following DataTypeDefXsd will require parsing for calculations
+ *  - xs:date
+ *  - xs:time
+ *  - xs:datetime
+ *  - xs:datetimestamp
+ *  - xs:
+ *  - xs:
+ * 
  * @date 2025-07-28
  * @version 0.0.1
  * 
@@ -29,85 +42,177 @@
 
 namespace muffin { namespace aas {
 
-    /**
-     * @brief Type trait to check if a C++ type is a valid XSD-mappable type.
-     */
-    template<typename T>
-    struct is_valid_xsd_type : std::false_type {};
-    template<> struct is_valid_xsd_type<psram::string>  : std::true_type {};
-    template<> struct is_valid_xsd_type<bool>           : std::true_type {};
-    template<> struct is_valid_xsd_type<double>         : std::true_type {};
-    template<> struct is_valid_xsd_type<float>          : std::true_type {};
-    template<> struct is_valid_xsd_type<int8_t>         : std::true_type {};
-    template<> struct is_valid_xsd_type<int16_t>        : std::true_type {};
-    template<> struct is_valid_xsd_type<int32_t>        : std::true_type {};
-    template<> struct is_valid_xsd_type<int64_t>        : std::true_type {};
-    template<> struct is_valid_xsd_type<uint8_t>        : std::true_type {};
-    template<> struct is_valid_xsd_type<uint16_t>       : std::true_type {};
-    template<> struct is_valid_xsd_type<uint32_t>       : std::true_type {};
-    template<> struct is_valid_xsd_type<uint64_t>       : std::true_type {};
 
-    /**
-     * @brief Maps a C++ type to its corresponding data_type_def_xsd_e enum value.
-     */
-    template<typename T> data_type_def_xsd_e get_xsd_type_from_cpp();
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<psram::string>()
-    {
-        return data_type_def_xsd_e::STRING;
-    }
+    template <data_type_def_xsd_e T>
+    struct xsd_type_mapper;
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<bool>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::STRING>
     {
-        return data_type_def_xsd_e::BOOLEAN;
-    }
+        using type = psram::string;
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<double>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::BOOLEAN>
     {
-        return data_type_def_xsd_e::DOUBLE;
-    }
+        using type = bool;
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<float>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::DECIMAL>
     {
-        return data_type_def_xsd_e::FLOAT;
-    }
+        using type = double; // represented approximately
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<int8_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::INTEGER>
     {
-        return data_type_def_xsd_e::BYTE;
-    }
+        using type = int64_t; // represented approximately
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<int16_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::DOUBLE>
     {
-        return data_type_def_xsd_e::SHORT;
-    }
+        using type = double;
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<int32_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::FLOAT>
     {
-        return data_type_def_xsd_e::INT;
-    }
+        using type = float;
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<int64_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::DATE>
     {
-        return data_type_def_xsd_e::LONG;
-    }
+        using type = psram::string; // parsing required for calculation
+    };
+    
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::TIME>
+    {
+        using type = psram::string; // parsing required for calculation
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<uint8_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::DATETIME>
     {
-        return data_type_def_xsd_e::UNSIGNED_BYTE;
-    }
+        using type = psram::string; // parsing required for calculation
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<uint16_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::DATETIMESTAMP>
     {
-        return data_type_def_xsd_e::UNSIGNED_SHORT;
-    }
+        using type = psram::string; // parsing required for calculation
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<uint32_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::G_YEAR>
     {
-        return data_type_def_xsd_e::UNSIGNED_INT;
-    }
+        using type = psram::string; // parsing required for calculation
+    };
 
-    template<> inline data_type_def_xsd_e get_xsd_type_from_cpp<uint64_t>()
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::G_MONTH>
     {
-        return data_type_def_xsd_e::UNSIGNED_LONG;
-    }
+        using type = psram::string; // parsing required for calculation
+    };
+    
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::G_DAY>
+    {
+        using type = psram::string; // parsing required for calculation
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::G_YEAR_MONTH>
+    {
+        using type = psram::string; // parsing required for calculation
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::G_MONTH_DAY>
+    {
+        using type = psram::string; // parsing required for calculation
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::DURATION>
+    {
+        using type = psram::string; // parsing required for calculation
+    };
+    
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::YEAR_MONTH_DURATION>
+    {
+        using type = psram::string; // parsing required for calculation
+    };
+    
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::DAYTIME_DURATION>
+    {
+        using type = psram::string; // parsing required for calculation
+    };
+    
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::BYTE>
+    {
+        using type = int8_t;
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::SHORT>
+    {
+        using type = int16_t;
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::INT>
+    {
+        using type = int32_t;
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::LONG>
+    {
+        using type = int64_t;
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::UNSIGNED_BYTE>
+    {
+        using type = uint8_t;
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::UNSIGNED_SHORT>
+    {
+        using type = uint16_t;
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::UNSIGNED_INT>
+    {
+        using type = uint32_t;
+    };
+
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::UNSIGNED_LONG>
+    {
+        using type = uint64_t;
+    };
+
+    
+    
+
+
+    
+    POSITIVE_INTEGER,       // Integer > 0
+    NON_NEGATIVE_INTEGER,   // Integer ≥ 0
+    NEGATIVE_INTEGER,       // Integer < 0
+    NON_POSITIVE_INTEGER,   // Integer ≤ 0
+    HEX_BINARY,             // Hex-encoded binary data
+    BASE64_BINARY,          // Base64-encoded binary
+    ANY_URI,                // Absolute or relative URI/IRI
+    LANG_STRING             // String with language tag (RDF/Turtle syntax)
 }}

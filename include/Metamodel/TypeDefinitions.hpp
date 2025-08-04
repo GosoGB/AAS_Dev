@@ -3,8 +3,10 @@
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
  * @brief 
+ * AAS 시스템 내에서 사용되는 concrete type 자료구조를 정의합니다.
+ * 여기에는 구조체, 열거형 또는 상수 등이 포함됩니다.
  * 
- * @date 2025-07-14
+ * @date 2025-08-01
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -147,4 +149,22 @@ namespace muffin { namespace aas {
         ANY_URI,                // Absolute or relative URI/IRI
         LANG_STRING             // String with language tag (RDF/Turtle syntax)
     } data_type_def_xsd_e;
+    // using value_data_type_e = data_type_def_xsd_e;
+
+
+    typedef enum class ModelingKindEnum
+        : uint8_t
+    {
+        TEMPLATE,
+        INSTANCE
+    } modeling_kind_e;
+
+
+    typedef enum class QualifierKindEnum
+        : uint8_t
+    {
+        VALUE_QUALIFIER,
+        CONCEPT_QUALIFIER,
+        TEMPLATE_QUALIFIER
+    } qualifier_kind_e;
 }}
