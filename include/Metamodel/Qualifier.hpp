@@ -36,6 +36,9 @@
 
 
 namespace muffin { namespace aas {
+    
+    
+    using QualifierType = std::string;
 
     
     class QualifierBase
@@ -51,20 +54,12 @@ namespace muffin { namespace aas {
         virtual psram::unique_ptr<QualifierBase> Clone() const = 0;
     };
     
-    
-    using QualifierType = std::string;
-    
 
     template<data_type_def_xsd_e xsd>
     class Qualifier : public QualifierBase, public HasSemantics
     {
     public:
-        Qualifier(const QualifierType& type)
-            : mType(type)
-        {
-            mValueType = get_xsd_type_from_cpp<xsd>();
-        }
-
+        Qualifier(const QualifierType& type) : mValueType(xsd), mType(type) {}
         Qualifier(const Qualifier& other)
         {
             if (other.mKind != nullptr)
@@ -95,7 +90,7 @@ namespace muffin { namespace aas {
                 }
                 else
                 {
-                    mkind.reset();
+                    mKind.reset();
                 }
                 
                 if (other.mValue)
@@ -145,17 +140,17 @@ namespace muffin { namespace aas {
         }
 
     public:
-        const qualifier_kind_e* GetKind() const override noexcept
+        const qualifier_kind_e* GetKind() const noexcept override
         {
             return mKind.get();
         }
 
-        QualifierType GetType() const override noexcept
+        QualifierType GetType() const noexcept override
         {
             return mType;
         }
 
-        data_type_def_xsd_e GetValueType() const override noexcept
+        data_type_def_xsd_e GetValueType() const noexcept override
         {
             return mValueType;
         }
@@ -165,7 +160,7 @@ namespace muffin { namespace aas {
             return mValue.get();
         }
 
-        const Reference* GetValueID() const override noexcept
+        const Reference* GetValueID() const noexcept override
         {
             return mValueID.get();
         }

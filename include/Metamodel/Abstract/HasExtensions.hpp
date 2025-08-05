@@ -77,7 +77,7 @@ namespace muffin { namespace aas {
         template<data_type_def_xsd_e xsd>
         void SetExtension(const Extension<xsd>& extension)
         {
-            mExtension = psram::make_unique<Extension<T>>(extension);
+            mExtension = psram::make_unique<Extension<xsd>>(extension);
         }
 
         ExtensionBase* GetExtension() const

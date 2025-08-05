@@ -110,7 +110,6 @@ namespace muffin { namespace psram {
         {
             return nullptr;
         }
-
         return unique_ptr<T>(new (mem) T(std::forward<Args>(args)...));
     }
 }}

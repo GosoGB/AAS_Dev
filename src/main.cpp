@@ -15,6 +15,7 @@
 
 #include <Arduino.h>
 #include "Metamodel/AssetInformation.hpp"
+#include "Metamodel/Abstract/Submodel/Property.hpp"
 
 
 
@@ -80,7 +81,6 @@ void log_psram()
 void setup()
 {
     Serial.begin(115200);
-    log_psram();
 
     using namespace muffin;
     using namespace aas;
@@ -98,7 +98,9 @@ void setup()
         log_d("Empty specificAssetId");
     }
 
-    log_psram();
+    Property<data_type_def_xsd_e::STRING> property;
+    const data_type_def_xsd_e xsd = property.GetValueType();
+    log_d("xsd: %d", xsd);
 }
 
 

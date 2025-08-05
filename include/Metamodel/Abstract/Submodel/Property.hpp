@@ -10,7 +10,7 @@
  * value needs to be identical to the value of the referenced coded value in Property/valueId.
  * [Constraint AASd-007]
  * 
- * @date 2025-08-04
+ * @date 2025-08-05
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -22,6 +22,7 @@
 #pragma once
 
 #include "../../TypeDefinitions.hpp"
+#include "../../Utility/XsdTypeMapper.hpp"
 #include "./DataElement.hpp"
 
 
@@ -33,12 +34,8 @@ namespace muffin { namespace aas {
     class Property : public DataElement
     {
     public:
-        Property()
-        {
-            mValueType = get_xsd_type_from_cpp<xsd>();
-        }
-
-        ~Property() = default;
+        Property() : mValueType(xsd) {}
+        ~Property() noexcept = default;
 
     public:
         void SetValue(const typename xsd_type_mapper<xsd>::type& value)

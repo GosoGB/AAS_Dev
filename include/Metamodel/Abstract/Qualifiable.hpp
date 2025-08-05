@@ -61,6 +61,7 @@ namespace muffin { namespace aas {
         virtual ~Qualifiable() noexcept = default;
     
     public:
+        
         void SetQualifier(psram::unique_ptr<QualifierBase> qualifier)
         {
             mQualifier = std::move(qualifier);
