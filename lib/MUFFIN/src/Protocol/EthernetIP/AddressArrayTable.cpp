@@ -24,6 +24,7 @@
 
 
 
+
 namespace muffin { namespace ethernetIP {
 
     AddressArrayTable::AddressArrayTable()
@@ -69,7 +70,7 @@ namespace muffin { namespace ethernetIP {
         return Status(Status::Code::GOOD_NO_DATA);
     }
 
-    std::vector<tag_array_entry_t> AddressArrayTable::RetrieveTable() const
+    psramVector<tag_array_entry_t> AddressArrayTable::RetrieveTable() const
     {
         return mArrayTable;
     }

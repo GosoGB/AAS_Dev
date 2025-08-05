@@ -58,7 +58,11 @@ namespace muffin {
         mTaskResources[0].RemainedStackSize = -1;
 
         strcpy(mTaskResources[1].TaskName, "PublishMSGTask");
+    #if defined(MT11)
         mTaskResources[1].TotalStackSize    = 8 * KILLOBYTE;
+    #else
+        mTaskResources[1].TotalStackSize    = 4 * KILLOBYTE;
+    #endif
         mTaskResources[1].RemainedStackSize = -1;
 
         strcpy(mTaskResources[2].TaskName, "ModbusRtuTask");
@@ -90,7 +94,11 @@ namespace muffin {
         mTaskResources[8].RemainedStackSize = -1;
 
         strcpy(mTaskResources[9].TaskName, "MelsecTask");
-        mTaskResources[9].TotalStackSize    = 8 * KILLOBYTE;
+    #if defined(MT11)
+        mTaskResources[9].TotalStackSize    = 10 * KILLOBYTE;
+    #else
+        mTaskResources[9].TotalStackSize    = 4 * KILLOBYTE;
+    #endif    
         mTaskResources[9].RemainedStackSize = -1;
 
         strcpy(mTaskResources[10].TaskName, "EthernetIpTask");

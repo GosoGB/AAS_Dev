@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "Common/Status.h"
+#include "Common/Allocator/psramAllocator.h"
 #include "Include/TypeDefinitions.h"
 #include "JARVIS/Config/Information/Node.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
@@ -60,7 +61,7 @@ namespace muffin { namespace im {
         string_t ToMuffinString(const std::string& stdString);
         std::string Float32ConvertToString(const float& data) const;
         std::string Float64ConvertToString(const double& data) const;
-        bool ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const;
+        bool ArrayConvertToString(psramVector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const;
 
     public:
         std::string FloatConvertToStringForLimitValue(const float& data) const;
@@ -90,7 +91,11 @@ namespace muffin { namespace im {
         // 이벤트 데이터 초기값 전송을 위한 변수입니다. 
         bool mInitEvent = true;
         jvs::dt_e mDataType;
+    #if defined(MT11)
+        psramVector<var_data_t> mDataBuffer;
+    #else
         std::vector<var_data_t> mDataBuffer;
+    #endif
         const jvs::config::Node* const mCIN;
         static const uint8_t MAX_HISTORY_SIZE = 2;
         static uint32_t mSamplingIntervalInMillis;

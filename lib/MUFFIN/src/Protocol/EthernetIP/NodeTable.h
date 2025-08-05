@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "Common/Status.h"
+#include "Common/Allocator/psramAllocator.h"
 #include "IM/Node/Node.h"
 
 
@@ -38,13 +39,13 @@ namespace muffin { namespace ethernetIP {
         Status Remove(NodeRef& node);
         void Clear();
     public:
-        std::pair<Status, std::vector<im::Node*>> RetrieveEntireNode() const;
+        std::pair<Status, psramVector<im::Node*>> RetrieveEntireNode() const;
     
     private:
         /**
          * @brief 
          */
-        std::vector<NodeRef*> mVectorNodeReference;
+        psramVector<NodeRef*> mVectorNodeReference;
 
     };
 }}

@@ -21,6 +21,7 @@
 #include <vector>
 #include <sys/_stdint.h>
 
+#include "Common/Allocator/psramAllocator.h"
 #include "Common/Status.h"
 #include "JARVIS/Include/TypeDefinitions.h"
 
@@ -94,7 +95,11 @@ namespace muffin { namespace im {
         uint64_t Timestamp;
         jvs::dt_e DataType;
         var_value_u Value;
+    #if defined(MT11)
+        psramVector<var_value_u> ArrayValue;
+    #else
         std::vector<var_value_u> ArrayValue;
+    #endif
         jvs::dt_e ArrayDataType;
         bool HasValue     : 1;
         bool HasStatus    : 1;

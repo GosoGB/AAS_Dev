@@ -33,7 +33,7 @@ namespace muffin { namespace ethernetIP {
 
     }
 
-    Status PolledArrayDataTable::UpdateArrayRange(const std::string& tagName, size_t startIndex, const std::vector<cip_data_t>& values)
+    Status PolledArrayDataTable::UpdateArrayRange(const std::string& tagName, size_t startIndex, const psramVector<cip_data_t>& values)
     {
         if (values.empty()) return Status(Status::Code::BAD);
 
@@ -45,7 +45,7 @@ namespace muffin { namespace ethernetIP {
         return Status(Status::Code::GOOD);
     }
 
-    Status PolledArrayDataTable::GetArrayRange(const std::string& tagName, size_t startIndex, size_t count, std::vector<cip_data_t>& outValues) const
+    Status PolledArrayDataTable::GetArrayRange(const std::string& tagName, size_t startIndex, size_t count, psramVector<cip_data_t>& outValues) const
     {
         outValues.clear();
 

@@ -84,10 +84,10 @@ namespace muffin { namespace jvs {
             if (cin.containsKey("sr"))
             {
                 const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
-                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                if (retSR.first != rsc_e::GOOD && retSR.first != rsc_e::GOOD_NO_DATA)
                 {
                     const std::string message = "INVALID MODBUS TCP SCAN RATE";
-                    return std::make_pair(rsc, message);
+                    return std::make_pair(retSR.first, message);
                 } 
                 
                 scanRate = retSR.second;
@@ -192,10 +192,10 @@ namespace muffin { namespace jvs {
             if (cin.containsKey("sr"))
             {
                 const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
-                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                if (retSR.first != rsc_e::GOOD && retSR.first != rsc_e::GOOD_NO_DATA)
                 {
-                    const std::string message = "INVALID MODBUS TCP SCAN RATE";
-                    return std::make_pair(rsc, message);
+                    const std::string message = "INVALID MODBUS RTU SCAN RATE";
+                    return std::make_pair(retSR.first, message);
                 } 
                 
                 scanRate = retSR.second;

@@ -597,8 +597,6 @@ namespace muffin { namespace im {
             auto it = mDataBuffer.begin();
             if (it->DataType == jvs::dt_e::STRING)
             {
-                // delete it->Value.String.Data;
-                // it->Value.String.Data = nullptr;
                 memset(it->Value.String.Data, '\0', sizeof(it->Value.String.Data));
             }
             mDataBuffer.erase(it);
@@ -1402,12 +1400,14 @@ namespace muffin { namespace im {
         case jvs::dt_e::UINT8:
             daq.Value = std::to_string(variableData.Value.UInt8);
             break;
+    #if defined(MT11)
         case jvs::dt_e::ARRAY:
         {
             daq.isArray = true;
             ArrayConvertToString(variableData.ArrayValue, variableData.ArrayDataType, daq.ArrayValue);
             break;
         }
+    #endif
         default:
             break;
         }
@@ -1415,7 +1415,7 @@ namespace muffin { namespace im {
         return std::make_pair(true, daq);
     }
 
-    bool Variable::ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const
+    bool Variable::ArrayConvertToString(psramVector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const
     {
         value.reserve(data.size());
         for (const auto& datum : data)

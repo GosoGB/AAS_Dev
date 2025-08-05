@@ -35,7 +35,6 @@ namespace muffin { namespace ethernetIP {
         try
         {
             mVectorNodeReference.emplace_back(&node);
-            LOG_DEBUG(logger,"mVectorNodeReference size : %d",mVectorNodeReference.size());
             return Status(Status::Code::GOOD);
         }
         catch(const std::bad_alloc& e)
@@ -85,7 +84,7 @@ namespace muffin { namespace ethernetIP {
         mVectorNodeReference.clear();
     }
 
-    std::pair<Status, std::vector<im::Node*>> NodeTable::RetrieveEntireNode() const
+    std::pair<Status, psramVector<im::Node*>> NodeTable::RetrieveEntireNode() const
     {
         return std::make_pair(Status(Status::Code::GOOD), mVectorNodeReference); 
     }

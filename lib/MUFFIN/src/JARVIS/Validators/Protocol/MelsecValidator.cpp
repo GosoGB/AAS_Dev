@@ -16,7 +16,6 @@
 #include "Common/Assert.h"
 #include "Common/Logger/Logger.h"
 #include "MelsecValidator.h"
-#include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Protocol/Melsec.h"
 
 
@@ -42,7 +41,7 @@ namespace muffin { namespace jvs {
         case cfg_key_e::MELSEC:
             return validateMelsec(arrayCIN, outVector);
         default:
-            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "UNDEFINED CONFIG KEY FOR MODBUS INTERFACE");
+            return std::make_pair(rsc_e::BAD_INTERNAL_ERROR, "UNDEFINED CONFIG KEY FOR MELSEC INTERFACE");
         };
     }
 
@@ -70,10 +69,10 @@ namespace muffin { namespace jvs {
             if (cin.containsKey("sr"))
             {
                 const auto retSR = convertToScanRate(cin["sr"].as<JsonVariant>());
-                if (retSR.first != rsc_e::GOOD || retSR.first != rsc_e::GOOD_NO_DATA)
+                if (retSR.first != rsc_e::GOOD && retSR.first != rsc_e::GOOD_NO_DATA)
                 {
-                    const std::string message = "INVALID MODBUS TCP SCAN RATE";
-                    return std::make_pair(rsc, message);
+                    const std::string message = "INVALID MELSEC SCAN RATE";
+                    return std::make_pair(retSR.first, message);
                 } 
                 
                 scanRate = retSR.second;
@@ -219,12 +218,12 @@ namespace muffin { namespace jvs {
         }
         catch(const std::bad_alloc& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
+            LOG_ERROR(logger, "%s: CIN class: MELSEC PROTOCOL, CIN address: %p", e.what(), cin);
             return rsc_e::BAD_OUT_OF_MEMORY;
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR(logger, "%s: CIN class: MODBUS PROTOCOL, CIN address: %p", e.what(), cin);
+            LOG_ERROR(logger, "%s: CIN class: MELSEC PROTOCOL, CIN address: %p", e.what(), cin);
             return rsc_e::BAD_UNEXPECTED_ERROR;
         }
     }

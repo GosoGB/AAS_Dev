@@ -300,9 +300,9 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             uint16_t response[pollQuantity+1] = {0};  // @lsj 메모리 할당과 초기화는 항상 같이 하는 게 좋아요
-            int result = mMelsecClient->ReadBits(area,startAddress,pollQuantity,response);
             delay(mScanRate); // @lsj 딜레이 없이도 데이터 수집에 무리가 없는지 확인 부탁드려요 네!
-
+            int result = mMelsecClient->ReadBits(area,startAddress,pollQuantity,response);
+            
             if (result != pollQuantity) 
             {
                 ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
@@ -345,8 +345,8 @@ namespace muffin {
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
             uint16_t response[pollQuantity];
-            int result = mMelsecClient->ReadWords(area,startAddress,pollQuantity,response);
             delay(mScanRate);
+            int result = mMelsecClient->ReadWords(area,startAddress,pollQuantity,response);
 
             if (result != pollQuantity) 
             {

@@ -23,6 +23,7 @@
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
+#include "Common/Allocator/psramAllocator.h"
 #include "Core/Core.h"
 #include "PubTask.h"
 #include "Protocol/MQTT/CDO.h"
@@ -73,9 +74,10 @@ namespace muffin {
         memset(batchPayload, 0, batchSize);
         
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
-
+    
         static uint32_t currentTimestamp = 0;
         const uint32_t intervalMillis = s_PublishIntervalInSeconds * SECOND_IN_MILLIS;
         uint32_t statusReportMillis = millis(); 
@@ -87,11 +89,7 @@ namespace muffin {
 
             bool isSuccessPolling = true;
             uint64_t sourceTimestamp = GetTimestampInMillis();
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -139,9 +137,15 @@ namespace muffin {
                     g_DaqTaskSetFlag.reset();
                 }
             }
-            
+
+        #if defined(MT11)
+            psramVector<json_datum_t> nodeVector;
+            psramVector<json_datum_t> nodeArrayVector;
+        #else
             std::vector<json_datum_t> nodeVector;
             std::vector<json_datum_t> nodeArrayVector;
+        #endif
+            
             nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
             nodeArrayVector.reserve(nodeStore.GetArrayNodeCount());
 

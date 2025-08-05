@@ -32,8 +32,16 @@
 
 
 namespace muffin {
-
+#if defined(MODLINK_L)
+    #if defined(DEBUG)
+        std::string mfmHost = "api.mfm.edgecross.dev";
+    #else
+        std::string mfmHost = "api.mfm.edgecross.ai";
+    #endif
+#else
     std::string mfmHost = "api.mfm.edgecross.ai";
+#endif
+
     uint16_t mfmPort = 443;
     http_scheme_e mfmScheme = http_scheme_e::HTTPS;
     bool mfmValidateCert = true;

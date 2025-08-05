@@ -47,9 +47,10 @@ namespace muffin { namespace ethernetIP {
         mServerIP   = config->GetIPv4().second;
         mServerPort = config->GetPort().second;
         mScanRate   = config->GetScanRate().second;
-
+    #if defined(DEBUG)
         mAddressTable.DebugPrint();
         mAddressArrayTable.DebugPrint();
+    #endif
         return Status(Status::Code::GOOD); 
     }
 
@@ -78,7 +79,7 @@ namespace muffin { namespace ethernetIP {
         return true;
     }
 
-    Status EthernetIP::addNodeReferences(const std::vector<std::__cxx11::string>& vectorNodeID)
+    Status EthernetIP::addNodeReferences(const std::vector<std::string>& vectorNodeID)
     {
         Status ret(Status::Code::UNCERTAIN);
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
@@ -122,7 +123,7 @@ namespace muffin { namespace ethernetIP {
                 LOG_DEBUG(logger,"nodeArrayIndex SIZE  : %d ",nodeArrayIndex.size());
                 uint16_t startIndex = nodeArrayIndex[0][0];
                 uint16_t count = nodeArrayIndex[0][1];
-                LOG_INFO(logger,"startIndex : %d || count : %d",startIndex,count);
+                LOG_DEBUG(logger,"startIndex : %d || count : %d",startIndex,count);
                 ret = mAddressArrayTable.Update(reference->VariableNode.GetAddress().String, startIndex, count);
                 if (ret != Status::Code::GOOD)
                 {
@@ -164,10 +165,10 @@ namespace muffin { namespace ethernetIP {
 
         if (ArrayBatchCount != 0)
         {
-            std::vector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable(); 
+            psramVector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable(); 
             for(auto& entry : tagArrayEntry)
             {
-                std::vector<cip_data_t> readValues;
+                psramVector<cip_data_t> readValues;
                 delay(mScanRate);
                 if (readTagExt(mEipSession, entry.tagName, entry.startIndex, entry.count, readValues))
                 {  
@@ -205,8 +206,8 @@ namespace muffin { namespace ethernetIP {
         {
             for (size_t i = 0; i < batchCount; i++)
             {
-                std::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
-                std::vector<cip_data_t> readValues;
+                psramVector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
+                psramVector<cip_data_t> readValues;
                 delay(mScanRate);
                 if (readTagsMSR(mEipSession, retrievedTagInfo, readValues))
                 {
@@ -303,7 +304,7 @@ namespace muffin { namespace ethernetIP {
             std::vector<std::array<uint16_t, 2>> arrayIndex = node->VariableNode.GetArrayIndex();
             std::string address = node->VariableNode.GetAddress().String;
 
-            std::vector<cip_data_t> vPolledData;
+            psramVector<cip_data_t> vPolledData;
 
             if (arrayIndex.size() == 0)
             {
@@ -319,7 +320,7 @@ namespace muffin { namespace ethernetIP {
                     LOG_ERROR(logger,"[%s] TAG IS NOT EXIST",address.c_str());
                     return Status(Status::Code::BAD);
                 }
-            
+                
                 // 단일 값 처리
                 std::vector<im::poll_data_t> vectorPolledData;
                 vectorPolledData.reserve(datum.RawData.size());
@@ -375,7 +376,6 @@ namespace muffin { namespace ethernetIP {
                     );
                     return ret;
                 }
-
                 std::vector<im::poll_data_t> vectorPolledData;
                 vectorPolledData.reserve(count);
                 for (auto& datum : vPolledData)

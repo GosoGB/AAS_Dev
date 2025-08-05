@@ -7,6 +7,7 @@
 #include <vector>
 #include <cstdint>
 #include "IM/Node/Include/TypeDefinitions.h"
+#include "Common/Allocator/psramAllocator.h"
 
 // CIP 데이터 타입(Type Codes)
 // PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf , page 31
@@ -80,7 +81,7 @@ typedef struct CipData
     uint64_t Timestamp;             // 수집 시각
     CipDataType  DataType;          // CIP 데이터 타입
     cip_value_u Value;              // 값
-    std::vector<uint8_t> RawData;   // Raw Data
+    psramVector<uint8_t> RawData;   // Raw Data
 } cip_data_t;
 
 

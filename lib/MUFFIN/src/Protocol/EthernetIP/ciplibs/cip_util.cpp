@@ -5,7 +5,7 @@
 
 using muffin::w5500::EthernetClient;
 
-void printHex(const std::vector<uint8_t>& data) {
+void printHex(const psramVector<uint8_t>& data) {
     for (uint8_t b : data) {
         if (b < 16) Serial.print("0");
         Serial.print(b, HEX);
@@ -213,7 +213,7 @@ int cipDataTypeSizeFromRaw(uint16_t rawType) {
     }
 }
 
-bool decodeCipValue( CipDataType dataType, size_t dataStart, const std::vector<uint8_t>& response, cip_value_u& outValue, std::vector<uint8_t>& outputRawData )
+bool decodeCipValue( CipDataType dataType, size_t dataStart, const psramVector<uint8_t>& response, cip_value_u& outValue, psramVector<uint8_t>& outputRawData )
 {
     switch (dataType)
     {
@@ -381,7 +381,7 @@ bool checkConnection(EthernetClient& client) {
     who”. An Encapsulation Session must be established before any CIP communications can take place.
     Data format for the Encapsulation Protocol is Little-Endian.
 */
-bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& serviceData, std::vector<uint8_t>& response) 
+bool sendEncapsulationPacket(EIPSession& session, const psramVector<uint8_t>& serviceData, psramVector<uint8_t>& response) 
 {
     if (!session.connected) 
     {
@@ -389,7 +389,7 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
         return false;
     }
 
-    std::vector<uint8_t> rrData;
+    psramVector<uint8_t> rrData;
     rrData.insert(rrData.end(), {0x00,0x00,0x00,0x00, 0x00,0x00});  // Interface Handle (4바이트), Timeout
     rrData.push_back(0x02); rrData.push_back(0x00);                 // Item count = 2
     rrData.insert(rrData.end(), {0x00,0x00, 0x00,0x00});            // Null Address Item
@@ -414,7 +414,7 @@ bool sendEncapsulationPacket(EIPSession& session, const std::vector<uint8_t>& se
     // Serial.println();
 
     // Encapsulation Header + RR Data
-    std::vector<uint8_t> packet;
+    psramVector<uint8_t> packet;
     packet.push_back(0x6F); packet.push_back(0x00); // SendRRData
     
     uint16_t len = rrData.size();

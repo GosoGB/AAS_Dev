@@ -48,11 +48,7 @@ namespace muffin {
 
         while (true)
         {
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -172,11 +168,7 @@ namespace muffin {
 
         while (true)
         {
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);

@@ -62,9 +62,8 @@ namespace muffin { namespace ethernetIP {
         {
             mBatches.emplace_back();
         }
-
         tag_batch_struct_t& current = mBatches.back();
-        current.tags.push_back(tag);
+        current.tags.emplace_back(tag);
         current.totalSize += tagSize;
 
         return Status(Status::Code::GOOD);
@@ -97,7 +96,7 @@ namespace muffin { namespace ethernetIP {
         return Status(Status::Code::BAD);
     }
 
-    std::vector<std::string> AddressTable::RetrieveTagsByBatch(size_t batchIndex) const 
+    psramVector<std::string> AddressTable::RetrieveTagsByBatch(size_t batchIndex) const 
     {
         try 
         {

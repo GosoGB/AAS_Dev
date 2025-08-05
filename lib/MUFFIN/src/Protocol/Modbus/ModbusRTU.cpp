@@ -474,8 +474,8 @@ Status ModbusRTU::PollTemp()
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
             delay(mScanRate);
+            ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -516,13 +516,13 @@ Status ModbusRTU::PollTemp()
     {
         Status ret(Status::Code::GOOD);
         constexpr int8_t INVALID_VALUE = -1;
-
+        
         for (const auto& addressRange : addressRangeSet)
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             delay(mScanRate);
+            ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -564,13 +564,13 @@ Status ModbusRTU::PollTemp()
     {
         Status ret(Status::Code::GOOD);
         constexpr int8_t INVALID_VALUE = -1;
-
+    
         for (const auto& addressRange : addressRangeSet)
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             delay(mScanRate);
+            ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -619,8 +619,8 @@ Status ModbusRTU::PollTemp()
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
             delay(mScanRate);
+            ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 

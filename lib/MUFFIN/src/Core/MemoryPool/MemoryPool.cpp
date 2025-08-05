@@ -23,7 +23,12 @@ namespace muffin
     MemoryPool::MemoryPool(const size_t blockSize, const size_t blockCount)
         : mBlockSize(blockSize), mBlockCount(blockCount)
     {
+    #if defined(MT11)
+        
+        mPool = static_cast<char*>(heap_caps_malloc(mBlockSize * mBlockCount, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    #else
         mPool = new char[mBlockSize * mBlockCount];
+    #endif
         mFreeBlocks.reserve(mBlockCount);
 
         for (size_t idx = 0; idx < blockCount; ++idx)
@@ -34,7 +39,11 @@ namespace muffin
 
     MemoryPool::~MemoryPool()
     {
+    #if defined(MT11)
+        heap_caps_free(mPool);
+    #else
         delete[] mPool;
+    #endif
     }
 
     void* MemoryPool::Allocate(const size_t size)

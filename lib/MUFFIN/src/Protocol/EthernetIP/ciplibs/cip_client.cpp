@@ -11,9 +11,9 @@ bool readLogicalValue( EIPSession& session, uint8_t classId, uint8_t instanceId,
 {
     constexpr size_t CIP_OFFSET = 40;
 
-    std::vector<uint8_t> path = buildLogicalPath(classId, instanceId, attributeId);
+    psramVector<uint8_t> path = buildLogicalPath(classId, instanceId, attributeId);
 
-    std::vector<uint8_t> message;
+    psramVector<uint8_t> message;
     message.push_back(0x4C); // Read Tag
     message.push_back(static_cast<uint8_t>(path.size() / 2));
     message.insert(message.end(), path.begin(), path.end());
@@ -22,7 +22,7 @@ bool readLogicalValue( EIPSession& session, uint8_t classId, uint8_t instanceId,
     message.push_back(0x01);
     message.push_back(0x00);
 
-    std::vector<uint8_t> response;
+    psramVector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         outResult.Code = 0xFF;
         return false;
@@ -77,13 +77,13 @@ bool readLogicalValue( EIPSession& session, uint8_t classId, uint8_t instanceId,
 }
 
 // 쓰기 함수 (데이터 타입 파라미터화)
-bool writeLogicalValue(EIPSession& session, uint8_t classId, uint8_t instanceId, uint8_t attributeId, uint16_t dataType, const std::vector<uint8_t>& data, cip_data_t& outResult)
+bool writeLogicalValue(EIPSession& session, uint8_t classId, uint8_t instanceId, uint8_t attributeId, uint16_t dataType, const psramVector<uint8_t>& data, cip_data_t& outResult)
 {
     constexpr size_t CIP_OFFSET = 40;
 
-    std::vector<uint8_t> path = buildLogicalPath(classId, instanceId, attributeId);
+    psramVector<uint8_t> path = buildLogicalPath(classId, instanceId, attributeId);
 
-    std::vector<uint8_t> message;
+    psramVector<uint8_t> message;
     message.push_back(0x4D); // Write Tag
     message.push_back(static_cast<uint8_t>(path.size() / 2));
     message.insert(message.end(), path.begin(), path.end());
@@ -99,7 +99,7 @@ bool writeLogicalValue(EIPSession& session, uint8_t classId, uint8_t instanceId,
     // Data Payload
     message.insert(message.end(), data.begin(), data.end());
 
-    std::vector<uint8_t> response;
+    psramVector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         outResult.Code = 0xFF;
         return false;

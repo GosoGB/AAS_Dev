@@ -21,6 +21,7 @@
 #include "AddressTable.h"
 #include "AddressArrayTable.h"
 #include "PolledArrayDataTable.h"
+#include "Common/Allocator/psramAllocator.h"
 #include "Protocol/EthernetIP/ciplibs/cip_client.h"
 #include "Protocol/EthernetIP/ciplibs/cip_msr.h"
 #include "Protocol/EthernetIP/ciplibs/cip_single.h"
@@ -54,7 +55,7 @@ namespace muffin { namespace ethernetIP {
         cip_data_t GetSingleAddressValue(std::string tag);
     
     private:
-        Status addNodeReferences(const std::vector<std::__cxx11::string>& vectorNodeID);
+        Status addNodeReferences(const std::vector<std::string>& vectorNodeID);
         Status implementPolling();
         Status updateVariableNodes();
 

@@ -39,11 +39,7 @@ namespace muffin
         uint32_t statusReportMillis = millis(); 
         while (true)
         {
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -60,11 +56,10 @@ namespace muffin
 
             for(auto& melsec : MelsecVector)
             {
-
                 if (xSemaphoreTake(xSemaphoreMelsec, 2000)  != pdTRUE)
                 {
                     LOG_WARNING(logger, "[MELSEC] THE READ MODULE IS BUSY. TRY LATER.");
-                    continue;;
+                    continue;
                 }
 
                 if (!melsec.mMelsecClient->Connected())

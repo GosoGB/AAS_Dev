@@ -247,7 +247,7 @@ namespace muffin {
         }
         
         const auto version = Convert.ToJarvisVersion(doc["ver"].as<const char*>());
-        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second != jvs::prtcl_ver_e::VERSEOIN_5))
+        if ((version.first.ToCode() != Status::Code::GOOD) || (version.second > jvs::prtcl_ver_e::VERSEOIN_5))
         {
             response.ResponseCode  = Convert.ToUInt16(jvs::rsc_e::BAD_INVALID_VERSION);
             response.Description   = "INVALID OR UNSUPPORTED PROTOCOL VERSION";
@@ -665,13 +665,7 @@ namespace muffin {
 
         while (true)
         {
-
-        #if defined(DEBUG)
-            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3600 * SECOND_IN_MILLIS))
-        #endif
-
+            if ((millis() - statusReportMillis) > (600 * SECOND_IN_MILLIS))
             {
                 /**
                  * @todo 현재 DeviceStatus에 필요한 정보를 mqttTask에서 생성하고, COD로 넘겨주고 있음 추후에는 이 기능을 별도의 task로 빼서 구현해야함

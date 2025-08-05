@@ -19,6 +19,7 @@
 #include <string>
 
 #include "Common/Status.h"
+#include "Common/Allocator/psramAllocator.h"
 #include "JARVIS/Include/TypeDefinitions.h"
 
 
@@ -41,13 +42,13 @@ namespace muffin { namespace ethernetIP {
     public:
         Status Update(const std::string& tagName, size_t startIndex, size_t count);
         Status Remove(const std::string& tagName, size_t startIndex, size_t count);
-        std::vector<tag_array_entry_t> RetrieveTable() const;
+        psramVector<tag_array_entry_t> RetrieveTable() const;
         size_t GetArrayBatchCount() const;
         void DebugPrint() const;
 
 
     private:
-        std::vector<tag_array_entry_t> mArrayTable;
+        psramVector<tag_array_entry_t> mArrayTable;
 
     };
 }}
