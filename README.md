@@ -1,3 +1,13 @@
+# 릴리즈 노트 Aug 6, 2025
+## MUFFIN 프레임워크 Ver.1.5.01, Ver.1.4.11 개발 완료
+### MT11 : Ver.1.5.01 / MT10,MODLINKL-L : Ver.1.4.11
+### 신규 기능
+  - [MT11] Ethernet/IP 프로토콜 추가 : TAG READ/WRITE 기능, 배열 READ 기능 지원, 배열 WRITE 기능은 단일 인덱스만 가능
+  - [Scan Rate] 모든 슬레이브마다 Scan Rate를 설정할 수 있도록 파라미터 추가
+### 기능 개선
+  - [Precision] Float 자료형 선택시 소수점이하의 자리수를 설정할 수 있게 파라미터 추가, 기존에는 소수점 2자리까지 고정으로 표현 됨
+  - [Status Report] 기존에 1시간마다 전송하는 상태 메시지(LTE 신호세기, 잔여 메모리 등)의 주기를 10분으로 수정함
+# <br><br><br>
 # 릴리즈 노트 July 21, 2025
 ## MUFFIN 프레임워크 Ver.1.4.1 개발 완료
 ### 신규 기능
