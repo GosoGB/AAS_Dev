@@ -17,7 +17,7 @@
 
 #include <new>
 #include <vector>
-#include "Common/Allocator/psramAllocator.h"
+#include "Common/PSRAM.hpp"
 
 
 namespace muffin {
@@ -36,7 +36,7 @@ namespace muffin {
         const size_t mBlockCount;
         char* mPool;
     #if defined(MT11)
-        psramVector<void*> mFreeBlocks;
+        psram::vector<void*> mFreeBlocks;
     #else
         std::vector<void*> mFreeBlocks;
     #endif

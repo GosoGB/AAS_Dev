@@ -6,14 +6,14 @@
 #include <string>
 #include <vector>
 #include <regex>
-#include "Common/Allocator/psramAllocator.h"
+#include "Common/PSRAM.hpp"
 
 
 // 배열 인덱스를 지정하는 Logical Segment 생성
 // 1756-pm020_-en-p.pdf page 14의 규칙에 따름, * 다른 제조사일 경우 확인 필요
-inline psramVector<uint8_t> buildElementSelector(uint32_t index) 
+inline muffin::psram::vector<uint8_t> buildElementSelector(uint32_t index) 
 {
-    psramVector<uint8_t> seg;
+    muffin::psram::vector<uint8_t> seg;
     if (index <= 0xFF) 
     {
         seg.push_back(0x28); // 8-bit Element ID
@@ -39,9 +39,9 @@ inline psramVector<uint8_t> buildElementSelector(uint32_t index)
 }
 
 // TAG 이름을 CIP 경로(Symbolic Segment)로 인코딩
-inline psramVector<uint8_t> encodeTagPath(const std::string& tagName) 
+inline muffin::psram::vector<uint8_t> encodeTagPath(const std::string& tagName) 
 {
-    psramVector<uint8_t> path;
+    muffin::psram::vector<uint8_t> path;
     path.push_back(0x91);   // Symbolic Segment type
     path.push_back(tagName.length());
     for (char c : tagName) {
@@ -53,16 +53,16 @@ inline psramVector<uint8_t> encodeTagPath(const std::string& tagName)
     return path;
 }
 
-inline psramVector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag) 
+inline muffin::psram::vector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag) 
 {
-    psramVector<uint8_t> path;
+    muffin::psram::vector<uint8_t> path;
     std::string token;
     std::stringstream ss(tag);
 
     while (std::getline(ss, token, '.')) 
     {
         std::string base;
-        psramVector<uint32_t> indices;
+        muffin::psram::vector<uint32_t> indices;
         size_t pos = 0;
         while (pos < token.length()) 
         {
@@ -82,13 +82,13 @@ inline psramVector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag)
         }
 
         // Add base tag name
-        psramVector<uint8_t> seg = encodeTagPath(base);
+        muffin::psram::vector<uint8_t> seg = encodeTagPath(base);
         path.insert(path.end(), seg.begin(), seg.end());
 
         // Add indices
         for (uint32_t idx : indices) 
         {
-            psramVector<uint8_t> idx_seg = buildElementSelector(idx);
+            muffin::psram::vector<uint8_t> idx_seg = buildElementSelector(idx);
             path.insert(path.end(), idx_seg.begin(), idx_seg.end());
         }
     }
@@ -96,11 +96,11 @@ inline psramVector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag)
     return path;
 }
 
-// inline psramVector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag) 
+// inline muffin::psram::vector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag) 
 // {
-//     psramVector<uint8_t> path;
+//     muffin::psram::vector<uint8_t> path;
 //     std::string tagName;
-//     psramVector<uint32_t> indices;
+//     muffin::psram::vector<uint32_t> indices;
 
 //     // 태그 이름과 인덱스를 직접 분리
 //     size_t pos = 0;
@@ -128,7 +128,7 @@ inline psramVector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag)
 //     // 인덱스 세그먼트 추가
 //     for (uint32_t idx : indices) 
 //     {
-//         psramVector<uint8_t> seg = buildElementSelector(idx);
+//         muffin::psram::vector<uint8_t> seg = buildElementSelector(idx);
 //         path.insert(path.end(), seg.begin(), seg.end());
 //     }
 
@@ -137,7 +137,7 @@ inline psramVector<uint8_t> encodeTagPathWithMultiIndex(const std::string& tag)
 
 
 // CIP 경로를 문자열 TAG 이름으로 디코딩 (디버깅용)
-inline std::string decodeTagPath(const psramVector<uint8_t>& path) {
+inline std::string decodeTagPath(const muffin::psram::vector<uint8_t>& path) {
     if (path.size() < 2 || path[0] != 0x91) return "";
     uint8_t len = path[1];
     return std::string(path.begin() + 2, path.begin() + 2 + len);
@@ -147,8 +147,8 @@ inline std::string decodeTagPath(const psramVector<uint8_t>& path) {
 // 8-bit, 16-bit 대응
 // Class/Instance/Attribute 기반 CIP Logical Path 생성 , 1756-pm020_-en-p.pdf page 14
 // 8-bit, 16-bit 대응
-inline psramVector<uint8_t> buildLogicalPath(uint16_t classID, uint16_t instanceID, uint16_t attributeID) {
-    psramVector<uint8_t> path;
+inline muffin::psram::vector<uint8_t> buildLogicalPath(uint16_t classID, uint16_t instanceID, uint16_t attributeID) {
+    muffin::psram::vector<uint8_t> path;
 
     // Class
     if (classID <= 0xFF) {

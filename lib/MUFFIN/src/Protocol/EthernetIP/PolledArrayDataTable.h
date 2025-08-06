@@ -22,7 +22,7 @@
 
 #include "Common/Status.h"
 #include "JARVIS/Include/TypeDefinitions.h"
-#include "Common/Allocator/psramAllocator.h"
+#include "Common/PSRAM.hpp"
 #include "Protocol/EthernetIP/ciplibs/cip_types.h"
 
 
@@ -36,13 +36,12 @@ namespace muffin { namespace ethernetIP {
         ~PolledArrayDataTable();
     
     public:
-        Status UpdateArrayRange(const std::string& tagName, size_t startIndex, const psramVector<cip_data_t>& values);
-        Status GetArrayRange(const std::string& tagName, size_t startIndex, size_t count, psramVector<cip_data_t>& outValues) const;
+        Status UpdateArrayRange(const std::string& tagName, size_t startIndex, const psram::vector<cip_data_t>& values);
+        Status GetArrayRange(const std::string& tagName, size_t startIndex, size_t count, psram::vector<cip_data_t>& outValues) const;
         void Clear();
 
     private:
-
-        std::map<std::string, std::map<size_t, cip_data_t>> mTagArrayData;
+        psram::map<std::string, psram::map<size_t, cip_data_t>> mTagArrayData;
     };
 
 }}

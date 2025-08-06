@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "Common/Status.h"
-#include "Common/Allocator/psramAllocator.h"
+#include "Common/PSRAM.hpp"
 #include "Include/TypeDefinitions.h"
 #include "JARVIS/Config/Information/Node.h"
 #include "Protocol/Modbus/Include/TypeDefinitions.h"
@@ -61,7 +61,7 @@ namespace muffin { namespace im {
         string_t ToMuffinString(const std::string& stdString);
         std::string Float32ConvertToString(const float& data) const;
         std::string Float64ConvertToString(const double& data) const;
-        bool ArrayConvertToString(psramVector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const;
+        bool ArrayConvertToString(psram::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const;
 
     public:
         std::string FloatConvertToStringForLimitValue(const float& data) const;
@@ -92,7 +92,7 @@ namespace muffin { namespace im {
         bool mInitEvent = true;
         jvs::dt_e mDataType;
     #if defined(MT11)
-        psramVector<var_data_t> mDataBuffer;
+        psram::vector<var_data_t> mDataBuffer;
     #else
         std::vector<var_data_t> mDataBuffer;
     #endif

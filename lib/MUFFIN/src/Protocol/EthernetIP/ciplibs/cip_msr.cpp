@@ -6,11 +6,11 @@
 #include "Common/Time/TimeUtils.h"
 
 // Rockwell Automation Publication 1756-PM020H-EN-P - March 2022 - page 31
-bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, psramVector<cip_data_t>& outValues) {
+bool readTagsMSR(EIPSession& session, const muffin::psram::vector<std::string>& tagNames, muffin::psram::vector<cip_data_t>& outValues) {
 
     constexpr size_t CIP_OFFSET = 40;                                   // Encapsulation Header + RR Data
 
-    psramVector<uint8_t> message;
+    muffin::psram::vector<uint8_t> message;
 
     // [0] Service Code: Multiple Service Request
     message.push_back(0x0A);
@@ -35,18 +35,18 @@ bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, 
         message.push_back(0x00);  // Offset MSB
     }
     
-    psramVector<uint8_t> embeddedRequests;
+    muffin::psram::vector<uint8_t> embeddedRequests;
     size_t currentOffset = (requestCount * 2) + 2; // Number of Services contained in this request 이후 위치
 
     // Build and append each embedded request
     for (size_t i = 0; i < requestCount; ++i) {
-        psramVector<uint8_t> request;
+        muffin::psram::vector<uint8_t> request;
 
         // [0] Embedded Service Code: Read Tag (0x4C)
         request.push_back(0x4C);
 
         // [1] Path size (in 16-bit words)
-        psramVector<uint8_t> path = encodeTagPathWithMultiIndex(tagNames[i]);
+        muffin::psram::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagNames[i]);
         request.push_back(static_cast<uint8_t>(path.size() / 2));
 
         // [2~] Path segment
@@ -70,7 +70,7 @@ bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, 
     message.insert(message.end(), embeddedRequests.begin(), embeddedRequests.end());
 
     // Send packet
-    psramVector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         return false;
     }
@@ -145,7 +145,7 @@ bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, 
             continue;
         }
 
-        psramVector<uint8_t> oneResponse(response.begin() + start, response.begin() + end);
+        muffin::psram::vector<uint8_t> oneResponse(response.begin() + start, response.begin() + end);
 
         // 전체 응답 바이트 출력 - 디버깅 코드
         // Serial.print("전체 응답: ");
@@ -179,7 +179,7 @@ bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, 
         // Serial.printf("TagType=0x%04X (%d 바이트)\n", rawType, valueSize);
 
         size_t valuePos = typePos + 2;
-        psramVector<uint8_t> value;
+        muffin::psram::vector<uint8_t> value;
 
         cip_data_t data;
         data.Code = generalStatus;
@@ -214,7 +214,7 @@ bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, 
             }
 
             // 유효한 길이만큼 value에 복사
-            value = psramVector<uint8_t>(oneResponse.begin() + valuePos + 4,
+            value = muffin::psram::vector<uint8_t>(oneResponse.begin() + valuePos + 4,
                                         oneResponse.begin() + valuePos + 4 + strLen);
         } 
         else 
@@ -224,14 +224,14 @@ bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, 
                 Serial.printf("값 크기 오류 또는 미지원 타입\n");
                 continue;
             }
-            value = psramVector<uint8_t>(oneResponse.begin() + valuePos,
+            value = muffin::psram::vector<uint8_t>(oneResponse.begin() + valuePos,
                                         oneResponse.begin() + valuePos + valueSize);
         }                   
 
 
 
         // Value
-        // psramVector<uint8_t> value(oneResponse.begin() + valuePos, oneResponse.begin() + valuePos + valueSize);
+        // muffin::psram::vector<uint8_t> value(oneResponse.begin() + valuePos, oneResponse.begin() + valuePos + valueSize);
 
         // Serial.print("Value = ");
         // for (auto b : value) Serial.printf("%02X ", b);
@@ -255,17 +255,17 @@ bool readTagsMSR(EIPSession& session, const psramVector<std::string>& tagNames, 
 
 /* tag 별 응답 */
 bool writeTagsMSR(EIPSession& session,
-                  const psramVector<std::string>& tagNames,
-                  const psramVector<psramVector<uint8_t>>& values,
-                  const psramVector<uint16_t>& dataTypes,  // 20250620 추가됨
-                  psramVector<cip_data_t>& results ) {
+                  const muffin::psram::vector<std::string>& tagNames,
+                  const muffin::psram::vector<muffin::psram::vector<uint8_t>>& values,
+                  const muffin::psram::vector<uint16_t>& dataTypes,  // 20250620 추가됨
+                  muffin::psram::vector<cip_data_t>& results ) {
 
     constexpr size_t CIP_OFFSET = 40;                                   // Encapsulation Header + RR Data                    
 
     // 파라미터 수 검증
     if (tagNames.size() != values.size() || tagNames.size() != dataTypes.size()) return false;
 
-    psramVector<uint8_t> message;
+    muffin::psram::vector<uint8_t> message;
 
     // [0] Service Code: Multiple Service Request
     message.push_back(0x0A);
@@ -290,16 +290,16 @@ bool writeTagsMSR(EIPSession& session,
         message.push_back(0x00);  // Offset MSB
     }
 
-    psramVector<uint8_t> segmentData;
-    //psramVector<uint8_t> embeddedRequests;
+    muffin::psram::vector<uint8_t> segmentData;
+    //muffin::psram::vector<uint8_t> embeddedRequests;
     size_t currentOffset = (requestCount * 2) + 2; // Number of Services contained in this request 이후 위치
 
     /* * 중요 tag는 단일 기준으로, Element count = 1,  array를 지원하지 않음, 이부분은 관리 포인트도 고려해야 하는 사항 */
     for (size_t i = 0; i < tagNames.size(); ++i) {
-        psramVector<uint8_t> req = {0x4D}; // Write Tag request (0x4D)
+        muffin::psram::vector<uint8_t> req = {0x4D}; // Write Tag request (0x4D)
 
         // Encode tag path
-        psramVector<uint8_t> path = encodeTagPathWithMultiIndex(tagNames[i]);
+        muffin::psram::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagNames[i]);
         req.push_back(static_cast<uint8_t>(path.size() / 2)); // Path size (in 16-bit words)
         req.insert(req.end(), path.begin(), path.end());
 
@@ -339,7 +339,7 @@ bool writeTagsMSR(EIPSession& session,
 
     message.insert(message.end(), segmentData.begin(), segmentData.end());
 
-    psramVector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) return false;
 
     // 응답 해석 : Rockwell Automation Publication 1756-PM020H-EN-P - March 2022, page 32
@@ -414,7 +414,7 @@ bool writeTagsMSR(EIPSession& session,
             continue;
         }
 
-        psramVector<uint8_t> oneResponse(response.begin() + start, response.begin() + end);
+        muffin::psram::vector<uint8_t> oneResponse(response.begin() + start, response.begin() + end);
 
         if (oneResponse.size() < 4) {
             Serial.println("응답 너무 짧음");

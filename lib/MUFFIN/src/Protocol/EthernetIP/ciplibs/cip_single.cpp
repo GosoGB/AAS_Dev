@@ -10,9 +10,9 @@ bool readTagIndex(EIPSession& session, const std::string& tagName, cip_data_t& o
 {
     constexpr size_t CIP_OFFSET = 40;                                   // Encapsulation Header + RR Data
 
-    psramVector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
+    muffin::psram::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
 
-    psramVector<uint8_t> message;
+    muffin::psram::vector<uint8_t> message;
     message.push_back(0x4C); // Service Code: Read Tag
     message.push_back(static_cast<uint8_t>(path.size() / 2)); // Path Size (WORD)
 
@@ -28,7 +28,7 @@ bool readTagIndex(EIPSession& session, const std::string& tagName, cip_data_t& o
     //     Serial.printf("%02X ", b);
     // Serial.println();
 
-    psramVector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         Serial.println("[readTag] Failed to send encapsulation request");
         return false;
@@ -91,9 +91,9 @@ bool readTag(EIPSession& session, const std::string& tagName, cip_data_t& outDat
 {
     constexpr size_t CIP_OFFSET = 40;                                   // Encapsulation Header + RR Data
 
-    psramVector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
+    muffin::psram::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
 
-    psramVector<uint8_t> message;
+    muffin::psram::vector<uint8_t> message;
     message.push_back(0x4C); // Service Code: Read Tag
     message.push_back(static_cast<uint8_t>(path.size() / 2)); // Path Size (WORD)
 
@@ -109,7 +109,7 @@ bool readTag(EIPSession& session, const std::string& tagName, cip_data_t& outDat
     //     Serial.printf("%02X ", b);
     // Serial.println();
 
-    psramVector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         Serial.println("[readTag] Failed to send encapsulation request");
         return false;
@@ -166,19 +166,19 @@ bool readTag(EIPSession& session, const std::string& tagName, cip_data_t& outDat
     return true;
 }
 
-bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elementIndex, uint16_t elementCount, psramVector<cip_data_t>& outData )
+bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elementIndex, uint16_t elementCount, muffin::psram::vector<cip_data_t>& outData )
 {
     constexpr size_t CIP_OFFSET = 40;
 
-    psramVector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
+    muffin::psram::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
 
     // Logical Segment 추가, 1756-pm020_-en-p.pdf page 14 , 사용 예제 page 60
     if (elementIndex > 0) {
-        psramVector<uint8_t> elementSelector = buildElementSelector(elementIndex);
+        muffin::psram::vector<uint8_t> elementSelector = buildElementSelector(elementIndex);
         path.insert(path.end(), elementSelector.begin(), elementSelector.end());
     }
 
-    psramVector<uint8_t> message;
+    muffin::psram::vector<uint8_t> message;
     message.push_back(0x4C);                                                // Read Tag Service
     message.push_back(static_cast<uint8_t>(path.size() / 2));               // Path size in words
     message.insert(message.end(), path.begin(), path.end());
@@ -189,7 +189,7 @@ bool readTagExt(EIPSession& session, const std::string& tagName, uint32_t elemen
 
     // Serial.printf("[readTagEx] Sending Read Tag request: %s (Count=%u)\n", tagName.c_str(), elementCount);
 
-    psramVector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         Serial.println("[readTagEx] Failed to send encapsulation request");
         return false;
@@ -270,9 +270,9 @@ bool writeTag( EIPSession& session, const std::string& tagName, cip_data_t datum
     constexpr size_t CIP_OFFSET = 40;                                   // Encapsulation Header + RR Data
     outResult.Code = 0xFF;              // Unknown error로 초기화
 
-    psramVector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);                 // 태그 경로(Symbolic Segment) 생성
+    muffin::psram::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);                 // 태그 경로(Symbolic Segment) 생성
 
-    psramVector<uint8_t> message;
+    muffin::psram::vector<uint8_t> message;
     message.push_back(0x4D);                                            // Service Code: Write Tag (0x4D)
     message.push_back(static_cast<uint8_t>(path.size() / 2));           // Path size in WORDs (1WORD = 2bytes)
     message.insert(message.end(), path.begin(), path.end());            // 경로 데이터 삽입
@@ -345,7 +345,7 @@ bool writeTag( EIPSession& session, const std::string& tagName, cip_data_t datum
     // Serial.println();
 
     // PLC 데이터 전송
-    psramVector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         Serial.println("[writeTag] Failed to send encapsulated request");
         return false;
@@ -387,14 +387,14 @@ bool writeTag( EIPSession& session, const std::string& tagName, cip_data_t datum
     return true;
 }
 
-bool writeTagExt(EIPSession& session, const std::string& tagName, const psramVector<uint8_t>& data, uint16_t dataType, uint16_t elementCount, cip_data_t& outResult)
+bool writeTagExt(EIPSession& session, const std::string& tagName, const muffin::psram::vector<uint8_t>& data, uint16_t dataType, uint16_t elementCount, cip_data_t& outResult)
 {
     constexpr size_t CIP_OFFSET = 40;   // Encapsulation Header + RR Data
     outResult.Code = 0xFF;              // Unknown error로 초기화
 
-    psramVector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
+    muffin::psram::vector<uint8_t> path = encodeTagPathWithMultiIndex(tagName);
 
-    psramVector<uint8_t> message;
+    muffin::psram::vector<uint8_t> message;
     message.push_back(0x4D); // Write Tag Service
     message.push_back(static_cast<uint8_t>(path.size() / 2)); // Path Size in words
     message.insert(message.end(), path.begin(), path.end());
@@ -430,7 +430,7 @@ bool writeTagExt(EIPSession& session, const std::string& tagName, const psramVec
     // Serial.printf("[writeTagExt] Sending Write Tag request: %s (Elements=%u, DataSize=%zu)\n",
     //               tagName.c_str(), elementCount, data.size());
 
-    psramVector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, message, response)) {
         Serial.println("[writeTagExt] Failed to send encapsulation request");
         return false;

@@ -9,11 +9,11 @@
 #include <IPAddress.h>
 #include <Network/Ethernet/W5500/EthernetClient.h>
 #include "cip_types.h"
-#include "Common/Allocator/psramAllocator.h"
+#include "Common/PSRAM.hpp"
 #include "eip_types.h"
 
 // 디버깅용 HEX 출력
-void printHex(const psramVector<uint8_t>& data);
+void printHex(const muffin::psram::vector<uint8_t>& data);
 
 // CIP 데이터 값을 DataType에 따라 출력
 void printCipData(const cip_data_t& d);
@@ -28,13 +28,13 @@ int cipDataTypeSize(CipDataType type);
 int cipDataTypeSizeFromRaw(uint16_t rawType);
 
 //  dataType 디코딩
-bool decodeCipValue( CipDataType dataType, size_t dataStart, const psramVector<uint8_t>& response, cip_value_u& outValue, psramVector<uint8_t>& outputRawData );
+bool decodeCipValue( CipDataType dataType, size_t dataStart, const muffin::psram::vector<uint8_t>& response, cip_value_u& outValue, muffin::psram::vector<uint8_t>& outputRawData );
 
 // 세션 연결 상태 확인
 bool checkConnection(muffin::w5500::EthernetClient& client);
 
 // 캡슐화 전송 함수 (SendRRData)
-bool sendEncapsulationPacket(EIPSession& session, const psramVector<uint8_t>& serviceData, psramVector<uint8_t>& response);
+bool sendEncapsulationPacket(EIPSession& session, const muffin::psram::vector<uint8_t>& serviceData, muffin::psram::vector<uint8_t>& response);
 
 #endif
 

@@ -84,7 +84,7 @@ namespace muffin { namespace ethernetIP {
         mVectorNodeReference.clear();
     }
 
-    std::pair<Status, psramVector<im::Node*>> NodeTable::RetrieveEntireNode() const
+    std::pair<Status, psram::vector<im::Node*>> NodeTable::RetrieveEntireNode() const
     {
         return std::make_pair(Status(Status::Code::GOOD), mVectorNodeReference); 
     }

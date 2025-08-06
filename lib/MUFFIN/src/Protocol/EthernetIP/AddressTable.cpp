@@ -96,7 +96,7 @@ namespace muffin { namespace ethernetIP {
         return Status(Status::Code::BAD);
     }
 
-    psramVector<std::string> AddressTable::RetrieveTagsByBatch(size_t batchIndex) const 
+    psram::vector<std::string> AddressTable::RetrieveTagsByBatch(size_t batchIndex) const 
     {
         try 
         {

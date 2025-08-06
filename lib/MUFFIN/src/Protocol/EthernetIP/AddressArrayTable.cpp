@@ -70,7 +70,7 @@ namespace muffin { namespace ethernetIP {
         return Status(Status::Code::GOOD_NO_DATA);
     }
 
-    psramVector<tag_array_entry_t> AddressArrayTable::RetrieveTable() const
+    psram::vector<tag_array_entry_t> AddressArrayTable::RetrieveTable() const
     {
         return mArrayTable;
     }

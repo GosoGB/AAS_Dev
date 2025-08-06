@@ -23,7 +23,7 @@
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
-#include "Common/Allocator/psramAllocator.h"
+#include "Common/PSRAM.hpp"
 #include "Core/Core.h"
 #include "PubTask.h"
 #include "Protocol/MQTT/CDO.h"
@@ -139,8 +139,8 @@ namespace muffin {
             }
 
         #if defined(MT11)
-            psramVector<json_datum_t> nodeVector;
-            psramVector<json_datum_t> nodeArrayVector;
+            psram::vector<json_datum_t> nodeVector;
+            psram::vector<json_datum_t> nodeArrayVector;
         #else
             std::vector<json_datum_t> nodeVector;
             std::vector<json_datum_t> nodeArrayVector;
