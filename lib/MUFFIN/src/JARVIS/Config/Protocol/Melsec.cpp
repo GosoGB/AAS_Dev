@@ -44,6 +44,7 @@ namespace muffin { namespace jvs { namespace config {
             mNodes             = obj.mNodes;
             mDataFormat        = obj.mDataFormat;
             mEthernetInterface = obj.mEthernetInterface;
+            mScanRate          = obj.mScanRate;
         }
 
         return *this;
@@ -57,7 +58,8 @@ namespace muffin { namespace jvs { namespace config {
             mNodes             == obj.mNodes      &&
             mPort              == obj.mPort       &&
             mDataFormat        == obj.mDataFormat &&
-            mEthernetInterface == obj.mEthernetInterface
+            mEthernetInterface == obj.mEthernetInterface &&
+            mScanRate          == obj.mScanRate
         );
     }
 
@@ -114,12 +116,18 @@ namespace muffin { namespace jvs { namespace config {
     void Melsec::SetEthernetInterface(const if_e eth)
     {
         mEthernetInterface = eth;
-        mIsEthernetInterface = true;
+        mIsEthernetInterfaceSet = true;
+    }
+
+    void Melsec::SetScanRate(const uint16_t sr)
+    {
+        mScanRate = sr;
+        mIsScanRateSet = true;
     }
 
     std::pair<Status, if_e> Melsec::GetEthernetInterface() const
     {
-        if (mIsEthernetInterface)
+        if (mIsEthernetInterfaceSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mEthernetInterface);
         }
@@ -186,6 +194,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mNodes);
+        }
+    }
+
+    std::pair<Status, uint16_t> Melsec::GetScanRate() const
+    {
+        if (mIsScanRateSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mScanRate);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mScanRate);
         }
     }
 }}}

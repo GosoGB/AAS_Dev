@@ -153,5 +153,20 @@ namespace muffin { namespace im {
         return EventNodeVector;
     }
 
+    size_t NodeStore::GetArrayNodeCount()
+    {
+        size_t ArrayNodeCount = 0;
+
+        for (auto& node : mMapNode)
+        {
+            if (node.second->IsArrayNode() == true)
+            {
+                ArrayNodeCount++;
+            }
+        }
+
+        return ArrayNodeCount;
+    }
+
     NodeStore* NodeStore::mInstance = nullptr;
 }}

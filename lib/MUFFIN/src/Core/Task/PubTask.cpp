@@ -36,8 +36,8 @@ namespace muffin {
 
     TaskHandle_t xTaskMonitorHandle = NULL;
 
-    bitset<static_cast<uint8_t>(3)> g_DaqTaskEnableFlag;
-    bitset<static_cast<uint8_t>(3)> g_DaqTaskSetFlag;
+    bitset<static_cast<uint8_t>(4)> g_DaqTaskEnableFlag;
+    bitset<static_cast<uint8_t>(4)> g_DaqTaskSetFlag;
 
     bool WaitForFlagWithTimeout(set_task_flag_e task)
     {
@@ -87,11 +87,7 @@ namespace muffin {
 
             bool isSuccessPolling = true;
             uint64_t sourceTimestamp = GetTimestampInMillis();
-        #if defined(DEBUG)
             if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
-        #else
-            if ((millis() - statusReportMillis) > (3550 * SECOND_IN_MILLIS))
-        #endif
             {
                 statusReportMillis = millis();
                 size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
@@ -111,6 +107,11 @@ namespace muffin {
             }
 
             if (WaitForFlagWithTimeout(set_task_flag_e::MELSEC_TASK) == false)
+            {
+                isSuccessPolling = false;
+            }
+
+            if (WaitForFlagWithTimeout(set_task_flag_e::ETHERNET_IP_TASK) == false)
             {
                 isSuccessPolling = false;
             }
@@ -136,8 +137,10 @@ namespace muffin {
             }
             
             std::vector<json_datum_t> nodeVector;
+            std::vector<json_datum_t> nodeArrayVector;
             nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
-            
+            nodeArrayVector.reserve(nodeStore.GetArrayNodeCount());
+
             if (isSuccessPolling)
             {
                 for (auto& node : eventNodeVector)
@@ -146,7 +149,8 @@ namespace muffin {
                         node->GetTopic() == mqtt::topic_e::ALARM    || 
                         node->GetTopic() == mqtt::topic_e::ERROR
                     )
-                    {   
+                    {
+                           
                         continue;
                     }
                     
@@ -169,7 +173,15 @@ namespace muffin {
                     }
                     else
                     {
-                        nodeVector.emplace_back(ret.second);
+                        if (node->IsArrayNode() == true)
+                        {
+                            nodeArrayVector.emplace_back(ret.second);
+                        }
+                        else
+                        {
+                            nodeVector.emplace_back(ret.second);
+                        }
+                        
                     }
                 }
             }  
@@ -187,26 +199,73 @@ namespace muffin {
                     {
                         ret.second.Value = "MFM_NULL";
                     }
-                    nodeVector.emplace_back(ret.second);
+
+                    if (node->IsArrayNode() == true)
+                    {
+                        nodeArrayVector.emplace_back(ret.second);
+                    }
+                    else
+                    {
+                        nodeVector.emplace_back(ret.second);
+                    }
                 }
             }
 
-            if (nodeVector.empty())
+            if (!nodeVector.empty())
             {
-                continue;
+                JSON json;
+                const size_t TESTSIZE = 150;
+                LOG_DEBUG(logger,"nodeVector.size() : %u",nodeVector.size());
+                for (size_t i = 0; i < nodeVector.size(); i += TESTSIZE) 
+                {
+                    memset(batchPayload, 0, batchSize);
+                    size_t end = std::min(i + TESTSIZE, nodeVector.size());
+                    std::vector<json_datum_t> batch(nodeVector.begin() + i, nodeVector.begin() + end);
+                    json.Serialize(batch, batchSize, sourceTimestamp, batchPayload);
+                    mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
+                    mqtt::cdo.Store(message);
+                }
             }
+            
 
-            JSON json;
-            const size_t TESTSIZE = 150;
-            LOG_DEBUG(logger,"nodeVector.size() : %u",nodeVector.size());
-            for (size_t i = 0; i < nodeVector.size(); i += TESTSIZE) 
+            if (!nodeArrayVector.empty())
             {
-                memset(batchPayload, 0, batchSize);
-                size_t end = std::min(i + TESTSIZE, nodeVector.size());
-                std::vector<json_datum_t> batch(nodeVector.begin() + i, nodeVector.begin() + end);
-                json.Serialize(batch, batchSize, sourceTimestamp, batchPayload);
-                mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
-                mqtt::cdo.Store(message);
+                JSON json;
+                const size_t MAX_ARRAY_TOTAL = 150;
+                LOG_DEBUG(logger, "nodeArrayVector.size() : %u", nodeArrayVector.size());
+
+                std::vector<json_datum_t> currentBatch;
+                size_t currentArraySum = 0;
+
+                for (const auto& node : nodeArrayVector)
+                {
+                    size_t arraySize = node.ArrayValue.size();
+
+                    if (currentArraySum + arraySize > MAX_ARRAY_TOTAL)
+                    {
+                        // 배치 전송
+                        memset(batchPayload, 0, batchSize);
+                        json.Serialize(currentBatch, batchSize, sourceTimestamp, batchPayload);
+                        mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
+                        mqtt::cdo.Store(message);
+
+                        // 다음 배치를 위한 초기화
+                        currentBatch.clear();
+                        currentArraySum = 0;
+                    }
+
+                    currentBatch.emplace_back(node);
+                    currentArraySum += arraySize;
+                }
+
+                // 남은 마지막 배치 처리
+                if (!currentBatch.empty())
+                {
+                    memset(batchPayload, 0, batchSize);
+                    json.Serialize(currentBatch, batchSize, sourceTimestamp, batchPayload);
+                    mqtt::Message message(mqtt::topic_e::DAQ_INPUT, batchPayload);
+                    mqtt::cdo.Store(message);
+                }           
             }
         }
     }

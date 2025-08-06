@@ -405,12 +405,12 @@ namespace muffin { namespace w5500 {
             GetStatus();
             if (mSRB.Status == ssr_e::CLOSED)
             {
-                LOG_DEBUG(logger, "[#%u] The socket has been disconnected", static_cast<uint8_t>(mID));
+                // LOG_DEBUG(logger, "[#%u] The socket has been disconnected", static_cast<uint8_t>(mID));
                 break;
             }
             else
             {
-                LOG_DEBUG(logger, "[#%u] SOCKET NOT DISCONNECT: %s", static_cast<uint8_t>(mID), Converter::ToString(mSRB.Status));
+                // LOG_DEBUG(logger, "[#%u] SOCKET NOT DISCONNECT: %s", static_cast<uint8_t>(mID), Converter::ToString(mSRB.Status));
                 vTaskDelay(100 / portTICK_PERIOD_MS);
             }
         }

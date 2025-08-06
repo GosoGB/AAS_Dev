@@ -37,6 +37,11 @@ namespace muffin { namespace im {
         return mCIN->GetTopic().second;
     }
 
+    bool Node::IsArrayNode() const
+    {
+        return (mCIN->GetArrayIndex().second.size() != 0);
+    }
+
     bool Node::HasAttributeEvent() const
     {
         return mCIN->GetAttributeEvent().second;

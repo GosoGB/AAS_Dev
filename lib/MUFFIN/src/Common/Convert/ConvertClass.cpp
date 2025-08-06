@@ -341,6 +341,10 @@ namespace muffin {
             {
                 return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::MELSEC);
             }
+            else if (input == "eip")
+            {
+                return std::make_pair(Status(Status::Code::GOOD), cfg_key_e::ETHERNET_IP);
+            }
             else
             {
                 LOG_ERROR(logger, "INVALID JARVIS CONFIG INSTANCE KEY: %s", input.c_str());
@@ -373,6 +377,10 @@ namespace muffin {
         else if (input == "v4")
         {
             return std::make_pair(Status(Status::Code::GOOD), prtcl_ver_e::VERSEOIN_4);
+        }
+        else if (input == "v5")
+        {
+            return std::make_pair(Status(Status::Code::GOOD), prtcl_ver_e::VERSEOIN_5);
         }
         else
         {

@@ -44,6 +44,7 @@ namespace muffin { namespace jvs { namespace config {
             mPort               = obj.mPort;
             mSlaveID            = obj.mSlaveID;
             mEthernetInterface  = obj.mEthernetInterface;
+            mScanRate           = obj.mScanRate;
         }
 
         return *this;
@@ -57,7 +58,8 @@ namespace muffin { namespace jvs { namespace config {
             mNodes              == obj.mNodes    &&
             mPort               == obj.mPort     &&
             mSlaveID            == obj.mSlaveID  &&
-            mEthernetInterface  == obj.mEthernetInterface
+            mEthernetInterface  == obj.mEthernetInterface &&
+            mScanRate           == obj.mScanRate
         );
     }
 
@@ -113,9 +115,15 @@ namespace muffin { namespace jvs { namespace config {
         mIsNodesSet = true;
     }
 
+    void ModbusTCP::SetScanRate(const uint16_t sr)
+    {
+        mScanRate = sr;
+        mIsScanRateSet = true;
+    }
+
     std::pair<Status, if_e> ModbusTCP::GetEthernetInterface() const
     {
-        if (mIsEthernetInterface)
+        if (mIsEthernetInterfaceSet)
         {
             return std::make_pair(Status(Status::Code::GOOD), mEthernetInterface);
         }
@@ -128,7 +136,7 @@ namespace muffin { namespace jvs { namespace config {
     void ModbusTCP::SetEthernetInterface(const if_e eth)
     {
         mEthernetInterface = eth;
-        mIsEthernetInterface = true;
+        mIsEthernetInterfaceSet = true;
     }
 
     std::pair<Status, nic_e> ModbusTCP::GetNIC() const
@@ -188,6 +196,18 @@ namespace muffin { namespace jvs { namespace config {
         else
         {
             return std::make_pair(Status(Status::Code::BAD), mNodes);
+        }
+    }
+
+    std::pair<Status, uint16_t> ModbusTCP::GetScanRate() const
+    {
+        if (mIsScanRateSet)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mScanRate);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mScanRate);
         }
     }
 }}}

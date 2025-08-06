@@ -48,6 +48,7 @@
 #include "Protocol/Melsec/MelsecClient.h"
 #include "Protocol/Modbus/Include/ArduinoModbus/src/ModbusRTUClient.h"
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
+#include "JARVIS/Config/Protocol/EthernetIP.h"
 #include "JARVIS/Config/Operation/Operation.h"
 #include "IM/Node/Include/TypeDefinitions.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
@@ -80,6 +81,7 @@ namespace muffin {
     std::vector<muffin::jvs::config::ModbusRTU> mConfigVectorMbRTU;
     std::vector<muffin::jvs::config::ModbusTCP> mConfigVectorMbTCP;
     std::vector<muffin::jvs::config::Melsec> mConfigVectorMelsec;
+    std::vector<muffin::jvs::config::EthernetIP> mConfigVectorEthernetIP;
     
     uint32_t s_PollingIntervalInMillis = 1000;
     uint16_t s_PublishIntervalInSeconds = 60;
@@ -682,7 +684,7 @@ namespace muffin {
         }
 
         JsonDocument doc;
-        doc["ver"] = "v4";
+        doc["ver"] = "v5";
 
         JsonObject cnt = doc["cnt"].to<JsonObject>();
         cnt["rs232"].to<JsonArray>();
@@ -696,6 +698,7 @@ namespace muffin {
         cnt["optime"].to<JsonArray>();
         cnt["prod"].to<JsonArray>();
         cnt["mc"].to<JsonArray>();
+        cnt["eip"].to<JsonArray>();
 
         JsonArray catm1 = cnt["catm1"].to<JsonArray>();
         JsonObject _catm1 = catm1.add<JsonObject>();
@@ -742,7 +745,7 @@ namespace muffin {
         }
 
         JsonDocument doc;
-        doc["ver"] = "v4";
+        doc["ver"] = "v5";
         JsonObject mqtt = doc["mqtt"].to<JsonObject>();
 
         mqtt["host"] = "mmm.broker.edgecross.ai";

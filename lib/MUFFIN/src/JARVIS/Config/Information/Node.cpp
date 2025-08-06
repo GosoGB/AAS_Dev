@@ -48,6 +48,8 @@ namespace muffin { namespace jvs { namespace config {
             mFormatString           = obj.mFormatString;
             mTopic                  = obj.mTopic;
             mHasAttributeEvent      = obj.mHasAttributeEvent;
+            mArrayIndex             = obj.mArrayIndex;
+            mArraySampleInterval    = obj.mArraySampleInterval;
         }
         
         return *this;
@@ -68,7 +70,9 @@ namespace muffin { namespace jvs { namespace config {
             mVectorDataTypes        == obj.mVectorDataTypes         &&
             mFormatString           == obj.mFormatString            &&
             mTopic                  == obj.mTopic                   &&
-            mHasAttributeEvent      == obj.mHasAttributeEvent
+            mHasAttributeEvent      == obj.mHasAttributeEvent       &&
+            mArrayIndex             == obj.mArrayIndex              &&
+            mArraySampleInterval    == obj.mArraySampleInterval
         );
     }
 
@@ -499,6 +503,24 @@ namespace muffin { namespace jvs { namespace config {
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::TOPIC));
     }
 
+    void Node::SetArrayIndex(const std::vector<std::array<uint16_t, 2>> arrayindex)
+    {
+        mArrayIndex = arrayindex;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ARRAY_INDEX));
+    }
+
+    void Node::SetArraySamepleInterval(const uint16_t arraySampleInterval)
+    {
+        mArraySampleInterval = arraySampleInterval;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::ARRAY_SAMPLE_INTERVAL));
+    }
+
+    void Node::SetPrecision(const uint8_t precision)
+    {
+        mPrecision = precision;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::PRECISION));
+    }
+
     void Node::SetAttributeEvent(const bool hasEvent)
     {
         mHasAttributeEvent = hasEvent;
@@ -696,4 +718,41 @@ namespace muffin { namespace jvs { namespace config {
             return std::make_pair(Status(Status::Code::BAD), mTopic);
         }
     }
+
+    std::pair<Status, std::vector<std::array<uint16_t, 2>>> Node::GetArrayIndex() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ARRAY_INDEX)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mArrayIndex);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mArrayIndex);
+        }
+    }
+
+    std::pair<Status, uint16_t> Node::GetArraySamepleInterval() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::ARRAY_SAMPLE_INTERVAL)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mArraySampleInterval);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mArraySampleInterval);
+        }
+    }
+
+    std::pair<Status, uint8_t> Node::GetPrecision() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::PRECISION)) == true)
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mPrecision);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mPrecision);
+        }
+    }
+
 }}}

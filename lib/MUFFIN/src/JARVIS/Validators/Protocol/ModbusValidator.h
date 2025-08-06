@@ -48,6 +48,7 @@ namespace muffin { namespace jvs {
     private:
         rsc_e emplaceCIN(config::Base* cin, cin_vector* outVector);
     private:
+        std::pair<rsc_e, uint16_t> convertToScanRate(JsonVariant scanRate);
         std::pair<rsc_e, IPAddress> convertToIPv4(const std::string ip);
         std::pair<rsc_e, nic_e> convertToIface(const std::string iface);
         std::pair<rsc_e, std::vector<std::string>> convertToNodes(const JsonArray nodes);

@@ -27,10 +27,11 @@ namespace muffin {
         MODBUS_RTU_TASK   = 0,
         MODBUS_TCP_TASK   = 1,
         MELSEC_TASK       = 2,
+        ETHERNET_IP_TASK  = 3
     } set_task_flag_e;
     
-    extern bitset<static_cast<uint8_t>(3)> g_DaqTaskEnableFlag;
-    extern bitset<static_cast<uint8_t>(3)> g_DaqTaskSetFlag;
+    extern bitset<static_cast<uint8_t>(4)> g_DaqTaskEnableFlag;
+    extern bitset<static_cast<uint8_t>(4)> g_DaqTaskSetFlag;
 
     void StartTaskMSG();
     void StopMSGTask();

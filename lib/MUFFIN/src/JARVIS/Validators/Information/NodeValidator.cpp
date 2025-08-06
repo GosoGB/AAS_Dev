@@ -34,6 +34,8 @@ namespace muffin { namespace jvs {
         , mDataTypes(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>())
         , mFormatString(rsc_e::UNCERTAIN, std::string())
         , mTopic(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT)
+        , mArraySampleInterval(rsc_e::UNCERTAIN, 0)
+        , mPrecision(rsc_e::UNCERTAIN,0)
     {
         memset(mNodeID, '\0', sizeof(mNodeID));
     }
@@ -78,7 +80,7 @@ namespace muffin { namespace jvs {
             if (mAddress.first != rsc_e::GOOD)
             {
                 char message[64] = {'\0'};
-                snprintf(message, 64, "INVALID NODE ADDRESS: %s, NODE ID: %s", json["adtp"].as<const char*>(),
+                snprintf(message, 64, "INVALID NODE ADDRESS: %s, NODE ID: %s", json["addr"].as<const char*>(),
                                                                                mNodeID);
                 return std::make_pair(mAddress.first, message);
             }
@@ -128,6 +130,49 @@ namespace muffin { namespace jvs {
                     mTopic.first = rsc_e::BAD;
                 }
             
+            }
+
+            if (json.containsKey("arr"))
+            {
+                convertToArrayIndex(json["arr"].as<JsonArray>());
+                if (mArrayIndex.first != rsc_e::GOOD && 
+                mArrayIndex.first != rsc_e::GOOD_NO_DATA)
+                {
+                    char message[64] = {'\0'};
+                    snprintf(message, 64, "INVALID NODE ARRAY INDEX, NODE ID: %s", mNodeID);
+                    return std::make_pair(mTopic.first, message);
+                }
+                
+                if (mArrayIndex.first != rsc_e::GOOD_NO_DATA)
+                {
+                    if (json.containsKey("asi"))
+                    {
+                        convertToArraySampleInterval(json["asi"].as<JsonVariant>());
+                        if (mArraySampleInterval.first != rsc_e::GOOD && 
+                        mArraySampleInterval.first != rsc_e::GOOD_NO_DATA)
+                        {
+                            char message[64] = {'\0'};
+                            snprintf(message, 64, "INVALID ARRAY SAMPLE INTERVAL, NODE ID: %s", mNodeID);
+                            return std::make_pair(mArraySampleInterval.first, message);
+                        }
+                    }
+                    else
+                    {
+                        mArraySampleInterval.first = rsc_e::GOOD_NO_DATA;
+                    }   
+                }
+            }
+            
+            if (json.containsKey("prec"))
+            {
+                convertToPrecision(json["prec"].as<JsonVariant>());
+                if (mPrecision.first != rsc_e::GOOD && mPrecision.first != rsc_e::GOOD_NO_DATA)
+                {
+                    char message[64] = {'\0'};
+                    snprintf(message, 64, "INVALID FLOAT PRECISION, NODE ID: %s", mNodeID);
+                    return std::make_pair(mPrecision.first, message);
+                }
+                
             }
             
 
@@ -300,6 +345,21 @@ namespace muffin { namespace jvs {
                 node->SetFormatString(mFormatString.second);
             }
 
+            if (mArrayIndex.first == rsc_e::GOOD)
+            {
+                node->SetArrayIndex(mArrayIndex.second);
+            }
+
+            if (mArraySampleInterval.first == rsc_e::GOOD)
+            {
+                node->SetArraySamepleInterval(mArraySampleInterval.second);   
+            }
+
+            if (mPrecision.first == rsc_e::GOOD)
+            {
+                node->SetPrecision(mPrecision.second);
+            }
+
             try
             {
                 outVector->emplace_back(std::move(node));
@@ -332,7 +392,10 @@ namespace muffin { namespace jvs {
             mDataUnitOrders   = std::make_pair(rsc_e::UNCERTAIN, std::vector<DataUnitOrder>());
             mDataTypes        = std::make_pair(rsc_e::UNCERTAIN, std::vector<muffin::jvs::dt_e>());
             mFormatString     = std::make_pair(rsc_e::UNCERTAIN, std::string());
-            mIsEventType = false;
+            mIsEventType      = false;
+            mTopic            = std::make_pair(rsc_e::UNCERTAIN, mqtt::topic_e::DAQ_INPUT);
+            mArrayIndex.second.clear();
+            mArrayIndex.second.shrink_to_fit();
             mVectorFormatSpecifier.clear();
         }
 
@@ -363,6 +426,11 @@ namespace muffin { namespace jvs {
         if (mProtocolVersion > prtcl_ver_e::VERSEOIN_3)
         {
             isValid &= json.containsKey("topic");
+        }
+
+        if (mProtocolVersion > prtcl_ver_e::VERSEOIN_4)
+        {
+            isValid &= json.containsKey("arr");
         }
 
         if (isValid == true)
@@ -654,6 +722,7 @@ namespace muffin { namespace jvs {
             if (mAddressQuantity.first == rsc_e::GOOD)
             {
                 char message[128] = {'\0'};
+                LOG_ERROR(logger,"NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF ADDRESS TYPE IS NOT NUMERIC, NODE ID: %s", mNodeID);
                 snprintf(message, 128, "NUMERIC ADDRESS QUANTITY CANNOT BE CONFIGURED IF ADDRESS TYPE IS NOT NUMERIC, NODE ID: %s", mNodeID);
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, message);
             }
@@ -915,7 +984,7 @@ namespace muffin { namespace jvs {
      */
     std::pair<rsc_e, std::string> NodeValidator::validateDataTypes()
     {
-        if (mDataTypes.second.size() == 1 && mDataTypes.second.at(0) == dt_e::STRING)
+        if (mDataTypes.second.size() == 1 && (mDataTypes.second.at(0) == dt_e::STRING || mDataTypes.second.at(0) == dt_e::ARRAY))
         {
             return std::make_pair(rsc_e::GOOD, "GOOD");
         }
@@ -1389,6 +1458,9 @@ namespace muffin { namespace jvs {
             mAddressType.second  = adtp_e::NUMERIC;
             return;
         case 1:
+            mAddressType.first   = rsc_e::GOOD;
+            mAddressType.second  = adtp_e::STRING;
+            return;
         case 2:
         case 3:
             mAddressType.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
@@ -1406,6 +1478,7 @@ namespace muffin { namespace jvs {
         switch (mAddressType.second)
         {
         case adtp_e::NUMERIC:
+        {
             if (address.is<uint32_t>() == false)
             {
                 mAddress.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
@@ -1417,7 +1490,22 @@ namespace muffin { namespace jvs {
                 mAddress.second.Numeric = address.as<uint32_t>();
                 return;
             }
+        }
         case adtp_e::STRING:
+        {
+            if (address.is<const char*>() == false)
+            {
+                mAddress.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+                return;
+            }
+            else
+            {
+                mAddress.first = rsc_e::GOOD;
+                strncpy(mAddress.second.String, address.as<const char*>(), sizeof(mAddress.second.String));
+                mAddress.second.String[sizeof(mAddress.second.String) - 1] = '\0';
+                return;
+            }
+        }
         case adtp_e::BYTE_STRING:
         case adtp_e::GUID:
             mAddress.first = rsc_e::BAD_UNSUPPORTED_CONFIGURATION;
@@ -1600,6 +1688,97 @@ namespace muffin { namespace jvs {
         }
 
         mNodeArea.first = rsc_e::GOOD;
+    }
+
+    void NodeValidator::convertToPrecision(JsonVariant precision)
+    {
+        if (precision.isNull() == true)
+        {
+            mPrecision.first = rsc_e::GOOD_NO_DATA;
+            return;
+        }
+
+        if (precision.is<uint8_t>() == false)
+        {
+            mPrecision.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
+        }
+
+        mPrecision.first = rsc_e::GOOD;
+        mPrecision.second = precision.as<uint8_t>();
+        
+    }
+
+    void NodeValidator::convertToArraySampleInterval(JsonVariant arraySamepleInterval)
+    {
+        if (arraySamepleInterval.isNull() == true)
+        {
+            mArraySampleInterval.first = rsc_e::GOOD_NO_DATA;
+            return;
+        }
+
+        if (arraySamepleInterval.is<uint16_t>() == false)
+        {
+            mArraySampleInterval.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
+        }
+
+        mArraySampleInterval.first = rsc_e::GOOD;
+        mArraySampleInterval.second = arraySamepleInterval.as<uint16_t>();
+
+    }
+
+    void NodeValidator::convertToArrayIndex(JsonArray arrayIndex)
+    {
+        if (arrayIndex.isNull() == true)
+        {
+            mArrayIndex.first = rsc_e::GOOD_NO_DATA;
+            mArrayIndex.second.clear();
+            mArrayIndex.second.shrink_to_fit();
+            return;
+        }
+
+        if (arrayIndex.size() > 3)
+        {
+            LOG_ERROR(logger, "TOTAL ARRAY INDEX SIZE MUST BE 3 OR LESS");
+            mArrayIndex.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+            return;
+        }
+        
+        mArrayIndex.second.clear();
+        mArrayIndex.second.shrink_to_fit();
+
+        const size_t length = arrayIndex.size();
+        mArrayIndex.second.reserve(length);
+
+        for (const auto idx : arrayIndex)
+        {
+            JsonArray jsonArrayIdx = idx.as<JsonArray>();
+
+            if (jsonArrayIdx.size() != 2)
+            {
+                LOG_ERROR(logger,"ARRAY INDEX SIZE MUST BE 2");
+                mArrayIndex.first = rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE;
+                return;
+            }
+            
+            try
+            {
+                mArrayIndex.second.emplace_back(std::array<uint16_t, 2>{ static_cast<uint16_t>(jsonArrayIdx[0]), static_cast<uint16_t>(jsonArrayIdx[1])});
+            }
+            catch(const std::exception& e)
+            {
+                mArrayIndex.second.clear();
+                mArrayIndex.second.shrink_to_fit();
+                LOG_ERROR(logger, "FAILED TO EMPLACE ARRAY INDEX: %s", e.what());
+                mArrayIndex.first = rsc_e::BAD_UNEXPECTED_ERROR;
+                return;
+            }
+
+        }
+
+        mArrayIndex.first = rsc_e::GOOD;
+        return;
     }
 
     /**
@@ -1837,6 +2016,8 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc_e::GOOD, dt_e::FLOAT64);
         case 11:
             return std::make_pair(rsc_e::GOOD, dt_e::STRING);
+        case 99:
+            return std::make_pair(rsc_e::GOOD, dt_e::ARRAY);
         default:
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, dt_e::BOOLEAN);
         }
