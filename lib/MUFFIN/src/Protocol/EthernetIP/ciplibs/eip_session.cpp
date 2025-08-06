@@ -1,6 +1,7 @@
 #if defined(MT11)
 #include "eip_session.h"
 #include "cip_util.h"
+#include "Common/PSRAM.hpp"
 
 // EtherNet/IP Adaptation of CIP, Chapter 2: Encapsulation Protocol 문서 참조
 // Encapsulation command codes
@@ -29,7 +30,7 @@ bool eipInit(EIPSession& session, IPAddress ip, uint16_t port) {
 }
 
 bool registerSession(EIPSession& session) {
-    std::vector<uint8_t> packet = {
+    muffin::psram::vector<uint8_t> packet = {
         // Encapsulation Header (24 bytes)
         0x65, 0x00,             // Command: RegisterSession
         0x04, 0x00,             // Length: 4
@@ -85,7 +86,7 @@ bool registerSession(EIPSession& session) {
     uint16_t payloadLen = (header[3] << 8) | header[2];
 
     // 3. payload 읽기
-    std::vector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     response.insert(response.end(), header, header + EIP_HEADER_SIZE);
 
     totalRead = 0;
@@ -129,7 +130,7 @@ bool registerSession(EIPSession& session) {
 bool unregisterSession(EIPSession& session) {
     if (!session.connected || session.sessionHandle == 0) return false;
 
-    std::vector<uint8_t> packet = {
+    muffin::psram::vector<uint8_t> packet = {
         0x66, 0x00,     // Command: UnregisterSession (0x0066 little-endian)
         0x00, 0x00,     // Length = 0
 

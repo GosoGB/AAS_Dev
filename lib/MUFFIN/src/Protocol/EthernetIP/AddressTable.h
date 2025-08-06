@@ -19,6 +19,7 @@
 #include <string>
 
 #include "Common/Status.h"
+#include "Common/PSRAM.hpp"
 #include "JARVIS/Include/TypeDefinitions.h"
 
 
@@ -27,7 +28,7 @@ namespace muffin { namespace ethernetIP {
 
     typedef struct TagBatch 
     {
-        std::vector<std::string> tags;
+        psram::vector<std::string> tags;
         size_t totalSize = 0;   
     } tag_batch_struct_t ;
 
@@ -42,7 +43,7 @@ namespace muffin { namespace ethernetIP {
         Status Update(const std::string& tag);
         Status Remove(const std::string& tag);
         void Clear();
-        std::vector<std::string> RetrieveTagsByBatch(size_t batchIndex) const;
+        psram::vector<std::string> RetrieveTagsByBatch(size_t batchIndex) const;
         size_t GetBatchCount() const;
         void DebugPrint() const;
 
@@ -52,7 +53,7 @@ namespace muffin { namespace ethernetIP {
         Status contains(const std::string& tag) const;
 
     private:
-        std::vector<tag_batch_struct_t> mBatches;
+        psram::vector<tag_batch_struct_t> mBatches;
         size_t maxBatchSize;
     
     };

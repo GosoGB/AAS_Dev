@@ -23,6 +23,7 @@
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
+#include "Common/PSRAM.hpp"
 #include "Core/Core.h"
 #include "PubTask.h"
 #include "Protocol/MQTT/CDO.h"
@@ -73,9 +74,10 @@ namespace muffin {
         memset(batchPayload, 0, batchSize);
         
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        
         std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
-
+    
         static uint32_t currentTimestamp = 0;
         const uint32_t intervalMillis = s_PublishIntervalInSeconds * SECOND_IN_MILLIS;
         uint32_t statusReportMillis = millis(); 
@@ -135,9 +137,15 @@ namespace muffin {
                     g_DaqTaskSetFlag.reset();
                 }
             }
-            
+
+        #if defined(MT11)
+            psram::vector<json_datum_t> nodeVector;
+            psram::vector<json_datum_t> nodeArrayVector;
+        #else
             std::vector<json_datum_t> nodeVector;
             std::vector<json_datum_t> nodeArrayVector;
+        #endif
+            
             nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
             nodeArrayVector.reserve(nodeStore.GetArrayNodeCount());
 

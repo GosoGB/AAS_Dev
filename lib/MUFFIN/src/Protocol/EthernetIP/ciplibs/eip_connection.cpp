@@ -1,9 +1,10 @@
 #if defined(MT11)
 #include "eip_connection.h"
 #include "cip_util.h"
+#include "Common/PSRAM.hpp"
 
 bool forwardOpen(EIPSession& session) {
-    std::vector<uint8_t> service;
+    muffin::psram::vector<uint8_t> service;
 
     // ForwardOpen request 기본 구조 (간소화된 버전)
     service.insert(service.end(), {
@@ -17,7 +18,7 @@ bool forwardOpen(EIPSession& session) {
     //  참조 코드
     // https://github.com/nimbuscontrols/EIPScanner/blob/master/src/cip/connectionManager/ConnectionParameters.h
     // https://github.com/nimbuscontrols/EIPScanner/blob/master/src/cip/connectionManager/ForwardOpenRequest.cpp
-    std::vector<uint8_t> data = {
+    muffin::psram::vector<uint8_t> data = {
         0x00, 0x00, 0x00, 0x00,   // Connection ID (O->T)
         0x01, 0x00,               // Connection Serial Number
         0x34, 0x12,               // Vendor ID
@@ -34,7 +35,7 @@ bool forwardOpen(EIPSession& session) {
 
     service.insert(service.end(), data.begin(), data.end());
 
-    std::vector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, service, response)) {
         Serial.println("[forwardOpen] Failed to send request");
         return false;
@@ -98,7 +99,7 @@ bool forwardOpen(EIPSession& session) {
 }
 
 bool forwardClose(EIPSession& session) {
-    std::vector<uint8_t> service = {
+    muffin::psram::vector<uint8_t> service = {
         0x4E, 0x02,       // Service: Forward Close, Path size
         0x20, 0x06,       // Class: Connection Manager
         0x24, 0x01        // Instance: 1
@@ -107,7 +108,7 @@ bool forwardClose(EIPSession& session) {
     // ForwardClose data (고정값)
     // 참조 코드
     // https://github.com/nimbuscontrols/EIPScanner/blob/master/src/cip/connectionManager/ForwardCloseRequest.cpp
-    std::vector<uint8_t> data = {
+    muffin::psram::vector<uint8_t> data = {
         0x01, 0x00,               // Connection Serial Number
         0x34, 0x12,               // Vendor ID
         0x78, 0x56,               // Originator Serial Number
@@ -116,7 +117,7 @@ bool forwardClose(EIPSession& session) {
 
     service.insert(service.end(), data.begin(), data.end());
 
-    std::vector<uint8_t> response;
+    muffin::psram::vector<uint8_t> response;
     if (!sendEncapsulationPacket(session, service, response)) {
         Serial.println("[forwardClose] Failed to send request");
         return false;
