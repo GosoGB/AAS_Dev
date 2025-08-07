@@ -101,6 +101,19 @@ void setup()
     Property<data_type_def_xsd_e::STRING> property;
     const data_type_def_xsd_e xsd = property.GetValueType();
     log_d("xsd: %d", xsd);
+
+    property.SetValue("value");
+    log_d("xsd value: %s", property.GetValue()->c_str());
+
+    while (1)
+    {
+        psram::string _val = psram::string(std::to_string(millis()).c_str());
+        property.SetValue(_val);
+        log_d("xsd value: %s", property.GetValue()->c_str());
+        ESP_LOGI("PSRAM", "Free PSRAM: %d bytes", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+
+        delay(999);
+    }
 }
 
 

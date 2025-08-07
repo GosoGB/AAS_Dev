@@ -24,7 +24,7 @@
 #include "../../TypeDefinitions.hpp"
 #include "../../Utility/XsdTypeMapper.hpp"
 #include "./DataElement.hpp"
-
+#include <esp32-hal-log.h>
 
 
 namespace muffin { namespace aas {
@@ -40,7 +40,14 @@ namespace muffin { namespace aas {
     public:
         void SetValue(const typename xsd_type_mapper<xsd>::type& value)
         {
-            mValue = value;
+            if (likeyly(mValue))
+            {
+                *mValue = value;
+            }
+            else
+            {
+                mValue = psram::make_unique<typename xsd_type_mapper<xsd>::type>(value);
+            }
         }
 
         void SetValueID(const Reference& valueId)
