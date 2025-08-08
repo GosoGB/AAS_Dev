@@ -95,11 +95,7 @@ namespace muffin { namespace im {
         uint64_t Timestamp;
         jvs::dt_e DataType;
         var_value_u Value;
-    #if defined(MT11)
-        psram::vector<var_value_u> ArrayValue;
-    #else
         std::vector<var_value_u> ArrayValue;
-    #endif
         jvs::dt_e ArrayDataType;
         bool HasValue     : 1;
         bool HasStatus    : 1;

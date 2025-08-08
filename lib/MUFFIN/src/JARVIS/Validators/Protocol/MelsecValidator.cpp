@@ -353,13 +353,13 @@ namespace muffin { namespace jvs {
         }
         else
         {
-            const uint16_t SR = scanRate.as<uint16_t>();
-            if (SR < 80 || SR > 3000)
+            const uint16_t _scanRate = scanRate.as<uint16_t>();
+            if (_scanRate < 80 || _scanRate > 3000)
             {
                 return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 80);
             }
             
-            return std::make_pair(rsc_e::GOOD, SR);
+            return std::make_pair(rsc_e::GOOD, _scanRate);
         }
     }
 }}

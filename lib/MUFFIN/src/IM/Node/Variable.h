@@ -61,8 +61,7 @@ namespace muffin { namespace im {
         string_t ToMuffinString(const std::string& stdString);
         std::string Float32ConvertToString(const float& data) const;
         std::string Float64ConvertToString(const double& data) const;
-        bool ArrayConvertToString(psram::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const;
-
+        bool ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const;
     public:
         std::string FloatConvertToStringForLimitValue(const float& data) const;
         

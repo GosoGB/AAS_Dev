@@ -40,8 +40,16 @@ namespace muffin { namespace im {
         std::map<std::string, Node*>::const_iterator end() const;
 
     public:
+    #if defined(MT11)
+        psram::map<uint16_t, psram::vector<im::Node*>> GetIntervalCustomNode(psram::map<uint16_t, psram::vector<std::string>> nodeIdMap, uint16_t defaultInterval = 60);
+        psram::vector<Node*> GetCyclicalNode();
+        psram::vector<Node*> GetEventNode();
+    #else
+        std::map<uint16_t, std::vector<im::Node*>> GetIntervalCustomNode(std::map<uint16_t, std::vector<std::string>> nodeIdMap, uint16_t defaultInterval = 60);
         std::vector<Node*> GetCyclicalNode();
         std::vector<Node*> GetEventNode();
+    #endif
+        
         size_t GetArrayNodeCount();
     private:
         NodeStore();

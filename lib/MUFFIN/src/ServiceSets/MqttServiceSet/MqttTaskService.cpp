@@ -971,8 +971,6 @@ namespace muffin {
         }
         
 #endif
-#if defined(MT10) || defined(MB10) || defined(MT11)
-
         retConvertModbus = ret.second->VariableNode.StringConvertWordData(remoteData.at(0).second);
         if (retConvertModbus.first != Status::Code::GOOD)
         {
@@ -982,6 +980,9 @@ namespace muffin {
 
            return retConvertModbus.first;
         }
+#if defined(MT10) || defined(MB10) || defined(MT11)
+
+        
 
         if (mConfigVectorMbTCP.size() != 0)
         {

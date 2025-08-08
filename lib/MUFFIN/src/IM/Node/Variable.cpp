@@ -1415,7 +1415,7 @@ namespace muffin { namespace im {
         return std::make_pair(true, daq);
     }
 
-    bool Variable::ArrayConvertToString(psram::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const
+    bool Variable::ArrayConvertToString(std::vector<muffin::im::var_value_u> data, jvs::dt_e dataType, std::vector<std::string>& value) const
     {
         value.reserve(data.size());
         for (const auto& datum : data)

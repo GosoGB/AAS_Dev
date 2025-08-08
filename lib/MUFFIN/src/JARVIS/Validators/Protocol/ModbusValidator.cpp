@@ -501,17 +501,17 @@ namespace muffin { namespace jvs {
     {
         if (scanRate.isNull() == true || scanRate.is<uint16_t>() == false)
         {
-            return std::make_pair(rsc_e::GOOD_NO_DATA, 0);
+            return std::make_pair(rsc_e::GOOD_NO_DATA, 80);
         }
         else
         {
-            const uint16_t SR = scanRate.as<uint16_t>();
-            if ( SR > 3000)
+            const uint16_t _scanRate = scanRate.as<uint16_t>();
+            if (_scanRate < 80 || _scanRate > 3000)
             {
-                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 0);
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, 80);
             }
             
-            return std::make_pair(rsc_e::GOOD, SR);
+            return std::make_pair(rsc_e::GOOD, _scanRate);
         }
     }
 

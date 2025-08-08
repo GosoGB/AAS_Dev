@@ -474,8 +474,8 @@ Status ModbusRTU::PollTemp()
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
 
-            delay(mScanRate);
             ModbusRTUClient.requestFrom(slaveID, COILS, startAddress, pollQuantity);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -521,8 +521,8 @@ Status ModbusRTU::PollTemp()
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            delay(mScanRate);
             ModbusRTUClient.requestFrom(slaveID, DISCRETE_INPUTS, startAddress, pollQuantity);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
@@ -569,14 +569,15 @@ Status ModbusRTU::PollTemp()
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            delay(mScanRate);
             ModbusRTUClient.requestFrom(slaveID, INPUT_REGISTERS, startAddress, pollQuantity);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 
             if (lastError != nullptr)
             {
                 LOG_ERROR(logger, "[INPUT REGISTERS] FAILED TO POLL: %s", lastError);
+                LOG_ERROR(logger, "[INPUT REGISTERS] FAILED TO POLL: %s, startAddress : %u, pollQuantity : %u", lastError, startAddress, pollQuantity);
                 ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
                 for (size_t i = 0; i < pollQuantity; i++)
                 {
@@ -619,8 +620,8 @@ Status ModbusRTU::PollTemp()
         {
             const uint16_t startAddress = addressRange.GetStartAddress();
             const uint16_t pollQuantity = addressRange.GetQuantity();
-            delay(mScanRate);
             ModbusRTUClient.requestFrom(slaveID, HOLDING_REGISTERS, startAddress, pollQuantity);
+            delay(mScanRate);
             const char* lastError = ModbusRTUClient.lastError();
             ModbusRTUClient.clearError();
 

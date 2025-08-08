@@ -15,6 +15,10 @@
 
 #pragma once
 
+
+#include <vector>
+#include <map>
+#include "Common/PSRAM.hpp"
 #include "Common/Status.h"
 #include "Common/DataStructure/bitset.h"
 #include "JARVIS/Include/Base.h"
@@ -39,6 +43,13 @@ namespace muffin { namespace jvs { namespace config {
         void SetServerNIC(const snic_e snic);
         void SetIntervalServer(const uint16_t interval);
         void SetIntervalPolling(const uint16_t interval);
+    #if defined(MT11)
+        void SetIntervalServerCustom(const psram::map<uint16_t, psram::vector<std::string>> intervalMap); 
+        std::pair<Status, psram::map<uint16_t, psram::vector<std::string>>> GetIntervalServerCustom() const;   
+    #else
+        void SetIntervalServerCustom(const std::map<uint16_t, std::vector<std::string>> intervalMap);
+        std::pair<Status, std::map<uint16_t, std::vector<std::string>>> GetIntervalServerCustom() const;   
+    #endif
     public:
         std::pair<Status, bool> GetPlanExpired() const;
         std::pair<Status, bool> GetFactoryReset() const;
@@ -48,12 +59,13 @@ namespace muffin { namespace jvs { namespace config {
     private:
         typedef enum class SetFlagEnum : uint8_t
         {
-            SERVICE_PLAN   = 0,
-            FACTORY_RESET  = 1,
-            SERVICE_NIC    = 2,
-            PUB_INTERVAL   = 3,
-            DAQ_INTERVAL   = 4,
-            TOP            = 5
+            SERVICE_PLAN        = 0,
+            FACTORY_RESET       = 1,
+            SERVICE_NIC         = 2,
+            PUB_INTERVAL        = 3,
+            DAQ_INTERVAL        = 4,
+            PUB_INTERVAL_CUSTOM = 5,
+            TOP                 = 6
         } set_flag_e;
         bitset<static_cast<uint8_t>(set_flag_e::TOP)> mSetFlags;
     private:
@@ -62,6 +74,12 @@ namespace muffin { namespace jvs { namespace config {
         snic_e mServerNIC;
         uint16_t mIntervalServer;
         uint16_t mIntervalPolling;
+    #if defined(MT11)
+        psram::map<uint16_t, psram::vector<std::string>> mIntervalServerCustom;
+    #else
+        std::map<uint16_t, std::vector<std::string>> mIntervalServerCustom;
+    #endif
+        
     };
 
 

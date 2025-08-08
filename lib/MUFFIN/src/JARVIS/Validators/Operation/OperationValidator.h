@@ -16,7 +16,10 @@
 #pragma once
 
 #include <ArduinoJson.h>
+#include <vector>
+#include <map>
 
+#include "Common/PSRAM.hpp"
 #include "Common/Status.h"
 #include "JARVIS/Include/Base.h"
 #include "JARVIS/Include/TypeDefinitions.h"
@@ -37,5 +40,10 @@ namespace muffin { namespace jvs {
         rsc_e validateMandatoryValues(const JsonObject json);
     private:
         std::pair<rsc_e, snic_e> convertToServerNIC(const char* snic);
+    #if defined(MT11)
+        std::pair<rsc_e, psram::map<uint16_t, psram::vector<std::string>>> convertToPublishIntervalCustom(const JsonObject json);
+    #else
+        std::pair<rsc_e, std::map<uint16_t, std::vector<std::string>>> convertToPublishIntervalCustom(const JsonObject json);
+    #endif
     };
 }}

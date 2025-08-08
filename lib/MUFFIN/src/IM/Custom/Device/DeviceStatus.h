@@ -53,7 +53,7 @@ namespace muffin {
          int16_t RSSI;
          int16_t RSRP;
          int16_t SINR;
-         int16_t RSRQ;
+         int16_t RSRQ; 
       } catm1_report_t;
 #endif
 
@@ -81,6 +81,8 @@ namespace muffin {
       void SetReportEthernet(const eth_report_t report);
    #endif
       void SetReportCatM1(const catm1_report_t report);
+      void SetICCID(const std::string iccid);
+      void SetIMEI(const std::string imei);
 #endif
    #if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
       void SetReportWiFi(const wifi_report_t report);
@@ -103,6 +105,8 @@ namespace muffin {
       eth_report_t mEthernetStatusReport;
    #endif
       catm1_report_t mCatM1StatusReport;
+      std::string mICCID;
+      std::string mIMEI;
 #endif
 
    #if defined(MB10) || defined(V_OLA_T10) || defined(V_OLA_H10)
