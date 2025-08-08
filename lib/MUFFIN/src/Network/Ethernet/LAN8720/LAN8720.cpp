@@ -120,7 +120,6 @@ namespace muffin {
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
-
     bool LAN8720::IsConnected()
     {
         if (mFlags.test(static_cast<uint8_t>(flag_e::HAS_IPv4)) == true)

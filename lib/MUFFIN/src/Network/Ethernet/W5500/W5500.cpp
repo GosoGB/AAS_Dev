@@ -179,7 +179,6 @@ namespace muffin {
     {
         return Status(Status::Code::BAD_NOT_IMPLEMENTED);
     }
-
     
     bool W5500::getLinkStatus()
     {
@@ -197,8 +196,32 @@ namespace muffin {
 
     bool W5500::IsConnected()
     {
-        const bool isUp = getLinkStatus();
-        return isUp;
+        uint8_t retrievedIPv4[4] = { 0 };
+        Status ret = retrieveCRB(w5500::crb_addr_e::IPv4, sizeof(retrievedIPv4), retrievedIPv4);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_WARNING(logger, "FAILED TO SET IPv4 ADDRESS: %s", ret.c_str());
+            return false;
+        }
+
+        LOG_DEBUG(logger, "IPv4: %u.%u.%u.%u", retrievedIPv4[0], retrievedIPv4[1], retrievedIPv4[2], retrievedIPv4[3]);
+
+        uint32_t convertRetrievedIPv4 = (static_cast<uint32_t>(retrievedIPv4[0]) << 24) |
+                                        (static_cast<uint32_t>(retrievedIPv4[1]) << 16) |
+                                        (static_cast<uint32_t>(retrievedIPv4[2]) << 8)  |
+                                        (static_cast<uint32_t>(retrievedIPv4[3]));
+
+        bool isValid = true;
+        isValid &= (convertRetrievedIPv4 != IPADDR_ANY);
+        
+        if (isValid != true)
+        {
+            LOG_ERROR(logger,"INVALID IPv4 ADDRESS");
+            return false;
+        }
+
+
+        return true;
     }
 
     IPAddress W5500::GetIPv4() const
