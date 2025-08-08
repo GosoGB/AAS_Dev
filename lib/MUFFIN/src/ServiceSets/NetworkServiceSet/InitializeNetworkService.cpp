@@ -232,18 +232,10 @@ namespace muffin {
             return Status(Status::Code::BAD_OUT_OF_MEMORY);
         }
 
-    #if !defined(MT11)
         if (ethernet->IsConnected() == true)
         {
             return Status(Status::Code::GOOD);
         }
-    #else
-        if (ethernet->IsIPv4Assigned() == true)
-        {
-            LOG_INFO(logger,"Already Initialized Ethernet interface")
-            return Status(Status::Code::GOOD);
-        }
-    #endif
 
         Status ret = ethernet->Init();
         if (ret != Status::Code::GOOD)

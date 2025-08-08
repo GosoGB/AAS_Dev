@@ -40,6 +40,5 @@ namespace muffin {
         virtual Status SyncNTP() = 0;
         virtual std::pair<Status, size_t> TakeMutex() = 0;
         virtual Status ReleaseMutex() = 0;
-        virtual bool IsIPv4Assigned() = 0;
     };
 }
