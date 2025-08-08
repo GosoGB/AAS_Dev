@@ -52,6 +52,7 @@ namespace muffin {
         virtual Status SyncNTP() override;
         virtual std::pair<Status, size_t> TakeMutex() override;
         virtual Status ReleaseMutex() override;
+        virtual bool IsIPv4Assigned() override;
     public:
         IPAddress GetSubnetMask();
         IPAddress GetGateway();

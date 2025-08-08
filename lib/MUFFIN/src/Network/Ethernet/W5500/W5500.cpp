@@ -180,6 +180,38 @@ namespace muffin {
         return Status(Status::Code::BAD_NOT_IMPLEMENTED);
     }
 
+    bool W5500::IsIPv4Assigned()
+    {
+        uint8_t retrievedIPv4[4] = { 0 };
+        Status ret = retrieveCRB(w5500::crb_addr_e::IPv4, sizeof(retrievedIPv4), retrievedIPv4);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_WARNING(logger, "FAILED TO SET IPv4 ADDRESS: %s", ret.c_str());
+            return false;
+        }
+
+        LOG_DEBUG(logger, "IPv4: %u.%u.%u.%u", retrievedIPv4[0], retrievedIPv4[1], retrievedIPv4[2], retrievedIPv4[3]);
+
+        uint32_t convertRetrievedIPv4 = (static_cast<uint32_t>(retrievedIPv4[0]) << 24) |
+                                        (static_cast<uint32_t>(retrievedIPv4[1]) << 16) |
+                                        (static_cast<uint32_t>(retrievedIPv4[2]) << 8)  |
+                                        (static_cast<uint32_t>(retrievedIPv4[3]));
+
+        bool isValid = true;
+        isValid &= (convertRetrievedIPv4 != IPADDR_ANY);
+        isValid &= (convertRetrievedIPv4 != IPADDR_NONE);
+        isValid &= (convertRetrievedIPv4 != IPADDR_LOOPBACK);
+        isValid &= (convertRetrievedIPv4 != IPADDR_BROADCAST);
+        
+        if (isValid != true)
+        {
+            LOG_ERROR(logger,"INVALID IPv4 ADDRESS");
+            return false;
+        }
+
+
+        return true;
+    }
     
     bool W5500::getLinkStatus()
     {

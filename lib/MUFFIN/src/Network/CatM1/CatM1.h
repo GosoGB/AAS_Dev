@@ -84,6 +84,7 @@ namespace muffin {
         virtual Status Disconnect() override;
         virtual Status Reconnect() override;
         virtual bool IsConnected() override;
+        virtual bool IsIPv4Assigned() override;
         virtual IPAddress GetIPv4() const override;
         state_e GetState() const;
         virtual Status SyncNTP() override;

@@ -62,7 +62,7 @@ namespace muffin { namespace mqtt {
         const BrokerInfo mBrokerInfo;
         const Message mMessageLWT;
     #if defined(MT11)
-        const uint16_t BUFFER_SIZE = 2048;
+        const uint16_t BUFFER_SIZE = 1024*4;
     #else
         const uint16_t BUFFER_SIZE = 1024;
     #endif

@@ -216,6 +216,15 @@ namespace muffin {
         return Status(Status::Code::GOOD);
     }
 
+    bool CatM1::IsIPv4Assigned()
+    {
+        /**
+         * @todo w5500 override를 위한 임시 구현 함수임 아직 제대로 구현이 안되어 있음 @김주성
+         * 
+         */
+        return true;
+    }
+
     bool CatM1::IsConnected()
     {
         if (mState == state_e::SUCCEDDED_TO_GET_IP)
