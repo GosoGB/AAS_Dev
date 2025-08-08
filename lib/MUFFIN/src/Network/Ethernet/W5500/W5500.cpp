@@ -179,8 +179,22 @@ namespace muffin {
     {
         return Status(Status::Code::BAD_NOT_IMPLEMENTED);
     }
+    
+    bool W5500::getLinkStatus()
+    {
+        uint8_t retrievedPHY = 0;
 
-    bool W5500::IsIPv4Assigned()
+        Status ret = retrieveCRB(w5500::crb_addr_e::PHY_CONFIGURATION, sizeof(retrievedPHY), &retrievedPHY);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO RETRIEVE PHY REGISTER: %s", ret.c_str());
+            return false;
+        }
+        
+        return retrievedPHY & 0x01;
+    }
+
+    bool W5500::IsConnected()
     {
         uint8_t retrievedIPv4[4] = { 0 };
         Status ret = retrieveCRB(w5500::crb_addr_e::IPv4, sizeof(retrievedIPv4), retrievedIPv4);
@@ -199,9 +213,6 @@ namespace muffin {
 
         bool isValid = true;
         isValid &= (convertRetrievedIPv4 != IPADDR_ANY);
-        isValid &= (convertRetrievedIPv4 != IPADDR_NONE);
-        isValid &= (convertRetrievedIPv4 != IPADDR_LOOPBACK);
-        isValid &= (convertRetrievedIPv4 != IPADDR_BROADCAST);
         
         if (isValid != true)
         {
@@ -211,26 +222,6 @@ namespace muffin {
 
 
         return true;
-    }
-    
-    bool W5500::getLinkStatus()
-    {
-        uint8_t retrievedPHY = 0;
-
-        Status ret = retrieveCRB(w5500::crb_addr_e::PHY_CONFIGURATION, sizeof(retrievedPHY), &retrievedPHY);
-        if (ret != Status::Code::GOOD)
-        {
-            LOG_ERROR(logger, "FAILED TO RETRIEVE PHY REGISTER: %s", ret.c_str());
-            return false;
-        }
-        
-        return retrievedPHY & 0x01;
-    }
-
-    bool W5500::IsConnected()
-    {
-        const bool isUp = getLinkStatus();
-        return isUp;
     }
 
     IPAddress W5500::GetIPv4() const

@@ -120,15 +120,6 @@ namespace muffin {
         return Status(Status::Code::BAD_SERVICE_UNSUPPORTED);
     }
 
-    bool LAN8720::IsIPv4Assigned()
-    {
-        /**
-         * @todo w5500 override를 위한 임시 구현 함수임 아직 제대로 구현이 안되어 있음 @김주성
-         * 
-         */
-        return true;
-    }
-
     bool LAN8720::IsConnected()
     {
         if (mFlags.test(static_cast<uint8_t>(flag_e::HAS_IPv4)) == true)
