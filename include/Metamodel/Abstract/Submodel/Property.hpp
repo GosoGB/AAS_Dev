@@ -40,7 +40,7 @@ namespace muffin { namespace aas {
     public:
         void SetValue(const typename xsd_type_mapper<xsd>::type& value)
         {
-            if (likeyly(mValue))
+            if (likely(mValue))
             {
                 *mValue = value;
             }

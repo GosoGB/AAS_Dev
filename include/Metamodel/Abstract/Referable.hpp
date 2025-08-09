@@ -66,30 +66,44 @@ namespace muffin { namespace aas {
                 ), "INVALID CATEGORY FOR A 'Referable': %s", category.c_str()
             );
 
-            mCategory = category;
+            if (unlikely(mCategory))
+            {
+                mCategory = psram::make_unique<psram::string>(category);
+            }
+            else
+            {
+                *mCategory = category;
+            }
         }
 
         void SetIdShort(const psram::string& idShort) 
         {
             ASSERT((idShort.length() > 0), "'idShort' MUST NOT BE EMPTY");
             ASSERT((idShort.length() < 129), "'idShort' MUST BE SMALLER THAN 128 BYTES");
-            
-            mIdShort = idShort;
+
+            if (unlikely(mIdShort))
+            {
+                mIdShort = psram::make_unique<psram::string>(idShort);
+            }
+            else
+            {
+                *mIdShort = idShort;
+            }
         }
 
     public:
         const char* GetCategory() const noexcept
         {
-            return mCategory.c_str();
+            return mCategory->c_str();
         }
         
         const char* GetIdShort() const noexcept
         {
-            return mIdShort.c_str();
+            return mIdShort->c_str();
         }
 
     protected:
-        psram::string mCategory;
-        psram::string mIdShort;
+        psram::unique_ptr<psram::string> mCategory;
+        psram::unique_ptr<psram::string> mIdShort;
     };
 }}
