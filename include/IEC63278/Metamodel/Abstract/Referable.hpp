@@ -21,7 +21,7 @@
  * @note
  * This class inherits from the @class 'HasExtensions' and shouldn't be instantiated directly.
  * 
- * @date 2025-07-14
+ * @date 2025-08-11
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.

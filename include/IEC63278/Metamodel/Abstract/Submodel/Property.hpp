@@ -10,7 +10,7 @@
  * value needs to be identical to the value of the referenced coded value in Property/valueId.
  * [Constraint AASd-007]
  * 
- * @date 2025-08-05
+ * @date 2025-08-11
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
