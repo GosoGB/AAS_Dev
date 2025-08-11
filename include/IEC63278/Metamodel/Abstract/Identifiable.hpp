@@ -57,7 +57,18 @@ namespace muffin { namespace aas {
             ASSERT(mID.empty() == false, "IDENTIFIER CANNOT BE EMPTY");
         }
 
+        Identifiable(const Identifiable& other) = default;
+
         ~Identifiable() noexcept override = default;
+
+        Identifiable& operator=(const Identifiable& other)
+        {
+            if (this != &other)
+            {
+                mID = other.mID;
+            }
+            return *this;
+        }
 
         bool operator==(const Identifiable& other) const
         {

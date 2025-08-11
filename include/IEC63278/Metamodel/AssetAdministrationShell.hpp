@@ -51,7 +51,7 @@ namespace muffin { namespace aas {
         }
 
         AssetAdministrationShell(const AssetAdministrationShell& other)
-            : Identifiable(other),
+            : Identifiable(other.mID),
               HasDataSpecification(other),
               mDerivedFrom(other.mDerivedFrom ? psram::make_unique<Reference>(*other.mDerivedFrom) : nullptr),
               mAssetInformation(other.mAssetInformation),

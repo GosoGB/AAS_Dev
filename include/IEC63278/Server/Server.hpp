@@ -20,10 +20,14 @@ namespace muffin { namespace aas {
 
     class Server
     {
+    public:
+        Server() = default;
+        ~Server() noexcept = default;
+    
+    public:
+        void Init();
+    
     private:
         /* data */
-    public:
-        Server(/* args */);
-        ~Server();
     };
 }}

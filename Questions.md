@@ -1,0 +1,3 @@
+- MODLINK에 AAS 인스턴스를 어떻게 전달해줄 것인가?
+  - PULL 방식 VS PUSH 방식 둘 중에 어떤 걸로?
+  - PULL 방식의 경우, Registry로부터 descriptor를 어떻게 받을 것인가?

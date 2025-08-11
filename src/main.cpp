@@ -14,8 +14,6 @@
 
 
 #include <Arduino.h>
-#include "Metamodel/AssetInformation.hpp"
-#include "Metamodel/Abstract/Submodel/Property.hpp"
 
 
 
