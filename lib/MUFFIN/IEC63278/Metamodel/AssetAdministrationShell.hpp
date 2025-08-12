@@ -13,7 +13,7 @@
  * @note
  * The cardinality of attribute 'dataSpecification' is limited to 0..1 due to memory usage.
  * 
- * @date 2025-07-29
+ * @date 2025-08-12
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -47,35 +47,12 @@ namespace muffin { namespace aas {
                                  const AssetInformation& assetInformation)
             : Identifiable(identifier)
             , mAssetInformation(assetInformation)
-        {
-        }
-
-        AssetAdministrationShell(const AssetAdministrationShell& other)
-            : Identifiable(other.mID),
-              HasDataSpecification(other),
-              mDerivedFrom(other.mDerivedFrom ? psram::make_unique<Reference>(*other.mDerivedFrom) : nullptr),
-              mAssetInformation(other.mAssetInformation),
-              mSubmodel(other.mSubmodel)
         {}
 
+        AssetAdministrationShell(const AssetAdministrationShell& other) = delete;
         AssetAdministrationShell(AssetAdministrationShell&& other) noexcept = default;
-
-        AssetAdministrationShell& operator=(const AssetAdministrationShell& other)
-        {
-            if (this != &other)
-            {
-                Identifiable::operator=(other);
-                HasDataSpecification::operator=(other);
-                mDerivedFrom = other.mDerivedFrom ? 
-                    psram::make_unique<Reference>(*other.mDerivedFrom) : 
-                    nullptr;
-                    
-                mAssetInformation = other.mAssetInformation;
-                mSubmodel = other.mSubmodel;
-            }
-            return *this;
-        }
-
+        
+        AssetAdministrationShell& operator=(const AssetAdministrationShell& other) = delete;
         AssetAdministrationShell& operator=(AssetAdministrationShell&& other) noexcept = default;
 
         ~AssetAdministrationShell() noexcept override = default;
@@ -102,7 +79,7 @@ namespace muffin { namespace aas {
         }
 
     public:
-        const Reference* GetDerivedFrom() const noexcept
+        const Reference* GetDerivedFromOrNull() const noexcept
         {
             return mDerivedFrom.get();
         }

@@ -2,7 +2,7 @@
  * @file Container.hpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-11
+ * @date 2025-08-12
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -33,6 +33,19 @@ namespace muffin { namespace aas {
         static Container* mInstance;
     
     public:
+        /**
+         * @todo temporary implementation, need to be replaced with actual implementation
+         */
+        const AssetAdministrationShell* GetAssetAdministrationShell() const
+        {
+            if (mVectorAAS.empty())
+            {
+                return nullptr;
+            }
+            
+            return mVectorAAS.front().get();
+        }
+
         // using iterator = typename psram::vector<AssetAdministrationShell>::iterator;
         // using const_iterator = typename psram::vector<AssetAdministrationShell>::const_iterator;
         

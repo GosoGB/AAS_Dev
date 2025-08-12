@@ -21,7 +21,7 @@
  * Now string data type only.
  * [Source: Details of the Asset Administration Shell Part 1 Version 3.0RC02, p.200]
  *
- * @date 2025-07-28
+ * @date 2025-08-12
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -46,6 +46,7 @@ namespace muffin { namespace aas {
     
 
     using Identifier = psram::string;
+
     
     class Identifiable : public Referable
     {
@@ -54,21 +55,16 @@ namespace muffin { namespace aas {
             : Referable()
             , mID(std::move(id))
         {
-            ASSERT(mID.empty() == false, "IDENTIFIER CANNOT BE EMPTY");
+            ASSERT((mID.empty() == false), "IDENTIFIER CANNOT BE EMPTY");
         }
 
-        Identifiable(const Identifiable& other) = default;
+        Identifiable(const Identifiable& other) = delete;
+        Identifiable(Identifiable&& other) noexcept = default;
+        
+        Identifiable& operator=(const Identifiable& other) = delete;
+        Identifiable& operator=(Identifiable&& other) noexcept = default;
 
         ~Identifiable() noexcept override = default;
-
-        Identifiable& operator=(const Identifiable& other)
-        {
-            if (this != &other)
-            {
-                mID = other.mID;
-            }
-            return *this;
-        }
 
         bool operator==(const Identifiable& other) const
         {

@@ -38,11 +38,11 @@ namespace muffin { namespace aas {
     typedef enum class AssetKind
         : uint8_t
     {
-        Type        = 0,
-        Instance    = 1
+        TYPE        = 0,
+        INSTANCE    = 1
     } asset_kind_e;
 
-    const char* ASSET_KIND_STRING[] = {
+    static const char* ASSET_KIND_STRING[] = {
         "Type",
         "Instance"
     };
@@ -59,7 +59,7 @@ namespace muffin { namespace aas {
         ModelReference
     } reference_types_e;
 
-    const char* REFERENCE_TYPES_STRING[] = {
+    static const char* REFERENCE_TYPES_STRING[] = {
         "GlobalReference",
         "ModelReference"
     };
@@ -78,31 +78,31 @@ namespace muffin { namespace aas {
     typedef enum class KeyTypes
         : uint8_t
     {
-        Referable,
-        FragmentReference,
-        GlobalReference,
-        AssetAdministrationShell,
-        ConceptDescription,
-        Identifiable,
-        Submodel,
-        AnnotatedRelationshipElement,
-        BasicEventElement,
-        Blob,
-        Capability,
-        DataElement,
-        Entity,
-        EventElement,
-        File,
-        MultiLanguageProperty,
-        Operation,
-        Property,
-        Range,
-        ReferenceElement,
-        RelationshipElement,
-        SubmodelElement
+        REFERABLE,
+        FRAGMENT_REFERENCE,
+        GLOBAL_REFERENCE,
+        ASSET_ADMINISTRATION_SHELL,
+        CONCEPT_DESCRIPTION,
+        IDENTIFIABLE,
+        SUBMODEL,
+        ANNOTATED_RELATIONSHIP_ELEMENT,
+        BASIC_EVENT_ELEMENT,
+        BLOB,
+        CAPABILITY,
+        DATA_ELEMENT,
+        ENTITY,
+        EVENT_ELEMENT,
+        FILE,
+        MULTI_LANGUAGE_PROPERTY,
+        OPERATION,
+        PROPERTY,
+        RANGE,
+        REFERENCE_ELEMENT,
+        RELATIONSHIP_ELEMENT,
+        SUBMODEL_ELEMENT
     } key_types_e;
 
-    const char* KEY_TYPES_STRING[] = {
+    static const char* KEY_TYPES_STRING[] = {
         "Referable", "FragmentReference", "GlobalReference", "AssetAdministrationShell", 
         "ConceptDescription", "Identifiable", "Submodel", "AnnotatedRelationshipElement",
         "BasicEventElement", "Blob", "Capability", "DataElement", "Entity", "EventElement", "File", 

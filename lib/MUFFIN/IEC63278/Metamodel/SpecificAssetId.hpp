@@ -41,14 +41,14 @@ namespace muffin { namespace aas {
                         const Reference& externalSubjectId)
             : mName(name)
             , mValue(value)
-            , mExternalSubjectId(externalSubjectId)
+            , mExternalSubjectId(psram::make_unique<Reference>(externalSubjectId))
         {}
 
         SpecificAssetId(const SpecificAssetId& other)
             : HasSemantics(other),
               mName(other.mName),
               mValue(other.mValue),
-              mExternalSubjectId(other.mExternalSubjectId)
+              mExternalSubjectId(psram::make_unique<Reference>(*other.mExternalSubjectId))
         {}
 
         SpecificAssetId(SpecificAssetId&& other) noexcept = default;
@@ -60,7 +60,7 @@ namespace muffin { namespace aas {
                 HasSemantics::operator=(other);
                 mName = other.mName;
                 mValue = other.mValue;
-                mExternalSubjectId = other.mExternalSubjectId;
+                mExternalSubjectId = psram::make_unique<Reference>(*other.mExternalSubjectId);
             }
             return *this;
         }
@@ -80,14 +80,14 @@ namespace muffin { namespace aas {
             return mValue;
         }
 
-        const Reference& GetExternalSubjectId() const noexcept
+        Reference* GetExternalSubjectId() const noexcept
         {
-            return mExternalSubjectId;
+            return mExternalSubjectId.get();
         }
 
     private:
         psram::string mName;
         psram::string mValue;
-        Reference mExternalSubjectId;
+        psram::unique_ptr<Reference> mExternalSubjectId;
     };
 }}

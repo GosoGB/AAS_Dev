@@ -2,7 +2,7 @@
  * @file Environment.hpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-11
+ * @date 2025-08-12
  * @version 0.0.1
  * 
  * @note
@@ -20,6 +20,7 @@
 #pragma once
 
 #include <esp32-hal-log.h>
+#include <memory>
 
 #include "./Abstract/Submodel/Submodel.hpp"
 #include "./AssetAdministrationShell.hpp"
@@ -35,11 +36,17 @@ namespace muffin { namespace aas {
     {
     public:
         Environment() = default;
-        Environment(const Environment& other) = default;
+        
+        Environment(const Environment& other) = delete;
         Environment(Environment&& other) noexcept = default;
+        
+        Environment& operator=(const Environment& other) = delete;
+        Environment& operator=(Environment&& other) noexcept = default;
+
         ~Environment() noexcept = default;
+
     public:
-        void AddAssetAdministrationShell(const AssetAdministrationShell& aas)
+        void AddAssetAdministrationShell(psram::unique_ptr<AssetAdministrationShell> aas)
         {
             if (mVectorAAS.size() == 2)
             {
@@ -47,14 +54,15 @@ namespace muffin { namespace aas {
                 return;
             }
             
-            mVectorAAS.emplace_back(aas);
+            mVectorAAS.emplace_back(std::move(aas));
         }
 
         void RemoveAssetAdministrationShell(const Identifier& id)
         {
             for (auto it = mVectorAAS.begin(); it != mVectorAAS.end(); ++it)
             {
-                if (id == it->GetID())
+                // it is an iterator to a psram::unique_ptr, so dereference it twice.
+                if (id == (*it)->GetID())
                 {
                     it = mVectorAAS.erase(it);
                     return;
@@ -63,7 +71,7 @@ namespace muffin { namespace aas {
         }
 
     public:
-        void AddSubmodel(const Submodel& submodel)
+        void AddSubmodel(psram::unique_ptr<Submodel> submodel)
         {
             if (mVectorSubmodel.size() == 5)
             {
@@ -71,14 +79,15 @@ namespace muffin { namespace aas {
                 return;
             }
             
-            mVectorSubmodel.emplace_back(submodel);
+            mVectorSubmodel.emplace_back(std::move(submodel));
         }
 
         void RemoveSubmodel(const Identifier& id)
         {
             for (auto it = mVectorSubmodel.begin(); it != mVectorSubmodel.end(); ++it)
             {
-                if (id == it->GetID())
+                // it is an iterator to a psram::unique_ptr, so dereference it twice.
+                if (id == (*it)->GetID())
                 {
                     it = mVectorSubmodel.erase(it);
                     return;
@@ -94,7 +103,7 @@ namespace muffin { namespace aas {
         }
 
     protected:
-        psram::vector<AssetAdministrationShell> mVectorAAS;
-        psram::vector<Submodel> mVectorSubmodel;
+        psram::vector<psram::unique_ptr<AssetAdministrationShell>> mVectorAAS;
+        psram::vector<psram::unique_ptr<Submodel>> mVectorSubmodel;
     };
 }}

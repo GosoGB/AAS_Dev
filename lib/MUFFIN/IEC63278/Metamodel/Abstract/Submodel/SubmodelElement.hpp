@@ -33,6 +33,13 @@ namespace muffin { namespace aas {
     {
     public:
         SubmodelElement() = default;
+        
+        SubmodelElement(const SubmodelElement&) = delete;
+        SubmodelElement(SubmodelElement&&) = default;
+
+        SubmodelElement& operator=(const SubmodelElement&) = delete;
+        SubmodelElement& operator=(SubmodelElement&&) = default;
+        
         virtual ~SubmodelElement() = default;
     };
 }}

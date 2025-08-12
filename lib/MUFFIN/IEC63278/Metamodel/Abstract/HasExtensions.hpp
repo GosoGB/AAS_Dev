@@ -11,7 +11,7 @@
  * @note
  * The cardinality of attribute 'extension' is limited to 0..1 due to memory usage.
  *
- * @date 2025-07-28
+ * @date 2025-08-12
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -38,34 +38,13 @@ namespace muffin { namespace aas {
     {
     public:
         HasExtensions() = default;
-        HasExtensions(psram::unique_ptr<ExtensionBase> extension)
-            : mExtension(std::move(extension))
-        {}
 
-        HasExtensions(const HasExtensions& other)
-        {
-            if (other.mExtension != nullptr)
-            {
-                mExtension = other.mExtension->Clone();
-            }
-        }
+        HasExtensions(const HasExtensions& other) = delete;
+        HasExtensions& operator=(const HasExtensions& other) = delete;
 
-        HasExtensions& operator=(const HasExtensions& other)
-        {
-            if (this != &other)
-            {
-                if (other.mExtension != nullptr)
-                {
-                    mExtension = other.mExtension->Clone();
-                }
-                else
-                {
-                    mExtension.reset();
-                }
-            }
-            return *this;
-        }
-
+        HasExtensions(HasExtensions&& other) noexcept = default;
+        HasExtensions& operator=(HasExtensions&& other) noexcept = default;
+        
         virtual ~HasExtensions() noexcept = default;
 
     public:
@@ -80,7 +59,7 @@ namespace muffin { namespace aas {
             mExtension = psram::make_unique<Extension<xsd>>(extension);
         }
 
-        ExtensionBase* GetExtension() const
+        ExtensionBase* GetExtensionOrNull() const
         {
             return mExtension.get();
         }

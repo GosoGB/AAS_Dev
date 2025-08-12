@@ -13,56 +13,12 @@
 
 
 
-#include <Arduino.h>
+#include <HardwareSerial.h>
+
+#include <IEC63278/Container/include/AASXLoader.hpp>
+#include <IEC63278/Container/Container.hpp>
 
 
-
-void log(muffin::aas::asset_kind_e assetKind)
-{
-    using namespace muffin;
-    using namespace aas;
-
-    log_d("assetKind: %s", ASSET_KIND_STRING[static_cast<uint8_t>(assetKind)]);
-}
-
-void log(muffin::aas::reference_types_e referenceType)
-{
-    using namespace muffin;
-    using namespace aas;
-
-    log_d("referenceType: %s", REFERENCE_TYPES_STRING[static_cast<uint8_t>(referenceType)]);
-}
-
-void log(const muffin::psram::vector<muffin::aas::Key>& keys)
-{
-    using namespace muffin;
-    using namespace aas;
-
-    for (auto it = keys.begin(); it != keys.end(); ++it)
-    {
-        log_d("[key] {\"type\": %s, \"value\": %s}",
-            KEY_TYPES_STRING[static_cast<uint8_t>(it->GetType())], 
-            it->GetValue().c_str()
-        );
-    }
-}
-
-void log(std::weak_ptr<muffin::aas::Reference> reference)
-{
-    using namespace muffin;
-    using namespace aas;
-
-    if (std::shared_ptr<muffin::aas::Reference> sp = reference.lock())
-    {
-        log(sp->GetType());
-        log(sp->GetReferredSemanticID());
-        log(sp->GetKeys());
-    }
-    else
-    {
-        log_e("reference has been expired");
-    }
-}
 
 void log_psram()
 {
@@ -83,34 +39,31 @@ void setup()
     using namespace muffin;
     using namespace aas;
 
-    AssetInformation assetInformation;
-    assetInformation.SetGlobalAssetID("https://example.com/ids/asset/9431_2232_7052_2169");
+    log_psram();
 
-    log(assetInformation.GetAssetKind());
-    log(assetInformation.GetGlobalAssetID()->GetType());
-    log(assetInformation.GetGlobalAssetID()->GetReferredSemanticID());
-    log(assetInformation.GetGlobalAssetID()->GetKeys());
-    
-    if (assetInformation.GetSpecificAssetID() == nullptr)
+    AASXLoader aasxLoader;
+    aasxLoader.Start();
+
+    log_psram();
+
+    Container* container = Container::GetInstance();
+    const AssetAdministrationShell* aas = container->GetAssetAdministrationShell();
+
+
+    AssetInformation assetInformation = aas->GetAssetInformation();
+    log_d("Asset Kind: %d", static_cast<int>(assetInformation.GetAssetKind()));
+    log_d("Global Asset ID: %s", assetInformation.GetGlobalAssetID());
+
+    psram::vector<Reference> submodels = aas->GetSubmodel();
+    for (const auto& submodel : submodels)
     {
-        log_d("Empty specificAssetId");
-    }
-
-    Property<data_type_def_xsd_e::STRING> property;
-    const data_type_def_xsd_e xsd = property.GetValueType();
-    log_d("xsd: %d", xsd);
-
-    property.SetValue("value");
-    log_d("xsd value: %s", property.GetValue()->c_str());
-
-    while (1)
-    {
-        psram::string _val = psram::string(std::to_string(millis()).c_str());
-        property.SetValue(_val);
-        log_d("xsd value: %s", property.GetValue()->c_str());
-        ESP_LOGI("PSRAM", "Free PSRAM: %d bytes", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
-
-        delay(999);
+        log_d("Submodel Type: %d", static_cast<int>(submodel.GetType()));
+        for (const auto& key : submodel.GetKeys())
+        {
+            log_d("Key Type: %s, Value: %s", 
+                KEY_TYPES_STRING[static_cast<uint8_t>(key.GetType())], 
+                key.GetValue().c_str());
+        }
     }
 }
 

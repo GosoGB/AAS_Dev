@@ -21,7 +21,7 @@
  * @note
  * This class inherits from the @class 'HasExtensions' and shouldn't be instantiated directly.
  * 
- * @date 2025-08-11
+ * @date 2025-08-12
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -49,24 +49,24 @@ namespace muffin { namespace aas {
     {
     public:
         Referable() = default;
+
+        Referable(const Referable&) = delete;
+        Referable& operator=(const Referable&) = delete;
+        
+        Referable(Referable&&) = default;
+        Referable& operator=(Referable&&) = default;
+        
         ~Referable() noexcept override = default;
+
     public:
         void SetCategory(const psram::string& category)
         {
             ASSERT(
-                (
-                    [&] (const psram::string& categoryValue)
-                    {
-                        return (
-                            (categoryValue != "CONSTANT")   && 
-                            (categoryValue != "PARAMETER")  && 
-                            (categoryValue != "VARIABLE")
-                        );
-                    } (category)
-                ), "INVALID CATEGORY FOR A 'Referable': %s", category.c_str()
+                ((category != "CONSTANT") && (category != "PARAMETER") && (category != "VARIABLE")),
+                "INVALID CATEGORY FOR A 'Referable': %s", category.c_str()
             );
 
-            if (unlikely(mCategory))
+            if (mCategory == nullptr)
             {
                 mCategory = psram::make_unique<psram::string>(category);
             }
@@ -81,7 +81,7 @@ namespace muffin { namespace aas {
             ASSERT((idShort.length() > 0), "'idShort' MUST NOT BE EMPTY");
             ASSERT((idShort.length() < 129), "'idShort' MUST BE SMALLER THAN 128 BYTES");
 
-            if (unlikely(mIdShort))
+            if (mIdShort == nullptr)
             {
                 mIdShort = psram::make_unique<psram::string>(idShort);
             }
@@ -92,12 +92,12 @@ namespace muffin { namespace aas {
         }
 
     public:
-        const char* GetCategory() const noexcept
+        const char* GetCategoryOrNull() const noexcept
         {
             return mCategory->c_str();
         }
         
-        const char* GetIdShort() const noexcept
+        const char* GetIdShortOrNull() const noexcept
         {
             return mIdShort->c_str();
         }

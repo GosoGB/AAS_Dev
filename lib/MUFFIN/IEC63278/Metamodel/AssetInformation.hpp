@@ -48,7 +48,7 @@ namespace muffin { namespace aas {
     class AssetInformation
     {
     public:
-        AssetInformation() : mAssetKind(asset_kind_e::Instance) {}
+        AssetInformation() : mAssetKind(asset_kind_e::INSTANCE) {}
         AssetInformation(const asset_kind_e assetKind) : mAssetKind(assetKind) {}
         AssetInformation(AssetInformation&& other) noexcept = default;
         
@@ -88,7 +88,7 @@ namespace muffin { namespace aas {
 
         void SetGlobalAssetID(const psram::string& globalAssetID)
         {
-            psram::vector<Key> keys { {key_types_e::GlobalReference, globalAssetID} };
+            psram::vector<Key> keys { {key_types_e::GLOBAL_REFERENCE, globalAssetID} };
             mGlobalAssetID = psram::make_unique<Reference>(reference_types_e::GlobalReference, std::move(keys));
         }
 
