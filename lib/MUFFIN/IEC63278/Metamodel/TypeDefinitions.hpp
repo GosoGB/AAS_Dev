@@ -42,11 +42,6 @@ namespace muffin { namespace aas {
         INSTANCE    = 1
     } asset_kind_e;
 
-    static const char* ASSET_KIND_STRING[] = {
-        "Type",
-        "Instance"
-    };
-
 
     /**
      * @brief
@@ -58,11 +53,6 @@ namespace muffin { namespace aas {
         GlobalReference,
         ModelReference
     } reference_types_e;
-
-    static const char* REFERENCE_TYPES_STRING[] = {
-        "GlobalReference",
-        "ModelReference"
-    };
 
 
     /**

@@ -13,7 +13,11 @@
 
 #pragma once
 
+#include <string.h>
+
 #include "../Metamodel/Environment.hpp"
+
+#include "Common/Assert.hpp"
 
 
 
@@ -36,14 +40,31 @@ namespace muffin { namespace aas {
         /**
          * @todo temporary implementation, need to be replaced with actual implementation
          */
-        const AssetAdministrationShell* GetAssetAdministrationShell() const
+        const AssetAdministrationShell* GetAasByID(const Identifier& id) const
         {
-            if (mVectorAAS.empty())
+            for (const auto& aas : mVectorAAS)
             {
-                return nullptr;
+                const Identifier retrievedId = aas->GetID();
+                if (retrievedId == id)
+                {
+                    return aas.get();
+                }
             }
-            
-            return mVectorAAS.front().get();
+            return nullptr;
+        }
+
+
+        psram::vector<AssetAdministrationShell> GetAllAAS() const
+        {
+            psram::vector<AssetAdministrationShell> vectorAAS;
+            vectorAAS.reserve(mVectorAAS.size());
+
+            for (const auto& aas : mVectorAAS)
+            {
+                vectorAAS.emplace_back(*aas);
+            }
+
+            return vectorAAS;
         }
 
         // using iterator = typename psram::vector<AssetAdministrationShell>::iterator;

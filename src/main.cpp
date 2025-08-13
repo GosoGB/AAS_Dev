@@ -16,7 +16,7 @@
 #include <HardwareSerial.h>
 
 #include <IEC63278/Container/include/AASXLoader.hpp>
-#include <IEC63278/Container/Container.hpp>
+#include <IEC63278/Serializer/Serializer.hpp>
 
 
 
@@ -44,27 +44,11 @@ void setup()
     AASXLoader aasxLoader;
     aasxLoader.Start();
 
+    AssetAdministrationShellSerializer serializer;
+    psram::string json = serializer.Encode("mct_500");
+    log_d("Serialized JSON: %s", json.c_str());
+
     log_psram();
-
-    Container* container = Container::GetInstance();
-    const AssetAdministrationShell* aas = container->GetAssetAdministrationShell();
-
-
-    AssetInformation assetInformation = aas->GetAssetInformation();
-    log_d("Asset Kind: %d", static_cast<int>(assetInformation.GetAssetKind()));
-    log_d("Global Asset ID: %s", assetInformation.GetGlobalAssetID());
-
-    psram::vector<Reference> submodels = aas->GetSubmodel();
-    for (const auto& submodel : submodels)
-    {
-        log_d("Submodel Type: %d", static_cast<int>(submodel.GetType()));
-        for (const auto& key : submodel.GetKeys())
-        {
-            log_d("Key Type: %s, Value: %s", 
-                KEY_TYPES_STRING[static_cast<uint8_t>(key.GetType())], 
-                key.GetValue().c_str());
-        }
-    }
 }
 
 

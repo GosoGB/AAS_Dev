@@ -13,7 +13,11 @@
 
 #pragma once
 
+#include <ArduinoJson.h>
+
 #include "../../Metamodel/AssetAdministrationShell.hpp"
+
+#include "Common/PSRAM.hpp"
 
 
 
@@ -27,6 +31,10 @@ namespace muffin { namespace aas {
         ~AssetAdministrationShellSerializer() noexcept = default;
 
     public:
-        void Encode() const;
+        psram::string Encode(const Identifier& id);
+        psram::string EncodeAll();
+    
+    private:
+        JsonDocument encode(const AssetAdministrationShell& aas);
     };
 }}

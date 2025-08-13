@@ -38,6 +38,8 @@ namespace muffin { namespace aas {
             log_d("Failed to deserialize AASX JSON file: %s", error.c_str());
             return;
         }
+        
+        loadAssetAdministrationShells();
     }
 
 
@@ -64,6 +66,7 @@ namespace muffin { namespace aas {
         
         JsonArray arrayAssetAdministrationShells = mJsonDocument["assetAdministrationShells"].as<JsonArray>();
 
+        log_d("size of aas array: %u", arrayAssetAdministrationShells.size());
         for (size_t idx = 0; idx < arrayAssetAdministrationShells.size(); ++idx)
         {
             JsonObject objectAssetAdministrationShells = arrayAssetAdministrationShells[idx].as<JsonObject>();

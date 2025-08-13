@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <ArduinoJson.h>
+
 
 
 namespace muffin { namespace aas {

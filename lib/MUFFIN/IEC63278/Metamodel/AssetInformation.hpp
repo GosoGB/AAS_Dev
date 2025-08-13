@@ -118,12 +118,12 @@ namespace muffin { namespace aas {
             return mAssetKind;
         }
 
-        const Reference* GetGlobalAssetID() const noexcept
+        const Reference* GetGlobalAssetIdOrNULL() const noexcept
         {
             return mGlobalAssetID.get();
         }
 
-        const SpecificAssetId* GetSpecificAssetID() const noexcept
+        const SpecificAssetId* GetSpecificAssetIdOrNULL() const noexcept
         {
             return mSpecificAssetID.get();
         }
