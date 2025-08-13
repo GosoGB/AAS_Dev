@@ -45,8 +45,14 @@ void setup()
     aasxLoader.Start();
 
     AssetAdministrationShellSerializer serializer;
-    psram::string json = serializer.Encode("mct_500");
-    log_d("Serialized JSON: %s", json.c_str());
+
+    psram::string json = serializer.Encode("https://example.com/ids/sm/4523_3042_7052_7604");
+    log_d("%s", json.c_str());
+    Serial.println();
+
+    json = serializer.EncodeAll();
+    log_d("%s", json.c_str());
+    Serial.println();
 
     log_psram();
 }

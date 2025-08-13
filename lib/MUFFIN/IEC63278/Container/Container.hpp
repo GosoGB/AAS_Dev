@@ -61,7 +61,7 @@ namespace muffin { namespace aas {
 
             for (const auto& aas : mVectorAAS)
             {
-                vectorAAS.emplace_back(*aas);
+                vectorAAS.emplace_back(aas->Clone());
             }
 
             return vectorAAS;

@@ -94,6 +94,25 @@ namespace muffin { namespace aas {
             return mSubmodel;
         }
 
+    public:
+        AssetAdministrationShell Clone() const
+        {
+            AssetAdministrationShell clone = AssetAdministrationShell(mID, mAssetInformation);
+            clone.mSubmodel.reserve(mSubmodel.size());
+
+            for (const auto& ref : mSubmodel)
+            {
+                clone.mSubmodel.emplace_back(ref);
+            }
+
+            if (mDerivedFrom)
+            {
+                clone.mDerivedFrom = psram::make_unique<Reference>(*mDerivedFrom);
+            }
+
+            return clone;
+        }
+
     private:
         psram::unique_ptr<Reference> mDerivedFrom;
         AssetInformation mAssetInformation;

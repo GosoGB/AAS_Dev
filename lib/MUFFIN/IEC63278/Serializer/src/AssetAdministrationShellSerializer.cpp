@@ -40,17 +40,20 @@ namespace muffin { namespace aas {
     psram::string AssetAdministrationShellSerializer::EncodeAll()
     {
         Container* container = Container::GetInstance();
-        const psram::vector<AssetAdministrationShell> vectorAAS = container->GetAllAAS();
+        const auto& vectorAAS = container->GetAllAAS();
+
+        log_d("vector size: %u", vectorAAS.size());
+        log_d("identifier: %s", vectorAAS[0].GetID().c_str());
 
         JsonDocument doc;
         JsonArray arrayAAS = doc.to<JsonArray>();
 
         for (const auto& aas : vectorAAS)
         {
-            JsonDocument docAAS = encode(aas);
+            JsonDocument docAAS = encode(aas); // Dereference the unique_ptr
             arrayAAS.add(docAAS);
         }
-        
+
         psram::string output;
         serializeJson(doc, output);
         return output;
@@ -69,7 +72,7 @@ namespace muffin { namespace aas {
         }
 
         const AssetInformation assetInformation = aas.GetAssetInformation();
-        JsonObject objAssetInformation = doc.createNestedObject("assetInformation");
+        JsonObject objAssetInformation = doc["assetInformation"].to<JsonObject>();
         objAssetInformation["assetKind"] = ConvertToString(assetInformation.GetAssetKind());
 
         const Reference* globalAssetId = assetInformation.GetGlobalAssetIdOrNULL();
@@ -82,7 +85,7 @@ namespace muffin { namespace aas {
                 {
                     continue;
                 }
-                
+
                 objAssetInformation["globalAssetId"] = key.GetValue();
             }
         }

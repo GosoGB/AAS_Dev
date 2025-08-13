@@ -94,12 +94,12 @@ namespace muffin { namespace aas {
     public:
         const char* GetCategoryOrNull() const noexcept
         {
-            return mCategory->c_str();
+            return mCategory ? mCategory->c_str() : nullptr;
         }
         
         const char* GetIdShortOrNull() const noexcept
         {
-            return mIdShort->c_str();
+            return mIdShort ? mIdShort->c_str() : nullptr;
         }
 
     protected:

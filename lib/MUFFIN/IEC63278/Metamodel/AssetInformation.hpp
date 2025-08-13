@@ -54,9 +54,12 @@ namespace muffin { namespace aas {
         
         AssetInformation(const AssetInformation& other)
             : mAssetKind(other.mAssetKind)
-            , mGlobalAssetID(other.mGlobalAssetID ? psram::make_unique<Reference>(*other.mGlobalAssetID) : nullptr)
-            , mSpecificAssetID(other.mSpecificAssetID ? 
-                psram::make_unique<SpecificAssetId>(*other.mSpecificAssetID) : nullptr)
+            , mGlobalAssetID(other.mGlobalAssetID
+                ? psram::make_unique<Reference>(*other.mGlobalAssetID)
+                : nullptr)
+            , mSpecificAssetID(other.mSpecificAssetID
+                ? psram::make_unique<SpecificAssetId>(*other.mSpecificAssetID)
+                : nullptr)
         {}
 
         AssetInformation& operator=(const AssetInformation& other)
