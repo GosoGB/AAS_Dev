@@ -17,7 +17,7 @@
  * To manage memory, you would need to consider limiting the length of 'semanticId' to 32 bytes.
  * And also you would need to limit it to ASCII characters only.
  *
- * @date 2025-07-29
+ * @date 2025-08-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.

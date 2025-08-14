@@ -2,7 +2,7 @@
  * @file Container.hpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-12
+ * @date 2025-08-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -39,6 +39,7 @@ namespace muffin { namespace aas {
     public:
         /**
          * @todo temporary implementation, need to be replaced with actual implementation
+         * @todo make an instance using deep copy and then return it to the caller
          */
         const AssetAdministrationShell* GetAasByID(const Identifier& id) const
         {
@@ -67,6 +68,19 @@ namespace muffin { namespace aas {
             return vectorAAS;
         }
 
+
+        Submodel GetAasByID(const Identifier& id) const
+        {
+            for (const auto& aas : mVectorAAS)
+            {
+                const Identifier retrievedId = aas->GetID();
+                if (retrievedId == id)
+                {
+                    return aas.get();
+                }
+            }
+            return nullptr;
+        }
         // using iterator = typename psram::vector<AssetAdministrationShell>::iterator;
         // using const_iterator = typename psram::vector<AssetAdministrationShell>::const_iterator;
         

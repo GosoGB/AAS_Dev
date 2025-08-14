@@ -41,14 +41,14 @@ namespace muffin { namespace aas {
         HasDataSpecification(const Reference& dataSpecification)
             : mDataSpecification(psram::make_unique<Reference>(dataSpecification))
         {
-            ASSERT((mDataSpecification->GetType() == reference_types_e::GlobalReference), 
+            ASSERT((mDataSpecification->GetType() == reference_types_e::EXTERNAL_REFERENCE), 
                 "ATTRIBUTE 'dataSpecification' MUST BE A GLOBAL REFERENCE");
         }
 
         HasDataSpecification(psram::unique_ptr<Reference> dataSpecification)
             : mDataSpecification(std::move(dataSpecification))
         {
-            ASSERT((mDataSpecification->GetType() == reference_types_e::GlobalReference), 
+            ASSERT((mDataSpecification->GetType() == reference_types_e::EXTERNAL_REFERENCE), 
                 "ATTRIBUTE 'dataSpecification' MUST BE A GLOBAL REFERENCE");
         }
 

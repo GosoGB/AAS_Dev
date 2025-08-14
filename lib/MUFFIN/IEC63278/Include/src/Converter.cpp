@@ -173,7 +173,7 @@ namespace muffin { namespace aas {
 
 
     const char* REFERENCE_TYPES_STRING[2] = {
-        "GlobalReference",
+        "ExternalReference",
         "ModelReference"
     };
 

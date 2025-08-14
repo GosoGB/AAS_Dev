@@ -41,7 +41,7 @@ namespace muffin { namespace aas {
          *  - extensions
          */
         void loadAssetAdministrationShells();
-        // void loadAssetAdministrationShells();
+        void loadSubmodels();
     private:
         JsonDocument mJsonDocument;
     };

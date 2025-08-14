@@ -50,8 +50,8 @@ namespace muffin { namespace aas {
     typedef enum class ReferenceTypes
         : uint8_t
     {
-        GlobalReference,
-        ModelReference
+        EXTERNAL_REFERENCE,
+        MODEL_REFERENCE
     } reference_types_e;
 
 

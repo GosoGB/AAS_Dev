@@ -92,7 +92,7 @@ namespace muffin { namespace aas {
         void SetGlobalAssetID(const psram::string& globalAssetID)
         {
             psram::vector<Key> keys { {key_types_e::GLOBAL_REFERENCE, globalAssetID} };
-            mGlobalAssetID = psram::make_unique<Reference>(reference_types_e::GlobalReference, std::move(keys));
+            mGlobalAssetID = psram::make_unique<Reference>(reference_types_e::EXTERNAL_REFERENCE, std::move(keys));
         }
 
         void SetGlobalAssetID(const Reference& globalAssetID)

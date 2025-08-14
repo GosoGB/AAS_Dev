@@ -108,8 +108,8 @@ namespace muffin { namespace aas {
             ASSERT((refType != nullptr), "ATTRIBUTE 'type' CANNOT BE NULL");
 
             const reference_types_e referenceType = strcmp(refType, "ModelReference") == 0
-                ? reference_types_e::ModelReference
-                : reference_types_e::GlobalReference;
+                ? reference_types_e::MODEL_REFERENCE
+                : reference_types_e::EXTERNAL_REFERENCE;
 
             const size_t numKeys = submodel["keys"].size();
             ASSERT((numKeys > 0), "THE SIZE OF 'keys' MUST BE GREATER THAN 0");
