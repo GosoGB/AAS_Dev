@@ -97,7 +97,7 @@ namespace muffin { namespace aas {
     public:
         AssetAdministrationShell Clone() const
         {
-            AssetAdministrationShell clone = AssetAdministrationShell(mID, mAssetInformation);
+            AssetAdministrationShell clone(mID, mAssetInformation);
             clone.mSubmodel.reserve(mSubmodel.size());
 
             for (const auto& ref : mSubmodel)

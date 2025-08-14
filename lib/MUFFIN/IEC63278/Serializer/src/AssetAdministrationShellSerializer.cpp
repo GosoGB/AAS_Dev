@@ -2,7 +2,7 @@
  * @file AssetAdministrationShellSerializer.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-13
+ * @date 2025-08-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -14,6 +14,7 @@
 #include "../../Container/Container.hpp"
 #include "../../Include/Converter.hpp"
 #include "../Include/AssetAdministrationShellSerializer.hpp"
+#include "../Include/HelperFunctions.hpp"
 
 
 
@@ -26,7 +27,7 @@ namespace muffin { namespace aas {
         const AssetAdministrationShell* aas = container->GetAasByID(id);
         if (aas == nullptr)
         {
-            log_d("AAS Not found with shortId: '%s'", id.c_str());
+            log_d("AAS Not found with id: '%s'", id.c_str());
             return psram::string();
         }
 
@@ -42,15 +43,12 @@ namespace muffin { namespace aas {
         Container* container = Container::GetInstance();
         const auto& vectorAAS = container->GetAllAAS();
 
-        log_d("vector size: %u", vectorAAS.size());
-        log_d("identifier: %s", vectorAAS[0].GetID().c_str());
-
         JsonDocument doc;
         JsonArray arrayAAS = doc.to<JsonArray>();
 
         for (const auto& aas : vectorAAS)
         {
-            JsonDocument docAAS = encode(aas); // Dereference the unique_ptr
+            JsonDocument docAAS = encode(aas);
             arrayAAS.add(docAAS);
         }
 
@@ -71,6 +69,14 @@ namespace muffin { namespace aas {
             doc["idShort"] = aas.GetIdShortOrNull();
         }
 
+        /**
+         * @todo Write serializer for class 'Reference'
+         */
+        // if (aas.GetDerivedFromOrNull() != nullptr)
+        // {
+        //     doc["derivedFrom"] = aas.GetDerivedFromOrNull().
+        // }
+        
         const AssetInformation assetInformation = aas.GetAssetInformation();
         JsonObject objAssetInformation = doc["assetInformation"].to<JsonObject>();
         objAssetInformation["assetKind"] = ConvertToString(assetInformation.GetAssetKind());
@@ -95,20 +101,22 @@ namespace muffin { namespace aas {
         const psram::vector<Reference> submodelReferences = aas.GetSubmodel();
         if (submodelReferences.size() > 0)
         {
-            JsonArray submodelArray = doc.createNestedArray("submodels");
+            JsonArray arrSubmodelReferencess = doc["submodels"].to<JsonArray>();
             for (const auto& reference : submodelReferences)
             {
-                JsonObject objSubmodel = submodelArray.createNestedObject();
-                objSubmodel["type"] = ConvertToString(reference.GetType());
+                // JsonObject objSubmodel = arrSubmodelReferencess.createNestedObject();
+                // objSubmodel["type"] = ConvertToString(reference.GetType());
                 
-                JsonArray arrKeys = objSubmodel.createNestedArray("keys");
-                psram::vector<Key> keys = reference.GetKeys();
-                for (size_t idx = 0; idx < keys.size(); ++idx)
-                {
-                    JsonObject objKey = arrKeys.createNestedObject();
-                    objKey["type"] =  ConvertToString(keys[idx].GetType());
-                    objKey["value"] = keys[idx].GetValue();
-                }
+                // JsonArray arrKeys = objSubmodel.createNestedArray("keys");
+                // psram::vector<Key> keys = reference.GetKeys();
+                // for (size_t idx = 0; idx < keys.size(); ++idx)
+                // {
+                //     JsonObject objKey = arrKeys.createNestedObject();
+                //     objKey["type"] =  ConvertToString(keys[idx].GetType());
+                //     objKey["value"] = keys[idx].GetValue();
+                // }
+
+                arrSubmodelReferencess.add(ConvertReferenceToJSON(reference));
             }
         }
 

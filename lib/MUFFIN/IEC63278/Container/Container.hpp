@@ -69,18 +69,37 @@ namespace muffin { namespace aas {
         }
 
 
-        Submodel GetAasByID(const Identifier& id) const
+        /**
+         * @todo temporary implementation, need to be replaced with actual implementation
+         * @todo make an instance using deep copy and then return it to the caller
+         */
+        const Submodel* GetSubmodelByID(const Identifier& id) const
         {
-            for (const auto& aas : mVectorAAS)
+            for (const auto& submodel : mVectorSubmodel)
             {
-                const Identifier retrievedId = aas->GetID();
+                const Identifier retrievedId = submodel->GetID();
                 if (retrievedId == id)
                 {
-                    return aas.get();
+                    return submodel.get();
                 }
             }
             return nullptr;
         }
+
+
+        psram::vector<Submodel> GetAllSubmodels() const
+        {
+            psram::vector<Submodel> vectorSubmodels;
+            vectorSubmodels.reserve(mVectorSubmodel.size());
+
+            for (const auto& submodel : mVectorSubmodel)
+            {
+                vectorSubmodels.emplace_back(submodel->Clone());
+            }
+
+            return vectorSubmodels;
+        }
+
         // using iterator = typename psram::vector<AssetAdministrationShell>::iterator;
         // using const_iterator = typename psram::vector<AssetAdministrationShell>::const_iterator;
         

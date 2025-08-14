@@ -10,7 +10,7 @@
  * Administration Shell into distinguishable parts. Each submodel refers to a well-defined domain 
  * or subject matter. Submodels can become standardized and, thus, become submodels templates.
  * 
- * @date 2025-08-12
+ * @date 2025-08-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -62,6 +62,20 @@ namespace muffin { namespace aas {
         void AddSubmodelElement(psram::unique_ptr<SubmodelElement> element)
         {
             mSubmodelElements.emplace_back(std::move(element));
+        }
+
+
+        Submodel Clone() const
+        {
+            Submodel clone(mID);
+            clone.mSubmodelElements.reserve(mSubmodelElements.size());
+
+            for (const auto& element : mSubmodelElements)
+            {
+                clone.mSubmodelElements.emplace_back(element->Clone());
+            }
+
+            return clone;
         }
 
     public:

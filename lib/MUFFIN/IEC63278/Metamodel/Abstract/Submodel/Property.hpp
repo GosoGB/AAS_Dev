@@ -10,7 +10,7 @@
  * value needs to be identical to the value of the referenced coded value in Property/valueId.
  * [Constraint AASd-007]
  * 
- * @date 2025-08-11
+ * @date 2025-08-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -35,7 +35,22 @@ namespace muffin { namespace aas {
     {
     public:
         Property() : mValueType(xsd) {}
-        ~Property() noexcept = default;
+        Property(const Property<xsd>& other)
+            : DataElement(other)
+            , mValueType(other.mValueType)
+        {
+            if (other.mValue)
+            {
+                mValue = psram::make_unique<typename xsd_type_mapper<xsd>::type>(*other.mValue);
+            }
+
+            if (other.mValueID)
+            {
+                mValueID = psram::make_unique<Reference>(*other.mValueID);
+            }
+        }
+
+        ~Property() noexcept override = default;
 
     public:
         void SetValue(const typename xsd_type_mapper<xsd>::type& value)
@@ -69,6 +84,12 @@ namespace muffin { namespace aas {
         const Reference* GetValueID() const noexcept
         {
             return mValueID.get();
+        }
+
+    public:
+        psram::unique_ptr<SubmodelElement> Clone() const override
+        {
+            return psram::make_unique<Property<xsd>>(*this);
         }
 
     private:

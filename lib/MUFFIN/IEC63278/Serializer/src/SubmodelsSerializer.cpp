@@ -23,15 +23,15 @@ namespace muffin { namespace aas {
     psram::string SubmodelsSerializer::Encode(const Identifier& id)
     {
         Container* container = Container::GetInstance();
-        const AssetAdministrationShell* aas = container->Get;
-        if (aas == nullptr)
+        const Submodel* submodel = container->GetSubmodelByID(id);
+        if (submodel == nullptr)
         {
-            log_d("AAS Not found with shortId: '%s'", id.c_str());
+            log_d("Submodel Not found with id: '%s'", id.c_str());
             return psram::string();
         }
 
         psram::string output;
-        JsonDocument doc = encode(*aas);
+        JsonDocument doc = encode(*submodel);
         serializeJson(doc, output);
         return output;
     }
@@ -39,12 +39,41 @@ namespace muffin { namespace aas {
 
     psram::string SubmodelsSerializer::EncodeAll()
     {
-        ;
+        Container* container = Container::GetInstance();
+        const auto& vectorSubmodels = container->GetAllSubmodels();
+
+        JsonDocument doc;
+        JsonArray arraySubmodels = doc.to<JsonArray>();
+
+        for (const auto& submodel : vectorSubmodels)
+        {
+            JsonDocument docSubmodel = encode(submodel);
+            arraySubmodels.add(docSubmodel);
+        }
+
+        psram::string output;
+        serializeJson(doc, output);
+        return output;
     }
 
 
     JsonDocument SubmodelsSerializer::encode(const Submodel& submodel)
     {
-        ;
+        JsonDocument doc;
+        doc["modelType"] = "Submodel";
+        doc["id"] = submodel.GetID();
+
+        if (submodel.GetIdShortOrNull() != nullptr)
+        {
+            doc["idShort"] = submodel.GetIdShortOrNull();
+        }
+
+        // if ()
+        // {
+        //     /* code */
+        // }
+        
+        
+        return doc;
     }
 }}

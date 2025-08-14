@@ -12,7 +12,7 @@
  * CONSTANT, PARAMETER or VARIABLE. Default: VARIABLE
  * [Constraint AASd-090]
  * 
- * @date 2025-08-04
+ * @date 2025-08-14
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -32,8 +32,11 @@ namespace muffin { namespace aas {
 
     class DataElement : public SubmodelElement
     {
+    protected:
+        DataElement(const DataElement& other) = default;
+
     public:
         DataElement() = default;
-        ~DataElement() = default;
+        ~DataElement() override = default;
     };
 }}
