@@ -6,7 +6,7 @@
  * AAS 시스템 내에서 사용되는 concrete type 자료구조를 정의합니다.
  * 여기에는 구조체, 열거형 또는 상수 등이 포함됩니다.
  * 
- * @date 2025-08-01
+ * @date 2025-08-18
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -38,8 +38,9 @@ namespace muffin { namespace aas {
     typedef enum class AssetKind
         : uint8_t
     {
-        TYPE        = 0,
-        INSTANCE    = 1
+        TYPE,
+        INSTANCE,
+        TOP
     } asset_kind_e;
 
 
@@ -51,7 +52,8 @@ namespace muffin { namespace aas {
         : uint8_t
     {
         EXTERNAL_REFERENCE,
-        MODEL_REFERENCE
+        MODEL_REFERENCE,
+        TOP
     } reference_types_e;
 
 
@@ -89,16 +91,9 @@ namespace muffin { namespace aas {
         RANGE,
         REFERENCE_ELEMENT,
         RELATIONSHIP_ELEMENT,
-        SUBMODEL_ELEMENT
+        SUBMODEL_ELEMENT,
+        TOP // sentinel value indicating the value's  undefined
     } key_types_e;
-
-    static const char* KEY_TYPES_STRING[] = {
-        "Referable", "FragmentReference", "GlobalReference", "AssetAdministrationShell", 
-        "ConceptDescription", "Identifiable", "Submodel", "AnnotatedRelationshipElement",
-        "BasicEventElement", "Blob", "Capability", "DataElement", "Entity", "EventElement", "File", 
-        "MultiLanguageProperty", "Operation", "Property", "Range", "ReferenceElement",    
-        "RelationshipElement", "SubmodelElement"
-    };
 
 
     typedef enum class DataTypeDefXsdEnum
@@ -137,16 +132,17 @@ namespace muffin { namespace aas {
         HEX_BINARY,             // Hex-encoded binary data
         BASE64_BINARY,          // Base64-encoded binary
         ANY_URI,                // Absolute or relative URI/IRI
-        LANG_STRING             // String with language tag (RDF/Turtle syntax)
+        LANG_STRING,            // String with language tag (RDF/Turtle syntax)
+        TOP
     } data_type_def_xsd_e;
-    // using value_data_type_e = data_type_def_xsd_e;
 
 
     typedef enum class ModelingKindEnum
         : uint8_t
     {
         TEMPLATE,
-        INSTANCE
+        INSTANCE,
+        TOP
     } modeling_kind_e;
 
 

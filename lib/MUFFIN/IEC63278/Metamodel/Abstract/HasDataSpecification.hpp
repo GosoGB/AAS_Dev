@@ -10,7 +10,7 @@
  * @note
  * The cardinality of attribute 'dataSpecification' is limited to 0..1 due to memory usage.
  * 
- * @date 2025-07-29
+ * @date 2025-08-18
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -93,16 +93,9 @@ namespace muffin { namespace aas {
             mDataSpecification = std::move(dataSpecification);
         }
 
-        bool GetDataSpecification(Reference* dataSpecification) const
+        const Reference* GetDataSpecificationOrNULL() const
         {
-            ASSERT((dataSpecification != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
-
-            if (mDataSpecification)
-            {
-                *dataSpecification = *mDataSpecification;
-                return true;
-            }
-            return false;
+            return mDataSpecification ? mDataSpecification.get() : nullptr;
         }
         
     protected:

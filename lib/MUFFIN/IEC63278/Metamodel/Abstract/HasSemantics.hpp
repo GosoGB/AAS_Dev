@@ -92,7 +92,7 @@ namespace muffin { namespace aas {
             mSemanticID = psram::make_unique<Reference>(semanticID);
         }
 
-        const Reference* GetSemanticID() const noexcept
+        const Reference* GetSemanticIdOrNULL() const noexcept
         {
             return mSemanticID.get();
         }

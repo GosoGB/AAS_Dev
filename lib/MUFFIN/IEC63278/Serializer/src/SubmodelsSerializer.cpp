@@ -2,7 +2,7 @@
  * @file SubmodelsSerializer.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-14
+ * @date 2025-08-18
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -13,6 +13,7 @@
 
 #include "../../Container/Container.hpp"
 #include "../../Include/Converter.hpp"
+#include "../Include/HelperFunctions.hpp"
 #include "../Include/SubmodelsSerializer.hpp"
 
 
@@ -62,17 +63,34 @@ namespace muffin { namespace aas {
         JsonDocument doc;
         doc["modelType"] = "Submodel";
         doc["id"] = submodel.GetID();
+        doc["kind"] = ConvertToString(submodel.GetKind());
 
         if (submodel.GetIdShortOrNull() != nullptr)
         {
             doc["idShort"] = submodel.GetIdShortOrNull();
         }
 
-        // if ()
-        // {
-        //     /* code */
-        // }
+        if (submodel.GetSemanticIdOrNULL() != nullptr)
+        {
+            doc["semanticId"] = SerializeReference(*submodel.GetSemanticIdOrNULL());
+        }
+
+        if (submodel.GetCategoryOrNull() != nullptr)
+        {
+            doc["category"] = submodel.GetCategoryOrNull();
+        }
         
+        if (submodel.GetDataSpecificationOrNULL() != nullptr)
+        {
+            doc["dataSpecification"] = SerializeReference(*submodel.GetDataSpecificationOrNULL());
+        }
+        
+        if (submodel.GetExtensionOrNull() != nullptr)
+        {
+            doc["extension"] = SerializeExtension(*submodel.GetExtensionOrNull());
+        }
+
+        // submodel.GetQualifier();
         
         return doc;
     }

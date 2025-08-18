@@ -16,6 +16,7 @@
 #include "ArduinoJson.h"
 
 #include "../../Metamodel/Abstract/Submodel/Submodel.hpp"
+#include "../../Metamodel/Abstract/Submodel/Property.hpp"
 
 #include "Common/PSRAM.hpp"
 
@@ -32,7 +33,6 @@ namespace muffin { namespace aas {
     public:
         psram::unique_ptr<Submodel> Parse(const JsonObject payload);
     private:
-        Reference parseSemanticId(const JsonObject payload);
-        // void parseIdShort(const JsonPair payload, Submodel* outSubmodel);
+        psram::unique_ptr<DataElement> parseProperty(const JsonObject payload);
     };
 }}
