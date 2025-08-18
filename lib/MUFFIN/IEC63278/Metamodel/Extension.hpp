@@ -38,10 +38,15 @@ namespace muffin { namespace aas {
     {
     public:
         virtual ~ExtensionBase() = default;
-        virtual const char* GetName() const noexcept = 0;
-        virtual bool GetValueType(data_type_def_xsd_e* valueType) const noexcept = 0;
-        virtual bool GetRefersTo(Reference* refersTo) const noexcept = 0;
-        virtual psram::unique_ptr<ExtensionBase> Clone() const = 0;
+    public:
+        virtual void SetReference(const Reference& refersTo);
+        virtual void SetSemanticID(const Reference& semanticId);
+    public:
+        virtual const char* GetName() const noexcept;
+        virtual bool GetValueType(data_type_def_xsd_e* valueType) const noexcept;
+        virtual const Reference* GetRefersToOrNULL() const;
+        virtual Reference* GetSemanticID() const noexcept;
+        virtual psram::unique_ptr<ExtensionBase> Clone() const;
     };
 
 
@@ -66,9 +71,10 @@ namespace muffin { namespace aas {
             , mName(other.mName)
             , mValueType(other.mValueType)
             , mValue(other.mValue)
-            , mRefersTo(other.mRefersTo)
             , mHasAttribute(other.mHasAttribute)
-        {}
+        {
+            mRefersTo = psram::make_unique<Reference>(*other.mRefersTo.get());
+        }
 
         Extension& operator=(const Extension& other)
         {
@@ -86,7 +92,27 @@ namespace muffin { namespace aas {
 
         psram::unique_ptr<ExtensionBase> Clone() const override
         {
-            return psram::make_unique<Extension<xsd>>(*this);
+            using namespace psram;
+            return make_unique<ExtensionBase>(*make_unique<Extension<xsd>>(*this));
+        }
+
+    public:
+        void SetValue(typename xsd_type_mapper<xsd>::type value)
+        {
+            mHasAttribute.set(static_cast<uint8_t>(flag_e::VALUE));
+            mValue = value;
+        }
+
+        void SetReference(const Reference& refersTo) override
+        {
+            mHasAttribute.set(static_cast<uint8_t>(flag_e::REFERS_TO));
+            mRefersTo = psram::make_unique<Reference>(refersTo);
+        }
+
+        void SetSemanticID(const Reference& semanticId) override
+        {
+            Reference semanticID = semanticId;
+            mSemanticID.reset(&semanticID);
         }
 
     public:
@@ -107,35 +133,29 @@ namespace muffin { namespace aas {
             return ret;
         }
 
-        bool GetValue(typename xsd_type_mapper<xsd>::type* value) const noexcept
+        const typename xsd_type_mapper<xsd>::type* GetValueOrNULL() const noexcept
         {
-            ASSERT((value != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
-
-            const bool ret = mHasAttribute.test(static_cast<uint8_t>(flag_e::VALUE));
+            const bool ret = mHasAttribute.test(static_cast<uint8_t>(flag_e::VALUE_TYPE));
             if (ret == true)
             {
-                *value = mValue;
+                return &mValue;
             }
-            return ret;
+            else
+            {
+                return nullptr;
+            }
         }
 
-        bool GetRefersTo(Reference* refersTo) const noexcept override
+        const Reference* GetRefersToOrNULL() const override
         {
-            ASSERT((refersTo != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
-
-            const bool ret = mHasAttribute.test(static_cast<uint8_t>(flag_e::REFERS_TO));
-            if (ret == true)
-            {
-                *refersTo = mRefersTo; // Now copies a Reference object
-            }
-            return ret;
+            return mRefersTo ? mRefersTo.get() : nullptr;
         }
 
     private:
         psram::string mName;
         data_type_def_xsd_e mValueType;
         typename xsd_type_mapper<xsd>::type mValue;
-        Reference mRefersTo;
+        psram::unique_ptr<Reference> mRefersTo;
     private:
         typedef enum class HasAttributeFlagEnum
         {

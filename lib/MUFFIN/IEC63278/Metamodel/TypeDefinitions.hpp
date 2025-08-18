@@ -128,12 +128,11 @@ namespace muffin { namespace aas {
         POSITIVE_INTEGER,       // Integer > 0
         NON_NEGATIVE_INTEGER,   // Integer ≥ 0
         NEGATIVE_INTEGER,       // Integer < 0
-        NON_POSITIVE_INTEGER,   // Integer ≤ 0
-        HEX_BINARY,             // Hex-encoded binary data
-        BASE64_BINARY,          // Base64-encoded binary
-        ANY_URI,                // Absolute or relative URI/IRI
-        LANG_STRING,            // String with language tag (RDF/Turtle syntax)
-        TOP
+        NON_POSITIVE_INTEGER    // Integer ≤ 0
+        // HEX_BINARY,             // Hex-encoded binary data
+        // BASE64_BINARY,          // Base64-encoded binary
+        // ANY_URI,                // Absolute or relative URI/IRI
+        // LANG_STRING             // String with language tag (RDF/Turtle syntax)
     } data_type_def_xsd_e;
 
 
@@ -151,6 +150,7 @@ namespace muffin { namespace aas {
     {
         VALUE_QUALIFIER,
         CONCEPT_QUALIFIER,
-        TEMPLATE_QUALIFIER
+        TEMPLATE_QUALIFIER,
+        TOP
     } qualifier_kind_e;
 }}

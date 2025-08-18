@@ -5,7 +5,7 @@
  * @brief
  * The value of a qualifiable element may be further qualified by one or more qualifiers.
  * 
- * @date 2025-08-04
+ * @date 2025-08-18
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -73,9 +73,9 @@ namespace muffin { namespace aas {
         }
 
     public:
-        const QualifierBase* GetQualifier() const noexcept
+        const QualifierBase* GetQualifierOrNULL() const noexcept
         {
-            return mQualifier.get();
+            return mQualifier ? mQualifier.get() : nullptr;
         }
 
     protected:

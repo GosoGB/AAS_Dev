@@ -16,7 +16,7 @@
  * valueType.
  * [Constraint AASd-020]
  * 
- * @date 2025-08-04
+ * @date 2025-08-18
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -47,10 +47,10 @@ namespace muffin { namespace aas {
         virtual ~QualifierBase() noexcept = default;
         virtual void SetKind(const qualifier_kind_e kind) = 0;
         virtual void SetValueID(const Reference& valueId) = 0;
-        virtual const qualifier_kind_e* GetKind() const noexcept = 0;
+        virtual const qualifier_kind_e* GetKindOrNULL() const noexcept = 0;
         virtual QualifierType GetType() const noexcept = 0;
         virtual data_type_def_xsd_e GetValueType() const noexcept = 0;
-        virtual const Reference* GetValueID() const noexcept = 0;
+        virtual const Reference* GetValueIdOrNULL() const noexcept = 0;
         virtual psram::unique_ptr<QualifierBase> Clone() const = 0;
     };
     
@@ -140,9 +140,9 @@ namespace muffin { namespace aas {
         }
 
     public:
-        const qualifier_kind_e* GetKind() const noexcept override
+        const qualifier_kind_e* GetKindOrNULL() const noexcept override
         {
-            return mKind.get();
+            return mKind ? mKind.get() : nullptr;
         }
 
         QualifierType GetType() const noexcept override
@@ -155,14 +155,14 @@ namespace muffin { namespace aas {
             return mValueType;
         }
 
-        const typename xsd_type_mapper<xsd>::type* GetValue() const noexcept
+        const typename xsd_type_mapper<xsd>::type* GetValueOrNULL() const noexcept
         {
-            return mValue.get();
+            return mValue ? mValue.get() : nullptr;
         }
 
-        const Reference* GetValueID() const noexcept override
+        const Reference* GetValueIdOrNULL() const noexcept override
         {
-            return mValueID.get();
+            return mValueID ? mValueID.get() : nullptr;
         }
 
     protected:

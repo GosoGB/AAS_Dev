@@ -2,7 +2,7 @@
  * @file AssetAdministrationShellDeserializer.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-16
+ * @date 2025-08-18
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -25,7 +25,8 @@ namespace muffin { namespace aas {
 
     psram::unique_ptr<AssetAdministrationShell> AssetAdministrationShellDeserializer::Parse(const JsonObject payload)
     {
-        ASSERT(("AssetAdministrationShell" == payload["modelType"]), "INVALID VALUE FOR ATTRIBUTE 'modelType'");
+        ASSERT((strcmp("AssetAdministrationShell", payload["modelType"].as<const char*>()) == 0),
+            "INVALID VALUE FOR ATTRIBUTE 'modelType'");
 
         ASSERT((payload.containsKey("id")), "MISSING MANDATORY ATTRIBUTE 'id'");
         const char* id = payload["id"].as<const char*>();

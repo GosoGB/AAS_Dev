@@ -22,17 +22,24 @@ namespace muffin { namespace aas {
     
     psram::unique_ptr<Submodel> SubmodelsDeserializer::Parse(const JsonObject payload)
     {
-        ASSERT(("Submodel" == payload["modelType"]), "INVALID VALUE FOR ATTRIBUTE 'modelType'");
+        ASSERT((strcmp("Submodel", payload["modelType"].as<const char*>()) == 0),
+            "INVALID VALUE FOR ATTRIBUTE 'modelType'");
 
         ASSERT((payload.containsKey("id")), "MISSING MANDATORY ATTRIBUTE 'id'");
         const char* id = payload["id"].as<const char*>();
         ASSERT((id != nullptr), "ATTRIBUTE 'id' CANNOT BE NULL");
 
         Submodel submodel(id);
-        
-        if (payload.containsKey("category"))
+
+        if (payload.containsKey("kind"))
         {
-            submodel.SetCategory(payload["category"].as<const char*>());
+            const char* strModelingKind = payload["kind"].as<const char*>();
+            ASSERT((strModelingKind != nullptr), "ATTRIBUTE 'kind' CANNOT BE NULL");
+            const modeling_kind_e modelingKind = ConvertToModelingKindType(strModelingKind);
+            if (modeling_kind_e::TEMPLATE == modelingKind)
+            {
+                submodel.SetKind(modelingKind);
+            }
         }
 
         if (payload.containsKey("idShort"))
@@ -45,9 +52,24 @@ namespace muffin { namespace aas {
             Reference semanticId = DeserializeReference(payload["semanticId"].as<JsonObject>());
             submodel.SetSemanticID(semanticId);
         }
-
-        // submodel.GetQualifier();
-        // submodel.GetExtensionOrNull();
-        // submodel.GetDataSpecificationOrNULL();
+        
+        if (payload.containsKey("category"))
+        {
+            submodel.SetCategory(payload["category"].as<const char*>());
+        }
+        
+        if (payload.containsKey("extensions"))
+        {
+            using extensionType = psram::unique_ptr<ExtensionBase>;
+            extensionType base = DeserializeExtensions(payload["extensions"].as<JsonArray>());
+            submodel.SetExtension(std::move(base));
+        }
+        
+        if (payload.containsKey("qualifiers"))
+        {
+            using qualifierType = psram::unique_ptr<QualifierBase>;
+            qualifierType base = DeserializeQualifiers(payload["qualifiers"].as<JsonArray>());
+            submodel.SetQualifier(std::move(base));
+        }
     }
 }}

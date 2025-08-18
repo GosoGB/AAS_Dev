@@ -96,6 +96,12 @@ namespace muffin { namespace aas {
         "rdf:langString"
     };
 
+    const char* QUALIFIER_KIND_STRING[3] PROGMEM = {
+        "ValueQualifier",
+        "ConceptQualifier",
+        "TemplateQualifier"
+    };
+
 
     key_types_e ConvertToKeyType(const char* keyType)
     {
@@ -163,7 +169,8 @@ namespace muffin { namespace aas {
 
     data_type_def_xsd_e ConvertToDataTypeDefXSD(const char* xsd)
     {
-        for (uint8_t idx = 0; idx < static_cast<uint8_t>(data_type_def_xsd_e::TOP); ++idx)
+        const uint8_t MAX_ITERATION = static_cast<uint8_t>(data_type_def_xsd_e::NON_POSITIVE_INTEGER) + 1;
+        for (uint8_t idx = 0; idx < MAX_ITERATION; ++idx)
         {
             if (strcmp(DATA_TYPE_DEF_XSD_STRING[idx], xsd) == 0)
             {
@@ -171,9 +178,27 @@ namespace muffin { namespace aas {
             }
         }
 
-        ASSERT(false, "UNDEFINED KEY TYPE: %s", xsd);
-        log_e("UNDEFINED KEY TYPE: %s", xsd);
-        return data_type_def_xsd_e::TOP;
+        ASSERT(false, "UNDEFINED DATA TYPE DEFINTION: %s", xsd);
+        log_e("UNDEFINED DATA TYPE DEFINTION: %s", xsd);
+        /**
+         * @todo need to refactor the function signature
+         */
+        return data_type_def_xsd_e::STRING;
+    }
+
+    qualifier_kind_e ConvertToQualifierKindType(const char* qualifierKind)
+    {
+        for (uint8_t idx = 0; idx < static_cast<uint8_t>(qualifier_kind_e::TOP); ++idx)
+        {
+            if (strcmp(QUALIFIER_KIND_STRING[idx], qualifierKind) == 0)
+            {
+                return static_cast<qualifier_kind_e>(idx);
+            }
+        }
+
+        ASSERT(false, "UNDEFINED QUALIFIER KIND TYPE: %s", qualifierKind);
+        log_e("UNDEFINED QUALIFIER KIND TYPE: %s", qualifierKind);
+        return qualifier_kind_e::TOP;
     }
 
 
@@ -208,7 +233,19 @@ namespace muffin { namespace aas {
 
     psram::string ConvertToString(const data_type_def_xsd_e xsd)
     {
-        ASSERT((static_cast<uint8_t>(xsd) < static_cast<uint8_t>(data_type_def_xsd_e::TOP)), "UNDEFINED VALUE FOR XSD DATA TYPE");
+        ASSERT(
+            (static_cast<uint8_t>(xsd) < static_cast<uint8_t>(data_type_def_xsd_e::NON_POSITIVE_INTEGER)+1), "UNDEFINED VALUE FOR XSD DATA TYPE");
         return DATA_TYPE_DEF_XSD_STRING[static_cast<uint8_t>(xsd)];
+    }
+
+
+    psram::string ConvertToString(const qualifier_kind_e qualifierKind)
+    {
+        ASSERT((
+            static_cast<uint8_t>(qualifierKind) < 
+            static_cast<uint8_t>(data_type_def_xsd_e::NON_POSITIVE_INTEGER) + 1),
+            "UNDEFINED VALUE FOR QUALIFIER KIND TYPE"
+        );
+        return QUALIFIER_KIND_STRING[static_cast<uint8_t>(qualifierKind)];
     }
 }}

@@ -80,17 +80,17 @@ namespace muffin { namespace aas {
             doc["category"] = submodel.GetCategoryOrNull();
         }
         
-        if (submodel.GetDataSpecificationOrNULL() != nullptr)
-        {
-            doc["dataSpecification"] = SerializeReference(*submodel.GetDataSpecificationOrNULL());
-        }
-        
         if (submodel.GetExtensionOrNull() != nullptr)
         {
-            doc["extension"] = SerializeExtension(*submodel.GetExtensionOrNull());
+            JsonArray extensions = doc["extensions"].to<JsonArray>();
+            extensions.add(SerializeExtension(*submodel.GetExtensionOrNull()));
         }
-
-        // submodel.GetQualifier();
+        
+        if (submodel.GetQualifierOrNULL() != nullptr)
+        {
+            JsonArray qualifiers = doc["qualifiers"].to<JsonArray>();
+            qualifiers.add(SerializeQualifier(*submodel.GetQualifierOrNULL()));
+        }
         
         return doc;
     }

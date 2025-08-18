@@ -32,6 +32,7 @@ namespace muffin { namespace aas {
         virtual ~HasKind() noexcept = default;
     public:
         modeling_kind_e GetKind() const noexcept { return mKind; }
+        void SetKind(const modeling_kind_e kind) { mKind = kind; }
     protected:
         modeling_kind_e mKind;
     };

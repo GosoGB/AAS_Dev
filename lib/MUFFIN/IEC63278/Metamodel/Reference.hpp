@@ -120,7 +120,7 @@ namespace muffin { namespace aas {
         {
             return *this;
         }
-
+        
     public:
         void SetReferredSemanticID(psram::unique_ptr<Reference> referredSemanticID)
         {
