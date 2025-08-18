@@ -21,7 +21,7 @@
  * @note 
  * The cardinality of attribute 'specificAssetID' is limited to 0..1 due to memory usage.
  * 
- * @date 2025-07-29
+ * @date 2025-08-15
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -89,9 +89,9 @@ namespace muffin { namespace aas {
             mAssetKind = assetKind;
         }
 
-        void SetGlobalAssetID(const psram::string& globalAssetID)
+        void SetGlobalAssetID(psram::string&& globalAssetID)
         {
-            psram::vector<Key> keys { {key_types_e::GLOBAL_REFERENCE, globalAssetID} };
+            psram::vector<Key> keys { { key_types_e::GLOBAL_REFERENCE, std::move(globalAssetID) } };
             mGlobalAssetID = psram::make_unique<Reference>(reference_types_e::EXTERNAL_REFERENCE, std::move(keys));
         }
 

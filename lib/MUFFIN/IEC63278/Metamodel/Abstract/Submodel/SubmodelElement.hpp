@@ -6,7 +6,7 @@
  * A submodel element is an element suitable for the description and differentiation of assets.
  * It is recommended to add a semanticId to a SubmodelElement.
  * 
- * @date 2025-08-14
+ * @date 2025-08-16
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -38,14 +38,15 @@ namespace muffin { namespace aas {
 
     public:
         SubmodelElement() = default;
-        SubmodelElement(SubmodelElement&&) = default;
+        SubmodelElement(SubmodelElement&&) noexcept = default;
 
         SubmodelElement& operator=(const SubmodelElement&) = delete;
-        SubmodelElement& operator=(SubmodelElement&&) = default;
+        SubmodelElement& operator=(SubmodelElement&&) noexcept = default;
         
         virtual ~SubmodelElement() noexcept = default;
     
     public:
         virtual psram::unique_ptr<SubmodelElement> Clone() const = 0;
+        virtual key_types_e GetModelType() const noexcept = 0;
     };
 }}

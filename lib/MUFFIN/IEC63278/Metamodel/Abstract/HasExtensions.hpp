@@ -11,7 +11,7 @@
  * @note
  * The cardinality of attribute 'extension' is limited to 0..1 due to memory usage.
  *
- * @date 2025-08-12
+ * @date 2025-08-16
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -39,7 +39,16 @@ namespace muffin { namespace aas {
     public:
         HasExtensions() = default;
 
-        HasExtensions(const HasExtensions& other) = delete;
+    protected:
+        HasExtensions(const HasExtensions& other)
+        {
+            if (other.mExtension)
+            {
+                mExtension = other.mExtension->Clone();
+            }
+        }
+
+    public:
         HasExtensions& operator=(const HasExtensions& other) = delete;
 
         HasExtensions(HasExtensions&& other) noexcept = default;

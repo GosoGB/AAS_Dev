@@ -10,7 +10,7 @@
  * Administration Shell into distinguishable parts. Each submodel refers to a well-defined domain 
  * or subject matter. Submodels can become standardized and, thus, become submodels templates.
  * 
- * @date 2025-08-14
+ * @date 2025-08-16
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef> 
 #include <memory>
 
@@ -45,38 +46,51 @@ namespace muffin { namespace aas {
 
     public:
         Submodel(const psram::string& id) : Identifiable(id) {}
-        Submodel(const psram::string& id, SubmodelElements&& submodelElements)
-            : Identifiable(id)
-            , mSubmodelElements(std::move(submodelElements))
-        {}
+        Submodel(psram::string&& id) : Identifiable(std::move(id)) {}
 
         Submodel(const Submodel& other) = delete;
-        Submodel(Submodel&& other) noexcept = default;
-        
         Submodel& operator=(const Submodel& other) = delete;
+        
+        Submodel(Submodel&& other) noexcept = default;
         Submodel& operator=(Submodel&& other) noexcept = default;
             
         virtual ~Submodel() noexcept = default;
-    
+
+
+    public:
+        Submodel Clone() const
+        {
+            Submodel clone(mID);
+            clone.mSubmodelElements.reserve(this->mSubmodelElements.size());
+
+            for (const auto& element : this->mSubmodelElements)
+            {
+                clone.AddSubmodelElement(element->Clone());
+            }
+
+            return clone;
+        }
+
     public:
         void AddSubmodelElement(psram::unique_ptr<SubmodelElement> element)
         {
             mSubmodelElements.emplace_back(std::move(element));
         }
 
-
-        Submodel Clone() const
+        const SubmodelElement* GetElementWithIdShort(const psram::string& idShort)
         {
-            Submodel clone(mID);
-            clone.mSubmodelElements.reserve(mSubmodelElements.size());
+            auto it = std::find_if(
+                mSubmodelElements.cbegin(), 
+                mSubmodelElements.cend(), 
+                [&idShort](const psram::unique_ptr<SubmodelElement>& element)
+                {
+                    return element->GetIdShortOrNull();
+                }
+            );
 
-            for (const auto& element : mSubmodelElements)
-            {
-                clone.mSubmodelElements.emplace_back(element->Clone());
-            }
-
-            return clone;
+            return (it != mSubmodelElements.cend()) ? it->get() : nullptr;
         }
+    
 
     public:
         using iterator = typename SubmodelElements::iterator;
@@ -99,6 +113,7 @@ namespace muffin { namespace aas {
             return mSubmodelElements[index].get();
         }
 
+        
     private:
         SubmodelElements mSubmodelElements;
     };

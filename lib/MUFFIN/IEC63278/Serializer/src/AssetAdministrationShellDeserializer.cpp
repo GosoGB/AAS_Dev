@@ -2,7 +2,7 @@
  * @file AssetAdministrationShellDeserializer.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-13
+ * @date 2025-08-16
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -14,6 +14,7 @@
 #include "../../Container/Container.hpp"
 #include "../../Include/Converter.hpp"
 #include "../Include/AssetAdministrationShellDeserializer.hpp"
+#include "../Include/HelperFunctions.hpp"
 
 #include "Common/Assert.hpp"
 
@@ -104,37 +105,10 @@ namespace muffin { namespace aas {
 
         for (const auto& submodel : payload)
         {
-            const char* refType = submodel["type"].as<const char*>();
-            ASSERT((refType != nullptr), "ATTRIBUTE 'type' CANNOT BE NULL");
-
-            const reference_types_e referenceType = strcmp(refType, "ModelReference") == 0
-                ? reference_types_e::MODEL_REFERENCE
-                : reference_types_e::EXTERNAL_REFERENCE;
-
-            const size_t numKeys = submodel["keys"].size();
-            ASSERT((numKeys > 0), "THE SIZE OF 'keys' MUST BE GREATER THAN 0");
-
-            psram::vector<Key> keys;
-            keys.reserve(numKeys);
-
-            for (const auto& key : submodel["keys"].as<JsonArray>())
-            {
-                ASSERT((key.containsKey("type")), "KEY 'type' CANNOT BE MISSING");
-                ASSERT((key.containsKey("value")), "KEY 'value' CANNOT BE MISSING");
-
-                const char* strType = key["type"].as<const char*>();
-                ASSERT((strType != nullptr), "THE VALUE OF 'type' CANNOT BE NULL");
-                const key_types_e type = ConvertToKeyType(strType);
-
-                const char* value = key["value"].as<const char*>();
-                ASSERT((value != nullptr), "THE VALUE OF 'value' CANNOT BE NULL");
-                keys.emplace_back(type, value);
-            }
-            ASSERT((keys.empty() == false), "THE SIZE OF 'keys' CANNOT BE ZERO");
-
-            submodels.emplace_back(referenceType, std::move(keys));
+            Reference referenceToSubmodel = DeserializeReference(submodel);
+            submodels.emplace_back(referenceToSubmodel);
         }
-        ASSERT((submodels.empty() == false), "THE SIZE OF 'submodels' CANNOT BE ZERO");
+
         return submodels;
     }
 }}

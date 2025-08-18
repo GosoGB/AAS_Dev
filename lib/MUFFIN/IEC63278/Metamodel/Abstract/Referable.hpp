@@ -21,7 +21,7 @@
  * @note
  * This class inherits from the @class 'HasExtensions' and shouldn't be instantiated directly.
  * 
- * @date 2025-08-12
+ * @date 2025-08-16
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -50,7 +50,21 @@ namespace muffin { namespace aas {
     public:
         Referable() = default;
 
-        Referable(const Referable&) = delete;
+    protected:
+        Referable(const Referable& other)
+            : HasExtensions(other) // 부모 클래스의 복사 생성자 호출
+        {
+            if (other.mCategory)
+            {
+                mCategory = psram::make_unique<psram::string>(*other.mCategory);
+            }
+            if (other.mIdShort)
+            {
+                mIdShort = psram::make_unique<psram::string>(*other.mIdShort);
+            }
+        }
+
+    public:
         Referable& operator=(const Referable&) = delete;
         
         Referable(Referable&&) = default;

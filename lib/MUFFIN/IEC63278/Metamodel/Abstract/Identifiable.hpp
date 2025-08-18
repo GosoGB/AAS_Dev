@@ -51,7 +51,14 @@ namespace muffin { namespace aas {
     class Identifiable : public Referable
     {
     public:
-        explicit Identifiable(psram::string id)
+        explicit Identifiable(const psram::string& id)
+            : Referable()
+            , mID(id)
+        {
+            ASSERT((id.empty() == false), "IDENTIFIER CANNOT BE EMPTY");
+        }
+
+        explicit Identifiable(psram::string&& id)
             : Referable()
             , mID(std::move(id))
         {

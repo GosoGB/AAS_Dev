@@ -16,7 +16,7 @@
  *  - @var referredSemanticId: 0..1
  *  - @var keys: 1..*
  * 
- * @date 2025-07-29
+ * @date 2025-08-18
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -59,9 +59,32 @@ namespace muffin { namespace aas {
             ASSERT((mKeys.empty() == false), "REFERENCE KEY CANNOT BE EMPTY");
         }
 
-        Reference(const Reference& other) = default;
+        Reference(const Reference& other)
+            : mType(other.mType)
+            , mKeys(other.mKeys)
+            , mReferredSemanticID(nullptr)
+        {
+            if (other.mReferredSemanticID)
+            {
+                mReferredSemanticID = psram::make_unique<Reference>(*other.mReferredSemanticID);
+            }
+        }
+
+        Reference& operator=(const Reference& other)
+        {
+            if (this != &other)
+            {
+                mType = other.mType;
+                mKeys = other.mKeys;
+                mReferredSemanticID = other.mReferredSemanticID
+                                        ? psram::make_unique<Reference>(*other.mReferredSemanticID)
+                                        : nullptr;
+            }
+            return *this;
+        }
+        
         Reference(Reference&& other) noexcept = default;
-        Reference& operator=(const Reference& other) = default;
+        Reference& operator=(Reference&& other) noexcept = default;
 
         ~Reference() noexcept = default;
 
@@ -72,21 +95,36 @@ namespace muffin { namespace aas {
                 return false;
             }
 
-            std::shared_ptr<const Reference> spThis = mReferredSemanticID.lock();
-            std::shared_ptr<const Reference> spOther = other.mReferredSemanticID.lock();
+            const bool thisHasId = (mReferredSemanticID != nullptr);
+            const bool otherHasId = (other.mReferredSemanticID != nullptr);
 
-            if (spThis && spOther)
+            if (thisHasId != otherHasId)
             {
-                return *spThis == *spOther;
+                return false;
             }
 
-            return !spThis && !spOther;
+            if (thisHasId == false)
+            {
+                return true;
+            }
+
+            return *mReferredSemanticID == *other.mReferredSemanticID;
+        }
+
+        bool operator!=(const Reference& other) const
+        {
+            return !(*this == other);
+        }
+
+        Reference Clone() const
+        {
+            return *this;
         }
 
     public:
-        void SetReferredSemanticID(std::shared_ptr<Reference> referredSemanticID)
+        void SetReferredSemanticID(psram::unique_ptr<Reference> referredSemanticID)
         {
-            mReferredSemanticID = referredSemanticID;
+            mReferredSemanticID = std::move(referredSemanticID);
         }
 
     public:
@@ -95,9 +133,9 @@ namespace muffin { namespace aas {
             return mType;
         }
 
-        std::weak_ptr<Reference> GetReferredSemanticID() const noexcept
+        const Reference* GetReferredSemanticID() const noexcept
         {
-            return mReferredSemanticID;
+            return mReferredSemanticID ? mReferredSemanticID.get() : nullptr;
         }
 
         const psram::vector<Key>& GetKeys() const noexcept
@@ -107,7 +145,7 @@ namespace muffin { namespace aas {
 
     private:
         reference_types_e mType;
-        std::weak_ptr<Reference> mReferredSemanticID;
+        psram::unique_ptr<Reference> mReferredSemanticID;
         psram::vector<Key> mKeys;
     };
 }}

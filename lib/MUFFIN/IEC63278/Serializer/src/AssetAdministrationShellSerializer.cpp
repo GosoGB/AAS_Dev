@@ -116,7 +116,7 @@ namespace muffin { namespace aas {
                 //     objKey["value"] = keys[idx].GetValue();
                 // }
 
-                arrSubmodelReferencess.add(ConvertReferenceToJSON(reference));
+                arrSubmodelReferencess.add(ConvertToJSON(reference));
             }
         }
 
