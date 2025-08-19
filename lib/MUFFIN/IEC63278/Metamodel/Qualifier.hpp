@@ -45,13 +45,15 @@ namespace muffin { namespace aas {
     {
     public:
         virtual ~QualifierBase() noexcept = default;
-        virtual void SetKind(const qualifier_kind_e kind) = 0;
-        virtual void SetValueID(const Reference& valueId) = 0;
-        virtual const qualifier_kind_e* GetKindOrNULL() const noexcept = 0;
-        virtual QualifierType GetType() const noexcept = 0;
-        virtual data_type_def_xsd_e GetValueType() const noexcept = 0;
-        virtual const Reference* GetValueIdOrNULL() const noexcept = 0;
-        virtual psram::unique_ptr<QualifierBase> Clone() const = 0;
+    public:
+        virtual void SetKind(const qualifier_kind_e kind);
+        virtual void SetValueID(const Reference& valueId);
+    public:
+        virtual const qualifier_kind_e* GetKindOrNULL() const noexcept;
+        virtual QualifierType GetType() const noexcept;
+        virtual data_type_def_xsd_e GetValueType() const noexcept;
+        virtual const Reference* GetValueIdOrNULL() const noexcept;
+        virtual psram::unique_ptr<QualifierBase> Clone() const;
     };
     
 
@@ -61,6 +63,8 @@ namespace muffin { namespace aas {
     public:
         Qualifier(const QualifierType& type) : mValueType(xsd), mType(type) {}
         Qualifier(const Qualifier& other)
+            : mValueType(other.mValueType)
+            , mType(other.mType)
         {
             if (other.mKind != nullptr)
             {
@@ -110,6 +114,9 @@ namespace muffin { namespace aas {
                 {
                     mValueID.reset();
                 }
+
+                mValueType = other.mValueType;
+                mType = other.mType;
             }
             return *this;
         }
@@ -120,7 +127,7 @@ namespace muffin { namespace aas {
 
         psram::unique_ptr<QualifierBase> Clone() const override
         {
-            return psram::make_unique<Qualifier<xsd>>(*this);
+            return psram::make_unique<QualifierBase>(*psram::make_unique<Qualifier<xsd>>(*this));
         }
 
     public:
@@ -131,7 +138,14 @@ namespace muffin { namespace aas {
 
         void SetValue(const typename xsd_type_mapper<xsd>::type& value)
         {
-            mValue = value;
+            if (mValue)
+            {
+                *mValue = value;
+            }
+            else
+            {
+                mValue = psram::make_unique<typename xsd_type_mapper<xsd>::type>(value);
+            }
         }
 
         void SetValueID(const Reference& valueId) override
@@ -167,8 +181,8 @@ namespace muffin { namespace aas {
 
     protected:
         psram::unique_ptr<qualifier_kind_e> mKind;
-        QualifierType mType;
         data_type_def_xsd_e mValueType;
+        QualifierType mType;
         psram::unique_ptr<typename xsd_type_mapper<xsd>::type> mValue;
         psram::unique_ptr<Reference> mValueID;
     };

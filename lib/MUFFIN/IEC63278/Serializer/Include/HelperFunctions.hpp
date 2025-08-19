@@ -2,7 +2,7 @@
  * @file HelperFunctions.hpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-18
+ * @date 2025-08-19
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -16,6 +16,7 @@
 #include <ArduinoJson.h>
 
 #include "../../Include/Converter.hpp"
+#include "../../Metamodel/Abstract/Submodel/SubmodelElement.hpp"
 #include "../../Metamodel/Extension.hpp"
 #include "../../Metamodel/Qualifier.hpp"
 #include "../../Metamodel/Reference.hpp"
@@ -41,4 +42,5 @@ namespace muffin { namespace aas {
     psram::unique_ptr<ExtensionBase> DeserializeExtensions(const JsonArray extensions);
     Reference DeserializeReference(const JsonObject reference);
     psram::unique_ptr<QualifierBase> DeserializeQualifiers(const JsonArray qualifiers);
+    psram::unique_ptr<SubmodelElement> DeserializeSubmodelElements(const JsonArray submodelElements);
 }}

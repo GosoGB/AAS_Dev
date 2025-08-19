@@ -2,7 +2,7 @@
  * @file HelperFunctions.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-18
+ * @date 2025-08-19
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -201,6 +201,110 @@ namespace muffin { namespace aas {
         default:
             log_d("UNIMPLEMENTED DATA TYPE DEFINITION: %s", 
                 ConvertToString(qualifierBase.GetValueType()).c_str());
+            break;
+        }
+    }
+
+
+    void processQualifierValue(JsonVariant value, QualifierBase* qualifierBase)
+    {
+        using xsd = data_type_def_xsd_e;
+
+        switch (qualifierBase->GetValueType())
+        {
+        case data_type_def_xsd_e::STRING:
+        case data_type_def_xsd_e::DATE:
+        case data_type_def_xsd_e::TIME:
+        case data_type_def_xsd_e::DATETIME:
+        case data_type_def_xsd_e::DATETIMESTAMP:
+        case data_type_def_xsd_e::G_YEAR:
+        case data_type_def_xsd_e::G_MONTH:
+        case data_type_def_xsd_e::G_DAY:
+        case data_type_def_xsd_e::G_YEAR_MONTH:
+        case data_type_def_xsd_e::G_MONTH_DAY:
+        case data_type_def_xsd_e::DURATION:
+        case data_type_def_xsd_e::YEAR_MONTH_DURATION:
+        case data_type_def_xsd_e::DAYTIME_DURATION:
+        {
+            Qualifier<xsd::STRING>* qualifier = static_cast<Qualifier<xsd::STRING>*>(qualifierBase);
+            qualifier->SetValue(value.as<const char*>());
+            return;
+        }
+        case data_type_def_xsd_e::BOOLEAN:
+        {
+            Qualifier<xsd::BOOLEAN>* qualifier = static_cast<Qualifier<xsd::BOOLEAN>*>(qualifierBase);
+            qualifier->SetValue(value.as<bool>());
+            return;
+        }
+        case data_type_def_xsd_e::DECIMAL:
+        case data_type_def_xsd_e::DOUBLE:
+        {
+            Qualifier<xsd::DECIMAL>* qualifier = static_cast<Qualifier<xsd::DECIMAL>*>(qualifierBase);
+            qualifier->SetValue(value.as<double>());
+            return;
+        }
+        case data_type_def_xsd_e::INTEGER:
+        case data_type_def_xsd_e::LONG:
+        case data_type_def_xsd_e::NEGATIVE_INTEGER:
+        case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
+        {
+            Qualifier<xsd::INTEGER>* qualifier = static_cast<Qualifier<xsd::INTEGER>*>(qualifierBase);
+            qualifier->SetValue(value.as<int64_t>());
+            return;
+        }
+        case data_type_def_xsd_e::FLOAT:
+        {
+            Qualifier<xsd::FLOAT>* qualifier = static_cast<Qualifier<xsd::FLOAT>*>(qualifierBase);
+            qualifier->SetValue(value.as<float>());
+            return;
+        }
+        case data_type_def_xsd_e::BYTE:
+        {
+            Qualifier<xsd::BYTE>* qualifier = static_cast<Qualifier<xsd::BYTE>*>(qualifierBase);
+            qualifier->SetValue(value.as<uint8_t>());
+            return;
+        }
+        case data_type_def_xsd_e::SHORT:
+        {
+            Qualifier<xsd::SHORT>* qualifier = static_cast<Qualifier<xsd::SHORT>*>(qualifierBase);
+            qualifier->SetValue(value.as<int16_t>());
+            return;
+        }
+        case data_type_def_xsd_e::INT:
+        {
+            Qualifier<xsd::INT>* qualifier = static_cast<Qualifier<xsd::INT>*>(qualifierBase);
+            qualifier->SetValue(value.as<int32_t>());
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_BYTE:
+        {
+            Qualifier<xsd::UNSIGNED_BYTE>* qualifier = static_cast<Qualifier<xsd::UNSIGNED_BYTE>*>(qualifierBase);
+            qualifier->SetValue(value.as<uint8_t>());
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_SHORT:
+        {
+            Qualifier<xsd::UNSIGNED_SHORT>* qualifier = static_cast<Qualifier<xsd::UNSIGNED_SHORT>*>(qualifierBase);
+            qualifier->SetValue(value.as<uint16_t>());
+            return;
+        }   
+        case data_type_def_xsd_e::UNSIGNED_INT:
+        {
+            Qualifier<xsd::UNSIGNED_INT>* qualifier = static_cast<Qualifier<xsd::UNSIGNED_INT>*>(qualifierBase);
+            qualifier->SetValue(value.as<uint32_t>());
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_LONG:
+        case data_type_def_xsd_e::POSITIVE_INTEGER:
+        case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
+        {
+            Qualifier<xsd::UNSIGNED_LONG>* qualifier = static_cast<Qualifier<xsd::UNSIGNED_LONG>*>(qualifierBase);
+            qualifier->SetValue(value.as<uint64_t>());
+            return;
+        }
+        default:
+            log_d("UNIMPLEMENTED DATA TYPE DEFINITION: %s", 
+                ConvertToString(qualifierBase->GetValueType()).c_str());
             break;
         }
     }
@@ -415,6 +519,7 @@ namespace muffin { namespace aas {
          * @todo semanticId 처리 구현해야 함
          */
         // extension->GetSemanticIdOrNULL();
+        return extensionBase;
     }
 
 
@@ -463,9 +568,168 @@ namespace muffin { namespace aas {
     }
 
 
+    psram::unique_ptr<QualifierBase> constructQualifier(const char* qualifierType, const char* valueType)
+    {
+        ASSERT((qualifierType != nullptr), "ATTRIBUTE 'type' CANNOT BE NULL");
+        ASSERT((valueType != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
+
+        using xsd = data_type_def_xsd_e;
+        using base = QualifierBase;
+        using namespace psram;
+        
+        switch (ConvertToDataTypeDefXSD(valueType))
+        {
+        case data_type_def_xsd_e::STRING:
+            return make_unique<base>(*make_unique<Qualifier<xsd::STRING>>(qualifierType));
+        case data_type_def_xsd_e::BOOLEAN:
+            return make_unique<base>(*make_unique<Qualifier<xsd::BOOLEAN>>(qualifierType));
+        case data_type_def_xsd_e::DECIMAL:
+            return make_unique<base>(*make_unique<Qualifier<xsd::DECIMAL>>(qualifierType));
+        case data_type_def_xsd_e::INTEGER:
+            return make_unique<base>(*make_unique<Qualifier<xsd::INTEGER>>(qualifierType));
+        case data_type_def_xsd_e::DOUBLE:
+            return make_unique<base>(*make_unique<Qualifier<xsd::DOUBLE>>(qualifierType));
+        case data_type_def_xsd_e::FLOAT:
+            return make_unique<base>(*make_unique<Qualifier<xsd::FLOAT>>(qualifierType));
+        case data_type_def_xsd_e::DATE:
+            return make_unique<base>(*make_unique<Qualifier<xsd::DATE>>(qualifierType));
+        case data_type_def_xsd_e::TIME:
+            return make_unique<base>(*make_unique<Qualifier<xsd::TIME>>(qualifierType));
+        case data_type_def_xsd_e::DATETIME:
+            return make_unique<base>(*make_unique<Qualifier<xsd::DATETIME>>(qualifierType));
+        case data_type_def_xsd_e::DATETIMESTAMP:
+            return make_unique<base>(*make_unique<Qualifier<xsd::DATETIMESTAMP>>(qualifierType));
+        case data_type_def_xsd_e::G_YEAR:
+            return make_unique<base>(*make_unique<Qualifier<xsd::G_YEAR>>(qualifierType));
+        case data_type_def_xsd_e::G_MONTH:
+            return make_unique<base>(*make_unique<Qualifier<xsd::G_MONTH>>(qualifierType));
+        case data_type_def_xsd_e::G_DAY:
+            return make_unique<base>(*make_unique<Qualifier<xsd::G_DAY>>(qualifierType));
+        case data_type_def_xsd_e::G_YEAR_MONTH:
+            return make_unique<base>(*make_unique<Qualifier<xsd::G_YEAR_MONTH>>(qualifierType));
+        case data_type_def_xsd_e::G_MONTH_DAY:
+            return make_unique<base>(*make_unique<Qualifier<xsd::G_MONTH_DAY>>(qualifierType));
+        case data_type_def_xsd_e::DURATION:
+            return make_unique<base>(*make_unique<Qualifier<xsd::DURATION>>(qualifierType));
+        case data_type_def_xsd_e::YEAR_MONTH_DURATION:
+            return make_unique<base>(*make_unique<Qualifier<xsd::YEAR_MONTH_DURATION>>(qualifierType));
+        case data_type_def_xsd_e::DAYTIME_DURATION:
+            return make_unique<base>(*make_unique<Qualifier<xsd::DAYTIME_DURATION>>(qualifierType));
+        case data_type_def_xsd_e::BYTE:
+            return make_unique<base>(*make_unique<Qualifier<xsd::BYTE>>(qualifierType));
+        case data_type_def_xsd_e::SHORT:
+            return make_unique<base>(*make_unique<Qualifier<xsd::SHORT>>(qualifierType));
+        case data_type_def_xsd_e::INT:
+            return make_unique<base>(*make_unique<Qualifier<xsd::INT>>(qualifierType));
+        case data_type_def_xsd_e::LONG:
+            return make_unique<base>(*make_unique<Qualifier<xsd::LONG>>(qualifierType));
+        case data_type_def_xsd_e::UNSIGNED_BYTE:
+            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_BYTE>>(qualifierType));
+        case data_type_def_xsd_e::UNSIGNED_SHORT:
+            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_SHORT>>(qualifierType));
+        case data_type_def_xsd_e::UNSIGNED_INT:
+            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_INT>>(qualifierType));
+        case data_type_def_xsd_e::UNSIGNED_LONG:
+            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_LONG>>(qualifierType));
+        case data_type_def_xsd_e::POSITIVE_INTEGER:
+            return make_unique<base>(*make_unique<Qualifier<xsd::POSITIVE_INTEGER>>(qualifierType));
+        case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
+            return make_unique<base>(*make_unique<Qualifier<xsd::NON_NEGATIVE_INTEGER>>(qualifierType));
+        case data_type_def_xsd_e::NEGATIVE_INTEGER:
+            return make_unique<base>(*make_unique<Qualifier<xsd::NEGATIVE_INTEGER>>(qualifierType));
+        case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
+            return make_unique<base>(*make_unique<Qualifier<xsd::NON_POSITIVE_INTEGER>>(qualifierType));
+        // case data_type_def_xsd_e::HEX_BINARY:
+        //     return psram::make_unique<ExtensionBase>(Extension<xsd::HEX_BINARY>(name));
+        // case data_type_def_xsd_e::BASE64_BINARY:
+        //     return psram::make_unique<ExtensionBase>(Extension<xsd::BASE64_BINARY>(name));
+        // case data_type_def_xsd_e::ANY_URI:
+        //     return psram::make_unique<ExtensionBase>(Extension<xsd::ANY_URI>(name));
+        // case data_type_def_xsd_e::LANG_STRING:
+        //     return psram::make_unique<ExtensionBase>(Extension<xsd::LANG_STRING>(name));
+        default:
+            log_w("UNIMPLEMENTED DATA TYPE DEFINITION: %s", valueType);
+            ASSERT((false), "UNIMPLEMENTED DATA TYPE DEFINITION: %s", valueType);
+        }
+    }
+
 
     psram::unique_ptr<QualifierBase> DeserializeQualifiers(const JsonArray qualifiers)
     {
-        ;
+        ASSERT((qualifiers.size() > 0), "THE SIZE OF 'qualifiers' MUST BE GREATER THAN 0");
+        
+        JsonObject qualifierObject = qualifiers[0].as<JsonObject>();
+        const char* qualifierType = qualifierObject["type"].as<const char*>();
+        ASSERT((qualifierType != nullptr), "ATTRIBUTE 'type' CANNOT BE NULL");
+        const char* valueType = qualifierObject["valueType"].as<const char*>();
+        ASSERT((valueType != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
+        
+        psram::unique_ptr<QualifierBase> qualifier = constructQualifier(qualifierType, valueType);
+        
+        if (qualifierObject.containsKey("kind"))
+        {
+            const char* qualifierKind = qualifierObject["kind"].as<const char*>();
+            qualifier->SetKind(ConvertToQualifierKindType(qualifierKind));
+        }
+        
+        if (qualifierObject.containsKey("valueId"))
+        {
+            JsonObject valueId = qualifierObject["valueId"].as<JsonObject>();
+            qualifier->SetValueID(DeserializeReference(valueId));
+        }
+        
+        if (qualifierObject.containsKey("value"))
+        {
+            processQualifierValue(qualifierObject["value"].as<JsonVariant>(), qualifier.get());
+        }
+
+        return qualifier;
+    }
+
+
+    psram::unique_ptr<SubmodelElement> DeserializeSubmodelElements(const JsonArray submodelElements)
+    {
+        ASSERT((submodelElements.size() > 0), "THE SIZE OF 'qualifiers' MUST BE GREATER THAN 0");
+        
+        // SubmodelElement::Clone();
+        // SubmodelElement::GetCategoryOrNull();
+        // SubmodelElement::GetExtensionOrNull();
+        // SubmodelElement::GetIdShortOrNull();
+        // SubmodelElement::GetKind();
+        // SubmodelElement::GetModelType();
+        // SubmodelElement::GetQualifierOrNULL();
+        // SubmodelElement::GetSemanticIdOrNULL();
+
+        for (const JsonObject submodelElement : submodelElements)
+        {
+            const char* modelType = submodelElement["modelType"].as<const char*>();
+            ASSERT((modelType != nullptr), "ATTRIBUTE 'modelType' CANNOT BE NULL");
+            
+            const char* qualifierType = submodelElement["type"].as<const char*>();
+            ASSERT((qualifierType != nullptr), "ATTRIBUTE 'type' CANNOT BE NULL");
+            const char* valueType = submodelElement["valueType"].as<const char*>();
+            ASSERT((valueType != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
+        }
+        
+        psram::unique_ptr<QualifierBase> qualifier = constructQualifier(qualifierType, valueType);
+        
+        if (qualifierObject.containsKey("kind"))
+        {
+            const char* qualifierKind = qualifierObject["kind"].as<const char*>();
+            qualifier->SetKind(ConvertToQualifierKindType(qualifierKind));
+        }
+        
+        if (qualifierObject.containsKey("valueId"))
+        {
+            JsonObject valueId = qualifierObject["valueId"].as<JsonObject>();
+            qualifier->SetValueID(DeserializeReference(valueId));
+        }
+        
+        if (qualifierObject.containsKey("value"))
+        {
+            processQualifierValue(qualifierObject["value"].as<JsonVariant>(), qualifier.get());
+        }
+
+        return qualifier;
     }
 }}

@@ -2,7 +2,7 @@
  * @file SubmodelsDeserializer.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-14
+ * @date 2025-08-19
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -71,5 +71,13 @@ namespace muffin { namespace aas {
             qualifierType base = DeserializeQualifiers(payload["qualifiers"].as<JsonArray>());
             submodel.SetQualifier(std::move(base));
         }
+
+        if (payload.containsKey("submodelElements"))
+        {
+            psram::unique_ptr<SubmodelElement> sme;
+            submodel.AddSubmodelElement(std::move(sme));
+        }
+        
+        return psram::make_unique<Submodel>(std::move(submodel));
     }
 }}
