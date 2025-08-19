@@ -39,14 +39,17 @@ namespace muffin { namespace aas {
     public:
         virtual ~ExtensionBase() = default;
     public:
-        virtual void SetReference(const Reference& refersTo);
-        virtual void SetSemanticID(const Reference& semanticId);
+        virtual void SetReference(const Reference& refersTo) {}
+        virtual void SetSemanticID(const Reference& semanticId) {}
     public:
-        virtual const char* GetName() const noexcept;
-        virtual bool GetValueType(data_type_def_xsd_e* valueType) const noexcept;
-        virtual const Reference* GetRefersToOrNULL() const;
-        virtual Reference* GetSemanticID() const noexcept;
-        virtual psram::unique_ptr<ExtensionBase> Clone() const;
+        virtual const char* GetName() const noexcept { return nullptr; }
+        virtual const data_type_def_xsd_e* GetValueType() const noexcept { return nullptr; }
+        virtual const Reference* GetRefersToOrNULL() const { return nullptr; }
+        virtual const Reference* GetSemanticID() const noexcept { return nullptr; }
+        virtual psram::unique_ptr<ExtensionBase> Clone() const
+        {
+            return psram::unique_ptr<ExtensionBase>();
+        }
     };
 
 
@@ -121,16 +124,9 @@ namespace muffin { namespace aas {
             return mName.c_str();
         }
 
-        bool GetValueType(data_type_def_xsd_e* valueType) const noexcept override
+        const data_type_def_xsd_e* GetValueType() const noexcept override
         {
-            ASSERT((valueType != nullptr), "OUTPUT PARAMETER CANNOT BE NULL");
-
-            const bool ret = mHasAttribute.test(static_cast<uint8_t>(flag_e::VALUE_TYPE));
-            if (ret == true)
-            {
-                *valueType = mValueType;
-            }
-            return ret;
+            return &mValueType;
         }
 
         const typename xsd_type_mapper<xsd>::type* GetValueOrNULL() const noexcept
@@ -149,6 +145,11 @@ namespace muffin { namespace aas {
         const Reference* GetRefersToOrNULL() const override
         {
             return mRefersTo ? mRefersTo.get() : nullptr;
+        }
+
+        const Reference* GetSemanticID() const noexcept override
+        {
+            return mSemanticID.get();
         }
 
     private:

@@ -30,14 +30,23 @@
 namespace muffin { namespace aas {
 
 
-    class SubmodelElement : public Referable, public HasKind, public HasSemantics, 
-                            public Qualifiable, public HasDataSpecification
-    {
-    protected:
-        SubmodelElement(const SubmodelElement&) = default;
+    class SubmodelElement;
 
+
+    class ISubmodelElement : public Referable, public HasKind, public HasSemantics, 
+                             public Qualifiable, public HasDataSpecification
+    {
+    public:
+        virtual psram::unique_ptr<SubmodelElement> Clone() const = 0;
+        virtual key_types_e GetModelType() const noexcept = 0;
+    };
+
+
+    class SubmodelElement : public ISubmodelElement
+    {
     public:
         SubmodelElement() = default;
+        SubmodelElement(const SubmodelElement&) = default;
         SubmodelElement(SubmodelElement&&) noexcept = default;
 
         SubmodelElement& operator=(const SubmodelElement&) = delete;
@@ -46,7 +55,22 @@ namespace muffin { namespace aas {
         virtual ~SubmodelElement() noexcept = default;
     
     public:
-        virtual psram::unique_ptr<SubmodelElement> Clone() const = 0;
-        virtual key_types_e GetModelType() const noexcept = 0;
+        psram::unique_ptr<SubmodelElement> Clone() const override
+        {
+            return psram::make_unique<SubmodelElement>(*this);
+        }
+
+        key_types_e GetModelType() const noexcept override
+        {
+            return mModelType;
+        }
+
+        void SetModelType(const key_types_e modelType)
+        {
+            mModelType = modelType;
+        }
+    
+    protected:
+        key_types_e mModelType;
     };
 }}

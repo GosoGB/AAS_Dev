@@ -238,6 +238,12 @@ namespace muffin { namespace aas {
 
     // HEX_BINARY,             // Hex-encoded binary data
     // BASE64_BINARY,          // Base64-encoded binary
-    // ANY_URI,                // Absolute or relative URI/IRI
+    
+    template <>
+    struct xsd_type_mapper<data_type_def_xsd_e::ANY_URI>
+    {
+        using type = psram::string; // Absolute or relative URI/IRI
+    };
+
     // LANG_STRING             // String with language tag (RDF/Turtle syntax)
 }}

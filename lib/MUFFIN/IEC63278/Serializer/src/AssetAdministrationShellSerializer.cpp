@@ -104,19 +104,7 @@ namespace muffin { namespace aas {
             JsonArray arrSubmodelReferencess = doc["submodels"].to<JsonArray>();
             for (const auto& reference : submodelReferences)
             {
-                // JsonObject objSubmodel = arrSubmodelReferencess.createNestedObject();
-                // objSubmodel["type"] = ConvertToString(reference.GetType());
-                
-                // JsonArray arrKeys = objSubmodel.createNestedArray("keys");
-                // psram::vector<Key> keys = reference.GetKeys();
-                // for (size_t idx = 0; idx < keys.size(); ++idx)
-                // {
-                //     JsonObject objKey = arrKeys.createNestedObject();
-                //     objKey["type"] =  ConvertToString(keys[idx].GetType());
-                //     objKey["value"] = keys[idx].GetValue();
-                // }
-
-                arrSubmodelReferencess.add(ConvertToJSON(reference));
+                arrSubmodelReferencess.add(SerializeReference(reference));
             }
         }
 

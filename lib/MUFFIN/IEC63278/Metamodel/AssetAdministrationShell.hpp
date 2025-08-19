@@ -99,6 +99,21 @@ namespace muffin { namespace aas {
         {
             AssetAdministrationShell clone(mID, mAssetInformation);
             clone.mSubmodel.reserve(mSubmodel.size());
+            
+            if (this->GetIdShortOrNull() != nullptr)
+            {
+                clone.SetIdShort(this->GetIdShortOrNull());
+            }
+            
+            if (this->GetCategoryOrNull() != nullptr)
+            {
+                clone.SetCategory(this->GetCategoryOrNull());
+            }
+
+            if (this->GetExtensionOrNull() != nullptr)
+            {
+                clone.SetExtension(psram::make_unique<ExtensionBase>(*this->GetExtensionOrNull()));
+            }
 
             for (const auto& ref : mSubmodel)
             {

@@ -48,6 +48,7 @@ namespace muffin { namespace aas {
         Reference(const reference_types_e type, const psram::vector<Key>& keys)
             : mType(type)
             , mKeys(keys)
+            , mReferredSemanticID(nullptr)
         {
             ASSERT((mKeys.empty() == false), "REFERENCE KEY CANNOT BE EMPTY");
         }
@@ -55,6 +56,7 @@ namespace muffin { namespace aas {
         Reference(const reference_types_e type, psram::vector<Key>&& keys)
             : mType(type)
             , mKeys(std::move(keys))
+            , mReferredSemanticID(nullptr)
         {
             ASSERT((mKeys.empty() == false), "REFERENCE KEY CANNOT BE EMPTY");
         }
@@ -62,7 +64,6 @@ namespace muffin { namespace aas {
         Reference(const Reference& other)
             : mType(other.mType)
             , mKeys(other.mKeys)
-            , mReferredSemanticID(nullptr)
         {
             if (other.mReferredSemanticID)
             {
@@ -145,7 +146,7 @@ namespace muffin { namespace aas {
 
     private:
         reference_types_e mType;
-        psram::unique_ptr<Reference> mReferredSemanticID;
         psram::vector<Key> mKeys;
+        psram::unique_ptr<Reference> mReferredSemanticID;
     };
 }}

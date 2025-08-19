@@ -34,10 +34,9 @@ namespace muffin { namespace aas {
     class Property : public DataElement
     {
     public:
-        Property() : mValueType(xsd) {}
+        Property() { mValueType = xsd; }
         Property(const Property<xsd>& other)
             : DataElement(other)
-            , mValueType(other.mValueType)
         {
             if (other.mValue)
             {
@@ -55,7 +54,7 @@ namespace muffin { namespace aas {
     public:
         void SetValue(const typename xsd_type_mapper<xsd>::type& value)
         {
-            if (likely(mValue))
+            if (mValue)
             {
                 *mValue = value;
             }
@@ -71,14 +70,9 @@ namespace muffin { namespace aas {
         }
 
     public:
-        data_type_def_xsd_e GetValueType() const noexcept
-        {
-            return mValueType;
-        }
-        
         typename xsd_type_mapper<xsd>::type* GetValue() const noexcept
         {
-            return mValue.get();
+            return mValue ? mValue.get() : nullptr;
         }
 
         const Reference* GetValueID() const noexcept
@@ -92,8 +86,17 @@ namespace muffin { namespace aas {
             return psram::make_unique<Property<xsd>>(*this);
         }
 
+        key_types_e GetModelType() const noexcept override
+        {
+            return key_types_e::PROPERTY;
+        }
+
+        data_type_def_xsd_e GetValueType() const noexcept override
+        {
+            return mValueType;
+        }
+
     private:
-        data_type_def_xsd_e mValueType;
         psram::unique_ptr<typename xsd_type_mapper<xsd>::type> mValue;
         psram::unique_ptr<Reference> mValueID;
     };

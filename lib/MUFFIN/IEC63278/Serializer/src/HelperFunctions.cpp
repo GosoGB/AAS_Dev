@@ -50,8 +50,7 @@ namespace muffin { namespace aas {
 
     void processExtensionValue(const ExtensionBase& extensionBase, JsonDocument* doc)
     {
-        data_type_def_xsd_e xsd;
-        extensionBase.GetValueType(&xsd);
+        data_type_def_xsd_e xsd = *extensionBase.GetValueType();
 
         switch (xsd)
         {
@@ -68,6 +67,7 @@ namespace muffin { namespace aas {
         case data_type_def_xsd_e::DURATION:
         case data_type_def_xsd_e::YEAR_MONTH_DURATION:
         case data_type_def_xsd_e::DAYTIME_DURATION:
+        case data_type_def_xsd_e::ANY_URI:
             updateExtensionValue<data_type_def_xsd_e::STRING>(extensionBase, doc);
             return;
         
@@ -128,9 +128,11 @@ namespace muffin { namespace aas {
     }
 
 
-    void processQualifierValue(const QualifierBase& qualifierBase, JsonDocument* doc)
+    void processExtensionValue(JsonVariant value, ExtensionBase* base)
     {
-        switch (qualifierBase.GetValueType())
+        using xsd = data_type_def_xsd_e;
+
+        switch (*base->GetValueType())
         {
         case data_type_def_xsd_e::STRING:
         case data_type_def_xsd_e::DATE:
@@ -145,6 +147,110 @@ namespace muffin { namespace aas {
         case data_type_def_xsd_e::DURATION:
         case data_type_def_xsd_e::YEAR_MONTH_DURATION:
         case data_type_def_xsd_e::DAYTIME_DURATION:
+        case data_type_def_xsd_e::ANY_URI:
+        {
+            Extension<xsd::STRING>* extension = static_cast<Extension<xsd::STRING>*>(base);
+            extension->SetValue(value.as<const char*>());
+            return;
+        }
+        case data_type_def_xsd_e::BOOLEAN:
+        {
+            Extension<xsd::BOOLEAN>* extension = static_cast<Extension<xsd::BOOLEAN>*>(base);
+            extension->SetValue(value.as<bool>());
+            return;
+        }
+        case data_type_def_xsd_e::DECIMAL:
+        case data_type_def_xsd_e::DOUBLE:
+        {
+            Extension<xsd::DECIMAL>* extension = static_cast<Extension<xsd::DECIMAL>*>(base);
+            extension->SetValue(value.as<double>());
+            return;
+        }
+        case data_type_def_xsd_e::INTEGER:
+        case data_type_def_xsd_e::LONG:
+        case data_type_def_xsd_e::NEGATIVE_INTEGER:
+        case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
+        {
+            Extension<xsd::INTEGER>* extension = static_cast<Extension<xsd::INTEGER>*>(base);
+            extension->SetValue(value.as<int64_t>());
+            return;
+        }
+        case data_type_def_xsd_e::FLOAT:
+        {
+            Extension<xsd::FLOAT>* extension = static_cast<Extension<xsd::FLOAT>*>(base);
+            extension->SetValue(value.as<float>());
+            return;
+        }
+        case data_type_def_xsd_e::BYTE:
+        {
+            Extension<xsd::BYTE>* extension = static_cast<Extension<xsd::BYTE>*>(base);
+            extension->SetValue(value.as<uint8_t>());
+            return;
+        }
+        case data_type_def_xsd_e::SHORT:
+        {
+            Extension<xsd::SHORT>* extension = static_cast<Extension<xsd::SHORT>*>(base);
+            extension->SetValue(value.as<int16_t>());
+            return;
+        }
+        case data_type_def_xsd_e::INT:
+        {
+            Extension<xsd::INT>* extension = static_cast<Extension<xsd::INT>*>(base);
+            extension->SetValue(value.as<int32_t>());
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_BYTE:
+        {
+            Extension<xsd::UNSIGNED_BYTE>* extension = static_cast<Extension<xsd::UNSIGNED_BYTE>*>(base);
+            extension->SetValue(value.as<uint8_t>());
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_SHORT:
+        {
+            Extension<xsd::UNSIGNED_SHORT>* extension = static_cast<Extension<xsd::UNSIGNED_SHORT>*>(base);
+            extension->SetValue(value.as<uint16_t>());
+            return;
+        }   
+        case data_type_def_xsd_e::UNSIGNED_INT:
+        {
+            Extension<xsd::UNSIGNED_INT>* extension = static_cast<Extension<xsd::UNSIGNED_INT>*>(base);
+            extension->SetValue(value.as<uint32_t>());
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_LONG:
+        case data_type_def_xsd_e::POSITIVE_INTEGER:
+        case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
+        {
+            Extension<xsd::UNSIGNED_LONG>* extension = static_cast<Extension<xsd::UNSIGNED_LONG>*>(base);
+            extension->SetValue(value.as<uint64_t>());
+            return;
+        }
+        default:
+            log_d("UNIMPLEMENTED DATA TYPE DEFINITION: %s", 
+                ConvertToString(*base->GetValueType()).c_str());
+            break;
+        }
+    }
+
+
+    void processQualifierValue(const QualifierBase& qualifierBase, JsonDocument* doc)
+    {
+        switch (*qualifierBase.GetValueType())
+        {
+        case data_type_def_xsd_e::STRING:
+        case data_type_def_xsd_e::DATE:
+        case data_type_def_xsd_e::TIME:
+        case data_type_def_xsd_e::DATETIME:
+        case data_type_def_xsd_e::DATETIMESTAMP:
+        case data_type_def_xsd_e::G_YEAR:
+        case data_type_def_xsd_e::G_MONTH:
+        case data_type_def_xsd_e::G_DAY:
+        case data_type_def_xsd_e::G_YEAR_MONTH:
+        case data_type_def_xsd_e::G_MONTH_DAY:
+        case data_type_def_xsd_e::DURATION:
+        case data_type_def_xsd_e::YEAR_MONTH_DURATION:
+        case data_type_def_xsd_e::DAYTIME_DURATION:
+        case data_type_def_xsd_e::ANY_URI:
             updateQualifierValue<data_type_def_xsd_e::STRING>(qualifierBase, doc);
             return;
         
@@ -200,7 +306,7 @@ namespace muffin { namespace aas {
         
         default:
             log_d("UNIMPLEMENTED DATA TYPE DEFINITION: %s", 
-                ConvertToString(qualifierBase.GetValueType()).c_str());
+                ConvertToString(*qualifierBase.GetValueType()).c_str());
             break;
         }
     }
@@ -210,7 +316,7 @@ namespace muffin { namespace aas {
     {
         using xsd = data_type_def_xsd_e;
 
-        switch (qualifierBase->GetValueType())
+        switch (*qualifierBase->GetValueType())
         {
         case data_type_def_xsd_e::STRING:
         case data_type_def_xsd_e::DATE:
@@ -225,6 +331,7 @@ namespace muffin { namespace aas {
         case data_type_def_xsd_e::DURATION:
         case data_type_def_xsd_e::YEAR_MONTH_DURATION:
         case data_type_def_xsd_e::DAYTIME_DURATION:
+        case data_type_def_xsd_e::ANY_URI:
         {
             Qualifier<xsd::STRING>* qualifier = static_cast<Qualifier<xsd::STRING>*>(qualifierBase);
             qualifier->SetValue(value.as<const char*>());
@@ -304,23 +411,19 @@ namespace muffin { namespace aas {
         }
         default:
             log_d("UNIMPLEMENTED DATA TYPE DEFINITION: %s", 
-                ConvertToString(qualifierBase->GetValueType()).c_str());
+                ConvertToString(*qualifierBase->GetValueType()).c_str());
             break;
         }
     }
 
 
-    JsonDocument ConvertToJSON(const ExtensionBase& extensionBase)
+    JsonDocument SerializeExtension(const ExtensionBase& extensionBase)
     {
         JsonDocument doc;
         doc["name"] = extensionBase.GetName();
 
-        data_type_def_xsd_e xsd;
-        if (extensionBase.GetValueType(&xsd) == true)
-        {
-            doc["valueType"] = ConvertToString(xsd);
-            processExtensionValue(extensionBase, &doc);
-        }
+        doc["valueType"] = ConvertToString(*extensionBase.GetValueType());
+        processExtensionValue(extensionBase, &doc);
 
         if (extensionBase.GetRefersToOrNULL() != nullptr)
         {
@@ -340,12 +443,12 @@ namespace muffin { namespace aas {
     }
 
 
-    JsonDocument ConvertToJSON(const QualifierBase& qualifierBase)
+    JsonDocument SerializeQualifier(const QualifierBase& qualifierBase)
     {
         JsonDocument doc;
-        doc["type"] = qualifierBase.GetType();
+        doc["type"] = *qualifierBase.GetType();
 
-        const data_type_def_xsd_e xsd = qualifierBase.GetValueType();
+        const data_type_def_xsd_e xsd = *qualifierBase.GetValueType();
         doc["valueType"] = ConvertToString(xsd);
         processQualifierValue(qualifierBase, &doc);
 
@@ -364,7 +467,7 @@ namespace muffin { namespace aas {
     }
 
 
-    JsonDocument ConvertToJSON(const Reference& reference)
+    JsonDocument SerializeReference(const Reference& reference)
     {
         JsonDocument doc;
         doc["type"] = ConvertToString(reference.GetType());
@@ -373,7 +476,7 @@ namespace muffin { namespace aas {
         log_d("referredSemanticID: %p", referredSemanticID);
         if (referredSemanticID != nullptr)
         {
-            doc["referredSemanticId"] = ConvertToJSON(*referredSemanticID);
+            doc["referredSemanticId"] = SerializeReference(*referredSemanticID);
         }
 
         JsonArray arrKeys = doc["keys"].to<JsonArray>();
@@ -389,27 +492,418 @@ namespace muffin { namespace aas {
     }
 
 
-    psram::string SerializeExtension(const ExtensionBase& extensionBase)
+    JsonDocument SerializeProperty(const DataElement& dataElement)
     {
-        psram::string output;
-        serializeJson(ConvertToJSON(extensionBase), output);
-        return output;
+        log_d("---------------");
+        delay(1000);
+
+        JsonDocument doc;
+
+        doc["type"] = ConvertToString(dataElement.GetModelType());
+        log_d("type: %s", doc["type"].as<const char*>());
+
+        if (dataElement.GetIdShortOrNull() != nullptr)
+        {
+            doc["idShort"] = dataElement.GetIdShortOrNull();
+        }
+
+        log_d("--------1-------");
+        delay(1000);
+
+        if (dataElement.GetCategoryOrNull() != nullptr)
+        {
+            doc["category"] = dataElement.GetCategoryOrNull();
+        }
+
+        log_d("---------2------");
+        delay(1000);
+
+        if (dataElement.GetQualifierOrNULL() != nullptr)
+        {
+            JsonArray qualifiers = doc["qualifiers"].to<JsonArray>();
+            qualifiers.add(SerializeQualifier(*dataElement.GetQualifierOrNULL()));
+        }
+
+        log_d("--------3-------");
+        delay(1000);
+
+        if (dataElement.GetExtensionOrNull() != nullptr)
+        {
+            JsonArray extensions = doc["extensions"].to<JsonArray>();
+            extensions.add(SerializeExtension(*dataElement.GetExtensionOrNull()));
+        }
+        
+        log_d("--------4-------");
+        delay(1000);
+
+        if (dataElement.GetSemanticIdOrNULL() != nullptr)
+        {
+            doc["semanticId"] = SerializeReference(*dataElement.GetSemanticIdOrNULL());
+        }
+
+        log_d("-------5--------");
+        delay(1000);
+
+        const Property<data_type_def_xsd_e::STRING>* propertyTMP = 
+                static_cast<const Property<data_type_def_xsd_e::STRING>*>(&dataElement);
+        log_d("-------51--------");
+        delay(1000);
+        log_d("idShort: %s", propertyTMP->GetIdShortOrNull());
+        delay(1000);
+        log_d("value type: %s", ConvertToString(dataElement.GetValueType()).c_str());
+        delay(1000);
+        
+        switch (dataElement.GetValueType())
+        {
+        using xsd = data_type_def_xsd_e;
+
+        case data_type_def_xsd_e::STRING:
+        case data_type_def_xsd_e::DATE:
+        case data_type_def_xsd_e::TIME:
+        case data_type_def_xsd_e::DATETIME:
+        case data_type_def_xsd_e::DATETIMESTAMP:
+        case data_type_def_xsd_e::G_YEAR:
+        case data_type_def_xsd_e::G_MONTH:
+        case data_type_def_xsd_e::G_DAY:
+        case data_type_def_xsd_e::G_YEAR_MONTH:
+        case data_type_def_xsd_e::G_MONTH_DAY:
+        case data_type_def_xsd_e::DURATION:
+        case data_type_def_xsd_e::YEAR_MONTH_DURATION:
+        case data_type_def_xsd_e::DAYTIME_DURATION:
+        case data_type_def_xsd_e::ANY_URI:
+        {
+            log_d("------STRING---------");
+            delay(1000);
+
+            const Property<xsd::STRING>* property = 
+                static_cast<const Property<xsd::STRING>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                log_d("value: %p", property->GetValue());
+                log_d("value: %u", property->GetValue()->length());
+                doc["value"] = property->GetValue()->c_str();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+                log_d("valueId: %s", doc["valueId"].as<const char*>());
+            }
+            break;
+        }
+
+        case data_type_def_xsd_e::BOOLEAN:
+        {
+            log_d("------BOOLEAN---------");
+            delay(1000);
+
+            const Property<xsd::BOOLEAN>* property = static_cast<
+                const Property<xsd::BOOLEAN>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        case data_type_def_xsd_e::DECIMAL:
+        case data_type_def_xsd_e::DOUBLE:
+        {
+            log_d("------DECIMAL---------");
+            delay(1000);
+
+            const Property<xsd::DECIMAL>* property = static_cast<
+                const Property<xsd::DECIMAL>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        case data_type_def_xsd_e::INTEGER:
+        case data_type_def_xsd_e::LONG:
+        case data_type_def_xsd_e::NEGATIVE_INTEGER:
+        case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
+        {
+            const Property<xsd::INTEGER>* property = static_cast<
+                const Property<xsd::INTEGER>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        case data_type_def_xsd_e::FLOAT:
+        {
+            const Property<xsd::FLOAT>* property = static_cast<
+                const Property<xsd::FLOAT>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        case data_type_def_xsd_e::BYTE:
+        {
+            const Property<xsd::BYTE>* property = static_cast<
+                const Property<xsd::BYTE>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        case data_type_def_xsd_e::SHORT:
+        {
+            const Property<xsd::SHORT>* property = static_cast<
+                const Property<xsd::SHORT>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        case data_type_def_xsd_e::INT:
+        {
+            const Property<xsd::INT>* property = static_cast<
+                const Property<xsd::INT>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        case data_type_def_xsd_e::UNSIGNED_BYTE:
+        {
+            const Property<xsd::UNSIGNED_BYTE>* property = static_cast<
+                const Property<xsd::UNSIGNED_BYTE>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+
+        case data_type_def_xsd_e::UNSIGNED_SHORT:
+        {
+            const Property<xsd::UNSIGNED_SHORT>* property = static_cast<
+                const Property<xsd::UNSIGNED_SHORT>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+            
+        case data_type_def_xsd_e::UNSIGNED_INT:
+        {
+            const Property<xsd::UNSIGNED_INT>* property = static_cast<
+                const Property<xsd::UNSIGNED_INT>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+            
+        case data_type_def_xsd_e::UNSIGNED_LONG:
+        case data_type_def_xsd_e::POSITIVE_INTEGER:
+        case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
+        {
+            const Property<xsd::UNSIGNED_LONG>* property = static_cast<
+                const Property<xsd::UNSIGNED_LONG>*>(&dataElement);
+            
+            if (property->GetValue() != nullptr)
+            {
+                doc["value"] = *property->GetValue();
+            }
+            
+            if (property->GetValueID() != nullptr)
+            {
+                doc["valueId"] = SerializeReference(*property->GetValueID());
+            }
+            break;
+        }
+        
+        default:
+            log_d("UNIMPLEMENTED DATA TYPE DEFINITION: %s", 
+                ConvertToString(dataElement.GetValueType()).c_str());
+            break;
+        }
+        
+        log_d("-------6--------");
+        delay(1000);
+
+        return doc;
     }
 
 
-    psram::string SerializeQualifier(const QualifierBase& qualifierBase)
+    JsonDocument SerializeSMC(const SubmodelElementCollection& smc)
     {
-        psram::string output;
-        serializeJson(ConvertToJSON(qualifierBase), output);
-        return output;
+        JsonDocument doc;
+
+        doc["type"] = ConvertToString(smc.GetModelType());
+
+        if (smc.GetIdShortOrNull() != nullptr)
+        {
+            doc["idShort"] = smc.GetIdShortOrNull();
+        }
+
+        if (smc.GetCategoryOrNull() != nullptr)
+        {
+            doc["category"] = smc.GetCategoryOrNull();
+        }
+
+        if (smc.GetQualifierOrNULL() != nullptr)
+        {
+            JsonArray qualifiers = doc["qualifiers"].to<JsonArray>();
+            qualifiers.add(SerializeQualifier(*smc.GetQualifierOrNULL()));
+        }
+
+        if (smc.GetExtensionOrNull() != nullptr)
+        {
+            JsonArray extensions = doc["extensions"].to<JsonArray>();
+            extensions.add(SerializeExtension(*smc.GetExtensionOrNull()));
+        }
+        
+        if (smc.GetSemanticIdOrNULL() != nullptr)
+        {
+            doc["semanticId"] = SerializeReference(*smc.GetSemanticIdOrNULL());
+        }
+
+        if (smc.size() == 0)
+        {
+            return doc;
+        }
+        
+        JsonArray value = doc["value"].to<JsonArray>();
+        for (const auto& obj : smc)
+        {
+            ASSERT((strcmp(ConvertToString(obj->GetModelType()).c_str(), "Property") == 0),
+                "IMPLEMENT ERROR: ONLY 'Property' IS SUPPORTED YET");
+
+            DataElement* property = static_cast<DataElement*>(obj.get());
+            value.add(SerializeProperty(*property));
+        }
+
+        return doc;
     }
 
 
-    psram::string SerializeReference(const Reference& reference)
+    JsonDocument SerializeSubmodelElement(const SubmodelElement& submodelElement)
     {
-        psram::string output;
-        serializeJson(ConvertToJSON(reference), output);
-        return output;
+        JsonDocument doc;
+
+        if (submodelElement.GetCategoryOrNull() != nullptr)
+        {
+            doc["category"] = submodelElement.GetCategoryOrNull();
+        }
+
+        if (submodelElement.GetIdShortOrNull() != nullptr)
+        {
+            doc["idShort"] = submodelElement.GetIdShortOrNull();
+        }
+
+        if (submodelElement.GetQualifierOrNULL() != nullptr)
+        {
+            JsonArray qualifiers = doc["qualifiers"].to<JsonArray>();
+            qualifiers.add(SerializeQualifier(*submodelElement.GetQualifierOrNULL()));
+        }
+
+        if (submodelElement.GetExtensionOrNull() != nullptr)
+        {
+            JsonArray extensions = doc["extensions"].to<JsonArray>();
+            extensions.add(SerializeExtension(*submodelElement.GetExtensionOrNull()));
+        }
+        
+        if (submodelElement.GetSemanticIdOrNULL() != nullptr)
+        {
+            doc["semanticId"] = SerializeReference(*submodelElement.GetSemanticIdOrNULL());
+        }
+        
+        switch (submodelElement.GetModelType())
+        {
+        case key_types_e::PROPERTY:
+        {
+            return SerializeProperty(*static_cast<const DataElement*>(&submodelElement));
+        }
+        case key_types_e::SubmodelElementCollection:
+        {
+            return SerializeSMC(*static_cast<const SubmodelElementCollection*>(&submodelElement));
+        }
+        
+        default:
+            ASSERT((false), "UNIMPLEMENTED KEY TYPE: %s", 
+                ConvertToString(submodelElement.GetModelType()).c_str());
+            break;
+        }
     }
 
 
@@ -418,71 +912,72 @@ namespace muffin { namespace aas {
         ASSERT((valueType != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
 
         using xsd = data_type_def_xsd_e;
-        using base = ExtensionBase;
         using namespace psram;
         
         switch (ConvertToDataTypeDefXSD(valueType))
         {
         case data_type_def_xsd_e::STRING:
-            return make_unique<base>(*make_unique<Extension<xsd::STRING>>(name));
+            return make_unique<Extension<xsd::STRING>>(name);
         case data_type_def_xsd_e::BOOLEAN:
-            return make_unique<base>(*make_unique<Extension<xsd::BOOLEAN>>(name));
+            return make_unique<Extension<xsd::BOOLEAN>>(name);
         case data_type_def_xsd_e::DECIMAL:
-            return make_unique<base>(*make_unique<Extension<xsd::DECIMAL>>(name));
+            return make_unique<Extension<xsd::DECIMAL>>(name);
         case data_type_def_xsd_e::INTEGER:
-            return make_unique<base>(*make_unique<Extension<xsd::INTEGER>>(name));
+            return make_unique<Extension<xsd::INTEGER>>(name);
         case data_type_def_xsd_e::DOUBLE:
-            return make_unique<base>(*make_unique<Extension<xsd::DOUBLE>>(name));
+            return make_unique<Extension<xsd::DOUBLE>>(name);
         case data_type_def_xsd_e::FLOAT:
-            return make_unique<base>(*make_unique<Extension<xsd::FLOAT>>(name));
+            return make_unique<Extension<xsd::FLOAT>>(name);
         case data_type_def_xsd_e::DATE:
-            return make_unique<base>(*make_unique<Extension<xsd::DATE>>(name));
+            return make_unique<Extension<xsd::DATE>>(name);
         case data_type_def_xsd_e::TIME:
-            return make_unique<base>(*make_unique<Extension<xsd::TIME>>(name));
+            return make_unique<Extension<xsd::TIME>>(name);
         case data_type_def_xsd_e::DATETIME:
-            return make_unique<base>(*make_unique<Extension<xsd::DATETIME>>(name));
+            return make_unique<Extension<xsd::DATETIME>>(name);
         case data_type_def_xsd_e::DATETIMESTAMP:
-            return make_unique<base>(*make_unique<Extension<xsd::DATETIMESTAMP>>(name));
+            return make_unique<Extension<xsd::DATETIMESTAMP>>(name);
         case data_type_def_xsd_e::G_YEAR:
-            return make_unique<base>(*make_unique<Extension<xsd::G_YEAR>>(name));
+            return make_unique<Extension<xsd::G_YEAR>>(name);
         case data_type_def_xsd_e::G_MONTH:
-            return make_unique<base>(*make_unique<Extension<xsd::G_MONTH>>(name));
+            return make_unique<Extension<xsd::G_MONTH>>(name);
         case data_type_def_xsd_e::G_DAY:
-            return make_unique<base>(*make_unique<Extension<xsd::G_DAY>>(name));
+            return make_unique<Extension<xsd::G_DAY>>(name);
         case data_type_def_xsd_e::G_YEAR_MONTH:
-            return make_unique<base>(*make_unique<Extension<xsd::G_YEAR_MONTH>>(name));
+            return make_unique<Extension<xsd::G_YEAR_MONTH>>(name);
         case data_type_def_xsd_e::G_MONTH_DAY:
-            return make_unique<base>(*make_unique<Extension<xsd::G_MONTH_DAY>>(name));
+            return make_unique<Extension<xsd::G_MONTH_DAY>>(name);
         case data_type_def_xsd_e::DURATION:
-            return make_unique<base>(*make_unique<Extension<xsd::DURATION>>(name));
+            return make_unique<Extension<xsd::DURATION>>(name);
         case data_type_def_xsd_e::YEAR_MONTH_DURATION:
-            return make_unique<base>(*make_unique<Extension<xsd::YEAR_MONTH_DURATION>>(name));
+            return make_unique<Extension<xsd::YEAR_MONTH_DURATION>>(name);
         case data_type_def_xsd_e::DAYTIME_DURATION:
-            return make_unique<base>(*make_unique<Extension<xsd::DAYTIME_DURATION>>(name));
+            return make_unique<Extension<xsd::DAYTIME_DURATION>>(name);
         case data_type_def_xsd_e::BYTE:
-            return make_unique<base>(*make_unique<Extension<xsd::BYTE>>(name));
+            return make_unique<Extension<xsd::BYTE>>(name);
         case data_type_def_xsd_e::SHORT:
-            return make_unique<base>(*make_unique<Extension<xsd::SHORT>>(name));
+            return make_unique<Extension<xsd::SHORT>>(name);
         case data_type_def_xsd_e::INT:
-            return make_unique<base>(*make_unique<Extension<xsd::INT>>(name));
+            return make_unique<Extension<xsd::INT>>(name);
         case data_type_def_xsd_e::LONG:
-            return make_unique<base>(*make_unique<Extension<xsd::LONG>>(name));
+            return make_unique<Extension<xsd::LONG>>(name);
         case data_type_def_xsd_e::UNSIGNED_BYTE:
-            return make_unique<base>(*make_unique<Extension<xsd::UNSIGNED_BYTE>>(name));
+            return make_unique<Extension<xsd::UNSIGNED_BYTE>>(name);
         case data_type_def_xsd_e::UNSIGNED_SHORT:
-            return make_unique<base>(*make_unique<Extension<xsd::UNSIGNED_SHORT>>(name));
+            return make_unique<Extension<xsd::UNSIGNED_SHORT>>(name);
         case data_type_def_xsd_e::UNSIGNED_INT:
-            return make_unique<base>(*make_unique<Extension<xsd::UNSIGNED_INT>>(name));
+            return make_unique<Extension<xsd::UNSIGNED_INT>>(name);
         case data_type_def_xsd_e::UNSIGNED_LONG:
-            return make_unique<base>(*make_unique<Extension<xsd::UNSIGNED_LONG>>(name));
+            return make_unique<Extension<xsd::UNSIGNED_LONG>>(name);
         case data_type_def_xsd_e::POSITIVE_INTEGER:
-            return make_unique<base>(*make_unique<Extension<xsd::POSITIVE_INTEGER>>(name));
+            return make_unique<Extension<xsd::POSITIVE_INTEGER>>(name);
         case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
-            return make_unique<base>(*make_unique<Extension<xsd::NON_NEGATIVE_INTEGER>>(name));
+            return make_unique<Extension<xsd::NON_NEGATIVE_INTEGER>>(name);
         case data_type_def_xsd_e::NEGATIVE_INTEGER:
-            return make_unique<base>(*make_unique<Extension<xsd::NEGATIVE_INTEGER>>(name));
+            return make_unique<Extension<xsd::NEGATIVE_INTEGER>>(name);
         case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
-            return make_unique<base>(*make_unique<Extension<xsd::NON_POSITIVE_INTEGER>>(name));
+            return make_unique<Extension<xsd::NON_POSITIVE_INTEGER>>(name);
+        case data_type_def_xsd_e::ANY_URI:
+            return make_unique<Extension<xsd::ANY_URI>>(name);
         // case data_type_def_xsd_e::HEX_BINARY:
         //     return psram::make_unique<ExtensionBase>(Extension<xsd::HEX_BINARY>(name));
         // case data_type_def_xsd_e::BASE64_BINARY:
@@ -515,10 +1010,17 @@ namespace muffin { namespace aas {
             extensionBase->SetReference(refersTo);
         }
         
-        /**
-         * @todo semanticId 처리 구현해야 함
-         */
-        // extension->GetSemanticIdOrNULL();
+        if (extensionObject.containsKey("value"))
+        {
+            processExtensionValue(extensionObject["value"].as<JsonVariant>(), extensionBase.get());
+        }
+        
+        if (extensionObject.containsKey("semanticId"))
+        {
+            Reference semanticId = DeserializeReference(extensionObject["semanticId"].as<JsonObject>());
+            extensionBase->SetSemanticID(semanticId);
+        }
+
         return extensionBase;
     }
 
@@ -574,71 +1076,72 @@ namespace muffin { namespace aas {
         ASSERT((valueType != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
 
         using xsd = data_type_def_xsd_e;
-        using base = QualifierBase;
         using namespace psram;
         
         switch (ConvertToDataTypeDefXSD(valueType))
         {
         case data_type_def_xsd_e::STRING:
-            return make_unique<base>(*make_unique<Qualifier<xsd::STRING>>(qualifierType));
+            return make_unique<Qualifier<xsd::STRING>>(qualifierType);
         case data_type_def_xsd_e::BOOLEAN:
-            return make_unique<base>(*make_unique<Qualifier<xsd::BOOLEAN>>(qualifierType));
+            return make_unique<Qualifier<xsd::BOOLEAN>>(qualifierType);
         case data_type_def_xsd_e::DECIMAL:
-            return make_unique<base>(*make_unique<Qualifier<xsd::DECIMAL>>(qualifierType));
+            return make_unique<Qualifier<xsd::DECIMAL>>(qualifierType);
         case data_type_def_xsd_e::INTEGER:
-            return make_unique<base>(*make_unique<Qualifier<xsd::INTEGER>>(qualifierType));
+            return make_unique<Qualifier<xsd::INTEGER>>(qualifierType);
         case data_type_def_xsd_e::DOUBLE:
-            return make_unique<base>(*make_unique<Qualifier<xsd::DOUBLE>>(qualifierType));
+            return make_unique<Qualifier<xsd::DOUBLE>>(qualifierType);
         case data_type_def_xsd_e::FLOAT:
-            return make_unique<base>(*make_unique<Qualifier<xsd::FLOAT>>(qualifierType));
+            return make_unique<Qualifier<xsd::FLOAT>>(qualifierType);
         case data_type_def_xsd_e::DATE:
-            return make_unique<base>(*make_unique<Qualifier<xsd::DATE>>(qualifierType));
+            return make_unique<Qualifier<xsd::DATE>>(qualifierType);
         case data_type_def_xsd_e::TIME:
-            return make_unique<base>(*make_unique<Qualifier<xsd::TIME>>(qualifierType));
+            return make_unique<Qualifier<xsd::TIME>>(qualifierType);
         case data_type_def_xsd_e::DATETIME:
-            return make_unique<base>(*make_unique<Qualifier<xsd::DATETIME>>(qualifierType));
+            return make_unique<Qualifier<xsd::DATETIME>>(qualifierType);
         case data_type_def_xsd_e::DATETIMESTAMP:
-            return make_unique<base>(*make_unique<Qualifier<xsd::DATETIMESTAMP>>(qualifierType));
+            return make_unique<Qualifier<xsd::DATETIMESTAMP>>(qualifierType);
         case data_type_def_xsd_e::G_YEAR:
-            return make_unique<base>(*make_unique<Qualifier<xsd::G_YEAR>>(qualifierType));
+            return make_unique<Qualifier<xsd::G_YEAR>>(qualifierType);
         case data_type_def_xsd_e::G_MONTH:
-            return make_unique<base>(*make_unique<Qualifier<xsd::G_MONTH>>(qualifierType));
+            return make_unique<Qualifier<xsd::G_MONTH>>(qualifierType);
         case data_type_def_xsd_e::G_DAY:
-            return make_unique<base>(*make_unique<Qualifier<xsd::G_DAY>>(qualifierType));
+            return make_unique<Qualifier<xsd::G_DAY>>(qualifierType);
         case data_type_def_xsd_e::G_YEAR_MONTH:
-            return make_unique<base>(*make_unique<Qualifier<xsd::G_YEAR_MONTH>>(qualifierType));
+            return make_unique<Qualifier<xsd::G_YEAR_MONTH>>(qualifierType);
         case data_type_def_xsd_e::G_MONTH_DAY:
-            return make_unique<base>(*make_unique<Qualifier<xsd::G_MONTH_DAY>>(qualifierType));
+            return make_unique<Qualifier<xsd::G_MONTH_DAY>>(qualifierType);
         case data_type_def_xsd_e::DURATION:
-            return make_unique<base>(*make_unique<Qualifier<xsd::DURATION>>(qualifierType));
+            return make_unique<Qualifier<xsd::DURATION>>(qualifierType);
         case data_type_def_xsd_e::YEAR_MONTH_DURATION:
-            return make_unique<base>(*make_unique<Qualifier<xsd::YEAR_MONTH_DURATION>>(qualifierType));
+            return make_unique<Qualifier<xsd::YEAR_MONTH_DURATION>>(qualifierType);
         case data_type_def_xsd_e::DAYTIME_DURATION:
-            return make_unique<base>(*make_unique<Qualifier<xsd::DAYTIME_DURATION>>(qualifierType));
+            return make_unique<Qualifier<xsd::DAYTIME_DURATION>>(qualifierType);
         case data_type_def_xsd_e::BYTE:
-            return make_unique<base>(*make_unique<Qualifier<xsd::BYTE>>(qualifierType));
+            return make_unique<Qualifier<xsd::BYTE>>(qualifierType);
         case data_type_def_xsd_e::SHORT:
-            return make_unique<base>(*make_unique<Qualifier<xsd::SHORT>>(qualifierType));
+            return make_unique<Qualifier<xsd::SHORT>>(qualifierType);
         case data_type_def_xsd_e::INT:
-            return make_unique<base>(*make_unique<Qualifier<xsd::INT>>(qualifierType));
+            return make_unique<Qualifier<xsd::INT>>(qualifierType);
         case data_type_def_xsd_e::LONG:
-            return make_unique<base>(*make_unique<Qualifier<xsd::LONG>>(qualifierType));
+            return make_unique<Qualifier<xsd::LONG>>(qualifierType);
         case data_type_def_xsd_e::UNSIGNED_BYTE:
-            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_BYTE>>(qualifierType));
+            return make_unique<Qualifier<xsd::UNSIGNED_BYTE>>(qualifierType);
         case data_type_def_xsd_e::UNSIGNED_SHORT:
-            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_SHORT>>(qualifierType));
+            return make_unique<Qualifier<xsd::UNSIGNED_SHORT>>(qualifierType);
         case data_type_def_xsd_e::UNSIGNED_INT:
-            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_INT>>(qualifierType));
+            return make_unique<Qualifier<xsd::UNSIGNED_INT>>(qualifierType);
         case data_type_def_xsd_e::UNSIGNED_LONG:
-            return make_unique<base>(*make_unique<Qualifier<xsd::UNSIGNED_LONG>>(qualifierType));
+            return make_unique<Qualifier<xsd::UNSIGNED_LONG>>(qualifierType);
         case data_type_def_xsd_e::POSITIVE_INTEGER:
-            return make_unique<base>(*make_unique<Qualifier<xsd::POSITIVE_INTEGER>>(qualifierType));
+            return make_unique<Qualifier<xsd::POSITIVE_INTEGER>>(qualifierType);
         case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
-            return make_unique<base>(*make_unique<Qualifier<xsd::NON_NEGATIVE_INTEGER>>(qualifierType));
+            return make_unique<Qualifier<xsd::NON_NEGATIVE_INTEGER>>(qualifierType);
         case data_type_def_xsd_e::NEGATIVE_INTEGER:
-            return make_unique<base>(*make_unique<Qualifier<xsd::NEGATIVE_INTEGER>>(qualifierType));
+            return make_unique<Qualifier<xsd::NEGATIVE_INTEGER>>(qualifierType);
         case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
-            return make_unique<base>(*make_unique<Qualifier<xsd::NON_POSITIVE_INTEGER>>(qualifierType));
+            return make_unique<Qualifier<xsd::NON_POSITIVE_INTEGER>>(qualifierType);
+        case data_type_def_xsd_e::ANY_URI:
+            return make_unique<Qualifier<xsd::ANY_URI>>(qualifierType);
         // case data_type_def_xsd_e::HEX_BINARY:
         //     return psram::make_unique<ExtensionBase>(Extension<xsd::HEX_BINARY>(name));
         // case data_type_def_xsd_e::BASE64_BINARY:
@@ -687,49 +1190,413 @@ namespace muffin { namespace aas {
     }
 
 
-    psram::unique_ptr<SubmodelElement> DeserializeSubmodelElements(const JsonArray submodelElements)
+    psram::unique_ptr<DataElement> constructProperty(const data_type_def_xsd_e xsdType)
     {
-        ASSERT((submodelElements.size() > 0), "THE SIZE OF 'qualifiers' MUST BE GREATER THAN 0");
-        
-        // SubmodelElement::Clone();
-        // SubmodelElement::GetCategoryOrNull();
-        // SubmodelElement::GetExtensionOrNull();
-        // SubmodelElement::GetIdShortOrNull();
-        // SubmodelElement::GetKind();
-        // SubmodelElement::GetModelType();
-        // SubmodelElement::GetQualifierOrNULL();
-        // SubmodelElement::GetSemanticIdOrNULL();
+        using xsd = data_type_def_xsd_e;
+        using namespace psram;
 
-        for (const JsonObject submodelElement : submodelElements)
+        switch (xsdType)
         {
-            const char* modelType = submodelElement["modelType"].as<const char*>();
-            ASSERT((modelType != nullptr), "ATTRIBUTE 'modelType' CANNOT BE NULL");
+        case data_type_def_xsd_e::STRING:
+            return make_unique<Property<xsd::STRING>>();
+        case data_type_def_xsd_e::BOOLEAN:
+            return make_unique<Property<xsd::BOOLEAN>>();
+        case data_type_def_xsd_e::DECIMAL:
+            return make_unique<Property<xsd::DECIMAL>>();
+        case data_type_def_xsd_e::INTEGER:
+            return make_unique<Property<xsd::INTEGER>>();
+        case data_type_def_xsd_e::DOUBLE:
+            return make_unique<Property<xsd::DOUBLE>>();
+        case data_type_def_xsd_e::FLOAT:
+            return make_unique<Property<xsd::FLOAT>>();
+        case data_type_def_xsd_e::DATE:
+            return make_unique<Property<xsd::DATE>>();
+        case data_type_def_xsd_e::TIME:
+            return make_unique<Property<xsd::TIME>>();
+        case data_type_def_xsd_e::DATETIME:
+            return make_unique<Property<xsd::DATETIME>>();
+        case data_type_def_xsd_e::DATETIMESTAMP:
+            return make_unique<Property<xsd::DATETIMESTAMP>>();
+        case data_type_def_xsd_e::G_YEAR:
+            return make_unique<Property<xsd::G_YEAR>>();
+        case data_type_def_xsd_e::G_MONTH:
+            return make_unique<Property<xsd::G_MONTH>>();
+        case data_type_def_xsd_e::G_DAY:
+            return make_unique<Property<xsd::G_DAY>>();
+        case data_type_def_xsd_e::G_YEAR_MONTH:
+            return make_unique<Property<xsd::G_YEAR_MONTH>>();
+        case data_type_def_xsd_e::G_MONTH_DAY:
+            return make_unique<Property<xsd::G_MONTH_DAY>>();
+        case data_type_def_xsd_e::DURATION:
+            return make_unique<Property<xsd::DURATION>>();
+        case data_type_def_xsd_e::YEAR_MONTH_DURATION:
+            return make_unique<Property<xsd::YEAR_MONTH_DURATION>>();
+        case data_type_def_xsd_e::DAYTIME_DURATION:
+            return make_unique<Property<xsd::DAYTIME_DURATION>>();
+        case data_type_def_xsd_e::BYTE:
+            return make_unique<Property<xsd::BYTE>>();
+        case data_type_def_xsd_e::SHORT:
+            return make_unique<Property<xsd::SHORT>>();
+        case data_type_def_xsd_e::INT:
+            return make_unique<Property<xsd::INT>>();
+        case data_type_def_xsd_e::LONG:
+            return make_unique<Property<xsd::LONG>>();
+        case data_type_def_xsd_e::UNSIGNED_BYTE:
+            return make_unique<Property<xsd::UNSIGNED_BYTE>>();
+        case data_type_def_xsd_e::UNSIGNED_SHORT:
+            return make_unique<Property<xsd::UNSIGNED_SHORT>>();
+        case data_type_def_xsd_e::UNSIGNED_INT:
+            return make_unique<Property<xsd::UNSIGNED_INT>>();
+        case data_type_def_xsd_e::UNSIGNED_LONG:
+            return make_unique<Property<xsd::UNSIGNED_LONG>>();
+        case data_type_def_xsd_e::POSITIVE_INTEGER:
+            return make_unique<Property<xsd::POSITIVE_INTEGER>>();
+        case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
+            return make_unique<Property<xsd::NON_NEGATIVE_INTEGER>>();
+        case data_type_def_xsd_e::NEGATIVE_INTEGER:
+            return make_unique<Property<xsd::NEGATIVE_INTEGER>>();
+        case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
+            return make_unique<Property<xsd::NON_POSITIVE_INTEGER>>();
+        case data_type_def_xsd_e::ANY_URI:
+            return make_unique<Property<xsd::ANY_URI>>();
+        default:
+            ASSERT((false), "UNIMPLEMENTED DATA TYPE DEFINITION: %s",
+                ConvertToString(xsdType).c_str());
+            return make_unique<DataElement>();
+        }
+    }
+
+
+    void processPropertyValue(data_type_def_xsd_e xsdType, Reference* valueID, JsonVariant value, DataElement* dataElement)
+    {
+        using xsd = data_type_def_xsd_e;
+
+        switch (xsdType)
+        {
+        case data_type_def_xsd_e::STRING:
+        case data_type_def_xsd_e::DATE:
+        case data_type_def_xsd_e::TIME:
+        case data_type_def_xsd_e::DATETIME:
+        case data_type_def_xsd_e::DATETIMESTAMP:
+        case data_type_def_xsd_e::G_YEAR:
+        case data_type_def_xsd_e::G_MONTH:
+        case data_type_def_xsd_e::G_DAY:
+        case data_type_def_xsd_e::G_YEAR_MONTH:
+        case data_type_def_xsd_e::G_MONTH_DAY:
+        case data_type_def_xsd_e::DURATION:
+        case data_type_def_xsd_e::YEAR_MONTH_DURATION:
+        case data_type_def_xsd_e::DAYTIME_DURATION:
+        case data_type_def_xsd_e::ANY_URI:
+        {
+            Property<xsd::STRING>* property = static_cast<Property<xsd::STRING>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<const char*>());
+            }
             
-            const char* qualifierType = submodelElement["type"].as<const char*>();
-            ASSERT((qualifierType != nullptr), "ATTRIBUTE 'type' CANNOT BE NULL");
-            const char* valueType = submodelElement["valueType"].as<const char*>();
-            ASSERT((valueType != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
         }
-        
-        psram::unique_ptr<QualifierBase> qualifier = constructQualifier(qualifierType, valueType);
-        
-        if (qualifierObject.containsKey("kind"))
+        case data_type_def_xsd_e::BOOLEAN:
         {
-            const char* qualifierKind = qualifierObject["kind"].as<const char*>();
-            qualifier->SetKind(ConvertToQualifierKindType(qualifierKind));
+            Property<xsd::BOOLEAN>* property = static_cast<Property<xsd::BOOLEAN>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<bool>());
+            }
+            
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
         }
-        
-        if (qualifierObject.containsKey("valueId"))
+        case data_type_def_xsd_e::DECIMAL:
+        case data_type_def_xsd_e::DOUBLE:
         {
-            JsonObject valueId = qualifierObject["valueId"].as<JsonObject>();
-            qualifier->SetValueID(DeserializeReference(valueId));
+            Property<xsd::DECIMAL>* property = static_cast<Property<xsd::DECIMAL>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<double>());
+            }
+            
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
         }
-        
-        if (qualifierObject.containsKey("value"))
+        case data_type_def_xsd_e::INTEGER:
+        case data_type_def_xsd_e::LONG:
+        case data_type_def_xsd_e::NEGATIVE_INTEGER:
+        case data_type_def_xsd_e::NON_POSITIVE_INTEGER:
         {
-            processQualifierValue(qualifierObject["value"].as<JsonVariant>(), qualifier.get());
+            Property<xsd::INTEGER>* property = static_cast<Property<xsd::INTEGER>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<int64_t>());
+            }
+            
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        case data_type_def_xsd_e::FLOAT:
+        {
+            Property<xsd::FLOAT>* property = static_cast<Property<xsd::FLOAT>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<float>());
+            }
+
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        case data_type_def_xsd_e::BYTE:
+        {
+            Property<xsd::BYTE>* property = static_cast<Property<xsd::BYTE>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<uint8_t>());
+            }
+
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        case data_type_def_xsd_e::SHORT:
+        {
+            Property<xsd::SHORT>* property = static_cast<Property<xsd::SHORT>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<int16_t>());
+            }
+
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        case data_type_def_xsd_e::INT:
+        {
+            Property<xsd::INT>* property = static_cast<Property<xsd::INT>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<int32_t>());
+            }
+
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_BYTE:
+        {
+            Property<xsd::UNSIGNED_BYTE>* property = static_cast<Property<xsd::UNSIGNED_BYTE>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<uint8_t>());
+            }
+
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_SHORT:
+        {
+            Property<xsd::UNSIGNED_SHORT>* property = static_cast<Property<xsd::UNSIGNED_SHORT>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<uint16_t>());
+            }
+
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }   
+        case data_type_def_xsd_e::UNSIGNED_INT:
+        {
+            Property<xsd::UNSIGNED_INT>* property = static_cast<Property<xsd::UNSIGNED_INT>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<uint32_t>());
+            }
+            
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        case data_type_def_xsd_e::UNSIGNED_LONG:
+        case data_type_def_xsd_e::POSITIVE_INTEGER:
+        case data_type_def_xsd_e::NON_NEGATIVE_INTEGER:
+        {
+            Property<xsd::UNSIGNED_LONG>* property = static_cast<Property<xsd::UNSIGNED_LONG>*>(dataElement);
+            if (value.isNull() == false)
+            {
+                property->SetValue(value.as<uint64_t>());
+            }
+            
+            if (valueID != nullptr)
+            {
+                property->SetValueID(*valueID);
+            }
+            return;
+        }
+        default:
+            log_d("UNIMPLEMENTED DATA TYPE DEFINITION: %s", ConvertToString(xsdType).c_str());
+            break;
+        }
+    }
+
+
+    psram::unique_ptr<DataElement> DeserializeProperty(const JsonObject payload)
+    {
+        const char* strXSD = payload["valueType"].as<const char*>();
+        ASSERT((strXSD != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
+        const data_type_def_xsd_e xsd = ConvertToDataTypeDefXSD(strXSD);
+
+        psram::unique_ptr<DataElement> property = constructProperty(xsd);
+        property->SetModelType(key_types_e::PROPERTY);
+
+        psram::unique_ptr<Reference> valueId;
+        if (payload.containsKey("valueId"))
+        {
+            valueId = psram::make_unique<Reference>(
+                DeserializeReference(payload["valueId"].as<JsonObject>())
+            );
         }
 
-        return qualifier;
+        processPropertyValue(xsd, 
+                             valueId.get(), 
+                             payload["value"].as<JsonVariant>(), 
+                             property.get());
+
+        if (payload.containsKey("idShort"))
+        {
+            property->SetIdShort(payload["idShort"].as<const char*>());
+        }
+        
+        if (payload.containsKey("category"))
+        {
+            property->SetCategory(payload["category"].as<const char*>());
+        }
+
+        if (payload.containsKey("qualifiers"))
+        {
+            psram::unique_ptr<QualifierBase> qualifier = DeserializeQualifiers(
+                payload["qualifiers"].as<JsonArray>());
+            property->SetQualifier(std::move(qualifier));
+        }
+
+        if (payload.containsKey("extensions"))
+        {
+            psram::unique_ptr<ExtensionBase> extension = DeserializeExtensions(
+                payload["extensions"].as<JsonArray>()
+            );
+            property->SetExtension(std::move(extension));
+        }
+
+        if (payload.containsKey("semanticId"))
+        {
+            Reference semanticId = DeserializeReference(payload["semanticId"].as<JsonObject>());
+            property->SetSemanticID(semanticId);
+        }
+        log_d("property->GetValueType(): %p", property->GetValueType());
+        return property;
+    }
+
+
+    psram::unique_ptr<SubmodelElementCollection> DeserializeSMC(const JsonObject payload)
+    {
+        using SMC = SubmodelElementCollection;
+
+        psram::unique_ptr<SMC> smc = psram::make_unique<SMC>();
+        smc->SetModelType(key_types_e::SubmodelElementCollection);
+        
+        if (payload.containsKey("category"))
+        {
+            smc->SetCategory(payload["category"].as<const char*>());
+        }
+
+        if (payload.containsKey("idShort"))
+        {
+            smc->SetIdShort(payload["idShort"].as<const char*>());
+        }
+
+        if (payload.containsKey("extensions"))
+        {
+            smc->SetExtension(DeserializeExtensions(payload["extensions"].as<JsonArray>()));
+        }
+
+        if (payload.containsKey("qualifiers"))
+        {
+            smc->SetQualifier(DeserializeQualifiers(payload["qualifiers"].as<JsonArray>()));
+        }
+
+        if (payload.containsKey("semanticId"))
+        {
+            smc->SetSemanticID(DeserializeReference(payload["semanticId"].as<JsonObject>()));
+        }
+
+        if (payload.containsKey("value") == false)
+        {
+            return smc;
+        }
+        
+        for (const JsonObject obj : payload["value"].as<JsonArray>())
+        {
+            ASSERT((strcmp(obj["modelType"].as<const char*>(), "Property") == 0), 
+                "IMPLEMENT ERROR: ONLY 'Property' IS SUPPORTED YET");
+
+            psram::unique_ptr<DataElement> property = DeserializeProperty(obj);
+            smc->Add(psram::make_unique<SubmodelElement>(*property));
+        }
+
+        return smc;
+    }
+
+
+    psram::unique_ptr<SubmodelElement> DeserializeSubmodelElement(const JsonObject payload)
+    {
+        const char* strModelType = payload["modelType"].as<const char*>();
+        ASSERT((strModelType != nullptr), "ATTRIBUTE 'modelType' CANNOT BE NULL");
+        const key_types_e modelType = ConvertToKeyType(strModelType);
+        ASSERT((modelType != key_types_e::TOP), "INVALID VALUE FOR 'KeyTypes' ENUMERATION");
+
+        switch (modelType)
+        {
+        case key_types_e::PROPERTY:
+        {
+            return DeserializeProperty(payload);
+        }
+        case key_types_e::SubmodelElementCollection:
+        {
+            return DeserializeSMC(payload);
+        }
+        
+        default:
+            ASSERT((false), "UNIMPLEMENTED KEY TYPE");
+            break;
+        }
+
+        return psram::unique_ptr<SubmodelElement>();
     }
 }}

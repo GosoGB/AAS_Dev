@@ -17,6 +17,7 @@
 
 #include <IEC63278/Container/include/AASXLoader.hpp>
 #include <IEC63278/Serializer/Serializer.hpp>
+#include <IEC63278/Metamodel/Abstract/Submodel/Property.hpp>
 
 
 
@@ -45,13 +46,17 @@ void setup()
     aasxLoader.Start();
 
     AssetAdministrationShellSerializer serializer;
-
     psram::string json = serializer.Encode("https://example.com/ids/sm/4523_3042_7052_7604");
-    log_d("%s", json.c_str());
+    log_d("/shells/{{identifier}}\n%s\n", json.c_str());
     Serial.println();
 
     json = serializer.EncodeAll();
-    log_d("%s", json.c_str());
+    log_d("/shells\n%s\n", json.c_str());
+    Serial.println();
+
+    SubmodelsSerializer submodelSerializer;
+    json = submodelSerializer.Encode("https://example.com/ids/sm/Identification");
+    log_d("/submodels/{{identifier}}\n%s\n", json.c_str());
     Serial.println();
 
     log_psram();

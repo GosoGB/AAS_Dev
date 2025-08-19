@@ -16,7 +16,9 @@
 #include <ArduinoJson.h>
 
 #include "../../Include/Converter.hpp"
+#include "../../Metamodel/Abstract/Submodel/Property.hpp"
 #include "../../Metamodel/Abstract/Submodel/SubmodelElement.hpp"
+#include "../../Metamodel/Abstract/Submodel/SubmodelElementCollection.hpp"
 #include "../../Metamodel/Extension.hpp"
 #include "../../Metamodel/Qualifier.hpp"
 #include "../../Metamodel/Reference.hpp"
@@ -28,19 +30,20 @@
 namespace muffin { namespace aas {
 
 
-    JsonDocument ConvertToJSON(const ExtensionBase& extensionBase);
-    JsonDocument ConvertToJSON(const QualifierBase& qualifierBase);
-    JsonDocument ConvertToJSON(const Reference& reference);
-    
-    psram::string SerializeExtension(const ExtensionBase& extensionBase);
-    psram::string SerializeQualifier(const QualifierBase& qualifierBase);
-    psram::string SerializeReference(const Reference& reference);
+    JsonDocument SerializeExtension(const ExtensionBase& extensionBase);
+    JsonDocument SerializeQualifier(const QualifierBase& qualifierBase);
+    JsonDocument SerializeReference(const Reference& reference);
+    JsonDocument SerializeProperty(const DataElement& dataElement);
+    JsonDocument SerializeSMC(const SubmodelElementCollection& smc);
+    JsonDocument SerializeSubmodelElement(const SubmodelElement& submodelElement);
 
     /**
      * @todo Need to implement deserialization function for Extension class
      */
     psram::unique_ptr<ExtensionBase> DeserializeExtensions(const JsonArray extensions);
-    Reference DeserializeReference(const JsonObject reference);
     psram::unique_ptr<QualifierBase> DeserializeQualifiers(const JsonArray qualifiers);
-    psram::unique_ptr<SubmodelElement> DeserializeSubmodelElements(const JsonArray submodelElements);
+    Reference DeserializeReference(const JsonObject reference);
+    psram::unique_ptr<DataElement> DeserializeProperty(const JsonObject payload);
+    psram::unique_ptr<SubmodelElementCollection> DeserializeSMC(const JsonObject payload);
+    psram::unique_ptr<SubmodelElement> DeserializeSubmodelElement(const JsonObject payload);
 }}

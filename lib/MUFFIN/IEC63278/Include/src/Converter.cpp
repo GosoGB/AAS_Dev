@@ -2,7 +2,7 @@
  * @file Converter.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-08-18
+ * @date 2025-08-19
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -18,8 +18,9 @@
 
 
 namespace muffin { namespace aas {
+    
 
-    const char* KEY_TYPE_STRING[22] PROGMEM = {
+    const char* KEY_TYPE_STRING[24] PROGMEM = {
         "Referable",
         "FragmentReference",
         "GlobalReference",
@@ -41,7 +42,9 @@ namespace muffin { namespace aas {
         "Range",
         "ReferenceElement",
         "RelationshipElement",
-        "SubmodelElement"
+        "SubmodelElement",
+        "SubmodelElementCollection",
+        "SubmodelElementList"
     };
 
     const char* REFERENCE_TYPES_STRING[2] PROGMEM = {
@@ -90,10 +93,10 @@ namespace muffin { namespace aas {
         "xs:nonNegativeInteger",
         "xs:negativeInteger",
         "xs:nonPositiveInteger",
-        "xs:hexBinary",
-        "xs:base64Binary",
-        "xs:anyURI",
-        "rdf:langString"
+        // "xs:hexBinary",
+        // "xs:base64Binary",
+        "xs:anyURI"
+        // "rdf:langString"
     };
 
     const char* QUALIFIER_KIND_STRING[3] PROGMEM = {
@@ -169,7 +172,7 @@ namespace muffin { namespace aas {
 
     data_type_def_xsd_e ConvertToDataTypeDefXSD(const char* xsd)
     {
-        const uint8_t MAX_ITERATION = static_cast<uint8_t>(data_type_def_xsd_e::NON_POSITIVE_INTEGER) + 1;
+        const uint8_t MAX_ITERATION = static_cast<uint8_t>(data_type_def_xsd_e::ANY_URI) + 1;
         for (uint8_t idx = 0; idx < MAX_ITERATION; ++idx)
         {
             if (strcmp(DATA_TYPE_DEF_XSD_STRING[idx], xsd) == 0)
@@ -234,7 +237,8 @@ namespace muffin { namespace aas {
     psram::string ConvertToString(const data_type_def_xsd_e xsd)
     {
         ASSERT(
-            (static_cast<uint8_t>(xsd) < static_cast<uint8_t>(data_type_def_xsd_e::NON_POSITIVE_INTEGER)+1), "UNDEFINED VALUE FOR XSD DATA TYPE");
+            (static_cast<uint8_t>(xsd) < static_cast<uint8_t>(data_type_def_xsd_e::ANY_URI) + 1), "UNDEFINED VALUE FOR XSD DATA TYPE");
+        log_d("xsd: %u", static_cast<uint8_t>(xsd));
         return DATA_TYPE_DEF_XSD_STRING[static_cast<uint8_t>(xsd)];
     }
 

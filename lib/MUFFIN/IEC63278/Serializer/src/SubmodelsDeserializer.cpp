@@ -74,8 +74,14 @@ namespace muffin { namespace aas {
 
         if (payload.containsKey("submodelElements"))
         {
-            psram::unique_ptr<SubmodelElement> sme;
-            submodel.AddSubmodelElement(std::move(sme));
+            ASSERT((payload["submodelElements"].as<JsonArray>().size() != 0), 
+                "THE SIZE OF SME CANNOT BE 0");
+            
+            for (const JsonObject obj : payload["submodelElements"].as<JsonArray>())
+            {
+                psram::unique_ptr<SubmodelElement> sme = DeserializeSubmodelElement(obj);
+                submodel.AddSubmodelElement(std::move(sme));
+            }
         }
         
         return psram::make_unique<Submodel>(std::move(submodel));

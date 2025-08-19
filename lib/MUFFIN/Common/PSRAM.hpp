@@ -8,7 +8,7 @@
  * @note
  * This implementation follows a no-throw policy, returning nullptr on allocation failure.
  * 
- * @date 2025-07-29
+ * @date 2025-08-20
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -95,7 +95,8 @@ namespace muffin { namespace psram {
     }
 
     // --- Type Aliases for convenience ---
-    template<typename T> using unique_ptr = std::unique_ptr<T, Deleter<T>>;
+    // template<typename T> using unique_ptr = std::unique_ptr<T, Deleter<T>>;
+    template<typename T> using unique_ptr = std::unique_ptr<T, std::default_delete<T>>;
     template<typename T> using vector = std::vector<T, Allocator<T>>;
     using string = std::basic_string<char, std::char_traits<char>, Allocator<char>>;
 

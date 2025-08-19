@@ -89,25 +89,25 @@ namespace muffin { namespace aas {
 
     void AASXLoader::loadSubmodels()
     {
-        // ASSERT((mJsonDocument.containsKey("submodels")), "MISSING MANDATORY ATTRIBUTE 'submodels'");
+        ASSERT((mJsonDocument.containsKey("submodels")), "MISSING MANDATORY ATTRIBUTE 'submodels'");
 
-        // JsonArray arraySubmodels = mJsonDocument["submodels"].as<JsonArray>();
-        // log_d("Size of 'submodels': %u", arraySubmodels.size());
+        JsonArray arraySubmodels = mJsonDocument["submodels"].as<JsonArray>();
+        log_d("Size of 'submodels': %u", arraySubmodels.size());
 
-        // for (size_t idx = 0; idx < arraySubmodels.size(); ++idx)
-        // {
-        //     JsonObject objectSubmodel = arraySubmodels[idx].as<JsonObject>();
+        for (size_t idx = 0; idx < arraySubmodels.size(); ++idx)
+        {
+            JsonObject objectSubmodel = arraySubmodels[idx].as<JsonObject>();
 
-        //     SubmodelsDeserializer deserializer;
-        //     psram::unique_ptr<Submodel> submodel = deserializer.Parse(objectSubmodel);
-        // #ifndef DEBUG
-        //     구현 필요함 --> AssetAdministrationShell::SetCategory()
-        //     구현 필요함 --> AssetAdministrationShell::SetDataSpecification()
-        //     구현 필요함 --> AssetAdministrationShell::SetDerivedFrom()
-        //     구현 필요함 --> AssetAdministrationShell::SetExtension()
-        // #endif
-        //     Container* container = Container::GetInstance();
-        //     container->AddAssetAdministrationShell(std::move(aas));
-        // }
+            SubmodelsDeserializer deserializer;
+            psram::unique_ptr<Submodel> submodel = deserializer.Parse(objectSubmodel);
+        #ifndef DEBUG
+            구현 필요함 --> AssetAdministrationShell::SetCategory()
+            구현 필요함 --> AssetAdministrationShell::SetDataSpecification()
+            구현 필요함 --> AssetAdministrationShell::SetDerivedFrom()
+            구현 필요함 --> AssetAdministrationShell::SetExtension()
+        #endif
+            Container* container = Container::GetInstance();
+            container->AddSubmodel(std::move(submodel));
+        }
     }
 }}

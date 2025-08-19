@@ -46,14 +46,17 @@ namespace muffin { namespace aas {
     public:
         virtual ~QualifierBase() noexcept = default;
     public:
-        virtual void SetKind(const qualifier_kind_e kind);
-        virtual void SetValueID(const Reference& valueId);
+        virtual void SetKind(const qualifier_kind_e kind) {}
+        virtual void SetValueID(const Reference& valueId) {}
     public:
-        virtual const qualifier_kind_e* GetKindOrNULL() const noexcept;
-        virtual QualifierType GetType() const noexcept;
-        virtual data_type_def_xsd_e GetValueType() const noexcept;
-        virtual const Reference* GetValueIdOrNULL() const noexcept;
-        virtual psram::unique_ptr<QualifierBase> Clone() const;
+        virtual const qualifier_kind_e* GetKindOrNULL() const noexcept { return nullptr; }
+        virtual const QualifierType* GetType() const noexcept { return nullptr; }
+        virtual const data_type_def_xsd_e* GetValueType() const noexcept { return nullptr; }
+        virtual const Reference* GetValueIdOrNULL() const noexcept { return nullptr; }
+        virtual psram::unique_ptr<QualifierBase> Clone() const
+        {
+            return psram::unique_ptr<QualifierBase>();
+        }
     };
     
 
@@ -63,7 +66,8 @@ namespace muffin { namespace aas {
     public:
         Qualifier(const QualifierType& type) : mValueType(xsd), mType(type) {}
         Qualifier(const Qualifier& other)
-            : mValueType(other.mValueType)
+            : HasSemantics(other)
+            , mValueType(other.mValueType)
             , mType(other.mType)
         {
             if (other.mKind != nullptr)
@@ -88,6 +92,8 @@ namespace muffin { namespace aas {
         {
             if (this != &other)
             {
+                HasSemantics::operator=(other);
+                
                 if (other.mKind)
                 {
                     mKind = psram::make_unique<qualifier_kind_e>(*other.mKind);
@@ -159,14 +165,14 @@ namespace muffin { namespace aas {
             return mKind ? mKind.get() : nullptr;
         }
 
-        QualifierType GetType() const noexcept override
+        const QualifierType* GetType() const noexcept override
         {
-            return mType;
+            return &mType;
         }
 
-        data_type_def_xsd_e GetValueType() const noexcept override
+        const data_type_def_xsd_e* GetValueType() const noexcept override
         {
-            return mValueType;
+            return &mValueType;
         }
 
         const typename xsd_type_mapper<xsd>::type* GetValueOrNULL() const noexcept
@@ -179,7 +185,7 @@ namespace muffin { namespace aas {
             return mValueID ? mValueID.get() : nullptr;
         }
 
-    protected:
+    private:
         psram::unique_ptr<qualifier_kind_e> mKind;
         data_type_def_xsd_e mValueType;
         QualifierType mType;

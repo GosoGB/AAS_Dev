@@ -91,6 +91,17 @@ namespace muffin { namespace aas {
             JsonArray qualifiers = doc["qualifiers"].to<JsonArray>();
             qualifiers.add(SerializeQualifier(*submodel.GetQualifierOrNULL()));
         }
+
+        if (submodel.size() == 0)
+        {
+            return doc;
+        }
+        
+        JsonArray submodelElements = doc["submodelElements"].to<JsonArray>();
+        for (const auto& submodelElement : submodel)
+        {
+            submodelElements.add(SerializeSubmodelElement(*submodelElement.get()));
+        }
         
         return doc;
     }

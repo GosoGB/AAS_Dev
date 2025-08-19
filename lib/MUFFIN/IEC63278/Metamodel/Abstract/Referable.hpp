@@ -76,7 +76,7 @@ namespace muffin { namespace aas {
         void SetCategory(const psram::string& category)
         {
             ASSERT(
-                ((category != "CONSTANT") && (category != "PARAMETER") && (category != "VARIABLE")),
+                ((category == "CONSTANT") || (category == "PARAMETER") || (category == "VARIABLE")),
                 "INVALID CATEGORY FOR A 'Referable': %s", category.c_str()
             );
 

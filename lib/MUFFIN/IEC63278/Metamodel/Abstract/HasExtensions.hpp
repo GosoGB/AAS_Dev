@@ -68,7 +68,7 @@ namespace muffin { namespace aas {
             mExtension = psram::make_unique<Extension<xsd>>(extension);
         }
 
-        ExtensionBase* GetExtensionOrNull() const
+        const ExtensionBase* GetExtensionOrNull() const
         {
             return mExtension.get();
         }

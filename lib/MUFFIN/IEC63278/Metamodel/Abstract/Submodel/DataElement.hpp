@@ -32,11 +32,23 @@ namespace muffin { namespace aas {
 
     class DataElement : public SubmodelElement
     {
-    protected:
-        DataElement(const DataElement& other) = default;
-
     public:
         DataElement() = default;
+        DataElement(const DataElement& other) = default;
+        DataElement(DataElement&& other) = default;
         ~DataElement() override = default;
+    
+    public:
+        key_types_e GetModelType() const noexcept override
+        {
+            return key_types_e::DATA_ELEMENT;
+        }
+
+        virtual data_type_def_xsd_e GetValueType() const noexcept
+        {
+            return mValueType;
+        }
+    protected:
+        data_type_def_xsd_e mValueType = data_type_def_xsd_e::ANY_URI;
     };
 }}
