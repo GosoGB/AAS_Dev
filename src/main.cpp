@@ -29,7 +29,7 @@ void log_psram()
 
     ESP_LOGI("PSRAM", "Total PSRAM: %d bytes", total_psram);
     ESP_LOGI("PSRAM", "Free PSRAM: %d bytes", free_psram);
-    ESP_LOGI("PSRAM", "Largest free PSRAM block: %d bytes", largest_psram_block);
+    ESP_LOGI("PSRAM", "Largest free PSRAM block: %d bytes\n\n", largest_psram_block);
 }
 
 
@@ -57,6 +57,10 @@ void setup()
     SubmodelsSerializer submodelSerializer;
     json = submodelSerializer.Encode("https://example.com/ids/sm/Identification");
     log_d("/submodels/{{identifier}}\n%s\n", json.c_str());
+    Serial.println();
+    
+    json = submodelSerializer.EncodeAll();
+    log_d("/submodels\n%s\n", json.c_str());
     Serial.println();
 
     log_psram();

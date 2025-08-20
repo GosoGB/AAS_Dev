@@ -30,9 +30,32 @@ namespace muffin { namespace aas {
     {
         using SubmodelElements = psram::vector<psram::unique_ptr<SubmodelElement>>;
     public:
-        SubmodelElementCollection() = default;
+        SubmodelElementCollection()
+        {
+            mModelType = key_types_e::SubmodelElementCollection;
+        }
+
+        SubmodelElementCollection(const SubmodelElementCollection& other)
+            : SubmodelElement(other)
+        {
+            mValue.reserve(other.mValue.size());
+            for (const auto& element : other.mValue)
+            {
+                if (element)
+                {
+                    mValue.push_back(element->Clone());
+                }
+            }
+        }
+
         ~SubmodelElementCollection() noexcept override = default;
+
     public:
+        psram::unique_ptr<SubmodelElement> Clone() const override
+        {
+            return psram::make_unique<SubmodelElementCollection>(*this);
+        }
+
         void Add(psram::unique_ptr<SubmodelElement> submodelElement)
         {
             mValue.emplace_back(std::move(submodelElement));

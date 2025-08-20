@@ -61,11 +61,39 @@ namespace muffin { namespace aas {
         Submodel Clone() const
         {
             Submodel clone(mID);
-            clone.mSubmodelElements.reserve(this->mSubmodelElements.size());
+            clone.SetKind(mKind);
 
+            if (mCategory)
+            {
+                clone.SetCategory(mCategory->c_str());
+            }
+
+            if (mIdShort)
+            {
+                clone.SetIdShort(*mIdShort);
+            }
+
+            if (mExtension)
+            {
+                clone.SetExtension(mExtension->Clone());
+            }
+            
+            if (mQualifier)
+            {
+                clone.SetQualifier(mQualifier->Clone());
+            }
+            
+            if (mSemanticID)
+            {
+                clone.SetSemanticID(psram::make_unique<Reference>(*mSemanticID));
+            }
+            
+            clone.mSubmodelElements.reserve(this->mSubmodelElements.size());
             for (const auto& element : this->mSubmodelElements)
             {
-                clone.AddSubmodelElement(element->Clone());
+                if (element) {
+                    clone.AddSubmodelElement(element->Clone());
+                }
             }
 
             return clone;

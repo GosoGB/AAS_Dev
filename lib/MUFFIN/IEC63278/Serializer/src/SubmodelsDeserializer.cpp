@@ -83,7 +83,7 @@ namespace muffin { namespace aas {
                 submodel.AddSubmodelElement(std::move(sme));
             }
         }
-        
+
         return psram::make_unique<Submodel>(std::move(submodel));
     }
 }}

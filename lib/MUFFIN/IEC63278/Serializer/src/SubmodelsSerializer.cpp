@@ -41,7 +41,7 @@ namespace muffin { namespace aas {
     psram::string SubmodelsSerializer::EncodeAll()
     {
         Container* container = Container::GetInstance();
-        const auto& vectorSubmodels = container->GetAllSubmodels();
+        const auto vectorSubmodels = container->GetAllSubmodels();
 
         JsonDocument doc;
         JsonArray arraySubmodels = doc.to<JsonArray>();

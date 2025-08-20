@@ -46,17 +46,43 @@ namespace muffin { namespace aas {
     public:
         virtual ~QualifierBase() noexcept = default;
     public:
-        virtual void SetKind(const qualifier_kind_e kind) {}
-        virtual void SetValueID(const Reference& valueId) {}
+        virtual void SetKind(const qualifier_kind_e kind)
+        {
+            ASSERT(false, "MUST BE OVERRIDDEN IN DERIVED CLASSES");
+        }
+        
+        virtual void SetValueID(const Reference& valueId)
+        {
+            ASSERT(false, "MUST BE OVERRIDDEN IN DERIVED CLASSES");
+        }
+
     public:
-        virtual const qualifier_kind_e* GetKindOrNULL() const noexcept { return nullptr; }
-        virtual const QualifierType* GetType() const noexcept { return nullptr; }
-        virtual const data_type_def_xsd_e* GetValueType() const noexcept { return nullptr; }
-        virtual const Reference* GetValueIdOrNULL() const noexcept { return nullptr; }
+        virtual const data_type_def_xsd_e* GetValueType() const noexcept { return &mValueType; }
+        
+        virtual const qualifier_kind_e* GetKindOrNULL() const noexcept
+        {
+            ASSERT(false, "MUST BE OVERRIDDEN IN DERIVED CLASSES");
+            return nullptr;
+        }
+
+        virtual const QualifierType* GetType() const noexcept
+        {
+            ASSERT(false, "MUST BE OVERRIDDEN IN DERIVED CLASSES");
+            return nullptr;
+        }
+        
+        virtual const Reference* GetValueIdOrNULL() const noexcept
+        {
+            ASSERT(false, "MUST BE OVERRIDDEN IN DERIVED CLASSES");
+            return nullptr;
+        }
+        
         virtual psram::unique_ptr<QualifierBase> Clone() const
         {
             return psram::unique_ptr<QualifierBase>();
         }
+    protected:
+        data_type_def_xsd_e mValueType;
     };
     
 
@@ -64,10 +90,10 @@ namespace muffin { namespace aas {
     class Qualifier : public QualifierBase, public HasSemantics
     {
     public:
-        Qualifier(const QualifierType& type) : mValueType(xsd), mType(type) {}
+        Qualifier(const QualifierType& type) : mType(type) { mValueType = xsd; }
         Qualifier(const Qualifier& other)
-            : HasSemantics(other)
-            , mValueType(other.mValueType)
+            : QualifierBase(other)
+            , HasSemantics(other)
             , mType(other.mType)
         {
             if (other.mKind != nullptr)
@@ -133,7 +159,7 @@ namespace muffin { namespace aas {
 
         psram::unique_ptr<QualifierBase> Clone() const override
         {
-            return psram::make_unique<QualifierBase>(*psram::make_unique<Qualifier<xsd>>(*this));
+            return psram::make_unique<Qualifier<xsd>>(*this);
         }
 
     public:
@@ -187,7 +213,6 @@ namespace muffin { namespace aas {
 
     private:
         psram::unique_ptr<qualifier_kind_e> mKind;
-        data_type_def_xsd_e mValueType;
         QualifierType mType;
         psram::unique_ptr<typename xsd_type_mapper<xsd>::type> mValue;
         psram::unique_ptr<Reference> mValueID;

@@ -96,7 +96,7 @@ namespace muffin { namespace aas {
         psram::unique_ptr<ExtensionBase> Clone() const override
         {
             using namespace psram;
-            return make_unique<ExtensionBase>(*make_unique<Extension<xsd>>(*this));
+            return make_unique<Extension<xsd>>(*this);
         }
 
     public:

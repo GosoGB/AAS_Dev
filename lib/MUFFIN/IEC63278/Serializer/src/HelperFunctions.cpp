@@ -35,15 +35,40 @@ namespace muffin { namespace aas {
 
 
     template<data_type_def_xsd_e xsd>
+    struct QualifierValueSerializer
+    {
+        static void serialize(const typename xsd_type_mapper<xsd>::type* value, JsonDocument* doc)
+        {
+            if (value != nullptr)
+            {
+                doc->operator[]("value") = *value;
+            }
+        }
+    };
+
+    template<>
+    struct QualifierValueSerializer<data_type_def_xsd_e::STRING>
+    {
+        static void serialize(const psram::string* value, JsonDocument* doc)
+        {
+            if (value != nullptr)
+            {
+                doc->operator[]("value") = value->c_str();
+            }
+        }
+    };
+
+    template<data_type_def_xsd_e xsd>
     void updateQualifierValue(const QualifierBase& qualifierBase, JsonDocument* doc)
     {
-        using obj_type = const Qualifier<xsd>*;
-        using xsd_type = const typename xsd_type_mapper<xsd>::type*;
-
-        xsd_type value = static_cast<obj_type>(&qualifierBase)->GetValueOrNULL();
+        const Qualifier<xsd>* qualifier = static_cast<const Qualifier<xsd>*>(&qualifierBase);
+        doc->operator[]("type") = qualifier->GetType()->c_str();
+        doc->operator[]("valueType") = ConvertToString(*qualifier->GetValueType());
+        
+        const typename xsd_type_mapper<xsd>::type* value = qualifier->GetValueOrNULL();
         if (value != nullptr)
         {
-            doc->operator[]("value") = *value;
+            QualifierValueSerializer<xsd>::serialize(value, doc);
         }
     }
 
@@ -446,10 +471,7 @@ namespace muffin { namespace aas {
     JsonDocument SerializeQualifier(const QualifierBase& qualifierBase)
     {
         JsonDocument doc;
-        doc["type"] = *qualifierBase.GetType();
 
-        const data_type_def_xsd_e xsd = *qualifierBase.GetValueType();
-        doc["valueType"] = ConvertToString(xsd);
         processQualifierValue(qualifierBase, &doc);
 
         if (qualifierBase.GetKindOrNULL() != nullptr)
@@ -473,7 +495,6 @@ namespace muffin { namespace aas {
         doc["type"] = ConvertToString(reference.GetType());
 
         const Reference* referredSemanticID = reference.GetReferredSemanticID();
-        log_d("referredSemanticID: %p", referredSemanticID);
         if (referredSemanticID != nullptr)
         {
             doc["referredSemanticId"] = SerializeReference(*referredSemanticID);
@@ -561,9 +582,6 @@ namespace muffin { namespace aas {
 
         case data_type_def_xsd_e::BOOLEAN:
         {
-            log_d("------BOOLEAN---------");
-            delay(1000);
-
             const Property<xsd::BOOLEAN>* property = static_cast<
                 const Property<xsd::BOOLEAN>*>(&dataElement);
             
@@ -582,9 +600,6 @@ namespace muffin { namespace aas {
         case data_type_def_xsd_e::DECIMAL:
         case data_type_def_xsd_e::DOUBLE:
         {
-            log_d("------DECIMAL---------");
-            delay(1000);
-
             const Property<xsd::DECIMAL>* property = static_cast<
                 const Property<xsd::DECIMAL>*>(&dataElement);
             
@@ -772,7 +787,7 @@ namespace muffin { namespace aas {
     {
         JsonDocument doc;
 
-        doc["type"] = ConvertToString(smc.GetModelType());
+        doc["modelType"] = ConvertToString(smc.GetModelType());
 
         if (smc.GetIdShortOrNull() != nullptr)
         {
@@ -810,7 +825,7 @@ namespace muffin { namespace aas {
         for (const auto& obj : smc)
         {
             ASSERT((strcmp(ConvertToString(obj->GetModelType()).c_str(), "Property") == 0),
-                "IMPLEMENT ERROR: ONLY 'Property' IS SUPPORTED YET");
+                    "IMPLEMENT ERROR: ONLY 'Property' IS SUPPORTED YET");
 
             DataElement* property = static_cast<DataElement*>(obj.get());
             value.add(SerializeProperty(*property));
@@ -1131,7 +1146,7 @@ namespace muffin { namespace aas {
         ASSERT((valueType != nullptr), "ATTRIBUTE 'valueType' CANNOT BE NULL");
         
         psram::unique_ptr<QualifierBase> qualifier = constructQualifier(qualifierType, valueType);
-        
+
         if (qualifierObject.containsKey("kind"))
         {
             const char* qualifierKind = qualifierObject["kind"].as<const char*>();
@@ -1482,7 +1497,7 @@ namespace muffin { namespace aas {
             Reference semanticId = DeserializeReference(payload["semanticId"].as<JsonObject>());
             property->SetSemanticID(semanticId);
         }
-        log_d("property->GetValueType(): %p", property->GetValueType());
+        
         return property;
     }
 
@@ -1529,10 +1544,9 @@ namespace muffin { namespace aas {
             ASSERT((strcmp(obj["modelType"].as<const char*>(), "Property") == 0), 
                 "IMPLEMENT ERROR: ONLY 'Property' IS SUPPORTED YET");
 
-            psram::unique_ptr<DataElement> property = DeserializeProperty(obj);
-            smc->Add(psram::make_unique<SubmodelElement>(*property));
+            smc->Add(DeserializeProperty(obj));
         }
-
+        
         return smc;
     }
 

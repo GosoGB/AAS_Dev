@@ -57,7 +57,6 @@ namespace muffin { namespace aas {
             ASSERT(false, "NOT IMPLEMENTED: Attribute 'derivedFrom'");
         }
 
-        log_d("shortId: %s", aas.GetIdShortOrNull());
         return psram::make_unique<AssetAdministrationShell>(std::move(aas));
     }
 

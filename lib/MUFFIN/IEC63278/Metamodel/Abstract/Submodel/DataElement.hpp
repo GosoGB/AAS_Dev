@@ -35,14 +35,22 @@ namespace muffin { namespace aas {
     public:
         DataElement() = default;
         DataElement(data_type_def_xsd_e xsd, key_types_e modelType)
-            : mValueType(xsd)
-            , mModelType(modelType)
-        {};
+        {
+            mValueType = xsd;
+            mModelType = modelType;
+        };
+        
         DataElement(const DataElement& other) = default;
         DataElement(DataElement&& other) = default;
         ~DataElement() override = default;
     
     public:
+        psram::unique_ptr<SubmodelElement> Clone() const override
+        {
+            ASSERT(false, "MUST BE OVERRIDDEN IN DERIVED CLASSES");
+            return nullptr;
+        }
+
         key_types_e GetModelType() const noexcept override
         {
             return mModelType;
@@ -54,6 +62,5 @@ namespace muffin { namespace aas {
         }
     protected:
         data_type_def_xsd_e mValueType;
-        key_types_e mModelType;
     };
 }}

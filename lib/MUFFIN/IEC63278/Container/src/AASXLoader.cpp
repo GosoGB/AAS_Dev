@@ -14,6 +14,7 @@
 #include <esp32-hal-log.h>
 
 #include "../../Metamodel/Abstract/Submodel/Submodel.hpp"
+#include "../../Metamodel/Abstract/Submodel/SubmodelElementCollection.hpp"
 #include "../../Metamodel/AssetAdministrationShell.hpp"
 #include "../../Serializer/Deserializer.hpp"
 #include "../include/AASXLoader.hpp"
@@ -67,7 +68,6 @@ namespace muffin { namespace aas {
             "MISSING MANDATORY ATTRIBUTE 'assetAdministrationShells'");
         
         JsonArray arrayAssetAdministrationShells = mJsonDocument["assetAdministrationShells"].as<JsonArray>();
-        log_d("Size of 'assetAdministrationShells': %u", arrayAssetAdministrationShells.size());
 
         for (size_t idx = 0; idx < arrayAssetAdministrationShells.size(); ++idx)
         {
@@ -92,7 +92,6 @@ namespace muffin { namespace aas {
         ASSERT((mJsonDocument.containsKey("submodels")), "MISSING MANDATORY ATTRIBUTE 'submodels'");
 
         JsonArray arraySubmodels = mJsonDocument["submodels"].as<JsonArray>();
-        log_d("Size of 'submodels': %u", arraySubmodels.size());
 
         for (size_t idx = 0; idx < arraySubmodels.size(); ++idx)
         {
@@ -100,6 +99,7 @@ namespace muffin { namespace aas {
 
             SubmodelsDeserializer deserializer;
             psram::unique_ptr<Submodel> submodel = deserializer.Parse(objectSubmodel);
+            
         #ifndef DEBUG
             구현 필요함 --> AssetAdministrationShell::SetCategory()
             구현 필요함 --> AssetAdministrationShell::SetDataSpecification()

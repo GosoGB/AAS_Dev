@@ -238,7 +238,7 @@ namespace muffin { namespace aas {
     {
         ASSERT(
             (static_cast<uint8_t>(xsd) < static_cast<uint8_t>(data_type_def_xsd_e::ANY_URI) + 1), "UNDEFINED VALUE FOR XSD DATA TYPE");
-        log_d("xsd: %u", static_cast<uint8_t>(xsd));
+
         return DATA_TYPE_DEF_XSD_STRING[static_cast<uint8_t>(xsd)];
     }
 

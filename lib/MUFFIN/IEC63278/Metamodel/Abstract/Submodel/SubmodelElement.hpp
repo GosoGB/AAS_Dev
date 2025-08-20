@@ -57,7 +57,8 @@ namespace muffin { namespace aas {
     public:
         psram::unique_ptr<SubmodelElement> Clone() const override
         {
-            return psram::make_unique<SubmodelElement>(*this);
+            ASSERT(false, "MUST BE OVERRIDDEN IN DERIVED CLASSES");
+            return nullptr;
         }
 
         key_types_e GetModelType() const noexcept override
