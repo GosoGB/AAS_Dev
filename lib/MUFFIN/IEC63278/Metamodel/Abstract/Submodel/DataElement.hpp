@@ -34,6 +34,10 @@ namespace muffin { namespace aas {
     {
     public:
         DataElement() = default;
+        DataElement(data_type_def_xsd_e xsd, key_types_e modelType)
+            : mValueType(xsd)
+            , mModelType(modelType)
+        {};
         DataElement(const DataElement& other) = default;
         DataElement(DataElement&& other) = default;
         ~DataElement() override = default;
@@ -41,7 +45,7 @@ namespace muffin { namespace aas {
     public:
         key_types_e GetModelType() const noexcept override
         {
-            return key_types_e::DATA_ELEMENT;
+            return mModelType;
         }
 
         virtual data_type_def_xsd_e GetValueType() const noexcept
@@ -49,6 +53,7 @@ namespace muffin { namespace aas {
             return mValueType;
         }
     protected:
-        data_type_def_xsd_e mValueType = data_type_def_xsd_e::ANY_URI;
+        data_type_def_xsd_e mValueType;
+        key_types_e mModelType;
     };
 }}

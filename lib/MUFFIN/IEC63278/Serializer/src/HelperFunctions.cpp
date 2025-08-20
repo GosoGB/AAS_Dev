@@ -494,29 +494,19 @@ namespace muffin { namespace aas {
 
     JsonDocument SerializeProperty(const DataElement& dataElement)
     {
-        log_d("---------------");
-        delay(1000);
-
         JsonDocument doc;
-
-        doc["type"] = ConvertToString(dataElement.GetModelType());
-        log_d("type: %s", doc["type"].as<const char*>());
+        doc["modelType"] = ConvertToString(dataElement.GetModelType());
+        doc["valueType"] = ConvertToString(dataElement.GetValueType());
 
         if (dataElement.GetIdShortOrNull() != nullptr)
         {
             doc["idShort"] = dataElement.GetIdShortOrNull();
         }
 
-        log_d("--------1-------");
-        delay(1000);
-
         if (dataElement.GetCategoryOrNull() != nullptr)
         {
             doc["category"] = dataElement.GetCategoryOrNull();
         }
-
-        log_d("---------2------");
-        delay(1000);
 
         if (dataElement.GetQualifierOrNULL() != nullptr)
         {
@@ -524,35 +514,17 @@ namespace muffin { namespace aas {
             qualifiers.add(SerializeQualifier(*dataElement.GetQualifierOrNULL()));
         }
 
-        log_d("--------3-------");
-        delay(1000);
-
         if (dataElement.GetExtensionOrNull() != nullptr)
         {
             JsonArray extensions = doc["extensions"].to<JsonArray>();
             extensions.add(SerializeExtension(*dataElement.GetExtensionOrNull()));
         }
-        
-        log_d("--------4-------");
-        delay(1000);
 
         if (dataElement.GetSemanticIdOrNULL() != nullptr)
         {
             doc["semanticId"] = SerializeReference(*dataElement.GetSemanticIdOrNULL());
         }
-
-        log_d("-------5--------");
-        delay(1000);
-
-        const Property<data_type_def_xsd_e::STRING>* propertyTMP = 
-                static_cast<const Property<data_type_def_xsd_e::STRING>*>(&dataElement);
-        log_d("-------51--------");
-        delay(1000);
-        log_d("idShort: %s", propertyTMP->GetIdShortOrNull());
-        delay(1000);
-        log_d("value type: %s", ConvertToString(dataElement.GetValueType()).c_str());
-        delay(1000);
-        
+       
         switch (dataElement.GetValueType())
         {
         using xsd = data_type_def_xsd_e;
@@ -572,23 +544,17 @@ namespace muffin { namespace aas {
         case data_type_def_xsd_e::DAYTIME_DURATION:
         case data_type_def_xsd_e::ANY_URI:
         {
-            log_d("------STRING---------");
-            delay(1000);
-
             const Property<xsd::STRING>* property = 
                 static_cast<const Property<xsd::STRING>*>(&dataElement);
             
             if (property->GetValue() != nullptr)
             {
-                log_d("value: %p", property->GetValue());
-                log_d("value: %u", property->GetValue()->length());
                 doc["value"] = property->GetValue()->c_str();
             }
             
             if (property->GetValueID() != nullptr)
             {
                 doc["valueId"] = SerializeReference(*property->GetValueID());
-                log_d("valueId: %s", doc["valueId"].as<const char*>());
             }
             break;
         }
@@ -798,9 +764,6 @@ namespace muffin { namespace aas {
             break;
         }
         
-        log_d("-------6--------");
-        delay(1000);
-
         return doc;
     }
 

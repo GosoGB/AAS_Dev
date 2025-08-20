@@ -34,7 +34,7 @@ namespace muffin { namespace aas {
     class Property : public DataElement
     {
     public:
-        Property() { mValueType = xsd; }
+        Property() : DataElement(xsd, key_types_e::PROPERTY) {}
         Property(const Property<xsd>& other)
             : DataElement(other)
         {
