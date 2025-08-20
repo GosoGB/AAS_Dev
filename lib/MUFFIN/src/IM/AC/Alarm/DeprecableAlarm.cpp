@@ -1,0 +1,876 @@
+/**
+ * @file DeprecableAlarm.cpp
+ * @author Lee, Sang-jin (lsj31@edgecross.ai)
+ * 
+ * @brief 알람 정보 모니터링 및 생성에 사용되는 클래스를 정의합니다.
+ * @note MUFFIN Ver.0.0.1 개발 이후 또는 정보 모델 구현이 완료되면 재설계 할 예정입니다.
+ * 
+ * @date 2024-12-31
+ * @version 1.2.0
+ * 
+ * @copyright Copyright (c) Edgecross Inc. 2024
+ */
+
+
+
+#include "Storage/ESP32FS/ESP32FS.h"
+#include "Common/Assert.hpp"
+#include "Common/Logger/Logger.h"
+#include "Common/Time/TimeUtils.h"
+#include "JARVIS/Include/TypeDefinitions.h"
+#include "DeprecableAlarm.h"
+#include "Protocol/MQTT/CDO.h"
+#include "IM/Custom/Constants.h"
+#include "IM/Custom/Device/DeviceStatus.h"
+
+#include "Common/Convert/ConvertClass.h"
+
+
+namespace muffin {
+
+    AlarmMonitor& AlarmMonitor::GetInstance()
+    {
+        if (mInstance == nullptr)
+        {
+            mInstance = new(std::nothrow) AlarmMonitor();
+            if (mInstance == nullptr)
+            {
+                LOG_ERROR(logger, "FAILED TO ALLOCATE MEMORY FOR ALARM MONITOR");
+            }
+        }
+
+        return *mInstance;
+    }
+    
+    AlarmMonitor::AlarmMonitor()
+        : xHandle(NULL)
+    {
+    }
+    
+    AlarmMonitor::~AlarmMonitor()
+    {
+    }
+    
+    void AlarmMonitor::Add(jvs::config::Alarm* cin)
+    {
+        mVectorConfig.emplace_back(*cin);
+
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+
+        for (auto& node : nodeStore)
+        {
+            if (node.first == cin->GetNodeID().second)
+            {
+                mVectorNodeReference.emplace_back(node);
+                return;
+            }
+        }
+    }
+    
+    void AlarmMonitor::Clear()
+    {
+        mVectorConfig.clear();
+        mVectorAlarmInfo.clear();
+        mVectorNodeReference.clear();
+
+        LOG_INFO(logger, "Alarm monitoring configurations and data have been cleared");
+    }
+
+    bool AlarmMonitor::HasError() const
+    {
+        for (auto& alarmInfo : mVectorAlarmInfo)
+        {
+            if (alarmInfo.Topic == mqtt::topic_e::ERROR)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void AlarmMonitor::StartTask()
+    {
+        if (xHandle != NULL)
+        {
+            return;
+        }
+        
+        /**
+         * @todo 스택 오버플로우를 방지하기 위해 태스크의 메모리 사용량에 따라
+         *       태스크에 할당하는 스택 메모리의 크기를 조정해야 합니다.
+         */
+        BaseType_t taskCreationResult = xTaskCreatePinnedToCore(
+            wrapImplTask,  // Function to be run inside of the task
+            "implTask",    // The identifier of this task for men
+            4 * KILLOBYTE,	   // Stack memory size to allocate
+            this,	       // Task parameters to be passed to the function
+            0,		       // Task Priority for scheduling
+            &xHandle,      // The identifier of this task for machines
+            1	           // Index of MCU core where the function to run
+        );
+
+        /**
+         * @todo 태스크 생성에 실패했음을 호출자에게 반환해야 합니다.
+         * @todo 호출자는 반환된 값을 보고 적절한 처리를 해야 합니다.
+         */
+        switch (taskCreationResult)
+        {
+        case pdPASS:
+            LOG_INFO(logger, "The Alarm task has been started");
+            break;
+        case pdFAIL:
+            LOG_ERROR(logger, "FAILED TO START WITHOUT SPECIFIC REASON");
+            break;
+        case errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY:
+            LOG_ERROR(logger, "FAILED TO ALLOCATE ENOUGH MEMORY FOR THE TASK");
+            break;
+        default:
+            LOG_ERROR(logger, "UNKNOWN ERROR: %d", taskCreationResult);
+            break;
+        }
+    }
+
+    void AlarmMonitor::StopTask()
+    {
+        if (xHandle == NULL)
+        {
+            LOG_WARNING(logger, "NO ALARM TASK TO STOP!");
+            return;
+        }
+        
+        vTaskDelete(xHandle);
+        xHandle = NULL;
+        LOG_INFO(logger, "Alarm monitoring task has been stopped");
+    }
+
+    void AlarmMonitor::wrapImplTask(void* pvParams)
+    {
+        static_cast<AlarmMonitor*>(pvParams)->implTask();
+    }
+
+    void AlarmMonitor::implTask()
+    {
+        uint32_t statusReportMillis = millis(); 
+
+        while (true)
+        {
+            if ((millis() - statusReportMillis) > (590 * SECOND_IN_MILLIS))
+            {
+                statusReportMillis = millis();
+                size_t RemainedStackSize = uxTaskGetStackHighWaterMark(NULL);
+
+                LOG_DEBUG(logger, "[MornitorAlarmTask] Stack Remaind: %u Bytes", RemainedStackSize);
+                
+                deviceStatus.SetTaskRemainedStack(task_name_e::MORNITOR_ALARM_TASK, RemainedStackSize);
+            }
+            
+            for (auto& cin : mVectorConfig)
+            {
+                const std::string nodeId = cin.GetNodeID().second;
+                for (auto& nodeReference : mVectorNodeReference)
+                {
+                    auto& reference = nodeReference.get();
+                    if (nodeId != reference.first)
+                    {
+                        continue;
+                    }
+
+                    if (reference.second->VariableNode.RetrieveCount() == 0)
+                    {
+                        continue;
+                    }
+                    
+                    im::var_data_t datum = reference.second->VariableNode.RetrieveData();
+                    if (datum.StatusCode != Status::Code::GOOD)
+                    {
+                        break;
+                    }
+
+                    if (datum.DataType == jvs::dt_e::ARRAY)
+                    {
+                        switch (cin.GetType().second)
+                        {
+                        case jvs::alarm_type_e::ONLY_LCL:
+                            strategyArrayLCL(cin, datum, reference.second->VariableNode);
+                            break;
+                        // case jvs::alarm_type_e::ONLY_UCL:
+                        //     strategyArrayUCL(cin, datum, reference.second->VariableNode);
+                        //     break;
+                        // case jvs::alarm_type_e::LCL_AND_UCL:
+                        //     strategyArrayLclAndUcl(cin, datum, reference.second->VariableNode);
+                        //     break;
+                        // case jvs::alarm_type_e::CONDITION:
+                        //     strategyCondition(cin, datum, reference.second->VariableNode);
+                        //     break;
+                        default:
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        switch (cin.GetType().second)
+                        {
+                        case jvs::alarm_type_e::ONLY_LCL:
+                            strategyLCL(cin, datum, reference.second->VariableNode);
+                            break;
+                        case jvs::alarm_type_e::ONLY_UCL:
+                            strategyUCL(cin, datum, reference.second->VariableNode);
+                            break;
+                        case jvs::alarm_type_e::LCL_AND_UCL:
+                            strategyLclAndUcl(cin, datum, reference.second->VariableNode);
+                            break;
+                        case jvs::alarm_type_e::CONDITION:
+                            strategyCondition(cin, datum, reference.second->VariableNode);
+                            break;
+                        default:
+                            break;
+                        }
+                    }   
+                }
+            }
+
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+    }
+
+    void AlarmMonitor::strategyArrayLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    {
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        const float lcl = cin.GetLCL().second;
+        std::vector<float> valueVector;
+        valueVector.reserve(datum.ArrayValue.size());
+
+
+        for (auto val : datum.ArrayValue)
+        {
+            const float value = convertToFloat(val, datum.ArrayDataType);
+            valueVector.emplace_back(value);
+        }
+
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_LCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_LCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
+
+        const bool isNewAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::LCL) == false;
+        
+        
+        // bool isAlarmCondition = value < lcl;
+        bool isAlarmCondition = false;
+        size_t index = 0;
+        for (size_t i = 0; i < valueVector.size(); i++)
+        {
+            if (valueVector.at(i) < lcl)
+            {
+                isAlarmCondition = false;
+                index = i;
+            }
+        }
+        
+        
+        // if (isNewAlarm == true)
+        // {
+        //     if (isAlarmCondition == true)
+        //     {
+        //         activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
+        //         LOG_DEBUG(logger,"하한값 알람 발생, %s",node.GetNodeID());
+        //     }
+        //     else
+        //     {
+        //         return;
+        //     }
+        // }
+        // else
+        // {
+        //     if (isAlarmCondition == true)
+        //     {
+        //         return;
+        //     }
+        //     else
+        //     {
+        //         deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
+        //         LOG_DEBUG(logger,"하한값 알람 종료, %s",node.GetNodeID());
+        //     }
+        // }
+    }
+
+
+    void AlarmMonitor::strategyLCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    {
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        const float lcl = cin.GetLCL().second;
+        const float value = convertToFloat(datum.Value, datum.DataType);
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_LCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_LCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE LOWER CONTROL LIMIT");
+
+        const bool isNewAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::LCL) == false;
+        const bool isAlarmCondition = value < lcl;
+
+        if (isNewAlarm == true)
+        {
+            if (isAlarmCondition == true)
+            {
+                activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한값 알람 발생, %s",node.GetNodeID());
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            if (isAlarmCondition == true)
+            {
+                return;
+            }
+            else
+            {
+                deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한값 알람 종료, %s",node.GetNodeID());
+            }
+        }
+    }
+
+    void AlarmMonitor::strategyUCL(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    {
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        const float ucl = cin.GetUCL().second;
+        const float value = convertToFloat(datum.Value, datum.DataType);
+        const jvs::alarm_type_e type = jvs::alarm_type_e::ONLY_UCL;
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::ONLY_UCL || cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE UPPER CONTROL LIMIT");
+
+        const bool isNewAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::UCL) == false;
+        const bool isAlarmCondition = value > ucl;
+
+        if (isNewAlarm == true)
+        {
+            if (isAlarmCondition == true)
+            {
+                activateAlarm(type, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 발생, %s",node.GetNodeID());
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            if (isAlarmCondition == true)
+            {
+                return;
+            }
+            else
+            {
+                deactivateAlarm(type, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 종료, %s",node.GetNodeID());
+            }
+        }
+    }
+
+    void AlarmMonitor::strategyLclAndUcl(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    {
+        ASSERT((datum.DataType != jvs::dt_e::BOOLEAN), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((datum.DataType != jvs::dt_e::STRING), "LCL & UCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::LCL_AND_UCL), "ALARM TYPE MUST INCLUDE BOTH LOWER AND UPPER CONTROL LIMITS");
+
+        const float ucl = cin.GetUCL().second;
+        const float lcl = cin.GetLCL().second;
+        const float value = convertToFloat(datum.Value, datum.DataType);
+
+        const bool isNewLclAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::LCL) == false;
+        const bool isNewUclAlarm = isActiveAlarm(cin.GetNodeID().second, jvs::alarm_pub_type_e::UCL) == false;
+        const bool isUclCondition = value > ucl;
+        const bool isLclCondition = value < lcl;
+
+        if (isNewLclAlarm == true)
+        {
+            if (isLclCondition == true)
+            {
+                activateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한 알람 발생, %s",node.GetNodeID());
+            }
+        }
+        else
+        {
+            
+            if (isLclCondition == false)
+            {
+                deactivateAlarm(jvs::alarm_type_e::ONLY_LCL, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"하한 알람 종료, %s",node.GetNodeID());
+            }
+        }
+
+        if (isNewUclAlarm == true)
+        {
+            if (isUclCondition == true)
+            {
+                activateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 발생, %s",node.GetNodeID());
+            }
+        }
+        else
+        {
+            if (isUclCondition == false)
+            {
+                deactivateAlarm(jvs::alarm_type_e::ONLY_UCL, cin, node.FloatConvertToStringForLimitValue(value));
+                LOG_DEBUG(logger,"상한 알람 종료, %s",node.GetNodeID());
+            }
+
+        }
+    }
+
+    void AlarmMonitor::strategyCondition(const jvs::config::Alarm& cin, const im::var_data_t& datum, const im::Variable& node)
+    {
+        ASSERT((cin.GetType().second == jvs::alarm_type_e::CONDITION), "ALARM TYPE MUST BE CONDITION TYPE");
+
+        int16_t value = 0;
+        bool hasValue = false;
+        switch (datum.DataType)
+        {
+        case jvs::dt_e::BOOLEAN:
+            value = static_cast<int16_t>(datum.Value.Boolean);
+            hasValue = true;
+            break;
+        case jvs::dt_e::INT8:
+            value = static_cast<int16_t>(datum.Value.Int8);
+            hasValue = true;
+            break;
+        case jvs::dt_e::INT16:
+            value = static_cast<int16_t>(datum.Value.Int16);
+            hasValue = true;
+            break;
+        case jvs::dt_e::UINT8:
+            value = static_cast<int16_t>(datum.Value.UInt8);
+            hasValue = true;
+            break;
+        case jvs::dt_e::UINT16:
+            value = static_cast<int16_t>(datum.Value.UInt16);
+            hasValue = true;
+            break;
+        default:
+            break;
+        }
+
+        if (hasValue == false)
+        {
+            LOG_ERROR(logger, "NO VALUE AVAILABLE FOR CONDITION TYPE ALARM");
+            return;
+        }
+
+        im::NodeStore& nodeStore = im::NodeStore::GetInstance();
+        std::string alarmNodeID;
+        for (auto& _node : nodeStore)
+        {
+            if (cin.GetNodeID().second == _node.first)
+            {
+                alarmNodeID = _node.first;
+                break;
+            }
+        }
+
+        ASSERT((alarmNodeID.length() == 4), "THE LENGTH OF ALARM UID MUST BE 4");
+
+        const bool isNewAlarm = isActiveAlarm(alarmNodeID, jvs::alarm_pub_type_e::CONDITION) == false;
+        bool isCondition = false;
+
+        const std::vector<int16_t> vectorCondition = cin.GetCondition().second;
+        for (auto& condition : vectorCondition)
+        {
+            if (value == condition)
+            {
+                isCondition = true;
+                break;
+            }
+        }
+        
+        if (isNewAlarm == true)
+        {
+            if (isCondition == true)
+            {
+                activateAlarm(jvs::alarm_type_e::CONDITION, cin, node, node.FloatConvertToStringForLimitValue(value));
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            if (isCondition == true)
+            {
+                if (node.RetrieveCount() > 1)
+                {
+                    im::var_data_t history = node.RetrieveHistory(2).back();
+                    /**
+                     * @todo JARVIS 설정값을 참조하여 설정된 데이터 타입에 맞게 계산을 수행하도록 수정해야 함
+                     */
+                    const uint16_t currentValue   = static_cast<uint16_t>(value);
+                    const uint16_t previousValue  = history.Value.UInt16;
+                    
+                    if (previousValue != currentValue)
+                    {
+                        for (auto& condition : vectorCondition)
+                        {
+                            if ((history.Value.UInt16 == condition) && (datum.Value.UInt16 != condition))
+                            {
+                                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(previousValue));
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                deactivateAlarm(jvs::alarm_type_e::CONDITION, cin, std::to_string(value));
+            }
+        }
+    }
+    
+    bool AlarmMonitor::isActiveAlarm(const std::string& nid, const jvs::alarm_pub_type_e type)
+    {
+        for (auto& alarmInfo : mVectorAlarmInfo)
+        {
+            if (nid == alarmInfo.NodeID && type == alarmInfo.AlarmTpye)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    float AlarmMonitor::convertToFloat(const im::var_value_u& datum, jvs::dt_e type)
+    {
+        ASSERT((type != jvs::dt_e::BOOLEAN), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF BOOLEAN DATA TYPE");
+        ASSERT((type != jvs::dt_e::STRING), "LCL CANNOT BE APPLIED TO VARIABLE NODE OF STRING DATA TYPE");
+
+        /**
+         * @todo double 타입을 처리할 수 있도록 코드를 수정해야 합니다.
+         */
+        switch (type)
+        {
+        case jvs::dt_e::INT8:
+            return static_cast<float>(datum.Int8);
+        case jvs::dt_e::UINT8:
+            return static_cast<float>(datum.UInt8);
+        case jvs::dt_e::INT16:
+            return static_cast<float>(datum.Int16);
+        case jvs::dt_e::UINT16:
+            return static_cast<float>(datum.UInt16);
+        case jvs::dt_e::INT32:
+            return static_cast<float>(datum.Int32);
+        case jvs::dt_e::UINT32:
+            return static_cast<float>(datum.UInt32);
+        case jvs::dt_e::INT64:
+            return static_cast<float>(datum.Int64);
+        case jvs::dt_e::UINT64:
+            return static_cast<float>(datum.UInt64);
+        case jvs::dt_e::FLOAT32:
+            return static_cast<float>(datum.Float32);
+        case jvs::dt_e::FLOAT64:
+            return static_cast<float>(datum.Float64);
+        default:
+            return 0.0f;
+        }
+    }
+
+    json_alarm_t AlarmMonitor::retrieveActiveAlarm(const std::string& nid)
+    {
+        json_alarm_t alarm;
+        std::vector<muffin::json_alarm_t>::iterator it;
+        for (it = mVectorAlarmInfo.begin(); it != mVectorAlarmInfo.end(); ++it)
+        {
+            if (it->NodeID == nid)
+            {
+                alarm = *it;
+                mVectorAlarmInfo.erase(it);
+                break;
+            }
+        }
+
+        return alarm;
+    }
+
+    void IntToHex(const uint32_t inInt, char* returnVar)
+    {
+        const char* HEXMAP = "0123456789abcdef";
+        for (int i = 0; i < 8; i++)
+        {
+            // Shift each hex digit to the right, and then map it to its corresponding value
+            returnVar[7 - i] = HEXMAP[(inInt >> (i * 4)) & 0b1111];
+        }
+    }
+
+    void CreateUUID(char* returnUUID)
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            uint32_t chunk = esp_random();
+            
+            if (i == 1)
+            {
+                chunk &= 0xFFFF0FFF;
+                chunk |= 0x00004000;
+            }
+            else if (i == 2)
+            {
+                chunk &= 0b00111111111111111111111111111111;
+                chunk |= 0b10000000000000000000000000000000;
+            }
+
+            char chunkChars[8] = { 0 };
+            IntToHex(chunk, chunkChars);
+            for (int p = 0; p < 8; p++)
+            {
+                returnUUID[p + 8 * i] = chunkChars[p];
+            }
+        }
+
+        int dashOffset = 4;
+        const int UUID_NUM_DIGITS = 32;
+        for (int i = UUID_NUM_DIGITS - 1; i >= 0; --i)
+        {
+            if (i == 7 || i == 11 || i == 15 || i == 19)
+            {
+                returnUUID[i + dashOffset--] = '-';
+            }
+            returnUUID[i + dashOffset] = returnUUID[i];
+        }
+        returnUUID[36] = 0;
+    }
+
+    std::string AlarmMonitor::createAlarmUUID()
+    {
+        char returnUUID[37];
+        CreateUUID(returnUUID);
+        return std::string(returnUUID).substr(0, 12);
+    }
+    
+    void AlarmMonitor::activateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const im::Variable& node, const std::string& value)
+    {
+        json_alarm_t alarm;
+        push_struct_t push;
+        push.SourceTimestamp = GetTimestampInMillis();
+        push.Topic = mqtt::topic_e::PUSH;
+        push.Value = value;
+        
+        strncpy(push.NodeID, cin.GetNodeID().second.c_str(), sizeof(push.NodeID));
+        
+        alarm.Topic = node.GetTopic() == mqtt::topic_e::ERROR ? mqtt::topic_e::ERROR : mqtt::topic_e::ALARM;
+
+        alarm.AlarmState = jvs::alarm_state_e::START;
+        alarm.SourceTimestamp = GetTimestampInMillis();
+        alarm.Value = value;
+        strncpy(alarm.NodeID, cin.GetNodeID().second.c_str(), sizeof(alarm.NodeID));
+
+        alarm.UUID = createAlarmUUID();
+        
+        switch (type)
+        {
+        case jvs::alarm_type_e::ONLY_LCL:
+            alarm.AlarmTpye = jvs::alarm_pub_type_e::LCL;
+            push.AlarmTpye = jvs::alarm_pub_type_e::LCL;
+            break;
+        case jvs::alarm_type_e::ONLY_UCL:
+            alarm.AlarmTpye = jvs::alarm_pub_type_e::UCL;
+            push.AlarmTpye = jvs::alarm_pub_type_e::UCL;
+            break;
+        case jvs::alarm_type_e::CONDITION:
+            alarm.AlarmTpye = jvs::alarm_pub_type_e::CONDITION;
+            push.AlarmTpye = jvs::alarm_pub_type_e::CONDITION;
+            break;
+        default:
+            break;
+        }
+
+
+        JSON json;
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(alarm, size, payload);
+        const mqtt::topic_e topic = alarm.Topic;
+        mqtt::Message AlarmMessage(topic, payload);
+        
+        memset(payload, '\0', size);
+        json.Serialize(push, size, payload);
+        const mqtt::topic_e pushTopic = push.Topic;
+        mqtt::Message pushMessage(pushTopic, payload);
+
+        mqtt::cdo.Store(AlarmMessage);
+        mqtt::cdo.Store(pushMessage);
+
+        mVectorAlarmInfo.emplace_back(alarm);
+    }
+
+    void AlarmMonitor::deactivateAlarm(const jvs::alarm_type_e type, const jvs::config::Alarm cin, const std::string& value)
+    {
+        json_alarm_t alarm = retrieveActiveAlarm(cin.GetNodeID().second);
+
+        alarm.SourceTimestamp = GetTimestampInMillis();
+        alarm.AlarmState = jvs::alarm_state_e::FINISH;
+        alarm.Value = value;
+
+        JSON json;
+        const size_t size = UINT8_MAX;
+        char payload[size] = {'\0'};
+        json.Serialize(alarm, size, payload);
+        const mqtt::topic_e topic = alarm.Topic;
+        mqtt::Message message(topic, payload);
+        mqtt::cdo.Store(message);
+    }
+
+    
+
+    Status AlarmMonitor::ConvertUCL(std::string nid, std::string ucl)
+    {
+        bool decimalFound = false;
+        size_t start = (ucl[0] == '-') ? 1 : 0;
+        for (size_t i = start; i < ucl.length(); ++i) 
+        {
+            char c = ucl[i];
+            if (c == '.') 
+            {
+                if (decimalFound) 
+                {
+                    return Status(Status::Code::BAD_INVALID_ARGUMENT);
+                }
+                decimalFound = true;
+            } 
+            else if (!isdigit(c)) 
+            {
+                return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            }
+        }
+        
+        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
+
+        for (auto& cin : mVectorConfig)
+        {
+            ret = cin.GetNodeID();
+            if (ret.first == Status::Code::GOOD)
+            {
+                if (ret.second == nid)
+                {
+                    float floatUCL = Convert.ToFloat(ucl);
+                    cin.SetUCL(floatUCL);
+
+                    return updateFlashUclValue(cin.GetNodeID().second,floatUCL);
+                }
+            }
+
+        }
+
+        return Status(Status::Code::BAD_NOT_FOUND);
+    }
+
+    Status AlarmMonitor::ConvertLCL(std::string nid, std::string lcl)
+    {
+        bool decimalFound = false;
+        size_t start = (lcl[0] == '-') ? 1 : 0;
+        for (size_t i = start; i < lcl.length(); ++i) 
+        {
+            char c = lcl[i];
+            if (c == '.') 
+            {
+                if (decimalFound) 
+                {
+                    return Status(Status::Code::BAD_INVALID_ARGUMENT);
+                }
+                decimalFound = true;
+            } 
+            else if (!isdigit(c)) 
+            {
+                return Status(Status::Code::BAD_INVALID_ARGUMENT);
+            }
+        }
+        
+        std::pair<muffin::Status, std::string> ret = std::make_pair(Status(Status::Code::UNCERTAIN),"");
+
+        for (auto& cin : mVectorConfig)
+        {
+            ret = cin.GetNodeID();
+            if (ret.first == Status::Code::GOOD)
+            {
+                if (ret.second == nid)
+                {
+                    float floatLCL = Convert.ToFloat(lcl);
+                    cin.SetLCL(floatLCL);
+                    
+                    return updateFlashLclValue(cin.GetNodeID().second,floatLCL);
+                }
+            }
+        }
+        
+        return Status(Status::Code::BAD_NOT_FOUND);
+    }
+
+    Status AlarmMonitor::updateFlashUclValue(std::string nodeid, float ucl)
+    {
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD);
+        }
+        
+        JSON json;
+        JsonDocument doc;
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        JsonArray alarms = doc["cnt"]["alarm"];
+        for (JsonObject alarm : alarms)
+        {
+            if (alarm["nodeId"].as<std::string>() == nodeid)
+            {
+                alarm["ucl"] = ucl;
+                file = esp32FS.Open(JARVIS_PATH, "w", true);
+                serializeJson(doc, file);
+                file.close();
+            }
+        }
+        return Status(Status::Code::GOOD);
+    }
+
+    Status AlarmMonitor::updateFlashLclValue(std::string nodeid, float lcl)
+    {
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD);
+        }
+        
+        JSON json;
+        JsonDocument doc;
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+        JsonArray alarms = doc["cnt"]["alarm"];
+        for (JsonObject alarm : alarms)
+        {
+            if (alarm["nodeId"].as<std::string>() == nodeid)
+            {
+                alarm["lcl"] = lcl;
+      
+                file = esp32FS.Open(JARVIS_PATH, "w", true);
+                serializeJson(doc, file);
+                file.close();
+            }
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+    AlarmMonitor* AlarmMonitor::mInstance = nullptr;
+}
