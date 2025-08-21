@@ -105,7 +105,7 @@ namespace muffin { namespace aas {
             mSubmodelElements.emplace_back(std::move(element));
         }
 
-        const SubmodelElement* GetElementWithIdShort(const psram::string& idShort)
+        const SubmodelElement* GetElementWithIdShort(const psram::string& idShort) const
         {
             auto it = std::find_if(
                 mSubmodelElements.cbegin(), 

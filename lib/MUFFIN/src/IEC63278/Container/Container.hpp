@@ -91,6 +91,7 @@ namespace muffin { namespace aas {
         {
             psram::vector<Submodel> vectorSubmodels;
             vectorSubmodels.reserve(mVectorSubmodel.size());
+
             for (const auto& submodel : mVectorSubmodel)
             {
                 vectorSubmodels.emplace_back(submodel->Clone());

@@ -14,10 +14,9 @@
 
 
 #include <HardwareSerial.h>
+#include <WiFi.h>
 
-#include <IEC63278/Container/include/AASXLoader.hpp>
-#include <IEC63278/Serializer/Serializer.hpp>
-#include <IEC63278/Metamodel/Abstract/Submodel/Property.hpp>
+#include <IEC63278/Server/Server.hpp>
 
 
 
@@ -37,31 +36,51 @@ void setup()
 {
     Serial.begin(115200);
 
-    using namespace muffin;
-    using namespace aas;
+    WiFi.begin("device_team_2.4GHz", "EdgeCross123!@#");
+    // WiFi.begin("Drop It Like It's Hotspot", "RUC=M&ZfE/2hmA,:-");
+    Serial.print("Connecting");
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println();
+    Serial.print("Connected, IP address: ");
+    Serial.println(WiFi.localIP());
+
+    const long gmtOffset_sec = 9 * 3600;  
+    const int daylightOffset_sec = 0;     
+    const char* ntpServer = "pool.ntp.org";
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
     log_psram();
 
-    AASXLoader aasxLoader;
-    aasxLoader.Start();
+    muffin::aas::Server* server = muffin::aas::Server::GetInstance();;
+    server->Init();
+        
+    // using namespace muffin;
+    // using namespace aas;
 
-    AssetAdministrationShellSerializer serializer;
-    psram::string json = serializer.Encode("https://example.com/ids/sm/4523_3042_7052_7604");
-    log_d("/shells/{{identifier}}\n%s\n", json.c_str());
-    Serial.println();
+    // AASXLoader aasxLoader;
+    // aasxLoader.Start();
 
-    json = serializer.EncodeAll();
-    log_d("/shells\n%s\n", json.c_str());
-    Serial.println();
+    // AssetAdministrationShellSerializer serializer;
+    // psram::string json = serializer.Encode("https://example.com/ids/sm/4523_3042_7052_7604");
+    // log_d("/shells/{{identifier}}\n%s\n", json.c_str());
+    // Serial.println();
 
-    SubmodelsSerializer submodelSerializer;
-    json = submodelSerializer.Encode("https://example.com/ids/sm/Identification");
-    log_d("/submodels/{{identifier}}\n%s\n", json.c_str());
-    Serial.println();
+    // json = serializer.EncodeAll();
+    // log_d("/shells\n%s\n", json.c_str());
+    // Serial.println();
+
+    // SubmodelsSerializer submodelSerializer;
+    // json = submodelSerializer.Encode("https://example.com/ids/sm/Identification");
+    // log_d("/submodels/{{identifier}}\n%s\n", json.c_str());
+    // Serial.println();
     
-    json = submodelSerializer.EncodeAll();
-    log_d("/submodels\n%s\n", json.c_str());
-    Serial.println();
+    // json = submodelSerializer.EncodeAll();
+    // log_d("/submodels\n%s\n", json.c_str());
+    // Serial.println();
 
     log_psram();
 }

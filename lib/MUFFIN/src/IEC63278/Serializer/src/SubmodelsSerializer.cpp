@@ -37,6 +37,26 @@ namespace muffin { namespace aas {
         return output;
     }
 
+    
+    psram::string SubmodelsSerializer::EncodeProperty(const Identifier& id, const psram::string& idShort)
+    {
+        Container* container = Container::GetInstance();
+        const Submodel* submodel = container->GetSubmodelByID(id);
+        if (submodel == nullptr)
+        {
+            log_d("Submodel Not found with id: '%s'", id.c_str());
+            return psram::string();
+        }
+
+        psram::string output;
+        const SubmodelElement* property = submodel->GetElementWithIdShort(idShort);
+
+        JsonDocument doc = SerializeSubmodelElement(*property);
+        serializeJson(doc, output);
+        log_d("output: %s", output.c_str());
+        return output;
+    }
+
 
     psram::string SubmodelsSerializer::EncodeAll()
     {
