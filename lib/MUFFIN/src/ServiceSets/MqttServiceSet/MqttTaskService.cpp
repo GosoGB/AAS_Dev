@@ -971,17 +971,17 @@ namespace muffin {
         }
         
 #endif
+    retConvertModbus = ret.second->VariableNode.StringConvertWordData(remoteData.at(0).second);
+    if (retConvertModbus.first != Status::Code::GOOD)
+    {
+        message->SourceTimestamp = GetTimestampInMillis();
+        message->ResponseCode  = 900;
+        message->Description = retConvertModbus.first.ToString();
+
+    return retConvertModbus.first;
+    }
 #if defined(MT10) || defined(MB10) || defined(MT11)
 
-        retConvertModbus = ret.second->VariableNode.StringConvertWordData(remoteData.at(0).second);
-        if (retConvertModbus.first != Status::Code::GOOD)
-        {
-            message->SourceTimestamp = GetTimestampInMillis();
-            message->ResponseCode  = 900;
-            message->Description = retConvertModbus.first.ToString();
-
-           return retConvertModbus.first;
-        }
 
         if (mConfigVectorMbTCP.size() != 0)
         {
