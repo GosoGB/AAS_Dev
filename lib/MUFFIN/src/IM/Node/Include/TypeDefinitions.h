@@ -21,6 +21,7 @@
 #include <vector>
 #include <sys/_stdint.h>
 
+#include "Common/PSRAM.hpp"
 #include "Common/Status.h"
 #include "JARVIS/Include/TypeDefinitions.h"
 

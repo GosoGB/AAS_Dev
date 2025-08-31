@@ -223,6 +223,18 @@ namespace muffin {
     }
    #endif
 
+    void DeviceStatus::SetICCID(const std::string iccid)
+    {
+        mCatM1StatusReport.Enabled = true;
+        mICCID = iccid;
+    }
+
+    void DeviceStatus::SetIMEI(const std::string imei)
+    {
+        mCatM1StatusReport.Enabled = true;
+        mIMEI = imei;
+    }
+
     void DeviceStatus::SetReportCatM1(const catm1_report_t report)
     {
         mCatM1StatusReport = report;
@@ -256,6 +268,14 @@ namespace muffin {
         event["deviceReset"]   =  mResetReason;
         event["statusCode"]    =  mStatus.c_str();
         event["reconfigured"]  =  static_cast<uint8_t>(mReconfigurationCode);
+
+        if (mCatM1StatusReport.Enabled == true)
+        {
+            JsonObject catM1 = event["catM1"].to<JsonObject>();
+            catM1["iccid"]  = mICCID;
+            catM1["imei"]  = mIMEI;
+        }
+
 
         std::string payload;
         serializeJson(doc, payload);

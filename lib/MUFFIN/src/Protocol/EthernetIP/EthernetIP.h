@@ -21,6 +21,7 @@
 #include "AddressTable.h"
 #include "AddressArrayTable.h"
 #include "PolledArrayDataTable.h"
+#include "Common/PSRAM.hpp"
 #include "Protocol/EthernetIP/ciplibs/cip_client.h"
 #include "Protocol/EthernetIP/ciplibs/cip_msr.h"
 #include "Protocol/EthernetIP/ciplibs/cip_single.h"

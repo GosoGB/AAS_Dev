@@ -80,7 +80,44 @@ namespace muffin { namespace jvs { namespace config {
         mIntervalServer = interval;
         mSetFlags.set(static_cast<uint8_t>(set_flag_e::PUB_INTERVAL));
     }
+#if defined(MT11)
+    void Operation::SetIntervalServerCustom(const psram::map<uint16_t, psram::vector<std::string>> intervalMap)
+    {
+        mIntervalServerCustom = intervalMap;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::PUB_INTERVAL_CUSTOM));
+    }
+    
+    std::pair<Status, psram::map<uint16_t, psram::vector<std::string>>> Operation::GetIntervalServerCustom() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::PUB_INTERVAL_CUSTOM)))
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mIntervalServerCustom);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mIntervalServerCustom);
+        }
+    }
 
+#else
+    void Operation::SetIntervalServerCustom(const std::map<uint16_t, std::vector<std::string>> intervalMap)
+    {
+        mIntervalServerCustom = intervalMap;
+        mSetFlags.set(static_cast<uint8_t>(set_flag_e::PUB_INTERVAL_CUSTOM));
+    }
+    
+    std::pair<Status, std::map<uint16_t, std::vector<std::string>>> Operation::GetIntervalServerCustom() const
+    {
+        if (mSetFlags.test(static_cast<uint8_t>(set_flag_e::PUB_INTERVAL_CUSTOM)))
+        {
+            return std::make_pair(Status(Status::Code::GOOD), mIntervalServerCustom);
+        }
+        else
+        {
+            return std::make_pair(Status(Status::Code::BAD), mIntervalServerCustom);
+        }
+    }
+#endif
     void Operation::SetIntervalPolling(const uint16_t interval)
     {
         ASSERT((interval > 0), "INTERVAL CANNOT BE SET TO 0");

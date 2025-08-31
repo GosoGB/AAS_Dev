@@ -783,6 +783,120 @@ namespace muffin {
         }
     }
 
+    Status CatM1::GetIMEI(std::string* _IMEI)
+    {
+        const std::string command = "AT+GSN";
+        const std::string expected = "OK";
+        const uint32_t timeoutMillis = 300;
+        const uint32_t startMillis = millis();
+        std::string rxd;
+        rxd.reserve(64);
+
+        Status ret = mProcessor.Write(command);
+        if (ret == Status::Code::BAD_TOO_MANY_OPERATIONS)
+        {
+            LOG_WARNING(logger, "THE MODEM IS BUSY. TRY LATER");
+            return ret;
+        }
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (mProcessor.GetAvailableBytes() > 0)
+            {
+                rxd += mProcessor.Read();
+            }
+            
+            if (rxd.find(expected) != std::string::npos)
+            {
+                goto FOUND_EXPECTED_RESPONSE;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        return Status(Status::Code::BAD_NO_COMMUNICATION);
+
+    FOUND_EXPECTED_RESPONSE:
+    
+        const std::string key = "AT+GSN \r\n";
+        size_t start = rxd.find(command);
+        if (start == std::string::npos)
+        {
+            return Status(Status::Code::BAD_INVALID_ARGUMENT); 
+        }
+
+        start += key.size();
+
+        size_t end = rxd.find("\r\n\r\n",start);
+        if (end == std::string::npos) 
+        {
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        *_IMEI = rxd.substr(start, end - start);
+
+        return Status(Status::Code::GOOD);
+    }
+
+    Status CatM1::GetICCID(std::string* _ICCID)
+    {
+        const std::string command = "AT+QCCID";
+        const std::string expected = "OK";
+        const uint32_t timeoutMillis = 300;
+        const uint32_t startMillis = millis();
+        std::string rxd;
+        rxd.reserve(64);
+
+        Status ret = mProcessor.Write(command);
+        if (ret == Status::Code::BAD_TOO_MANY_OPERATIONS)
+        {
+            LOG_WARNING(logger, "THE MODEM IS BUSY. TRY LATER");
+            return ret;
+        }
+
+        while (uint32_t(millis() - startMillis) < timeoutMillis)
+        {
+            while (mProcessor.GetAvailableBytes() > 0)
+            {
+                rxd += mProcessor.Read();
+            }
+            
+            if (rxd.find(expected) != std::string::npos)
+            {
+                goto FOUND_EXPECTED_RESPONSE;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        return Status(Status::Code::BAD_NO_COMMUNICATION);
+
+    FOUND_EXPECTED_RESPONSE:
+
+        const std::string key = "+QCCID: ";
+        size_t start = rxd.find(key);
+        if (start == std::string::npos)
+        {
+            return Status(Status::Code::BAD_INVALID_ARGUMENT); 
+        } 
+
+        start += key.size();
+
+        size_t end = rxd.find_first_of("\r\n", start);
+        if (end == std::string::npos) 
+        {
+            return Status(Status::Code::BAD_INVALID_ARGUMENT);
+        }
+
+        *_ICCID = rxd.substr(start, end - start);
+
+        return Status(Status::Code::GOOD);
+    }
+
     Status CatM1::GetSignalQuality(catm1_report_t* _struct)
     {
         const std::string command = "AT+QCSQ";

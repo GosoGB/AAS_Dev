@@ -13,7 +13,7 @@
 
 
 
-
+#include <regex>
 #include <esp_system.h>
 #include <Preferences.h>
 
@@ -50,6 +50,7 @@
 #include "JARVIS/Config/Protocol/ModbusRTU.h"
 #include "JARVIS/Config/Protocol/EthernetIP.h"
 #include "JARVIS/Config/Operation/Operation.h"
+#include "JARVIS/Include/TypeDefinitions.h"
 #include "IM/Node/Include/TypeDefinitions.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
 #include "Protocol/HTTP/CatHTTP/CatHTTP.h"
@@ -395,6 +396,7 @@ namespace muffin {
             std::abort();
         }
 #endif
+        bool isJarvisConfigLoaded = true;
         ret = loadJarvisConfig();
         if (ret == Status::Code::BAD_DATA_LOST)
         {
@@ -404,7 +406,20 @@ namespace muffin {
         else if (ret == Status::Code::UNCERTAIN)
         {
             LOG_WARNING(logger, "JARVIS CONFIG MIGHT NOT WORK");
+            isJarvisConfigLoaded = false;
+            ret = loadNetworkConfig();
+            if (ret != Status::Code::GOOD)
+            {
+                if (jvs::config::catM1 == nullptr)
+                {
+                    jvs::config::catM1 = new(std::nothrow) jvs::config::CatM1();
+                }
 
+                LOG_ERROR(logger, "FAILED TO LOAD NETWORK CONFIG: %s", ret.c_str());
+                jvs::config::operation.SetServerNIC(jvs::snic_e::LTE_CatM1);
+                jvs::config::catM1->SetModel(jvs::md_e::LM5);
+                jvs::config::catM1->SetCounty(jvs::ctry_e::KOREA);
+            }
         }
 
         
@@ -536,9 +551,14 @@ namespace muffin {
         
         esp32FS.Remove(LWIP_HTTP_PATH);
         
-        ApplyJarvisTask();
+        if (isJarvisConfigLoaded == false)
+        {
+            return;
+        }
+        
         PublishFirmwareStatusMessageService();
         PublishStatusEventMessageService(&initConfig);
+        ApplyJarvisTask();
     }
 
     Status Core::readInitConfig(init_cfg_t* output)
@@ -961,7 +981,7 @@ namespace muffin {
         {
             ret = Status::Code::UNCERTAIN;
         }
-
+        
         return ret;
     }
 
@@ -993,6 +1013,23 @@ namespace muffin {
 
     void Core::PublishStatusEventMessageService(init_cfg_t* output)
     {
+        if(jvs::config::operation.GetServerNIC().second == jvs::snic_e::LTE_CatM1)
+        {
+            std::string ICCID;
+            std::string IMEI;
+            if(catM1->GetICCID(&ICCID) == Status(Status::Code::GOOD))
+            {
+                LOG_INFO(logger,"ICCID : %s",ICCID.c_str());
+                deviceStatus.SetICCID(ICCID);
+            }
+
+            if(catM1->GetIMEI(&IMEI) == Status(Status::Code::GOOD))
+            {
+                LOG_INFO(logger,"IMEI : %s",IMEI.c_str());
+                deviceStatus.SetIMEI(IMEI);
+            }
+        }
+
         const std::string payload =  deviceStatus.ToStringEvent();
         mqtt::Message message(mqtt::topic_e::JARVIS_STATUS, payload);
         mqtt::cdo.Store(message);
@@ -1011,6 +1048,148 @@ namespace muffin {
             }
         }
     }
+
+    Status Core::loadNetworkConfig()
+    {
+        ASSERT((esp32FS.DoesExist(JARVIS_PATH) == Status::Code::GOOD), "JARVIS CONFIG MUST EXIST");
+
+        File file = esp32FS.Open(JARVIS_PATH, "r", false);
+        if (file == false)
+        {
+            return Status(Status::Code::BAD_DEVICE_FAILURE);
+        }
+        
+        JSON json;
+        JsonDocument doc;
+        Status ret = json.Deserialize(file, &doc);
+        file.close();
+        if (ret != Status::Code::GOOD)
+        {
+            return ret;
+        }
+
+        std::string serviceNetwork = doc["cnt"]["op"][0]["snic"].as<std::string>();
+        if (serviceNetwork.empty())
+        {
+            LOG_ERROR(logger, "SERVICE NETWORK IS EMPTY");
+            return Status(Status::Code::BAD_DATA_LOST);
+        }
+        
+        if (serviceNetwork == "lte")
+        {
+            std::string model = doc["cnt"]["catm1"][0]["md"].as<std::string>();
+            std::string country = doc["cnt"]["catm1"][0]["ctry"].as<std::string>();
+
+            jvs::md_e modelEnum;
+            jvs::ctry_e countryEnum;
+
+            if (model == "LM5")
+            {
+                modelEnum = jvs::md_e::LM5;
+            }
+            else
+            {
+                modelEnum = jvs::md_e::LCM300;
+            }
+
+            if (country == "KR")
+            {
+                countryEnum = jvs::ctry_e::KOREA;
+            }
+            else
+            {
+                countryEnum = jvs::ctry_e::USA;
+            }
+
+            if (jvs::config::catM1 == nullptr)
+            {
+                jvs::config::catM1 = new(std::nothrow) jvs::config::CatM1();
+            }
+
+            jvs::config::operation.SetServerNIC(jvs::snic_e::LTE_CatM1);
+            jvs::config::catM1->SetModel(modelEnum);
+            jvs::config::catM1->SetCounty(countryEnum);
+        }
+        else if (serviceNetwork == "eth")
+        {
+            JsonArray EthernetArray = doc["cnt"]["eth"].as<JsonArray>();
+            for (auto eth : EthernetArray)
+            {
+                JsonObject _eth = eth.as<JsonObject>();
+                bool snic = true;
+                /**
+                 * @todo 1.4.0 이전 버전에는 eths 키가 없기 때문에 해당 로직을 추가해 두었습니다. 
+                 *       키가 있다면 eth 인터페이스 위치를 확인하고 없다면 바로 사용합니다.
+                 * 
+                 */
+                if (_eth.containsKey("eths") == true)
+                {
+                    snic = _eth["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED) ? true : false;
+                }
+
+                if (snic)
+                {
+                    const bool dhcp = _eth["dhcp"].as<bool>();
+                    jvs::config::embeddedEthernet->SetDHCP(dhcp);
+
+                    if (dhcp == false)
+                    {
+                        IPAddress ip            = convertToIPv4(_eth["ip"].as<JsonVariant>(), false);
+                        IPAddress subnetMask    = convertToIPv4(_eth["snm"].as<JsonVariant>(), true);    
+                        IPAddress gateway       = convertToIPv4(_eth["gtw"].as<JsonVariant>(), false);
+                        IPAddress dns1          = convertToIPv4(_eth["dns1"].as<JsonVariant>(), false);
+                        IPAddress dns2          = convertToIPv4(_eth["dns2"].as<JsonVariant>(), false);
+
+                        jvs::config::embeddedEthernet->SetStaticIPv4(ip);
+                        jvs::config::embeddedEthernet->SetSubnetmask(subnetMask);
+                        jvs::config::embeddedEthernet->SetGateway(gateway);
+                        jvs::config::embeddedEthernet->SetDNS1(dns1);
+                        jvs::config::embeddedEthernet->SetDNS2(dns2);
+                    }   
+                }
+            }
+        }
+        else
+        {
+            return Status(Status::Code::BAD_DATA_LOST);
+        }
+
+        return Status(Status::Code::GOOD);
+    }
+
+    IPAddress Core::convertToIPv4(JsonVariant ip, const bool& isSubnetmask)
+    {
+        IPAddress IPv4;
+        const std::string IpValue = ip.as<std::string>();
+
+        std::regex validationRegex;
+        if (isSubnetmask == true)
+        {
+            validationRegex.assign("^((255|254|252|248|240|224|192|128|0)\\.){3}(255|254|252|248|240|224|192|128|0)$");
+        }
+        else
+        {
+            validationRegex.assign("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+        }
+
+        // validating IPv4 address using regular expression
+        if (std::regex_match(IpValue, validationRegex))
+        {
+            if (IPv4.fromString(IpValue.c_str()))  // fromString 함수가 IP 변환에 성공했는지 확인
+            {
+                return IPv4;
+            }
+            else
+            {
+                return IPAddress();
+            }
+        }
+        else
+        {
+            return IPAddress();
+        }
+    }
+
 
     Core core;
 }

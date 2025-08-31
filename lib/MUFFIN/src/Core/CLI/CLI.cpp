@@ -873,6 +873,8 @@ namespace muffin {
 
         JsonArray mc = mJarvisJson["cnt"]["mc"].as<JsonArray>();
         JsonArray mbTCP = mJarvisJson["cnt"]["mbtcp"].as<JsonArray>();
+        JsonArray ethIP = mJarvisJson["cnt"]["eip"].as<JsonArray>();
+
         bool isEthEnabled = false;
         for (auto obj : mc)
         {
@@ -887,6 +889,15 @@ namespace muffin {
         {
             JsonObject _mbTCP = obj.as<JsonObject>();
             if (_mbTCP["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED))
+            {
+                isEthEnabled = true;
+            }
+        }
+
+        for (auto obj : ethIP)
+        {
+            JsonObject _ethIP = obj.as<JsonObject>();
+            if (_ethIP["eths"] == static_cast<uint8_t>(jvs::if_e::EMBEDDED))
             {
                 isEthEnabled = true;
             }

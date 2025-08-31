@@ -23,6 +23,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <ArduinoJson.h>
 
 #include "Common/Status.h"
 #include "IM/Custom/TypeDefinitions.h"
@@ -63,6 +64,10 @@ namespace muffin {
         Status createDefaultServiceUrl();
         Status loadJarvisConfig();
         Status loadServiceUrlConfig();
+        Status loadNetworkConfig();
+
+    private:
+        IPAddress convertToIPv4(JsonVariant ip, const bool& isSubnetmask);
     };
 
     extern Core core;

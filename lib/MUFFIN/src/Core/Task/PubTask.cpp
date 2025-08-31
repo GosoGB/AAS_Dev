@@ -23,7 +23,9 @@
 #include "Common/Assert.h"
 #include "Common/Status.h"
 #include "Common/Logger/Logger.h"
+#include "Common/PSRAM.hpp"
 #include "Core/Core.h"
+#include "JARVIS/Config/Operation/Operation.h"
 #include "PubTask.h"
 #include "Protocol/MQTT/CDO.h"
 #include "IM/Node/Node.h"
@@ -59,11 +61,25 @@ namespace muffin {
     {
         const size_t batchSize = 4 * 1024;
     #if defined(MT11)
+        psram::map<uint16_t, psram::vector<std::string>> IntervalCustomMap;
+
+        if (jvs::config::operation.GetIntervalServerCustom().first == Status::Code::GOOD)
+        {
+            IntervalCustomMap = jvs::config::operation.GetIntervalServerCustom().second;
+        }
         char* batchPayload = static_cast<char*>(
             heap_caps_malloc(batchSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)
         );
     #else
         char* batchPayload = static_cast<char*>(malloc(4 * 1024));
+
+        std::map<uint16_t, std::vector<std::string>> IntervalCustomMap;
+
+        if (jvs::config::operation.GetIntervalServerCustom().first == Status::Code::GOOD)
+        {
+            IntervalCustomMap = jvs::config::operation.GetIntervalServerCustom().second;
+        }
+
     #endif
         if (batchPayload == nullptr) 
         {
@@ -73,17 +89,36 @@ namespace muffin {
         memset(batchPayload, 0, batchSize);
         
         im::NodeStore& nodeStore = im::NodeStore::GetInstance();
-        std::vector<im::Node*> cyclicalNodeVector = nodeStore.GetCyclicalNode();
+        uint16_t defaultInterval = jvs::config::operation.GetIntervalServer().second;
+
+    #if defined(MT11)
+        psram::map<uint16_t, psram::vector<im::Node*>> IntervalNodeMap = nodeStore.GetIntervalCustomNode(IntervalCustomMap, defaultInterval);
+        psram::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
+    #else
+        std::map<uint16_t, std::vector<im::Node*>> IntervalNodeMap = nodeStore.GetIntervalCustomNode(IntervalCustomMap, defaultInterval);        
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
+    #endif
 
-        static uint32_t currentTimestamp = 0;
-        const uint32_t intervalMillis = s_PublishIntervalInSeconds * SECOND_IN_MILLIS;
+        for (const auto& pair : IntervalNodeMap) 
+        {
+            LOG_INFO(logger,"Interval: %u, Node Count: %u", pair.first, pair.second.size());
+            for (const auto& node : pair.second) 
+            {
+                LOG_INFO(logger," NodeID: %s", node->GetNodeID());
+            }
+        }
+        
         uint32_t statusReportMillis = millis(); 
-
         bool initFlag = true;
+        std::map<uint16_t, uint64_t> TimeTrackerMap;
+        
+        bool isFirstIntervalLoop = true;
+        uint64_t baseIntervalTimestamp = 0;
+
         while (true)
         {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+            // uint32_t StartMillis = millis();
 
             bool isSuccessPolling = true;
             uint64_t sourceTimestamp = GetTimestampInMillis();
@@ -135,10 +170,15 @@ namespace muffin {
                     g_DaqTaskSetFlag.reset();
                 }
             }
-            
+
+        #if defined(MT11)
+            psram::vector<json_datum_t> nodeVector;
+            psram::vector<json_datum_t> nodeArrayVector;
+        #else
             std::vector<json_datum_t> nodeVector;
             std::vector<json_datum_t> nodeArrayVector;
-            nodeVector.reserve(cyclicalNodeVector.size() + eventNodeVector.size());
+        #endif
+            nodeVector.reserve(nodeStore.GetCyclicalNode().size() + eventNodeVector.size());
             nodeArrayVector.reserve(nodeStore.GetArrayNodeCount());
 
             if (isSuccessPolling)
@@ -184,29 +224,51 @@ namespace muffin {
                         
                     }
                 }
-            }  
-            
-            uint32_t now = millis();
-            if (now >= currentTimestamp)
+            }
+
+            uint64_t now = GetTimestampInMillis();
+
+            if (isFirstIntervalLoop) 
             {
-                currentTimestamp = (currentTimestamp == 0) ? now + intervalMillis : currentTimestamp + intervalMillis;
+                baseIntervalTimestamp = now;
+                isFirstIntervalLoop = false;
+            }
 
-                for (auto& node : cyclicalNodeVector)
+            for (const auto& pair : IntervalNodeMap) 
+            {
+                uint16_t interval = pair.first;
+                const auto& nodeVec = pair.second;
+                uint64_t intervalMillis = static_cast<uint64_t>(interval) * SECOND_IN_MILLIS;
+
+                // 첫 루프에서는 모든 interval의 타임스탬프를 동일 기준으로 설정
+                if (TimeTrackerMap.find(interval) == TimeTrackerMap.end()) 
                 {
-                    std::pair<bool, json_datum_t> ret;
-                    ret = node->VariableNode.CreateDaqStruct();
-                    if (ret.first != true)
-                    {
-                        ret.second.Value = "MFM_NULL";
-                    }
+                    TimeTrackerMap[interval] = baseIntervalTimestamp;
+                }
 
-                    if (node->IsArrayNode() == true)
+                if ((int64_t)(now - TimeTrackerMap[interval]) >= 0)
+                {
+                    TimeTrackerMap[interval] = baseIntervalTimestamp + (((now - baseIntervalTimestamp) / intervalMillis) + 1) * intervalMillis;
+
+                    LOG_DEBUG(logger, "Interval: %u, Node Count: %u", interval, nodeVec.size());
+                    LOG_DEBUG(logger, "TimeTrackerMap[%u]: %llu", interval, TimeTrackerMap[interval]);
+
+                    for (auto& node : nodeVec) 
                     {
-                        nodeArrayVector.emplace_back(ret.second);
-                    }
-                    else
-                    {
-                        nodeVector.emplace_back(ret.second);
+                        std::pair<bool, json_datum_t> ret = node->VariableNode.CreateDaqStruct();
+                        if (ret.first != true) 
+                        {
+                            ret.second.Value = "MFM_NULL";
+                        }
+
+                        if (node->IsArrayNode() == true) 
+                        {
+                            nodeArrayVector.emplace_back(ret.second);
+                        } 
+                        else 
+                        {
+                            nodeVector.emplace_back(ret.second);
+                        }
                     }
                 }
             }
@@ -267,6 +329,8 @@ namespace muffin {
                     mqtt::cdo.Store(message);
                 }           
             }
+            
+            // LOG_DEBUG(logger, "[MSGTask] Loop Time: %lu ms", millis() - StartMillis);
         }
     }
 

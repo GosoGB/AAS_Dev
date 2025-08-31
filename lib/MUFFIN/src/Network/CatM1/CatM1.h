@@ -96,6 +96,8 @@ namespace muffin {
         int16_t Read();
         std::string ReadBetweenPatterns(const std::string& patternBegin, const std::string& patternEnd);
         Status GetSignalQuality(catm1_report_t* _struct);
+        Status GetICCID(std::string* _ICCID);
+        Status GetIMEI(std::string* _IMEI);
     private:
         Status isModemAvailable();
         Status checkOperator();

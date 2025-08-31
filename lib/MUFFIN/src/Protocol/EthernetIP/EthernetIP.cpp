@@ -165,10 +165,10 @@ namespace muffin { namespace ethernetIP {
 
         if (ArrayBatchCount != 0)
         {
-            std::vector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable(); 
+            psram::vector<tag_array_entry_t> tagArrayEntry = mAddressArrayTable.RetrieveTable(); 
             for(auto& entry : tagArrayEntry)
             {
-                std::vector<cip_data_t> readValues;
+                psram::vector<cip_data_t> readValues;
                 delay(mScanRate);
                 if (readTagExt(mEipSession, entry.tagName, entry.startIndex, entry.count, readValues))
                 {  
@@ -206,8 +206,8 @@ namespace muffin { namespace ethernetIP {
         {
             for (size_t i = 0; i < batchCount; i++)
             {
-                std::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
-                std::vector<cip_data_t> readValues;
+                psram::vector<std::string> retrievedTagInfo = mAddressTable.RetrieveTagsByBatch(i);
+                psram::vector<cip_data_t> readValues;
                 delay(mScanRate);
                 if (readTagsMSR(mEipSession, retrievedTagInfo, readValues))
                 {
@@ -304,7 +304,7 @@ namespace muffin { namespace ethernetIP {
             std::vector<std::array<uint16_t, 2>> arrayIndex = node->VariableNode.GetArrayIndex();
             std::string address = node->VariableNode.GetAddress().String;
 
-            std::vector<cip_data_t> vPolledData;
+            psram::vector<cip_data_t> vPolledData;
 
             if (arrayIndex.size() == 0)
             {

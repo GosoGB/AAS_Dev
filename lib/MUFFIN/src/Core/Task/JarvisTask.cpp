@@ -538,6 +538,7 @@ namespace muffin {
         mConfigVectorMelsec.clear();
         MelsecVector.clear();
 
+        LOG_WARNING(logger,"vectorMelsecCIN : %d",vectorMelsecCIN.size());
         for (auto& melsecCIN : vectorMelsecCIN)
         {
             jvs::config::Melsec* cin = static_cast<jvs::config::Melsec*>(melsecCIN);

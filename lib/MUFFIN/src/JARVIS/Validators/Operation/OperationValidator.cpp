@@ -54,11 +54,20 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc, buffer);
         }
 
+        const auto retPublishIntervalCustom = convertToPublishIntervalCustom(json);
+        if (retPublishIntervalCustom.first != rsc_e::GOOD && retPublishIntervalCustom.first != rsc_e::GOOD_NO_DATA)
+        {
+            char buffer[64] = {'\0'};
+            snprintf(buffer, sizeof(buffer), "INVALID INTERVAL CUSTOM");
+            return std::make_pair(rsc, buffer);
+        }
+        
         config::operation.SetPlanExpired(isExpired);
         config::operation.SetFactoryReset(hasFactoryReset);
         config::operation.SetServerNIC(retSNIC.second);
         config::operation.SetIntervalPolling(pollingInverval);
         config::operation.SetIntervalServer(publishInverval);
+        config::operation.SetIntervalServerCustom(retPublishIntervalCustom.second);
 
         if (arrayCIN.size() > 1)
         {
@@ -104,7 +113,7 @@ namespace muffin { namespace jvs {
         isValid &= json["intvPoll"].is<uint16_t>()  == true;
         isValid &= json["intvSrv"].is<uint16_t>()   == true;
         isValid &= json["rst"].is<bool>()           == true;
-        
+
         if (isValid == true)
         {
             return rsc_e::GOOD;
@@ -137,4 +146,223 @@ namespace muffin { namespace jvs {
             return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, snic_e::LTE_CatM1);
         }
     }
+
+
+    
+
+#if defined(MT11)
+
+    std::pair<rsc_e, psram::map<uint16_t, psram::vector<std::string>>> OperationValidator::convertToPublishIntervalCustom(const JsonObject json)
+    {
+        psram::map<uint16_t, psram::vector<std::string>> map;
+
+        if (json.containsKey("intvSrvCust") == false)
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, map);
+        }
+        
+        if (json["intvSrvCust"].isNull() == true)
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, map);
+        }
+
+        if (json["intvSrvCust"].is<JsonObject>() == false)
+        {
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+        }
+
+        JsonObject intvSrvCust = json["intvSrvCust"].as<JsonObject>();
+        if (intvSrvCust.size() == 0) 
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, map);
+        }
+
+        for (JsonPair intervalPair : intvSrvCust)
+        {
+            const char* intv = intervalPair.key().c_str();
+            if (intv == nullptr || *intv == '\0')
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            char* endp = nullptr;
+            unsigned long ul = strtoul(intv, &endp, 10);
+
+            if (endp == intv) 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            if (*endp != '\0') 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            if (ul > UINT16_MAX || ul == 0) 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            uint16_t intervalValue = static_cast<uint16_t>(ul);
+            
+            JsonVariant nodeIdVariant = intervalPair.value();
+            if (!nodeIdVariant.is<JsonArray>()) 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            JsonArray nodes = nodeIdVariant.as<JsonArray>();
+            psram::vector<std::string> vectorNode;
+            vectorNode.reserve(nodes.size());
+            
+            for (JsonVariant node : nodes) 
+            {
+                const std::string nodeID = node.as<std::string>();
+
+                if (nodeID.length() != 4)
+                {
+                    LOG_ERROR(logger, "DECODING ERROR: INVALID OR CORRUPTED NODE ID: %s", nodeID.c_str());
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+                }
+
+                try
+                {
+                    vectorNode.emplace_back(nodeID);
+                }
+                catch(const std::exception& e)
+                {
+                    LOG_ERROR(logger, "FAILED TO EMPLACE NODE REFERENCE: %s", e.what());
+
+                    return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, map);
+                }
+            }
+            
+            auto it = map.find(intervalValue);
+            if (it == map.end()) 
+            {
+                map.emplace(intervalValue, std::move(vectorNode));
+            }
+            else 
+            {
+                psram::vector<std::string>& dst = it->second;
+                dst.clear();
+                dst.reserve(vectorNode.size());
+                dst.insert(dst.end(),
+                        std::make_move_iterator(vectorNode.begin()),
+                        std::make_move_iterator(vectorNode.end()));
+            }
+
+        }
+
+        return std::make_pair(rsc_e::GOOD, map); 
+    }
+
+#else
+    std::pair<rsc_e, std::map<uint16_t, std::vector<std::string>>> OperationValidator::convertToPublishIntervalCustom(const JsonObject json)
+    {
+        std::map<uint16_t, std::vector<std::string>> map;
+
+        if (json.containsKey("intvSrvCust") == false)
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, map);
+        }
+        
+        if (json["intvSrvCust"].isNull() == true)
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, map);
+        }
+
+        if (json["intvSrvCust"].is<JsonObject>() == false)
+        {
+            return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+        }
+
+        JsonObject intvSrvCust = json["intvSrvCust"].as<JsonObject>();
+        if (intvSrvCust.size() == 0) 
+        {
+            return std::make_pair(rsc_e::GOOD_NO_DATA, map);
+        }
+
+
+        for (JsonPair intervalPair : intvSrvCust)
+        {
+            const char* intv = intervalPair.key().c_str();
+            if (intv == nullptr || *intv == '\0')
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            char* endp = nullptr;
+            unsigned long ul = strtoul(intv, &endp, 10);
+
+            if (endp == intv) 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            if (*endp != '\0') 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            if (ul > UINT16_MAX) 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            uint16_t intervalValue = static_cast<uint16_t>(ul);
+            
+            JsonVariant nodeIdVariant = intervalPair.value();
+            if (!nodeIdVariant.is<JsonArray>()) 
+            {
+                return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+            }
+
+            JsonArray nodes = nodeIdVariant.as<JsonArray>();
+            std::vector<std::string> vectorNode;
+            vectorNode.reserve(nodes.size());
+            
+            for (JsonVariant node : nodes) 
+            {
+                const std::string nodeID = node.as<std::string>();
+
+                if (nodeID.length() != 4)
+                {
+                    LOG_ERROR(logger, "DECODING ERROR: INVALID OR CORRUPTED NODE ID: %s", nodeID.c_str());
+                    return std::make_pair(rsc_e::BAD_INVALID_FORMAT_CONFIG_INSTANCE, map);
+                }
+
+                try
+                {
+                    vectorNode.emplace_back(nodeID);
+                }
+                catch(const std::exception& e)
+                {
+                    LOG_ERROR(logger, "FAILED TO EMPLACE NODE REFERENCE: %s", e.what());
+
+                    return std::make_pair(rsc_e::BAD_UNEXPECTED_ERROR, map);
+                }
+            }
+            
+            auto it = map.find(intervalValue);
+            if (it == map.end()) 
+            {
+                map.emplace(intervalValue, std::move(vectorNode));
+            }
+            else 
+            {
+                std::vector<std::string>& dst = it->second;
+                dst.clear();
+                dst.reserve(vectorNode.size());
+                dst.insert(dst.end(),
+                        std::make_move_iterator(vectorNode.begin()),
+                        std::make_move_iterator(vectorNode.end()));
+            }
+
+        }
+
+        return std::make_pair(rsc_e::GOOD, map); 
+    }
+#endif
+
 }}
