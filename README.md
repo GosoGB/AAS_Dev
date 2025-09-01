@@ -1,3 +1,13 @@
+# 릴리즈 노트 Sep 1, 2025
+## MUFFIN 프레임워크 Ver.1.5.12, Ver.1.5.12 개발 완료
+### MT11 : Ver.1.5.12 / MT10,MODLINKL-L : Ver.1.4.12
+### 신규 기능
+  - [Node별 전송 주기 설정] 주기데이터는 Node별로 전송 주기를 설정할 수 있는 기능이 추가됨, 개별 전송주기를 선택하지 않을 시 기본 전송 주기에 맞춰 서버로 데이터를 전송함
+  - [MT11] stl container에 대해 커스텀 psram allocator 구현
+### 기능 개선
+  - [Defualt Network Service] MFM 설정 값 유효하지 않을 시 네트워크 설정값 복원 기능 구현
+  - [Report] LTE서비스 사용시 LM5, USIM 일련번호 mfm/status로 전송하는 기능 구현
+# <br><br><br>
 # 릴리즈 노트 Aug 6, 2025
 ## MUFFIN 프레임워크 Ver.1.5.01, Ver.1.4.11 개발 완료
 ### MT11 : Ver.1.5.01 / MT10,MODLINKL-L : Ver.1.4.11
