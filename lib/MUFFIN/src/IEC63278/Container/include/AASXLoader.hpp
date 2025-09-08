@@ -19,7 +19,7 @@
 
 namespace muffin { namespace aas {
 
-    
+
     class AASXLoader
     {
     public:
@@ -32,14 +32,6 @@ namespace muffin { namespace aas {
         void countAASX();
         void readAASX();
     private:
-        /**
-         * @todo 
-         * Need to implement following attributes
-         *  - category
-         *  - DataSpecification
-         *  - derivedFrom
-         *  - extensions
-         */
         void loadAssetAdministrationShells();
         void loadSubmodels();
     private:
