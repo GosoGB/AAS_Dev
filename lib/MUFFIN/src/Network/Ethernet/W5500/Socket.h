@@ -161,20 +161,6 @@ namespace muffin { namespace w5500 {
 
 
         /**
-         * @brief Binds the socket to a specific port number.
-         * 
-         * This function assigns the socket to the specified port, allowing it to 
-         * listen for incoming connections or send data from that port.
-         * 
-         * @param port The port number to bind the socket to. Must be a valid 
-         *             16-bit unsigned integer.
-         * @return Status Returns a status indicating the success or failure of 
-         *         the bind operation.
-         */
-        Status Bind(const uint16_t port);
-
-
-        /**
          * @brief Listens for incoming connections on the socket.
          * 
          * This function prepares the socket to accept incoming connections

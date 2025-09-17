@@ -126,6 +126,7 @@ namespace muffin {
             mDNS2 = cin->GetDNS2().second;
         }
 
+        mCRB.Mode.PB = false;
         return Status(Status::Code::GOOD);
     }
 

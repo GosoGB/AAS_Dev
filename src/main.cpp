@@ -18,7 +18,11 @@
 
 #include <IEC63278/Server/Server.hpp>
 
+#include <Network/Ethernet/W5500/Server/Server.hpp>
+#include <Network/Ethernet/W5500/W5500.h>
+#include <IM/Custom/MacAddress/MacAddress.h>
 
+#include <MUFFIN.h>
 
 void log_psram()
 {
@@ -34,29 +38,46 @@ void log_psram()
 
 void setup()
 {
-    Serial.begin(115200);
+    using namespace muffin;
+    using namespace muffin::w5500;
 
-    WiFi.begin("device_team_2.4GHz", "EdgeCross123!@#");
-    // WiFi.begin("Drop It Like It's Hotspot", "RUC=M&ZfE/2hmA,:-");
-    Serial.print("Connecting");
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println();
-    Serial.print("Connected, IP address: ");
-    Serial.println(WiFi.localIP());
+    MUFFIN muffin;
+    muffin.Start();
+    
+    logger.Init();
 
-    const long gmtOffset_sec = 9 * 3600;  
-    const int daylightOffset_sec = 0;     
-    const char* ntpServer = "pool.ntp.org";
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    ethernet = new(std::nothrow) W5500(w5500::if_e::EMBEDDED);
+    ethernet->Init();
+    char mac[13] = {'\0'};
+    ethernet->GetMacAddress(mac);
+    macAddress.SetMacAddress(mac);
 
-    log_psram();
+    ethernet->Connect();
 
-    muffin::aas::Server* server = muffin::aas::Server::GetInstance();;
-    server->Init();
+    muffin::w5500::Server server;
+    server.Begin(80);
+
+    // WiFi.begin("device_team_2.4GHz", "EdgeCross123!@#");
+    // // WiFi.begin("Drop It Like It's Hotspot", "RUC=M&ZfE/2hmA,:-");
+    // Serial.print("Connecting");
+    // while (WiFi.status() != WL_CONNECTED)
+    // {
+    //     delay(500);
+    //     Serial.print(".");
+    // }
+    // Serial.println();
+    // Serial.print("Connected, IP address: ");
+    // Serial.println(WiFi.localIP());
+
+    // const long gmtOffset_sec = 9 * 3600;  
+    // const int daylightOffset_sec = 0;     
+    // const char* ntpServer = "pool.ntp.org";
+    // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
+    // log_psram();
+
+    // muffin::aas::Server* server = muffin::aas::Server::GetInstance();;
+    // server->Init();
         
     // using namespace muffin;
     // using namespace aas;
@@ -82,7 +103,7 @@ void setup()
     // log_d("/submodels\n%s\n", json.c_str());
     // Serial.println();
 
-    log_psram();
+    // log_psram();
 }
 
 

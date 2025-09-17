@@ -4,7 +4,7 @@
  * 
  * @brief 
  * 
- * @date 2025-09-08
+ * @date 2025-09-09
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -19,8 +19,10 @@
 #include <functional>
 #include <string>
 
-#include <HTTP_Method.h>
-#include <Uri.h>
+#include "../EthernetClient.h"
+#include "./Include/HttpMethod.hpp"
+#include "./Include/URI.hpp"
+// #include "./RequestHandler/RequestHandler.hpp"
 
 
 
@@ -59,7 +61,8 @@ namespace muffin { namespace w5500 {
         std::string Type;
         size_t  TotalSize;    // file size
         size_t  CurrentSize;  // size of data currently in buf
-        uint8_t Buffer[HttpServer::UPLOAD_BUFFER_SIZE];
+        // uint8_t Buffer[HttpServer::UPLOAD_BUFFER_SIZE];
+        uint8_t Buffer[1436];
     } http_upload_t;
 
 
@@ -74,18 +77,31 @@ namespace muffin { namespace w5500 {
         void Close();
         void Stop();
     public:
-        void HandleClient();
-        bool Authenticate(const char* username, const char* password);
-        void RequestAuthentication(const http_auth_method_e mode = http_auth_method_e::BASIC_AUTH, const char* realm = NULL, const std::string& authFailMsg);
+        // void HandleClient();
+        // bool Authenticate(const char* username, const char* password);
+        // void RequestAuthentication(const http_auth_method_e mode = http_auth_method_e::BASIC_AUTH, const char* realm = NULL, const std::string& authFailMsg);
     public:
         typedef std::function<void(void)> cbHandler;
-        void OnEvent(const Uri &uri, cbHandler fn);
-        void OnEvent(const Uri &uri, HTTPMethod method, cbHandler fn); 
-        void OnEvent(const Uri &uri, HTTPMethod method, cbHandler fn, cbHandler ufn); //ufn handles file uploads
-        void AddHandler(RequestHandler* handler);
-        void ServeStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_header = NULL );
-        void OnNotFound(cbHandler fn);  //called when handler is not assigned
-        void OnFileUpload(cbHandler ufn); //handle file uploads
+        // void OnEvent(const URI& uri, cbHandler fn);
+        // void OnEvent(const URI& uri, const http_method_e method, cbHandler func);
+        // void AddHandler(RequestHandler* handler);
+        // void OnNotFound(cbHandler func);
+    public:
+        std::string GetURI() const noexcept { return mCurrentURI; }
+        http_method_e GetMethod() const noexcept { return mCurrentMethod; }
+        // EthernetClient GetClieint() const noexcept { return mCurrentClient; }
+        std::string GetPathArg(const uint32_t idx) const;
+        // std::string GetArgName(const uint32_t idx) const;
+        // std::string GetArgValue(const std::string& argName) const;
+        // std::string GetArgValue(const uint32_t idx) const;
+        // bool HasArg(const std::string& argName);
+    public:
+        size_t GetContentLength() const { return mContentLength; }
+    private:
+        std::string mCurrentURI;
+        http_method_e mCurrentMethod;
+        EthernetClient mCurrentClient;
+        size_t mContentLength;
     public:
         static const uint16_t DOWNLOAD_UNIT_SIZE = 1436;
         static const uint16_t UPLOAD_BUFFER_SIZE = 1436;

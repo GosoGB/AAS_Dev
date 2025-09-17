@@ -296,43 +296,35 @@ namespace muffin { namespace w5500 {
         return ret;
     }
 
-
-    Status Socket::Bind(const uint16_t port)
+    
+    Status Socket::Listen()
     {
-        ASSERT((mSRB.Mode.PROTOCOL == sock_prtcl_e::CLOSE), "SOCKET MUST BE UNOPENED MODE");
-        ASSERT((mSRB.Status == ssr_e::CLOSED), "SOCKET MUST BE CLOSED");
-        ASSERT((port != 0), "INVALID PORT NUMBER: %u", port);
+        ASSERT((mSRB.Mode.PROTOCOL == sock_prtcl_e::TCP), "SOCKET MUST BE OPENED IN TCP MODE");
+        ASSERT((mSRB.Status == ssr_e::INIT_TCP), "SOCKET MUST BE INITIALIZED IN TCP MODE");
+        ASSERT((mSRB.SourcePort != 0), "SOURCE PORT IS NOT SET: %u", mSRB.SourcePort);
 
-        Status ret = mW5500.writeSRB(mID, srb_addr_e::PORT_SOURCE, port);
+        // send command 'LISTEN'
+        const uint8_t command = static_cast<uint8_t>(scr_e::LISTEN);
+        Status ret = mW5500.writeSRB(mID, srb_addr_e::COMMAND, command);
         if (ret != Status::Code::GOOD)
         {
-            LOG_ERROR(logger, "FAILED TO WRITE SOURCE PORT: %s", ret.c_str());
+            LOG_ERROR(logger, "FAILED TO LISTEN: %s", ret.c_str());
             return ret;
         }
         
-        uint8_t retrievedPort = 0;
-        ret = mW5500.retrieveSRB(mID, srb_addr_e::PORT_SOURCE, &retrievedPort);
-        if (ret != Status::Code::GOOD)
+        waitCommandCleared();
+        GetStatus();
+      
+        if ((mProtocol == sock_prtcl_e::TCP) && (mSRB.Status == ssr_e::LISTEN))
         {
-            LOG_ERROR(logger, "FAILED TO RETRIEVE SOURCE PORT: %s", ret.c_str());
+            // LOG_DEBUG(logger, "[#%u] The socket has been opened", static_cast<uint8_t>(mID));
             return ret;
         }
-
-        if (port != retrievedPort)
+        else
         {
-            LOG_ERROR(logger, "FAILED TO SOURCE PORT: '%u' != '%u'", port, retrievedPort);
-            return Status(Status::Code::BAD_UNEXPECTED_ERROR);
+            LOG_ERROR(logger, "FAILED TO OPEN SOCKET: 0x%02X", static_cast<uint8_t>(mSRB.Status));
+            return Status(Status::Code::BAD);
         }
-
-        mSRB.SourcePort = port;
-        return ret;
-    }
-
-
-    Status Socket::Listen()
-    {
-        LOG_ERROR(logger, "SOCKET LISTEN NOT IMPLEMENTED");
-        return Status(Status::Code::BAD_NOT_IMPLEMENTED);
     }
 
 
