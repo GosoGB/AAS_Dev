@@ -128,6 +128,7 @@ namespace muffin { namespace w5500 {
         Status GetInterrupt(sir_t* interrupt);
         sock_id_e GetSocketID() const;
         sock_prtcl_e GetProtocol() const;
+        IPAddress GetRemoteIP();
         uint16_t Available();
 
 

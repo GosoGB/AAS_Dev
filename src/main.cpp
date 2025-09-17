@@ -22,7 +22,7 @@
 #include <Network/Ethernet/W5500/W5500.h>
 #include <IM/Custom/MacAddress/MacAddress.h>
 
-#include <MUFFIN.h>
+
 
 void log_psram()
 {
@@ -41,9 +41,6 @@ void setup()
     using namespace muffin;
     using namespace muffin::w5500;
 
-    MUFFIN muffin;
-    muffin.Start();
-    
     logger.Init();
 
     ethernet = new(std::nothrow) W5500(w5500::if_e::EMBEDDED);
@@ -56,6 +53,13 @@ void setup()
 
     muffin::w5500::Server server;
     server.Begin(80);
+
+    for (size_t i = 0; i < 10; i++)
+    {
+        LOG_DEBUG(logger, "HasClient: %s", server.HasClient() ? "true" : "false");
+        delay(1000);
+    }
+    delay(UINT32_MAX);
 
     // WiFi.begin("device_team_2.4GHz", "EdgeCross123!@#");
     // // WiFi.begin("Drop It Like It's Hotspot", "RUC=M&ZfE/2hmA,:-");

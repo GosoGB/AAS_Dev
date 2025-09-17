@@ -36,16 +36,6 @@ namespace muffin { namespace w5500 {
     public:
         EthernetClient();
         EthernetClient(W5500& interface, const sock_id_e idx);
-        // EthernetClient(const EthernetClient& other)
-        //     : Client(other),
-        //       mSocket(other.mSocket),
-        //       mRxBuffer(other.mRxBuffer),
-        //       mIsConnected(other.mIsConnected),
-        //       mTimeout(other.mTimeout),
-        //       mMutex() // 새 Mutex 생성
-        // {
-        //     // 필요한 경우 추가 복사 작업 수행
-        // }
         ~EthernetClient();
     public:
         int connect(IPAddress ip, uint16_t port);

@@ -149,6 +149,22 @@ namespace muffin { namespace w5500 {
         return mProtocol;
     }
 
+
+    IPAddress Socket::GetRemoteIP()
+    {
+        uint32_t numericIP = 0;
+        Status ret = mW5500.retrieveSRB(mID, srb_addr_e::DESTINATION_IPv4, &numericIP);
+        if (ret != Status::Code::GOOD)
+        {
+            LOG_ERROR(logger, "FAILED TO WRITE HOST IP ADDRESS: %s", ret.c_str());
+            return IPAddress();
+        }
+
+        uint8_t buffer[4] { 0 };
+        memcpy(buffer, &numericIP, sizeof(numericIP));
+        return IPAddress(buffer[3], buffer[2], buffer[1], buffer[0]);
+    }
+
     
     uint16_t Socket::Available()
     {
@@ -610,16 +626,15 @@ namespace muffin { namespace w5500 {
         
         while (retrievedInterrupt == 0)
         {
-        #if defined(DEBUG)
-        #endif
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-        GetStatus();
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+            GetStatus();
+
             ret = mW5500.retrieveSRB(mID, srb_addr_e::INTERRUPT_REGISTER, &retrievedInterrupt);
             if (ret != Status::Code::GOOD)
             {
+                yield();
                 continue;
             }
-            // LOG_DEBUG(logger, "Retrieved interrupt: 0x%02X", retrievedInterrupt);
         }
 
         mSRB.Interrupt.SEND_OK       = (retrievedInterrupt >> 4) & 0x01;
