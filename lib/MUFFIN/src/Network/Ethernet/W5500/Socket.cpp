@@ -152,17 +152,15 @@ namespace muffin { namespace w5500 {
 
     IPAddress Socket::GetRemoteIP()
     {
-        uint32_t numericIP = 0;
-        Status ret = mW5500.retrieveSRB(mID, srb_addr_e::DESTINATION_IPv4, &numericIP);
+        uint8_t numericIP[4] = { 0 };
+        Status ret = mW5500.retrieveSRB(mID, srb_addr_e::DESTINATION_IPv4, sizeof(numericIP), numericIP);
         if (ret != Status::Code::GOOD)
         {
             LOG_ERROR(logger, "FAILED TO WRITE HOST IP ADDRESS: %s", ret.c_str());
             return IPAddress();
         }
 
-        uint8_t buffer[4] { 0 };
-        memcpy(buffer, &numericIP, sizeof(numericIP));
-        return IPAddress(buffer[3], buffer[2], buffer[1], buffer[0]);
+        return IPAddress(numericIP[0], numericIP[1], numericIP[2], numericIP[3]);
     }
 
     

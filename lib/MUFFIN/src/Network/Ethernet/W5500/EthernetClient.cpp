@@ -252,7 +252,6 @@ namespace muffin { namespace w5500 {
             LOG_ERROR(logger, "FAILED TO CONNECT: %s", ret.c_str());
             return 0;
         }
-        
 
         mRxBuffer.reset(new EthernetClientRxBuffer(*mSocket, 1436));
         mIsConnected = true;

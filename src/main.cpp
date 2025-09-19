@@ -54,9 +54,9 @@ void setup()
     muffin::w5500::Server server;
     server.Begin(80);
 
-    for (size_t i = 0; i < 10; i++)
+    while (true)
     {
-        LOG_DEBUG(logger, "HasClient: %s", server.HasClient() ? "true" : "false");
+        server.handleClient();
         delay(1000);
     }
     delay(UINT32_MAX);

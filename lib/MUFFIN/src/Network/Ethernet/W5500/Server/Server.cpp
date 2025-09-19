@@ -2,7 +2,7 @@
  * @file Server.cpp
  * @author Lee, Sang-jin (lsj31@edgecross.ai)
  * 
- * @date 2025-09-09
+ * @date 2025-09-19
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -12,6 +12,7 @@
 
 
 
+#include "./Parser.hpp"
 #include "./Server.hpp"
 
 static const char AUTHORIZATION_HEADER[] = "Authorization";
@@ -19,6 +20,15 @@ static const char qop_auth[] PROGMEM = "qop=auth";
 static const char qop_auth_quoted[] PROGMEM = "qop=\"auth\"";
 static const char WWW_Authenticate[] = "WWW-Authenticate";
 static const char Content_Length[] = "Content-Length";
+
+static const uint16_t HTTP_MAX_DATA_WAIT   = 5000; //ms to wait for the client to send the request
+static const uint16_t HTTP_MAX_POST_WAIT   = 5000; //ms to wait for POST data to arrive
+static const uint16_t HTTP_MAX_SEND_WAIT   = 5000; //ms to wait for data chunk to be ACKed
+static const uint16_t HTTP_MAX_CLOSE_WAIT  = 2000; //ms to wait for the client to close the connection
+
+static const size_t CONTENT_LENGTH_UNKNOWN = (size_t) -1;
+static const size_t CONTENT_LENGTH_NOT_SET = (size_t) -2;
+
 
 
 namespace muffin { namespace w5500 {
@@ -46,13 +56,15 @@ namespace muffin { namespace w5500 {
         }
         ASSERT((port != 0), "CONFIG ERROR: PORT CANNOT BE 0");
 
-        mSocket.reset(new Socket(*ethernet, sock_id_e::SOCKET_4, w5500::sock_prtcl_e::TCP));
-        if (mSocket.get() == nullptr)
+        // mSocket.reset(new Socket(*ethernet, sock_id_e::SOCKET_4, w5500::sock_prtcl_e::TCP));
+        mClient.reset(new EthernetClient(*ethernet, sock_id_e::SOCKET_4));
+        if (mClient.get() == nullptr)
         {
-            LOG_ERROR(logger, "SOCK ERROR: SOCKET CREATION FAILED");
+            LOG_ERROR(logger, "CLIENT ERROR: CONSTRUCTION FAILED");
             return;
         }
 
+        mClient->peek();
         Status ret = mSocket->Open(port);
         if (ret != Status::Code::GOOD)
         {
@@ -160,7 +172,6 @@ namespace muffin { namespace w5500 {
             break;
         }
 
-        handleClient(); // 삭제 예정
         return mHasClient;
     }
 
@@ -169,15 +180,65 @@ namespace muffin { namespace w5500 {
     {
         ASSERT((mSocket != nullptr), "SOCKET CANNOT BE NULL");
 
-        // if (HasClient() == false) // 밑에 줄 지워고 지금 있는 줄을 사용할 것
-        if (mHasClient == false)
+        const bool hasClient = HasClient();
+
+        if (mClientStatus == __internal::client_status_e::NO_CLIENT)
         {
-            return;
+            if (hasClient == false)
+            {
+                return;
+            }
+            else
+            {
+                mClientStatus = __internal::client_status_e::WAIT_READ;
+                mClientTimer  = millis();
+
+                const IPAddress remoteIP = mSocket->GetRemoteIP();
+                LOG_DEBUG(logger, "New client with IP=%s", remoteIP.toString().c_str());
+            }
+        }
+        else
+        {
+            if (hasClient == false)
+            {
+                mClientStatus = __internal::client_status_e::NO_CLIENT;
+                LOG_INFO(logger, "Client disconnected");
+                return;
+            }
         }
         
-        const IPAddress remoteIP = mSocket->GetRemoteIP();
-        LOG_DEBUG(logger, "Remote IP: %s", remoteIP.toString().c_str());
-        delay(100);
+        bool keepCurrentClient = false;
+        bool callYield = false;
+
+        if (mSocket->Available() > 0)
+        {
+            ParseRequest(*mSocket.get());
+            keepCurrentClient = true;
+            callYield = true;
+            // if (_parseRequest(_currentClient))
+            // {
+            //     mContentLength = CONTENT_LENGTH_NOT_SET;
+            //     _handleRequest();
+            // }
+        }
+        else
+        {
+            if (uint32_t(millis() - mClientTimer) <= HTTP_MAX_DATA_WAIT)
+            {
+                keepCurrentClient = true;
+            }
+            callYield = true;
+        }
+
+        if (keepCurrentClient == false)
+        {
+            mClientStatus = __internal::client_status_e::NO_CLIENT;
+        }
+
+        if (callYield == true)
+        {
+            yield();
+        }
     }
 
     uint16_t Server::Available()
@@ -185,8 +246,6 @@ namespace muffin { namespace w5500 {
         ASSERT((mSocket != nullptr), "SOCKET CANNOT BE NULL");
         return mSocket->Available();
     }
-
-
 }}
 
 

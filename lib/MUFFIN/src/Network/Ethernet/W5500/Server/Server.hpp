@@ -4,7 +4,7 @@
  * 
  * @brief 
  * 
- * @date 2025-09-09
+ * @date 2025-09-19
  * @version 0.0.1
  * 
  * @copyright Copyright (c) 2025 EdgeCross Inc.
@@ -32,12 +32,26 @@
 
 namespace muffin { namespace w5500 {
 
+
+    namespace __internal {
+
+        typedef enum ClientStatus
+        {
+            NO_CLIENT,
+            WAIT_READ,
+            WAIT_CLOSE
+        } client_status_e;
+    }
+
     
     class Server
     {
     public:
         Server(const uint16_t port = 80)
-            : mPort(port)
+            : mClientStatus(__internal::client_status_e::NO_CLIENT)
+            , mClientTimer(0)
+            , mContentLength(0)
+            , mPort(port)
             , mListening(false)
             , mHasClient(false)
         {
@@ -45,7 +59,10 @@ namespace muffin { namespace w5500 {
         }
 
         Server(const IPAddress& address, const uint16_t port = 80)
-            : mAddress(address)
+            : mClientStatus(__internal::client_status_e::NO_CLIENT)
+            , mClientTimer(0)
+            , mContentLength(0)
+            , mAddress(address)
             , mPort(port)
             , mListening(false)
             , mHasClient(false)
@@ -75,6 +92,7 @@ namespace muffin { namespace w5500 {
 
     private:
         void collectHeaders(const char* headerKeys[], const size_t count);
+    public: // 삭제할 것
         void handleClient();
     private:
         typedef struct RequestArgument
@@ -86,7 +104,13 @@ namespace muffin { namespace w5500 {
         int mHeaderKeyCount;
 
     private:
+        __internal::client_status_e mClientStatus;
+        uint32_t mClientTimer;
+        size_t mContentLength;
+
+    private:
         std::shared_ptr<Socket> mSocket;
+        std::shared_ptr<EthernetClient> mClient;
         IPAddress mAddress;
         uint16_t mPort;
         bool mListening;
