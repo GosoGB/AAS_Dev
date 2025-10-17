@@ -22,35 +22,67 @@
 namespace muffin { namespace w5500 {
 
 
-    bool ParseRequest(Socket& socket)
+    class HttpRequestArgument;
+
+
+    std::string receiveLine(Socket& socket)
     {
-        std::string requset;
+        std::string line;
+        bool hasCR = false;
+
+        while (socket.Available() > 0)
         {
-            ScopedTimer scopedTimer(__FILE__, __FUNCTION__);
-
-            while (socket.Available() > 0)
+            uint8_t data[1] = { 0 };
+            size_t actualLength;
+            Status ret = socket.Receive(sizeof(data), &actualLength, data);
+            if (ret != Status::Code::GOOD)
             {
-                uint8_t data[1] = { 0 };
-                size_t actualLength;
-                socket.Receive(sizeof(data), &actualLength, data);
-
-                if (data[0] == '\r')
-                {
-                    uint8_t data[1] = { 0 };
-                    size_t actualLength;
-                    socket.Receive(sizeof(data), &actualLength, data);
-
-                    if (data[0] == '\n')
-                    {
-                        break;
-                    }
-                }
-                requset += static_cast<char>(data[0]);
+                LOG_WARNING(logger, "I/O ERROR: FAILED TO RETRIEVE THE RECEIVED DATA '%s'", ret.c_str());
+                continue;
             }
+
+            if ((data[0] == '\r') && (hasCR == false))
+            {
+                hasCR = true;
+                continue;
+            }
+
+            if ((data[0] == '\n') && (hasCR == true))
+            {
+                return line;
+            }
+            
+            line += static_cast<char>(data[0]);
+            hasCR = false;
         }
+
+        return std::string();
+    }
+
+    Status handleRequestLine(Socket& socket)
+    {
+        const std::string requestLine = receiveLine(socket);
+        const size_t startOffset = requestLine.find(' ');
+        const size_t endOffset = requestLine.find(' ', startOffset + 1);
+        if ((startOffset == std::string::npos) || (endOffset == std::string::npos))
+        {
+            LOG_ERROR(logger, "BAD REQUEST ERROR: %s", requestLine.c_str());
+            return Status(Status::Code::BAD_REQUEST_HEADER_INVALID);
+        }
+
+        const std::string methoed = requestLine.substr(0, startOffset);
+        const std::string url = requestLine.substr(startOffset + 1, endOffset);
+        const std::string version = "";
+    }
+
+    Status ParseRequest(Socket& socket)
+    {
+        ScopedTimer scopedTimer(__FILE__, __FUNCTION__);
+
+
         
-        LOG_DEBUG(logger, "Request: %s", requset.c_str());
-        return false;
+        
+        delay(UINT32_MAX);
 
 /*
         // Read the first line of HTTP request

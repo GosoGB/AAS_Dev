@@ -56,15 +56,20 @@ namespace muffin { namespace w5500 {
         }
         ASSERT((port != 0), "CONFIG ERROR: PORT CANNOT BE 0");
 
-        // mSocket.reset(new Socket(*ethernet, sock_id_e::SOCKET_4, w5500::sock_prtcl_e::TCP));
-        mClient.reset(new EthernetClient(*ethernet, sock_id_e::SOCKET_4));
+        mSocket.reset(new Socket(*ethernet, sock_id_e::SOCKET_4, w5500::sock_prtcl_e::TCP));
+
+        /**
+         * @todo 여기 살려야 할지 확인 후 처리해야 함
+         */
+        mClient.reset(new EthernetClient(*ethernet, sock_id_e::SOCKET_3));
         if (mClient.get() == nullptr)
         {
             LOG_ERROR(logger, "CLIENT ERROR: CONSTRUCTION FAILED");
             return;
         }
-
         mClient->peek();
+        //--------------------------------------------------------------------
+
         Status ret = mSocket->Open(port);
         if (ret != Status::Code::GOOD)
         {
