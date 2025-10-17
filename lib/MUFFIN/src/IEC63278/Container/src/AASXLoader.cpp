@@ -22,6 +22,7 @@
 #include "../Container.hpp"
 
 #include "Common/Assert.hpp"
+#include "Common/Logger/Logger.h"
 
 
 
@@ -30,6 +31,8 @@ namespace muffin { namespace aas {
 
     void AASXLoader::Start()
     {
+        LOG_INFO(logger, "Start to load AAS models");
+
     #ifndef DEBUG
         microSD 카드에서 AASX JSON 파일 읽어오기 구현해야 함
     #endif
@@ -81,6 +84,8 @@ namespace muffin { namespace aas {
             구현 필요함 --> AssetAdministrationShell::SetDerivedFrom()
             구현 필요함 --> AssetAdministrationShell::SetExtension()
         #endif
+            LOG_INFO(logger, "AAS ID: %s", aas->GetID().c_str());
+            
             Container* container = Container::GetInstance();
             container->AddAssetAdministrationShell(std::move(aas));
         }
@@ -105,6 +110,8 @@ namespace muffin { namespace aas {
             구현 필요함 --> AssetAdministrationShell::SetDerivedFrom()
             구현 필요함 --> AssetAdministrationShell::SetExtension()
         #endif
+            LOG_INFO(logger, "SM ID: %s", submodel->GetID().c_str());
+
             Container* container = Container::GetInstance();
             container->AddSubmodel(std::move(submodel));
         }

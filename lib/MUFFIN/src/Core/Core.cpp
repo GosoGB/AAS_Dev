@@ -26,6 +26,7 @@
 
 #include "DataFormat/CSV/CSV.h"
 
+#include "IEC63278/Container/include/AASXLoader.hpp"
 #include "IM/Custom/Device/DeviceStatus.h"
 #include "JARVIS/JARVIS.h"
 #include "IM/AC/Alarm/DeprecableAlarm.h"
@@ -73,7 +74,6 @@
 #include "Network/Ethernet/LAN8720/LAN8720.h"
 #include "Network/Ethernet/EthernetFactory.h"
 #include "ServiceSets/JarvisServiceSet/FetchConfigService.h"
-
 
 
 
@@ -218,6 +218,10 @@ namespace muffin {
         settimeofday(&tv, NULL);
         
         logger.Init();
+
+        aas::AASXLoader aasxLoader;
+        aasxLoader.Start();
+        
     #if defined(MT10) || defined(MB10) || defined(MT11)
         CommandLineInterface commandLineInterface;
         if (commandLineInterface.Init() == Status(Status::Code::GOOD))
@@ -764,8 +768,8 @@ namespace muffin {
         mqtt["host"] = "mmm.broker.edgecross.ai";
         mqtt["port"] = 8883;
         mqtt["scheme"] = 2;
-        mqtt["id"]   = "edgeaiot";
-        mqtt["pw"]   = "!edge1@1159";
+        mqtt["id"]   = "team-fw";
+        mqtt["pw"]   = "edgecrossfw4590!";
         mqtt["checkCert"] = true;
 
 

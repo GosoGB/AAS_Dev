@@ -86,6 +86,19 @@ namespace muffin { namespace aas {
             return nullptr;
         }
 
+        Submodel* GetSubmodelByID(const Identifier& id)
+        {
+            for (const auto& submodel : mVectorSubmodel)
+            {
+                const Identifier retrievedId = submodel->GetID();
+                if (retrievedId == id)
+                {
+                    return submodel.get();
+                }
+            }
+            return nullptr;
+        }
+
 
         psram::vector<Submodel> GetAllSubmodels() const
         {

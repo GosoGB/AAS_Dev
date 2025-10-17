@@ -642,7 +642,7 @@ namespace muffin { namespace aas {
             
             if (property->GetValue() != nullptr)
             {
-                doc["value"] = *property->GetValue();
+                doc["value"] = round(*property->GetValue() * 100) / 100.0;
             }
             
             if (property->GetValueID() != nullptr)

@@ -74,6 +74,13 @@ namespace muffin { namespace mqtt {
             "scautr/resp/%s",
             macAddress.GetEthernet()
         );
+
+        snprintf(
+            mAAS_MQTT,
+            sizeof(mAAS_MQTT),
+            "submodels/%s/submodel-elements/RealTimeMonitoring",
+            SUBMODEL_ID_BASE64
+        );
     }
      
     const char* Topic::ToString(const topic_e topicCode)
@@ -139,6 +146,9 @@ namespace muffin { namespace mqtt {
             
         case topic_e::FOTA_STATUS:
             return mFotaStatus;
+
+        case topic_e::AAS_MQTT:
+            return mAAS_MQTT;
             
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));

@@ -28,8 +28,8 @@ namespace muffin { namespace mqtt {
     class BrokerInfo
     {
     public:
-        BrokerInfo(const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "edgeaiot", const char* password = "!edge1@1159", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true, const bool enableValidateCert = true);
-        BrokerInfo(const char* clientID, const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "edgeaiot", const char* password = "!edge1@1159", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true, const bool enableValidateCert = true);
+        BrokerInfo(const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "team-fw", const char* password = "edgecrossfw4590!", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true, const bool enableValidateCert = true);
+        BrokerInfo(const char* clientID, const char* host = "mmm.broker.edgecross.ai", const uint16_t port = 8883, const uint16_t keepalive = 7, const socket_e socketID = socket_e::SOCKET_0, const char* username = "team-fw", const char* password = "edgecrossfw4590!", const version_e version = version_e::Ver_3_1_1, const bool enableSSL = true, const bool enableValidateCert = true);
         BrokerInfo(const BrokerInfo&& obj) noexcept;
         virtual ~BrokerInfo();
     public:
