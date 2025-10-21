@@ -107,16 +107,16 @@ namespace muffin { namespace aas {
 
         const SubmodelElement* GetElementWithIdShort(const psram::string& idShort) const
         {
-            auto it = std::find_if(
-                mSubmodelElements.cbegin(), 
-                mSubmodelElements.cend(), 
-                [&idShort](const psram::unique_ptr<SubmodelElement>& element)
+            for (auto& sme : mSubmodelElements)
+            {
+                if (idShort == sme->GetIdShortOrNull())
                 {
-                    return element->GetIdShortOrNull();
+                    return sme.get();
                 }
-            );
+            }
 
-            return (it != mSubmodelElements.cend()) ? it->get() : nullptr;
+            log_w("BAD idShort: PROPERTY NOT FOUND");
+            return nullptr;
         }
     
 

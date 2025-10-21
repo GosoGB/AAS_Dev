@@ -53,7 +53,6 @@ namespace muffin { namespace aas {
 
         JsonDocument doc = SerializeSubmodelElement(*property);
         serializeJson(doc, output);
-        log_d("output: %s", output.c_str());
         return output;
     }
 

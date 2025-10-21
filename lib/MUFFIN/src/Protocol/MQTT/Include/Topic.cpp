@@ -76,10 +76,24 @@ namespace muffin { namespace mqtt {
         );
 
         snprintf(
-            mAAS_MQTT,
-            sizeof(mAAS_MQTT),
+            mAAS_OPERATIONALDATA_RTM,
+            sizeof(mAAS_OPERATIONALDATA_RTM),
             "submodels/%s/submodel-elements/RealTimeMonitoring",
-            SUBMODEL_ID_BASE64
+            SM_ID_B64_OPERATIONAL_DATA
+        );
+
+        snprintf(
+            mAAS_OPERATIONALDATA_JP,
+            sizeof(mAAS_OPERATIONALDATA_JP),
+            "submodels/%s/submodel-elements/JobProgress",
+            SM_ID_B64_OPERATIONAL_DATA
+        );
+
+        snprintf(
+            mAAS_CONFIGURATION,
+            sizeof(mAAS_CONFIGURATION),
+            "submodels/%s/submodel-elements/BasicConfiguration",
+            SM_ID_B64_CONFIGURATION
         );
     }
      
@@ -147,8 +161,14 @@ namespace muffin { namespace mqtt {
         case topic_e::FOTA_STATUS:
             return mFotaStatus;
 
-        case topic_e::AAS_MQTT:
-            return mAAS_MQTT;
+        case topic_e::AAS_OPERATIONALDATA_RTM:
+            return mAAS_OPERATIONALDATA_RTM;
+
+        case topic_e::AAS_OPERATIONALDATA_JP:
+            return mAAS_OPERATIONALDATA_JP;
+
+        case topic_e::AAS_CONFIGURATION:
+            return mAAS_CONFIGURATION;
             
         default:
             ASSERT(false, "UNDEFINED TOPIC CODE: %u", static_cast<uint8_t>(topicCode));

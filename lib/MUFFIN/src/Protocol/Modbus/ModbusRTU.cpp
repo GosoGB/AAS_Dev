@@ -576,7 +576,7 @@ Status ModbusRTU::PollTemp()
 
             if (lastError != nullptr)
             {
-                LOG_ERROR(logger, "[INPUT REGISTERS] FAILED TO POLL: %s", lastError);
+                LOG_ERROR(logger, "[INPUT REGISTERS] FAILED TO POLL: %s, [%u, %u]", lastError, startAddress, pollQuantity);
                 ret = Status(Status::Code::BAD_DATA_UNAVAILABLE);
                 for (size_t i = 0; i < pollQuantity; i++)
                 {
