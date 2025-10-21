@@ -237,7 +237,9 @@ namespace muffin { namespace aas {
     psram::string ConvertToString(const data_type_def_xsd_e xsd)
     {
         ASSERT(
-            (static_cast<uint8_t>(xsd) < static_cast<uint8_t>(data_type_def_xsd_e::ANY_URI) + 1), "UNDEFINED VALUE FOR XSD DATA TYPE");
+            (static_cast<uint8_t>(xsd) < static_cast<uint8_t>(data_type_def_xsd_e::ANY_URI) + 1),
+            "UNDEFINED VALUE FOR XSD DATA TYPE: %d", static_cast<uint8_t>(xsd)
+        );
 
         return DATA_TYPE_DEF_XSD_STRING[static_cast<uint8_t>(xsd)];
     }
