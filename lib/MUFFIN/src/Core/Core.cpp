@@ -218,7 +218,7 @@ namespace muffin {
         settimeofday(&tv, NULL);
         
         logger.Init();
-
+        
         aas::AASXLoader aasxLoader;
         aasxLoader.Start();
         
@@ -400,6 +400,7 @@ namespace muffin {
             std::abort();
         }
 #endif
+        bool isJarvisConfigLoaded = true;
         ret = loadJarvisConfig();
         if (ret == Status::Code::BAD_DATA_LOST)
         {
@@ -409,6 +410,7 @@ namespace muffin {
         else if (ret == Status::Code::UNCERTAIN)
         {
             LOG_WARNING(logger, "JARVIS CONFIG MIGHT NOT WORK");
+            isJarvisConfigLoaded = false;
             ret = loadNetworkConfig();
             if (ret != Status::Code::GOOD)
             {
@@ -552,6 +554,11 @@ namespace muffin {
         }
         
         esp32FS.Remove(LWIP_HTTP_PATH);
+        
+        if (isJarvisConfigLoaded == false)
+        {
+            return;
+        }
         
         PublishFirmwareStatusMessageService();
         PublishStatusEventMessageService(&initConfig);
@@ -768,8 +775,8 @@ namespace muffin {
         mqtt["host"] = "mmm.broker.edgecross.ai";
         mqtt["port"] = 8883;
         mqtt["scheme"] = 2;
-        mqtt["id"]   = "team-fw";
-        mqtt["pw"]   = "edgecrossfw4590!";
+        mqtt["id"]   = "edgeaiot";
+        mqtt["pw"]   = "!edge1@1159";
         mqtt["checkCert"] = true;
 
 

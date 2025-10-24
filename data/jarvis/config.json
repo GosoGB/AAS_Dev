@@ -1,0 +1,1 @@
+{"ver":"v4","cnt":{"rs232":[],"rs485":[],"wifi":[],"eth":[{"dhcp":true,"ip":null,"snm":null,"gtw":null,"dns1":null,"dns2":null,"eths":0}],"catm1":[],"mbrtu":[],"mbtcp":[],"mc":[],"op":[{"snic":"eth","exp":false,"intvPoll":1,"intvSrv":60,"intvSrvCust":null,"rst":false}],"node":[],"alarm":[],"optime":[],"prod":[]}}

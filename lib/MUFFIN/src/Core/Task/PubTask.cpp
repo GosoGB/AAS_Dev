@@ -98,7 +98,8 @@ namespace muffin {
         std::map<uint16_t, std::vector<im::Node*>> IntervalNodeMap = nodeStore.GetIntervalCustomNode(IntervalCustomMap, defaultInterval);        
         std::vector<im::Node*> eventNodeVector = nodeStore.GetEventNode();
     #endif
-
+    
+    #if defined(DEBUG)
         for (const auto& pair : IntervalNodeMap) 
         {
             LOG_INFO(logger,"Interval: %u, Node Count: %u", pair.first, pair.second.size());
@@ -107,7 +108,8 @@ namespace muffin {
                 LOG_INFO(logger," NodeID: %s", node->GetNodeID());
             }
         }
-        
+    #endif
+    
         uint32_t statusReportMillis = millis(); 
         bool initFlag = true;
         std::map<uint16_t, uint64_t> TimeTrackerMap;
@@ -250,8 +252,8 @@ namespace muffin {
                 {
                     TimeTrackerMap[interval] = baseIntervalTimestamp + (((now - baseIntervalTimestamp) / intervalMillis) + 1) * intervalMillis;
 
-                    LOG_WARNING(logger, "Interval: %u, Node Count: %u", interval, nodeVec.size());
-                    LOG_WARNING(logger, "TimeTrackerMap[%u]: %llu", interval, TimeTrackerMap[interval]);
+                    LOG_DEBUG(logger, "Interval: %u, Node Count: %u", interval, nodeVec.size());
+                    LOG_DEBUG(logger, "TimeTrackerMap[%u]: %llu", interval, TimeTrackerMap[interval]);
 
                     for (auto& node : nodeVec) 
                     {

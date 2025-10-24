@@ -101,8 +101,8 @@ namespace muffin {
             mqtt["port"] = 8883;
             mqtt["scheme"] = 2;
             mqtt["checkCert"] = true;
-            mqtt["id"]   = "team-fw";
-            mqtt["pw"]   = "edgecrossfw4590!";
+            mqtt["id"]   = "edgeaiot";
+            mqtt["pw"]   = "!edge1@1159";
 
             
             JsonObject mfm = doc["mfm"].to<JsonObject>();
