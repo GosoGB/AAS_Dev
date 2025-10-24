@@ -25,24 +25,24 @@ void setup()
 
     muffin::aas::Client* client = muffin::aas::Client::GetInstance();
     
-    client->AddEntry("n001", "CurrentPositionMm");
-    client->AddEntry("n002", "CurrentPositionYd");
-    client->AddEntry("n003", "LengthOffsetMm");
-    client->AddEntry("n004", "LengthSettingYd");
-    client->AddEntry("n005", "CurrentOutputEA");
-    client->AddEntry("n006", "TargetQuantityEA");
-    client->AddEntry("n007", "TensionCompStartPct");
-    client->AddEntry("n008", "TensionCompMidPct");
-    client->AddEntry("n009", "TensionCompEndPct");
-    client->AddEntry("n010", "Roller1ManualRatioPct");
-    client->AddEntry("n011", "Roller2ManualRatioPct");
-    client->AddEntry("n012", "Roller1AutoRatioPct");
-    client->AddEntry("n013", "Roller2AutoRatioPct");
-    client->AddEntry("n014", "ElevatorRiseTimeSec");
-    client->AddEntry("n015", "CutLimitDelaySec");
-    client->AddEntry("n016", "CutterWheelAutoSpeedRpm");
-    client->AddEntry("n017", "WebDetectDelaySec");
-    client->AddEntry("n018", "TensionCompStopPct");
+    client->AddEntry("n018", "CurrentPositionMm");
+    client->AddEntry("n017", "CurrentPositionYd");
+    client->AddEntry("n016", "LengthOffsetMm");
+    client->AddEntry("n015", "LengthSettingYd");
+    client->AddEntry("n014", "CurrentOutputEA");
+    client->AddEntry("n013", "TargetQuantityEA");
+    client->AddEntry("n012", "TensionCompStartPct");
+    client->AddEntry("n011", "TensionCompMidPct");
+    client->AddEntry("n010", "TensionCompEndPct");
+    client->AddEntry("n009", "Roller1ManualRatioPct");
+    client->AddEntry("n008", "Roller2ManualRatioPct");
+    client->AddEntry("n007", "Roller1AutoRatioPct");
+    client->AddEntry("n006", "Roller2AutoRatioPct");
+    client->AddEntry("n005", "ElevatorRiseTimeSec");
+    client->AddEntry("n004", "CutLimitDelaySec");
+    client->AddEntry("n003", "CutterWheelAutoSpeedRpm");
+    client->AddEntry("n002", "WebDetectDelaySec");
+    client->AddEntry("n001", "TensionCompStopPct");
 
     client->Start();
     

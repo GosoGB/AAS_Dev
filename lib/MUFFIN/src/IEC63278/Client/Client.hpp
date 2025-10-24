@@ -32,6 +32,11 @@
 namespace muffin { namespace aas {
 
 
+    static uint32_t sRealtimeMonitorTimer = millis();
+    static uint32_t sJobProgressTimer = millis();
+    static uint32_t sConfigurationTimer = millis();
+
+
     class Client
     {
     public:
@@ -126,8 +131,20 @@ namespace muffin { namespace aas {
             {
                 const data_type_def_xsd_e _xsd = data_type_def_xsd_e::FLOAT;
                 Property<_xsd>* property = static_cast<Property<_xsd>*>(dataElement);
-                property->SetValue(data.Value.Float32);
-                // LOG_DEBUG(logger, "idShort: %s ---> value: %.2f", property->GetIdShortOrNull(), data.Value.Float32);
+
+                switch (data.DataType)
+                {
+                case jvs::dt_e::FLOAT32:
+                    property->SetValue(data.Value.Float32);
+                    break;
+                
+                case jvs::dt_e::FLOAT64:
+                    property->SetValue(data.Value.Float64);
+                    break;
+                
+                default:
+                    break;
+                }
                 break;
             }
 
@@ -223,13 +240,11 @@ namespace muffin { namespace aas {
                 updateProperty(xsd, data, dataElement);
             }
 
-            static uint32_t realtimeMonitorTimer = millis();
-
-            if (uint32_t(millis() - realtimeMonitorTimer) < CYCLICAL_TIMER)
+            if (uint32_t(millis() - sRealtimeMonitorTimer) < CYCLICAL_TIMER)
             {
                 return;
             }
-            realtimeMonitorTimer = millis();
+            sRealtimeMonitorTimer = millis();
 
             SubmodelsSerializer submodelSerializer;
             psram::string json = submodelSerializer.EncodeProperty(SM_ID_OPERATIONAL_DATA, "RealTimeMonitoring");
@@ -259,13 +274,11 @@ namespace muffin { namespace aas {
                 updateProperty(xsd, data, dataElement);
             }
 
-            static uint32_t realtimeMonitorTimer = millis();
-
-            if (uint32_t(millis() - realtimeMonitorTimer) < CYCLICAL_TIMER)
+            if (uint32_t(millis() - sJobProgressTimer) < CYCLICAL_TIMER)
             {
                 return;
             }
-            realtimeMonitorTimer = millis();
+            sJobProgressTimer = millis();
 
             SubmodelsSerializer submodelSerializer;
             psram::string json = submodelSerializer.EncodeProperty(SM_ID_OPERATIONAL_DATA, "JobProgress");
@@ -295,13 +308,11 @@ namespace muffin { namespace aas {
                 updateProperty(xsd, data, dataElement);
             }
 
-            static uint32_t realtimeMonitorTimer = millis();
-
-            if (uint32_t(millis() - realtimeMonitorTimer) < CYCLICAL_TIMER)
+            if (uint32_t(millis() - sConfigurationTimer) < CYCLICAL_TIMER)
             {
                 return;
             }
-            realtimeMonitorTimer = millis();
+            sConfigurationTimer = millis();
 
             SubmodelsSerializer submodelSerializer;
             psram::string json = submodelSerializer.EncodeProperty(SM_ID_CONFIGURATION, "BasicConfiguration");
@@ -322,7 +333,6 @@ namespace muffin { namespace aas {
             Container* container = Container::GetInstance();
             const Submodel* smOperationalData = container->GetSubmodelByID(SM_ID_OPERATIONAL_DATA);
             const Submodel* smConfiguration = container->GetSubmodelByID(SM_ID_CONFIGURATION);
-            bool hasChange = false;
 
             while (true)
             {
