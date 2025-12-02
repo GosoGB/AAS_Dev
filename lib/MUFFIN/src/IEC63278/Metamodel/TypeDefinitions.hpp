@@ -138,6 +138,20 @@ namespace muffin { namespace aas {
     } data_type_def_xsd_e;
 
 
+    /**
+     * @brief
+     * Data types for RDF.
+     * 
+     * @note
+     * Currently only langString is supported.
+     */
+    typedef enum class DataTypeDefRdf
+        : uint8_t
+    {
+        LANG_STRING
+    } data_type_def_rdf_e;
+
+
     typedef enum class ModelingKindEnum
         : uint8_t
     {
