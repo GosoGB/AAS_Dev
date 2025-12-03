@@ -20,26 +20,30 @@
 #include <string>
 #include <vector>
 #include <cstddef>
+#include <memory>
 #include "Common/PSRAM.hpp"
 
-#include "./Utility/XsdTypeMapper.hpp"
-
 namespace muffin { namespace aas {
+
+    class IValue; // Forward declaration
 
     // Primitive Type Aliases from AAS Metamodel v3.1.2
     // A central place for all primitive type definitions based on standard types.
 
-    using Identifier       = psram::string;        // string with max 2000 characters
+
+    using ValueDataType    = psram::unique_ptr<IValue>;
+    using Identifier       = psram::string;        // string with max 2048 characters
     using LabelType        = psram::string;        // string with max 64 characters
     using NameType         = psram::string;        // string with max 128 characters
     using QualifierType    = NameType;           // string with max 128 characters
     using VersionType      = psram::string;        // string with max 4 characters
     using RevisionType     = psram::string;      // string with max 4 characters
-    using ContentType      = psram::string;        // string with max 100 characters (MIME type)
-    using PathType         = Identifier;        // string with max 2000 characters (URI)
+    using ContentType      = psram::string;        // string with max 128 characters (MIME type)
+    using PathType         = Identifier;        // string with max 2048 characters (URI)
     using MessageTopicType = psram::string;      // string with max 255 characters
+    using DateTimeUtc      = psram::string;      // dateTime for UTC
     using BlobType         = psram::vector<uint8_t>; // base64binary
-    // using ValueDataType    = xsd_type_mapper<data_type_def_xsd_e::STRING>;   가변적인 타입에 대해 어떻게 표현할지 고민중
+
 
     // Structure for strings with language tags based on RDF data type 'langString'
     struct LangString {
@@ -48,6 +52,6 @@ namespace muffin { namespace aas {
     };
 
     using LangStringSet           = psram::vector<LangString>;
-    using MultiLanguageNameType   = LangStringSet; // Each 'text' has max 1023 chars.
+    using MultiLanguageNameType   = LangStringSet; // Each 'text' has max 128 chars.
     using MultiLanguageTextType   = LangStringSet; // Each 'text' has max 1023 chars.
 }}

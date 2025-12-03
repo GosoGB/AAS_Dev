@@ -35,11 +35,13 @@ namespace muffin { namespace aas {
      *      - concrete, clearly identifiable component of a certain type
      *        [source: IEC 62890:2016, 3.1.16] 65/617/CDV
      */
-    typedef enum class AssetKind
+    typedef enum class AssetKindEnum
         : uint8_t
     {
         TYPE,
         INSTANCE,
+        ROLE,
+        NOT_APPLICABLE,
         TOP
     } asset_kind_e;
 
@@ -48,7 +50,7 @@ namespace muffin { namespace aas {
      * @brief
      * Reference to either a model element of the same or another AAS or to an external entity.
      */
-    typedef enum class ReferenceTypes
+    typedef enum class ReferenceTypesEnum
         : uint8_t
     {
         EXTERNAL_REFERENCE,
@@ -67,33 +69,33 @@ namespace muffin { namespace aas {
      * The elements remain except for new 'SubmodelElementList', and renamed submodel elements 
      * 'Event' and 'BasicEvent' to 'EventElement' and 'BasicEventElement'.
      */
-    typedef enum class KeyTypes
+    typedef enum class KeyTypesEnum
         : uint8_t
     {
-        REFERABLE,
-        FRAGMENT_REFERENCE,
-        GLOBAL_REFERENCE,
-        ASSET_ADMINISTRATION_SHELL,
-        CONCEPT_DESCRIPTION,
-        IDENTIFIABLE,
-        SUBMODEL,
         ANNOTATED_RELATIONSHIP_ELEMENT,
+        ASSET_ADMINISTRATION_SHELL,
         BASIC_EVENT_ELEMENT,
         BLOB,
         CAPABILITY,
+        CONCEPT_DESCRIPTION,
         DATA_ELEMENT,
         ENTITY,
         EVENT_ELEMENT,
         FILE,
+        FRAGMENT_REFERENCE,
+        GLOBAL_REFERENCE,
+        IDENTIFIABLE,
         MULTI_LANGUAGE_PROPERTY,
         OPERATION,
         PROPERTY,
         RANGE,
+        REFERABLE,
         REFERENCE_ELEMENT,
         RELATIONSHIP_ELEMENT,
+        SUBMODEL,
         SUBMODEL_ELEMENT,
-        SubmodelElementCollection,
-        SubmodelElementList,
+        SUBMODEL_ELEMENT_COLLECTION,
+        SUBMODEL_ELEMENT_LIST,
         TOP // sentinel value indicating the value's  undefined
     } key_types_e;
 
@@ -110,15 +112,12 @@ namespace muffin { namespace aas {
         DATE,                   // Date (yyyy‑mm‑dd), optional timezone
         TIME,                   // Time (hh:mm:ss.sss…), optional timezone
         DATETIME,               // Date and time, optional timezone
-        DATETIMESTAMP,          // Date and time, required timezone
         G_YEAR,                 // Gregorian calendar year
         G_MONTH,                // Gregorian month
         G_DAY,                  // Gregorian day
         G_YEAR_MONTH,           // Gregorian year and month
         G_MONTH_DAY,            // Gregorian month and day
         DURATION,               // General duration
-        YEAR_MONTH_DURATION,    // Duration (years & months)
-        DAYTIME_DURATION,       // Duration (days, hours, minutes, seconds)
         BYTE,                   // 8‑bit signed integer (‑128 to 127)
         SHORT,                  // 16‑bit signed integer (‑32,768 to 32,767)
         INT,                    // 32‑bit signed integer
@@ -131,10 +130,9 @@ namespace muffin { namespace aas {
         NON_NEGATIVE_INTEGER,   // Integer ≥ 0
         NEGATIVE_INTEGER,       // Integer < 0
         NON_POSITIVE_INTEGER,   // Integer ≤ 0
-        // HEX_BINARY,             // Hex-encoded binary data
-        // BASE64_BINARY,          // Base64-encoded binary
+        HEX_BINARY,             // Hex-encoded binary data
+        BASE64_BINARY,          // Base64-encoded binary
         ANY_URI                 // Absolute or relative URI/IRI
-        // LANG_STRING             // String with language tag (RDF/Turtle syntax)
     } data_type_def_xsd_e;
 
 
@@ -169,4 +167,88 @@ namespace muffin { namespace aas {
         TEMPLATE_QUALIFIER,
         TOP
     } qualifier_kind_e;
+
+
+    typedef enum class DirectionEnum
+        : uint8_t
+    {
+        INPUT,
+        OUTPUT,
+        TOP
+    } direction_e;
+
+
+    typedef enum class StateOfEventEnum
+        : uint8_t
+    {
+        ON,
+        OFF,
+        TOP
+    } state_of_event_e;
+    
+
+    typedef enum class EntityTypeEnum
+        : uint8_t
+    {
+        CO_MANAGED_ENTITY,
+        SELF_MANAGED_ENTITY,
+        TOP
+    } entity_type_e;
+
+
+    typedef enum class AasSubmodelElementsEnum
+        : uint8_t
+    {
+        ANNOTATED_RELATIONSHIP_ELEMENT,
+        BASIC_EVENT_ELEMENT,
+        BLOB,
+        CAPABILITY,
+        DATA_ELEMENT,
+        ENTITY,
+        EVENT_ELEMENT,
+        FILE,
+        MULTI_LANGUAGE_PROPERTY,
+        OPERATION,
+        PROPERTY,
+        RANGE,
+        REFERENCE_ELEMENT,
+        RELATIONSHIP_ELEMENT,
+        SUBMODEL_ELEMENT,
+        SUBMODEL_ELEMENT_COLLECTION,
+        SUBMODEL_ELEMENT_LIST,
+        TOP
+    } aas_submodel_elements_e;
+
+
+    typedef enum class FragmentKeysEnum
+        : uint8_t
+    {
+        ANNOTATED_RELATIONSHIP_ELEMENT,
+        BASIC_EVENT_ELEMENT,
+        BLOB,
+        CAPABILITY,
+        DATA_ELEMENT,
+        ENTITY,
+        EVENT_ELEMENT,
+        FILE,
+        FRAGMENT_REFERENCE,
+        MULTI_LANGUAGE_PROPERTY,
+        OPERATION,
+        PROPERTY,
+        RANGE,
+        REFERENCE_ELEMENT,
+        RELATIONSHIP_ELEMENT,
+        SUBMODEL_ELEMENT,
+        SUBMODEL_ELEMENT_COLLECTION,
+        SUBMODEL_ELEMENT_LIST,
+        TOP
+    } fragment_keys_e;
+
+
+    typedef enum class DataTypeDefRdfEnum
+        : uint8_t
+    {
+        LANG_STRING,
+        TOP
+    } data_type_def_rdf_e;
 }}
